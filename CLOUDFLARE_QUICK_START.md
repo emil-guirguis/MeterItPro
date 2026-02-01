@@ -16,10 +16,10 @@ This will create the production build in `client/frontend/dist/`
 2. **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**
 3. Connect your repository
 4. Use these build settings:
+   - **Root directory**: `/` (the project root)
    - **Build command**: `npm run build:client`
    - **Build output directory**: `client/frontend/dist`
-   - **Root directory**: `/` (root)
-   - **Node version**: 18
+   - **Node version**: 18 (or higher)
 
 #### Option B: Via Wrangler CLI
 ```bash
