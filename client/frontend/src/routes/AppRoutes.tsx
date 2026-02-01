@@ -4,6 +4,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { ProtectedRoute, AuthGuard } from '../components/auth';
 import AppLayoutWrapper from '../components/layout/AppLayoutWrapper';
 import LoginPage from '../pages/LoginPage';
+import LandingPage from '../pages/LandingPage';
 import { ForgotPasswordPage, PasswordResetPage, TwoFactorManagementPage } from '../pages/auth';
 import { DashboardPage } from '../pages/DashboardPage';
 import { MeterReadingsPage } from '../pages/MeterReadingsPage';
@@ -179,11 +180,11 @@ const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* Landing page */}
+        <Route path="/" element={<LandingPage />} />
         
-        {/* Catch all - redirect to dashboard */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Catch all - redirect to landing */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
   );
