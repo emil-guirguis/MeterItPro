@@ -37,7 +37,9 @@ export let remotePool: Pool;
 /**
  * Initialize both database pools from environment variables
  */
-export function initializePools(): void {
+export async function initializePools() {
+    let sync, remote;
+
   // Initialize sync database pool
   const syncConfig: DatabaseConfig = {
     host: process.env.POSTGRES_SYNC_HOST || 'localhost',
@@ -59,14 +61,18 @@ export function initializePools(): void {
   } as any);
 
   syncPool.on('error', (err) => {
-    console.error('Unexpected error on sync database idle client', err);
+    console.error('Unexpected error on sync database sync lient', err);
+    throw err;
   });
 
-  console.log('\n📊 [Database Config] Sync Pool initialized:');
-  console.log(`   Host: ${syncConfig.host}`);
-  console.log(`   Port: ${syncConfig.port}`);
-  console.log(`   Database: ${syncConfig.database}`);
-  console.log(`   User: ${syncConfig.user}\n`);
+  // try {
+  //   sync = await syncPool.connect();
+  //   console.log('Successfully connected to the local sync database');
+  //   sync.release(); // Release client back to the pool
+  // } catch (err) {
+  //   console.error('Failed to connect to the local sync database', err);
+  //   throw err;
+  // }
 
   // Initialize remote database pool
   const remoteConfig: DatabaseConfig = {
@@ -90,13 +96,16 @@ export function initializePools(): void {
 
   remotePool.on('error', (err) => {
     console.error('Unexpected error on remote database idle client', err);
+    throw err;
   });
 
-  console.log('\n📊 [Database Config] Remote Pool initialized:');
-  console.log(`   Host: ${remoteConfig.host}`);
-  console.log(`   Port: ${remoteConfig.port}`);
-  console.log(`   Database: ${remoteConfig.database}`);
-  console.log(`   User: ${remoteConfig.user}\n`);
+  // try {
+  //   remote = await remotePool.connect();
+  //   console.log('Successfully connected to the remote  database');
+  //   remote.release(); 
+  // } catch (err) {
+  //   console.error('Failed to connect to the remote  database', err);
+  // }
 }
 
 /**
@@ -116,27 +125,12 @@ export async function closePools(): Promise<void> {
 export class SyncDatabase {
   private pool: Pool;
 
-  constructor(config: DatabaseConfig) {
-    // Use the global syncPool if available, otherwise create a new one
-    if (syncPool) {
-      this.pool = syncPool;
-    } else {
-      this.pool = new Pool({
-        host: config.host,
-        port: config.port,
-        database: config.database,
-        user: config.user,
-        password: config.password,
-        max: config.max || 10,
-        idleTimeoutMillis: config.idleTimeoutMillis || 30000,
-        connectionTimeoutMillis: config.connectionTimeoutMillis || 2000,
-      } as any);
-
-      // Handle pool errors
-      this.pool.on('error', (err) => {
-        console.error('Unexpected error on idle client', err);
-      });
+  constructor(config?: DatabaseConfig) {
+    // Always use the global syncPool (initialized by initializePools())
+    if (!syncPool) {
+      throw new Error('SyncDatabase requires initializePools() to be called first. Global syncPool is not initialized.');
     }
+    this.pool = syncPool;
   }
 
   /**
@@ -175,21 +169,12 @@ export class SyncDatabase {
       // Create meter table
       await execQuery(this.pool,
         `CREATE TABLE IF NOT EXISTS meter (
-          id INTEGER PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          type VARCHAR(100),
-          serial_number VARCHAR(255),
-          installation_date VARCHAR(50),
+          meter_id INTEGER PRIMARY KEY,
           device_id INTEGER,
           location_id INTEGER,
           ip VARCHAR(50),
           port VARCHAR(10),
-          protocol VARCHAR(50),
-          status VARCHAR(50),
-          notes TEXT,
           active BOOLEAN DEFAULT true,
-          created_at VARCHAR(50),
-          updated_at VARCHAR(50),
           meter_element_id INTEGER,
           element VARCHAR(255)
         )`);
@@ -482,7 +467,7 @@ export class SyncDatabase {
 
       const result = await this.pool.query(query, params);
       const updatedCount = result.rowCount || 0;
-      
+
       console.log(`✅ [SQL] Marked ${updatedCount} reading(s) as synchronized${tenantId ? ` for tenant ${tenantId}` : ''}`);
       return updatedCount;
     } catch (error) {
@@ -536,7 +521,7 @@ export class SyncDatabase {
     try {
       const query = `SELECT download_batch_size, upload_batch_size FROM tenant WHERE id = $1`;
       const result = await execQuery(this.pool, query, [tenantId], 'data-sync.ts>getTenantBatchConfig');
-      
+
       if (result.rows.length === 0) {
         console.warn(`⚠️  [SQL] Tenant ${tenantId} not found, using default batch sizes`);
         return {
@@ -722,7 +707,7 @@ export class SyncDatabase {
         return;
       }
 
-      const sql = `UPDATE tenant SET api_key = $1, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = $2`;
+      const sql = `UPDATE tenant SET api_key = $1 WHERE tenant_id = $2`;
       const result = await this.pool.query(sql, [apiKey, tenant.tenant_id]);
 
       if (result.rowCount === 0) {
@@ -804,12 +789,12 @@ export class SyncDatabase {
            device_id 
          FROM meter
          ORDER BY meter_id, meter_element_id`;
-    
+
     console.log(`\n🔍 [DATA-SYNC] Executing getMeters query (activeOnly=${activeOnly})`);
     console.log(`   Query: ${query}`);
-    
+
     const result = await execQuery(this.pool, query);
-    
+
     console.log(`\n📊 [DATA-SYNC] getMeters returned ${result.rows.length} rows`);
     if (result.rows.length > 0) {
       console.log(`   First 3 rows:`);
@@ -820,7 +805,7 @@ export class SyncDatabase {
         console.log(`   ... and ${result.rows.length - 3} more rows`);
       }
     }
-    
+
     return result.rows;
   }
 

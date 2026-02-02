@@ -80,17 +80,11 @@ class SyncMcpServer {
             console.log('\n🔧 [Services] Initializing Sync MCP services...');
             // Step 1: Initialize database pools (creates global syncPool and remotePool)
             console.log('🔗 [Services] Initializing database pools...');
-            initializePools();
+            await initializePools();
             console.log('✅ [Services] Database pools initialized');
             // Step 2: Create SyncDatabase service (will use global syncPool)
             console.log('📊 [Services] Creating SyncDatabase service...');
-            this.syncDatabase = new SyncDatabase({
-                host: process.env.POSTGRES_SYNC_HOST || 'localhost',
-                port: parseInt(process.env.POSTGRES_SYNC_PORT || '5432', 10),
-                database: process.env.POSTGRES_SYNC_DB || 'postgres',
-                user: process.env.POSTGRES_SYNC_USER || 'postgres',
-                password: process.env.POSTGRES_SYNC_PASSWORD || '',
-            });
+            this.syncDatabase = new SyncDatabase();
             console.log('✅ [Services] SyncDatabase service created');
             // Step 3: Test sync database connection
             console.log('🔧 [Services] Testing sync database connection...');
