@@ -1,10 +1,20 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import LoginIcon from '@mui/icons-material/Login';
 import logo from '../assets/meteritpro-logo.svg';
+import { useAuth } from '../hooks/useAuth';
 import './LandingPage.css';
 
 const LandingPage: React.FC = () => {
+    const { isAuthenticated, isLoading } = useAuth();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!isLoading && isAuthenticated) {
+            navigate('/dashboard', { replace: true });
+        }
+    }, [isAuthenticated, isLoading, navigate]);
+
     return (
         <div className="landing-page">
             <header className="landing-nav">

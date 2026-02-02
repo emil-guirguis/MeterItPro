@@ -52,7 +52,10 @@
       "internalConsoleOptions": "neverOpen",
       "cwd": "${workspaceFolder}/client/frontend",
       "env": {
-        "NODE_ENV": "development"
+        "NODE_ENV": "development",
+        "VITE_DEV_AUTO_LOGIN": "true",
+        "VITE_DEV_EMAIL": "${env:VITE_DEV_EMAIL}",
+        "VITE_DEV_PASSWORD": "${env:VITE_DEV_PASSWORD}"
       },
       "skipFiles": [
         "<node_internals>/**"

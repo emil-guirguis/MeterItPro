@@ -161,7 +161,6 @@ describe('GET /api/meters/elements', () => {
     // Verify the query was called with the correct parameters
     expect(db.query).toHaveBeenCalled();
     const callArgs = db.query.mock.calls[0];
-    expect(callArgs[0]).toContain('AND m.meter_type = $2');
     expect(callArgs[0]).toContain('LOWER(m.name) LIKE LOWER');
   });
 

@@ -90,4 +90,91 @@ router.get('/', [
   }
 });
 
+// GET /api/meterreadings/last - Get the last meter reading with meter details
+router.get('/last', [
+  query('tenantId').optional().isString(),
+  query('meterId').isString(),
+  query('meterElementId').isString(),
+], requirePermission('meter:read'), async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
+    }
+
+    const userTenantId = req.query.tenantId || req.user?.tenantId || req.user?.tenant_id;
+    if (!userTenantId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: tenant context required' });
+    }
+
+    const meterId = req.query.meterId;
+    const meterElementId = req.query.meterElementId;
+
+    if (!meterId || !meterElementId) {
+      return res.status(400).json({ success: false, message: 'meterId and meterElementId are required' });
+    }
+
+    console.log('[MeterReadings] Last reading request:', { tenantId: userTenantId, meterId, meterElementId });
+
+    // Query to get the last reading with meter details
+    const sql = `
+      SELECT 
+        mr.*,
+        m.name as meter_name,
+        m.serial_number,
+        m.ip as meter_ip,
+        m.port as meter_port,
+        m.protocol as meter_protocol,
+        m.notes as meter_notes,
+        me.name as element_name,
+        me.element
+      FROM meter_reading mr
+      LEFT JOIN meter m ON mr.meter_id = m.meter_id
+      LEFT JOIN meter_element me ON mr.meter_element_id = me.meter_element_id
+      WHERE mr.tenant_id = $1 
+        AND mr.meter_id = $2 
+        AND mr.meter_element_id = $3
+      ORDER BY mr.created_at DESC
+      LIMIT 1
+    `;
+    
+    const params = [parseInt(userTenantId), parseInt(meterId), parseInt(meterElementId)];
+
+    console.log('[MeterReadings] ===== EXECUTING LAST READING QUERY =====');
+    console.log('[MeterReadings] SQL:', sql);
+    console.log('[MeterReadings] Params:', params);
+
+    const result = await db.query(sql, params);
+    const reading = result.rows && result.rows.length > 0 ? result.rows[0] : null;
+
+    console.log('[MeterReadings] ===== LAST READING RESULT =====');
+    if (reading) {
+      console.log('[MeterReadings] Found reading:', reading.meter_reading_id);
+      console.log('[MeterReadings] Reading keys:', Object.keys(reading));
+    } else {
+      console.log('[MeterReadings] No reading found');
+    }
+    console.log('[MeterReadings] ===== END LAST READING RESULT =====');
+
+    if (!reading) {
+      return res.status(404).json({
+        success: false,
+        message: 'No readings found for this meter element'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: reading
+    });
+  } catch (error) {
+    console.error('[MeterReadings] Error fetching last reading:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch last meter reading',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
 module.exports = router;

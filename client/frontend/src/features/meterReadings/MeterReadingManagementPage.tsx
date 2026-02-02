@@ -11,9 +11,12 @@ import React from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { MeterReadingList } from './MeterReadingList';
 import { MeterReadingForm } from './MeterReadingForm';
+import { DetailedMeterReadingView } from './DetailedMeterReadingView';
 import { useMeterReadingsEnhanced } from './meterReadingsStore';
 import { useMeterSelection } from '../../contexts/MeterSelectionContext';
 import { useAuth } from '../../hooks/useAuth';
+import { meterReadingService } from '../../services/meterReadingService';
+import { adaptMeterReading, type MeterInfo, type MeterReadingData } from './meterReadingAdapter';
 
 export const MeterReadingManagementPage: React.FC = () => {
   console.log('[MeterReadingManagementPage] RENDERING');
@@ -24,6 +27,10 @@ export const MeterReadingManagementPage: React.FC = () => {
   const navigate = useNavigate();
   const [gridType, setGridType] = React.useState<'simple' | 'baselist'>('simple');
   const [showForm, setShowForm] = React.useState(false);
+  const [showDetailedView, setShowDetailedView] = React.useState(false);
+  const [detailedReading, setDetailedReading] = React.useState<{ meterInfo: MeterInfo; reading: MeterReadingData } | null>(null);
+  const [detailedViewLoading, setDetailedViewLoading] = React.useState(false);
+  const [detailedViewError, setDetailedViewError] = React.useState<string | null>(null);
 
   const meterId = searchParams.get('meterId');
   const elementId = searchParams.get('elementId');
@@ -54,9 +61,9 @@ export const MeterReadingManagementPage: React.FC = () => {
         setGridType(urlGridType);
       }
       
-      // Show form if gridType is 'simple' (from favorite click)
-      // Show list if gridType is 'baselist' or not provided
-      setShowForm(urlGridType === 'simple');
+      // NOTE: showForm is no longer used when gridType === 'simple'
+      // The detailed view is now handled by the second useEffect
+      setShowForm(false);
       
       const fetchParams = {
         tenantId: auth.user.client,
@@ -72,6 +79,53 @@ export const MeterReadingManagementPage: React.FC = () => {
   }, [meterId, elementId, elementName, elementNumber, auth.user?.client, urlGridType]);
 
   /**
+   * Fetch last meter reading when showing detailed view (favorite clicked)
+   */
+  React.useEffect(() => {
+    console.log('[MeterReadingManagementPage] ===== DETAILED VIEW EFFECT TRIGGERED =====');
+    console.log('[MeterReadingManagementPage] urlGridType:', urlGridType, 'meterId:', meterId, 'elementId:', elementId, 'tenantId:', auth.user?.client);
+    
+    const fetchLastReading = async () => {
+      if (urlGridType === 'simple' && meterId && elementId && auth.user?.client) {
+        console.log('[MeterReadingManagementPage] Conditions met for detailed view, fetching...');
+        setDetailedViewLoading(true);
+        setDetailedViewError(null);
+        setShowDetailedView(true);
+        
+        try {
+          console.log('[MeterReadingManagementPage] Fetching last reading for:', { meterId, elementId, tenantId: auth.user.client });
+          const rawReading = await meterReadingService.getLastMeterReading(
+            auth.user.client,
+            meterId,
+            elementId
+          );
+          
+          console.log('[MeterReadingManagementPage] Raw reading received:', rawReading);
+          const adaptedData = adaptMeterReading(rawReading);
+          console.log('[MeterReadingManagementPage] Adapted reading:', adaptedData);
+          
+          setDetailedReading(adaptedData);
+          setDetailedViewLoading(false);
+        } catch (error) {
+          console.error('[MeterReadingManagementPage] Error fetching last reading:', error);
+          setDetailedViewError(error instanceof Error ? error.message : 'Failed to load meter reading');
+          setDetailedViewLoading(false);
+        }
+      } else {
+        console.log('[MeterReadingManagementPage] Conditions NOT met for detailed view');
+        console.log('[MeterReadingManagementPage] urlGridType === simple?', urlGridType === 'simple');
+        console.log('[MeterReadingManagementPage] meterId?', !!meterId);
+        console.log('[MeterReadingManagementPage] elementId?', !!elementId);
+        console.log('[MeterReadingManagementPage] tenantId?', !!auth.user?.client);
+        setShowDetailedView(false);
+        setDetailedReading(null);
+      }
+    };
+    
+    fetchLastReading();
+  }, [meterId, elementId, auth.user?.client, urlGridType]);
+
+  /**
    * Handle navigation to the meter reading list
    */
   const handleNavigateToList = React.useCallback(() => {
@@ -84,15 +138,60 @@ export const MeterReadingManagementPage: React.FC = () => {
     navigate(`/meter-readings?${params.toString()}`);
   }, [meterId, elementId, elementName, elementNumber, navigate]);
 
+  console.log('[MeterReadingManagementPage] ===== RENDER DECISION =====');
+  console.log('[MeterReadingManagementPage] showDetailedView:', showDetailedView);
+  console.log('[MeterReadingManagementPage] showForm:', showForm);
+  console.log('[MeterReadingManagementPage] elementId:', elementId);
+  console.log('[MeterReadingManagementPage] detailedReading:', !!detailedReading);
+  console.log('[MeterReadingManagementPage] detailedViewLoading:', detailedViewLoading);
+  console.log('[MeterReadingManagementPage] detailedViewError:', detailedViewError);
+
   return (
     <div className="meter-reading-management-page">
-      {showForm && elementId ? (
-        <MeterReadingForm 
-          meterElementId={elementId}
-          onNavigateToList={handleNavigateToList}
-        />
+      {showDetailedView && elementId ? (
+        <>
+          {console.log('[MeterReadingManagementPage] Rendering detailed view branch')}
+          {detailedReading ? (
+            <>
+              {console.log('[MeterReadingManagementPage] Rendering DetailedMeterReadingView component')}
+              <DetailedMeterReadingView
+                meterInfo={detailedReading.meterInfo}
+                reading={detailedReading.reading}
+                loading={detailedViewLoading}
+                error={detailedViewError}
+              />
+            </>
+          ) : (
+            <>
+              {console.log('[MeterReadingManagementPage] Rendering loading/error state')}
+              <div className="detailed-view-loading">
+                {detailedViewLoading ? (
+                  <p>Loading meter reading...</p>
+                ) : detailedViewError ? (
+                  <div className="detailed-view-error">
+                    <p>Error: {detailedViewError}</p>
+                    <button onClick={handleNavigateToList}>View All Readings</button>
+                  </div>
+                ) : (
+                  <p>Initializing...</p>
+                )}
+              </div>
+            </>
+          )}
+        </>
+      ) : showForm && elementId ? (
+        <>
+          {console.log('[MeterReadingManagementPage] Rendering MeterReadingForm')}
+          <MeterReadingForm 
+            meterElementId={elementId}
+            onNavigateToList={handleNavigateToList}
+          />
+        </>
       ) : (
-        <MeterReadingList gridType={gridType} onGridTypeChange={setGridType} />
+        <>
+          {console.log('[MeterReadingManagementPage] Rendering MeterReadingList')}
+          <MeterReadingList gridType={gridType} onGridTypeChange={setGridType} />
+        </>
       )}
     </div>
   );

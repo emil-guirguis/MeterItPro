@@ -138,6 +138,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
         
+        // Dev auto-login (local only)
+        const autoLoginEnabled = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
+        const devEmail = import.meta.env.VITE_DEV_EMAIL as string | undefined;
+        const devPassword = import.meta.env.VITE_DEV_PASSWORD as string | undefined;
+
+        if (autoLoginEnabled && !authService.getStoredToken() && devEmail && devPassword) {
+          addLog('⚙️ Dev auto-login enabled, attempting login...');
+          try {
+            await login({ email: devEmail, password: devPassword, rememberMe: true });
+            addLog('✅ Dev auto-login succeeded');
+            return;
+          } catch (autoLoginError) {
+            addLog('❌ Dev auto-login failed: ' + (autoLoginError instanceof Error ? autoLoginError.message : String(autoLoginError)));
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return;
+          }
+        }
+
         // Check if user has a stored token
         const token = authService.getStoredToken();
         addLog('🔑 Stored token exists: ' + !!token);

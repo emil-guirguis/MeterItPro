@@ -7,6 +7,19 @@ Currently, two official plugins are available:
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
+## Dev Auto-Login (Local Only)
+
+To automatically log in while developing locally, set the following environment variables:
+
+```
+
+VITE_DEV_AUTO_LOGIN=true
+VITE_DEV_EMAIL=admin@example.com
+VITE_DEV_PASSWORD=admin123
+```
+
+Auto-login only runs when `import.meta.env.DEV` is true and there is no stored token or explicit logout flag.
+
 ## React Compiler
 
 The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).

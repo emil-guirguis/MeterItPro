@@ -33,7 +33,7 @@ router.get('/elements', requirePermission('meter:read'), asyncHandler(async (req
 
   try {
     // Build the base query
-    let query = 'SELECT m.meter_id as id, m.name, m.identifier, m.meter_type as type FROM public.meter m WHERE m.tenant_id = $1';
+    let query = 'SELECT m.meter_id as id, m.name, m.identifier FROM public.meter m WHERE m.tenant_id = $1';
     
     const params = [tenantId];
     let paramCount = 2;
