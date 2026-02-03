@@ -63,6 +63,7 @@ const authenticateToken = async (req, res, next) => {
         });
       }
       
+      // @ts-ignore - rows is an array of objects with user properties
       user = result.rows[0];
     } catch (userLookupError) {
       console.error('[AUTH] Error looking up user:', userLookupError);
