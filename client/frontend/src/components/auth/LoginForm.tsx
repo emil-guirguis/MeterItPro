@@ -26,18 +26,30 @@ import authService from '../../services/authService';
 interface LoginFormProps {
   onSuccess?: () => void;
   redirectTo?: string;
+  prefilledEmail?: string;
+  prefilledPassword?: string;
+  successMessage?: string;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectTo = '/dashboard' }) => {
+export const LoginForm: React.FC<LoginFormProps> = ({ 
+  onSuccess, 
+  redirectTo = '/dashboard',
+  prefilledEmail = '',
+  prefilledPassword = '',
+  successMessage = ''
+}) => {
   const { login, isLoading, error } = useAuth();
   const navigate = useNavigate();
 
   // Form state
   const [credentials, setCredentials] = useState<LoginCredentials>({
-    email: '',
-    password: '',
+    email: prefilledEmail,
+    password: prefilledPassword,
     rememberMe: false,
   });
+  
+  // Success message from signup
+  const [signupSuccess, setSignupSuccess] = useState(successMessage);
 
   // UI state
   const [showPassword, setShowPassword] = useState(false);
@@ -207,6 +219,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, redirectTo = '/
                 Enter your credentials to access your account
               </Typography>
             </Box>
+
+            {/* Success Alert */}
+            {signupSuccess && (
+              <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSignupSuccess('')}>
+                {signupSuccess}
+              </Alert>
+            )}
 
             {/* Error Alert */}
             {error && (

@@ -12,7 +12,7 @@ class CacheManager {
 
   private meterCache: MeterCache;
   private deviceRegisterCache: DeviceRegisterCache;
-  private tenantCache: TenantCache;
+  public tenantCache: TenantCache;
 
   private constructor() {
     this.meterCache = new MeterCache();

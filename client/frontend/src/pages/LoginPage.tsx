@@ -12,8 +12,12 @@ const LoginPage: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Get the intended destination from location state or default to dashboard
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
+  // Get location state for pre-filled credentials and messages
+  const locationState = location.state as any;
+  const from = locationState?.from?.pathname || '/dashboard';
+  const prefilledEmail = locationState?.email || '';
+  const prefilledPassword = locationState?.password || '';
+  const successMessage = locationState?.message || '';
 
   // Redirect if already authenticated (but NOT if user explicitly logged out)
   useEffect(() => {
@@ -51,7 +55,13 @@ const LoginPage: React.FC = () => {
         justifyContent: 'center',
       }}
     >
-      <LoginForm onSuccess={handleLoginSuccess} redirectTo={from} />
+      <LoginForm 
+        onSuccess={handleLoginSuccess} 
+        redirectTo={from}
+        prefilledEmail={prefilledEmail}
+        prefilledPassword={prefilledPassword}
+        successMessage={successMessage}
+      />
     </Box>
   );
 };

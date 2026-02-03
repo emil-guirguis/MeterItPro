@@ -38,12 +38,6 @@ const authenticateToken = async (req, res, next) => {
       throw tokenError;
     }
     
-    console.log('\n' + '█'.repeat(120));
-    console.log('█ [AUTH] Token decoded');
-    console.log('█'.repeat(120));
-    console.log('Decoded token:', decoded);
-    console.log('█'.repeat(120) + '\n');
-    
     // Validate that userId exists in token
     if (!decoded.userId) {
       console.error('[AUTH] Token missing userId field');
@@ -53,9 +47,23 @@ const authenticateToken = async (req, res, next) => {
       });
     }
     
+    // Query user directly from database to avoid schema initialization overhead
     let user;
     try {
-      user = await User.findById(decoded.userId);
+      const result = await db.query(
+        `SELECT users_id, name, email, phone, role, active, tenant_id, permissions, passwordhash 
+         FROM users WHERE users_id = $1`,
+        [decoded.userId]
+      );
+      
+      if (result.rows.length === 0) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid token - user not found'
+        });
+      }
+      
+      user = result.rows[0];
     } catch (userLookupError) {
       console.error('[AUTH] Error looking up user:', userLookupError);
       const errorMsg = userLookupError instanceof Error ? userLookupError.message : 'Unknown error';
@@ -63,13 +71,6 @@ const authenticateToken = async (req, res, next) => {
         success: false,
         message: 'Failed to verify user',
         detail: `User lookup failed: ${errorMsg}`
-      });
-    }
-    
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token - user not found'
       });
     }
 
@@ -104,11 +105,6 @@ const authenticateToken = async (req, res, next) => {
     }
     
     user.permissions = permissions;
-    
-    // Ensure tenant_id is set from user's tenant relationship
-    if (!user.tenant_id && user.tenant) {
-      user.tenant_id = user.tenant.id || user.tenant;
-    }
     
     req.user = user;
     req.auth = { user: user };

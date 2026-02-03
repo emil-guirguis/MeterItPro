@@ -414,6 +414,117 @@ router.post('/logout', authenticateToken, async (req, res) => {
   }
 });
 
+router.post('/signup', [
+  // Signup - Create new tenant and admin user
+  body('user.email').isEmail().normalizeEmail(),
+  body('user.password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('user.name').notEmpty().trim().withMessage('Name is required'),
+  body('company.name').notEmpty().trim().withMessage('Company name is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { company, user, payment } = req.body;
+    const db = require('../config/database');
+
+    // Use a transaction to ensure both tenant and user are created together
+    try {
+      const result = await db.transaction(async (client) => {
+        // Create tenant with company information
+        const { randomUUID } = require('crypto');
+        const apiKey = randomUUID();
+        const tenantResult = await client.query(
+          `INSERT INTO tenant (name, url, street, street2, city, state, zip, country, active, api_key) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+           RETURNING tenant_id`,
+          [
+            company.name,
+            company.url || null,
+            company.street || null,
+            company.street2 || null,
+            company.city || null,
+            company.state || null,
+            company.zip || null,
+            company.country || 'US',
+            true,
+            apiKey
+          ]
+        );
+
+        const tenantId = tenantResult.rows[0].tenant_id;
+        console.log('[SIGNUP] Created tenant:', tenantId);
+
+        // Hash password
+        const passwordHash = await User.hashPassword(user.password);
+
+        // Get admin permissions from PermissionsService
+        const adminPermissionsObj = PermissionsService.getPermissionsByRole('admin');
+
+        // Create admin user with tenant_id
+        const newUser = await User.create({
+          email: user.email,
+          name: user.name,
+          passwordHash,
+          role: 'admin',
+          permissions: adminPermissionsObj,
+          active: true,
+          tenant_id: tenantId,
+          phone: user.phone || null
+        });
+
+        console.log('[SIGNUP] Created user:', newUser.id);
+
+        return { tenantId, user: newUser };
+      });
+
+      // Log payment information (for future processing)
+      console.log('[SIGNUP] Payment method:', payment?.method);
+      console.log('[SIGNUP] Plan type:', payment?.planType);
+
+      res.json({
+        success: true,
+        message: 'Account created successfully',
+        data: {
+          tenantId: result.tenantId,
+          userId: result.user.id
+        }
+      });
+    } catch (err) {
+      const error = /** @type {Error} */ (err);
+      console.error('[SIGNUP] Transaction error:', error);
+      
+      // Check for duplicate email
+      if (error.message && error.message.includes('duplicate key')) {
+        return res.status(409).json({
+          success: false,
+          message: 'An account with this email already exists'
+        });
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create account',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  } catch (error) {
+    const err = /** @type {Error} */ (error);
+    console.error('Signup error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Signup failed',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
 // Bootstrap - Create first admin user (only works if no users exist)
 router.post('/bootstrap', [
   body('email').isEmail().normalizeEmail(),
@@ -460,9 +571,12 @@ router.post('/bootstrap', [
         console.log('[BOOTSTRAP] Using existing tenant:', tenantId);
       } else {
         // Create a default tenant
+        const { randomUUID } = require('crypto');
+        const apiKey = randomUUID();
+
         const createTenantResult = await db.query(
-          'INSERT INTO tenant (name, active) VALUES ($1, $2) RETURNING tenant_id',
-          ['Default Tenant', true]
+          'INSERT INTO tenant (name, active, api_key) VALUES ($1, $2, $3) RETURNING tenant_id',
+          ['Default Tenant', true, apiKey]
         );
         const createdTenantRow = /** @type {Record<string, any>} */ (createTenantResult.rows[0]);
         tenantId = createdTenantRow.tenant_id;

@@ -184,6 +184,144 @@ async function checkPasswordResetRateLimit(email, maxRequests = 3, windowMs = 60
 // ===== PASSWORD MANAGEMENT =====
 
 /**
+ * POST /api/auth/signup
+ * Create new tenant and admin user
+ */
+router.post('/signup', [
+  body('user.email').isEmail().normalizeEmail(),
+  body('user.password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('user.name').notEmpty().trim().withMessage('Name is required'),
+  body('company.name').notEmpty().trim().withMessage('Company name is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { company, user, payment } = req.body;
+
+    // Use a transaction to ensure both tenant and user are created together
+    try {
+      const result = await db.transaction(async (client) => {
+        // Create tenant with company information
+        // Generate an API key for the tenant in Node to avoid depending on DB extensions
+        const { randomUUID } = require('crypto');
+        const apiKey = randomUUID();
+
+        const tenantResult = await client.query(
+          `INSERT INTO tenant (name, url, street, street2, city, state, zip, country, active, api_key) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+           RETURNING tenant_id`,
+          [
+            company.name,
+            company.url || null,
+            company.street || null,
+            company.street2 || null,
+            company.city || null,
+            company.state || null,
+            company.zip || null,
+            company.country || 'US',
+            true,
+            apiKey
+          ]
+        );
+
+        const tenantId = tenantResult.rows[0].tenant_id;
+        console.log('[SIGNUP] Created tenant:', tenantId);
+
+        // Hash password
+        const passwordHash = await User.hashPassword(user.password);
+
+        // Get admin permissions from PermissionsService
+        const adminPermissionsObj = PermissionsService.getPermissionsByRole('admin');
+
+        // Create admin user with tenant_id
+        // Note: Use an explicit INSERT here because the model treats passwordHash as a read-only entity field
+        // and BaseModel.create will skip read-only fields (causing passwordhash to be omitted). Insert directly
+        // to ensure the required `passwordhash` DB column is set.
+        const permissionsValue = (typeof adminPermissionsObj === 'string')
+          ? adminPermissionsObj
+          : JSON.stringify(adminPermissionsObj || {});
+
+        const createUserResult = await client.query(
+          `INSERT INTO users (email, name, passwordhash, role, permissions, active, tenant_id, phone, permissions)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           RETURNING users_id, email, name, role, tenant_id`,
+          [
+            user.email,
+            user.name,
+            passwordHash,
+            'admin',
+            permissionsValue,
+            true,
+            tenantId,
+            user.phone || null,
+            '{"user": {"read": true, "create": true, "delete": true, "update": true}, "meter": {"read": true, "create": true, "delete": true, "update": true}, "device": {"read": true, "create": true, "delete": true, "update": true}, "contact": {"read": true, "create": true, "delete": true, "update": true}, "building": {"read": true, "create": true, "delete": true, "update": true}, "location": {"read": true, "create": true, "delete": true, "update": true}, "settings": {"read": true, "update": true}, "template": {"read": true, "create": true, "delete": true, "update": true}, "equipment": {"read": true, "create": true, "delete": true, "update": true}}'
+          ]
+        );
+
+        const createdUserRow = createUserResult.rows[0];
+        console.log('[SIGNUP] Created user (direct SQL):', createdUserRow.users_id || createdUserRow.users_id);
+
+        // Return a minimal user object compatible with previous expectations
+        const createdUser = {
+          id: createdUserRow.users_id || createdUserRow.users_id,
+          email: createdUserRow.email,
+          name: createdUserRow.name,
+          role: createdUserRow.role,
+          tenant_id: createdUserRow.tenant_id
+        };
+
+        return { tenantId, user: createdUser };
+      });
+
+      // Log payment information (for future processing)
+      console.log('[SIGNUP] Payment method:', payment?.method);
+      console.log('[SIGNUP] Plan type:', payment?.planType);
+
+      res.json({
+        success: true,
+        message: 'Account created successfully',
+        data: {
+          tenantId: result.tenantId,
+          userId: result.user.id
+        }
+      });
+    } catch (err) {
+      const error = /** @type {Error} */ (err);
+      console.error('[SIGNUP] Transaction error:', error);
+      
+      // Check for duplicate email
+      if (error.message && error.message.includes('duplicate key')) {
+        return res.status(409).json({
+          success: false,
+          message: 'An account with this email already exists'
+        });
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create account',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  } catch (error) {
+    const err = /** @type {Error} */ (error);
+    console.error('Signup error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Signup failed',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
+/**
  * POST /api/auth/login
  * Login with email and password, supporting 2FA
  * Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 10.6

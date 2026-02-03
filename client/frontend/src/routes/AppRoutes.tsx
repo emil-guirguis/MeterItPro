@@ -5,6 +5,7 @@ import { ProtectedRoute, AuthGuard } from '../components/auth';
 import AppLayoutWrapper from '../components/layout/AppLayoutWrapper';
 import LoginPage from '../pages/LoginPage';
 import LandingPage from '../pages/LandingPage';
+import SignupPage from '../pages/SignupPage';
 import { ForgotPasswordPage, PasswordResetPage, TwoFactorManagementPage } from '../pages/auth';
 import { DashboardPage } from '../pages/DashboardPage';
 import { MeterReadingsPage } from '../pages/MeterReadingsPage';
@@ -39,6 +40,8 @@ const AppRoutes: React.FC = () => {
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/signup/:plan" element={<SignupPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<PasswordResetPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />

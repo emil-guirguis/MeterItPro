@@ -95,21 +95,24 @@ const LandingPage: React.FC = () => {
             <section className="landing-section" id="pricing">
                 <h2>Pricing</h2>
                 <div className="landing-grid">
-                    <div className="landing-card landing-pricing">
+                    <Link to="/signup/starter" className="landing-card landing-pricing" style={{ textDecoration: 'none', cursor: 'pointer' }}>
                         <h3>Starter</h3>
                         <p>Perfect for small portfolios and single-site operators.</p>
                         <p><strong>$???? / month</strong></p>
-                    </div>
-                    <div className="landing-card landing-pricing">
+                        <button className="landing-pricing-btn">Get Started</button>
+                    </Link>
+                    <Link to="/signup/growth" className="landing-card landing-pricing" style={{ textDecoration: 'none', cursor: 'pointer' }}>
                         <h3>Growth</h3>
                         <p>Scale across multiple locations with advanced reporting.</p>
                         <p><strong>$???? / month</strong></p>
-                    </div>
-                    <div className="landing-card landing-pricing">
+                        <button className="landing-pricing-btn">Get Started</button>
+                    </Link>
+                    <Link to="/signup/enterprise" className="landing-card landing-pricing" style={{ textDecoration: 'none', cursor: 'pointer' }}>
                         <h3>Enterprise</h3>
                         <p>Custom integrations.</p>
                         <p><strong>?????</strong></p>
-                    </div>
+                        <button className="landing-pricing-btn">Contact Us</button>
+                    </Link>
                 </div>
             </section>
 

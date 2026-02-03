@@ -222,6 +222,14 @@
   color: #ffffff;
   border-radius: 24px;
   padding: 32px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-pricing:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
 }
 
 .landing-pricing h3 {
@@ -230,6 +238,22 @@
 
 .landing-pricing p {
   color: #e2e8f0;
+}
+
+.landing-pricing-btn {
+  margin-top: auto;
+  padding: 12px 24px;
+  background: #0f62fe;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.landing-pricing-btn:hover {
+  background: #0353e9;
 }
 
 .landing-footer {

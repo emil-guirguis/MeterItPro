@@ -70,7 +70,7 @@ class LocationAPI {
     return {
       items: data.items.map(item => ({
         ...item,
-        id: String(item.location_id),
+        id: item.location_id ? String(item.location_id) : '',
       })),
       total: data.total,
       page: data.page,

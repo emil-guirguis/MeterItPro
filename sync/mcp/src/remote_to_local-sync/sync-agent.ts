@@ -137,15 +137,12 @@ export class RemoteToLocalSyncAgent {
       try {
         this.tenantId = cacheManager.getTenantCache().getTenantId();
         console.log(`✅ [Sync Agent] Using tenant ID from cache: ${this.tenantId}`);
+        if (!this.tenantId) {
+          throw new Error('Tenant ID not found in cache');
+        }
       } catch (error) {
         // Cache not initialized yet, query remote database for first tenant
         console.log(`⚠️  [Sync Agent] Cache not initialized, querying remote database for tenant...`);
-        const result = await this.remotePool.query('SELECT tenant_id FROM tenant LIMIT 1');
-        if (result.rows.length === 0) {
-          throw new Error('No tenants found in remote database');
-        }
-        this.tenantId = result.rows[0].tenant_id;
-        console.log(`✅ [Sync Agent] Using tenant ID from remote database: ${this.tenantId}`);
       }
     }
 

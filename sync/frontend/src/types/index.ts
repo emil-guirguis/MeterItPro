@@ -70,3 +70,6 @@ export interface TenantInfo {
   country?: string;
   active?: boolean;
 }
+
+// Re-export connection types
+export * from './connection';

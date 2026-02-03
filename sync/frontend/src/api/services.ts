@@ -191,6 +191,18 @@ export const tenantApi = {
           timestamp: new Date().toISOString(),
           baseURL: apiClient.defaults.baseURL,
         });
+        
+        // Return null for 404 (not found) instead of throwing
+        if (error.response?.status === 404) {
+          console.warn('⚠️ [Tenant] No tenant found (404) - returning null');
+          return null;
+        }
+        
+        // Return null for 503 (service initializing) instead of throwing
+        if (error.response?.status === 503) {
+          console.warn('⚠️ [Tenant] Service initializing (503) - returning null');
+          return null;
+        }
       } else {
         console.error('❌ [Tenant] Unexpected error:', error);
       }

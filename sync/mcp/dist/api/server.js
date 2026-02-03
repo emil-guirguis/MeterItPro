@@ -104,12 +104,12 @@ export class LocalApiServer {
         this.app.get('/api/local/tenant', async (_req, res, next) => {
             try {
                 console.log('📥 [API] GET /api/local/tenant - Request received');
-                if (!this.syncManager) {
-                    console.warn('⚠️  [API] Sync Manager not available');
-                    return res.status(503).json({
-                        error: 'Sync Manager not available'
-                    });
-                }
+                // if (!this.syncManager) {
+                //   console.warn('⚠️  [API] Sync Manager not available');
+                //   return res.status(503).json({
+                //     error: 'Sync Manager not available'
+                //   });
+                // }
                 const tenantData = this.syncManager.getTenantData();
                 if (!tenantData) {
                     console.log('📤 [API] GET /api/local/tenant - No tenant data available (still initializing)');
