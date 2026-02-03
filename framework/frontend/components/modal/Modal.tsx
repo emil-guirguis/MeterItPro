@@ -48,6 +48,10 @@ export const Modal: React.FC<ModalProps> = ({
   saveLabel = 'Save',
   showSaveButton = false,
 }) => {
+  // Debug: log modal props to help track missing Save button issues in the app
+  React.useEffect(() => {
+    console.log('[Modal] render:', { title, isOpen, showSaveButton, hasOnSave: !!onSave, loading });
+  }, [title, isOpen, showSaveButton, onSave, loading]);
   const { isMobile } = useResponsive();
 
   // Auto full screen on mobile
@@ -75,6 +79,16 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Default save handler when none is provided:
+  // Submit the last form on the page (most recently added), same behavior as FormModal.
+  const handleDefaultSave = () => {
+    const forms = document.querySelectorAll('form');
+    if (forms.length > 0) {
+      const form = forms[forms.length - 1] as HTMLFormElement;
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }
+  };
+
   return (
     <div 
       className={`
@@ -96,11 +110,11 @@ export const Modal: React.FC<ModalProps> = ({
         <div className="modal__header">
           <h2 className="modal__title">{title}</h2>
           <div className="modal__header-actions">
-            {showSaveButton && onSave && (
+            {showSaveButton && (
               <button
                 type="button"
                 className="modal__save-btn"
-                onClick={onSave}
+                onClick={onSave ?? handleDefaultSave}
                 disabled={loading}
               >
                 {saveLabel}

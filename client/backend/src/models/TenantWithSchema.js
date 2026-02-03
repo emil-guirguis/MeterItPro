@@ -27,7 +27,7 @@ class Tenant extends BaseModel {
      * @override
      */
     static get primaryKey() {
-        return 'id';
+        return 'tenant_id';
     }
 
     // ===== SCHEMA DEFINITION (Single Source of Truth) =====

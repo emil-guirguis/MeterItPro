@@ -27,7 +27,7 @@ class Location extends BaseModel {
      * @override
      */
     static get primaryKey() {
-        return 'id';
+        return 'location_id';
     }
 
     /**

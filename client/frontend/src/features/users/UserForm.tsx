@@ -7,20 +7,13 @@
  */
 
 import React, { useState } from 'react';
-import { BaseForm } from '@framework/components/form/BaseForm';
+import { BaseForm, FormContainer } from '@framework/components/form';
 import { JSONBPermissionsRenderer } from '@framework/components/jsonbfield';
 import { useUsersEnhanced } from './usersStore';
 import type { User } from '../../types/auth';
 import { ChangePasswordModal } from '../../components/auth/ChangePasswordModal';
 import authService from '../../services/authService';
-import {
-  Box,
-  Typography,
-  Button,
-  Alert,
-  CircularProgress
-} from '@mui/material';
-import { Lock, VpnKey } from '@mui/icons-material';
+import './UserForm.css';
 
 interface UserFormProps {
   user?: User;
@@ -93,68 +86,50 @@ export const UserForm: React.FC<UserFormProps> = ({
     // Render password reset action buttons
     if (fieldName === 'password_reset_actions' && user?.users_id) {
       return (
-        <Box>
+        <div className="user-form__password-actions">
           {/* Error Alert */}
           {resetPasswordError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <div className="user-form__alert user-form__alert--error">
               {resetPasswordError}
-            </Alert>
+            </div>
           )}
 
           {/* Success Alert */}
           {resetPasswordSuccess && (
-            <Alert severity="success" sx={{ mb: 2 }}>
+            <div className="user-form__alert user-form__alert--success">
               {resetPasswordSuccess}
-            </Alert>
+            </div>
           )}
 
           {/* Password Action Buttons - Vertical Layout */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <div className="user-form__button-group">
             {/* Change Password Button */}
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<Lock />}
+            <button
+              type="button"
+              className="user-form__btn user-form__btn--secondary"
               onClick={() => setShowChangePasswordModal(true)}
               disabled={loading}
-              sx={{ justifyContent: 'flex-start' }}
             >
-              Change Password
-            </Button>
+              🔒 Change Password
+            </button>
 
             {/* Reset Password Button (Admin Only) */}
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<VpnKey />}
+            <button
+              type="button"
+              className="user-form__btn user-form__btn--secondary"
               onClick={handleAdminResetPassword}
               disabled={loading || resetPasswordLoading}
-              sx={{ justifyContent: 'flex-start' }}
             >
-              {resetPasswordLoading ? (
-                <>
-                  <CircularProgress size={20} sx={{ mr: 1 }} />
-                  Sending...
-                </>
-              ) : (
-                'Reset Password'
-              )}
-            </Button>
-          </Box>
+              {resetPasswordLoading ? '⏳ Sending...' : '🔑 Reset Password'}
+            </button>
+          </div>
 
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              color: 'text.secondary',
-              mt: 2
-            }}
-          >
+          <div className="user-form__help-text">
             • <strong>Change Password:</strong> Update your own password
             <br />
             • <strong>Reset Password:</strong> Send a password reset link to the user
-          </Typography>
-        </Box>
+          </div>
+        </div>
       );
     }
 
@@ -162,7 +137,7 @@ export const UserForm: React.FC<UserFormProps> = ({
   };
 
   return (
-    <Box>
+    <FormContainer>
       {/* Change Password Modal */}
       <ChangePasswordModal
         open={showChangePasswordModal}
@@ -173,19 +148,21 @@ export const UserForm: React.FC<UserFormProps> = ({
       />
 
       {/* User Form */}
-      <BaseForm
-        schemaName="user"
-        entity={user}
-        store={users}
-        onCancel={onCancel}
-        onSubmit={onSubmit}
-        className="user-form"
-        loading={loading}
-        excludeFields={user?.users_id ? ['passwordHash', 'lastLogin', 'password'] : ['passwordHash', 'lastLogin']}
-        renderCustomField={renderCustomField}
-        showTabs={true}
-      />
-    </Box>
+      <div className="form-container__content">
+        <BaseForm
+          schemaName="user"
+          entity={user}
+          store={users}
+          onCancel={onCancel}
+          onSubmit={onSubmit}
+          className="user-form"
+          loading={loading}
+          excludeFields={user?.users_id ? ['passwordHash', 'lastLogin', 'password'] : ['passwordHash', 'lastLogin']}
+          renderCustomField={renderCustomField}
+          showTabs={true}
+        />
+      </div>
+    </FormContainer>
   );
 };
 

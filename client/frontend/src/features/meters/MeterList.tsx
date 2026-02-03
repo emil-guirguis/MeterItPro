@@ -100,7 +100,7 @@ export const MeterList: React.FC<MeterListProps> = ({
     features: {
       allowCreate: true,
       allowEdit: true,
-      allowDelete: false,
+      allowDelete: true,
       allowBulkActions: true,
       allowExport: true,
       allowImport: false,

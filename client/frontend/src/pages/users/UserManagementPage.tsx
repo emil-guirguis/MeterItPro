@@ -99,6 +99,7 @@ export const UserManagementPage: React.FC = () => {
           loading={users.loading}
           error={users.error || undefined}
           size="lg"
+          showSaveButton={true}
         >
           <UserForm
             onSubmit={handleCreateSubmit}
@@ -116,6 +117,7 @@ export const UserManagementPage: React.FC = () => {
           loading={users.loading}
           error={users.error || undefined}
           size="lg"
+          showSaveButton={true}
         >
           <UserForm
             user={selectedUser || undefined}

@@ -250,6 +250,11 @@ export interface ConvertedSchema {
   entityName: string;
   description: string;
   relationships: Record<string, any>;
+  /**
+   * Primary key field name in backend schema (e.g., 'contact_id')
+   * Helps frontend map IDs when API returns non-standard 'id' fields.
+   */
+  idFieldName?: string | null;
 }
 
 /**
@@ -264,10 +269,36 @@ export function convertSchema(backendSchema: BackendSchema): ConvertedSchema {
     formFields[fieldName] = convertFieldDefinition(fieldDef);
   });
 
+  // Some schemas define fields inside formTabs but not in formFields object.
+  // Ensure we include any fields declared inside formTabs into formFields so
+  // the frontend (filters, lists, forms) can access them uniformly.
+  if (backendSchema.formTabs) {
+    backendSchema.formTabs.forEach((tab) => {
+      tab.sections?.forEach((section) => {
+        section.fields?.forEach((field) => {
+          if (field && field.name && !formFields[field.name]) {
+            // field may be a lightweight object; convert and merge
+            formFields[field.name] = convertFieldDefinition(field as any);
+          }
+        });
+      });
+    });
+  }
+
   // Convert entity fields
   Object.entries(backendSchema.entityFields).forEach(([fieldName, fieldDef]) => {
     entityFields[fieldName] = convertFieldDefinition(fieldDef);
   });
+  // Determine primary ID field name
+  const tableIdField = `${backendSchema.tableName}_id`;
+  let idFieldName: string | null = null;
+  if (backendSchema.entityFields && backendSchema.entityFields[tableIdField]) {
+    idFieldName = tableIdField;
+  } else {
+    // fallback: first entity field that ends with _id
+    const candidate = Object.keys(backendSchema.entityFields || {}).find(k => k.endsWith('_id'));
+    idFieldName = candidate || null;
+  }
 
   return {
     formFields,
@@ -276,6 +307,7 @@ export function convertSchema(backendSchema: BackendSchema): ConvertedSchema {
     entityName: backendSchema.entityName,
     description: backendSchema.description,
     relationships: backendSchema.relationships,
+    idFieldName,
   };
 }
 

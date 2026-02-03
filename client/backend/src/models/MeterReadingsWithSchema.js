@@ -27,7 +27,7 @@ class MeterReadings extends BaseModel {
      * @override
      */
     static get primaryKey() {
-        return 'id';
+        return 'meter_reading_id';
     }
 
     // ===== SCHEMA DEFINITION (Single Source of Truth) =====

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sidebar } from '../sidebar/Sidebar';
+// Sidebar intentionally removed from framework-level forms
 import type { SidebarSectionProps } from '../sidebar/Sidebar';
 import { useSchema, clearSchemaCache } from './utils/schemaLoader';
 import type { BackendFieldDefinition } from './utils/schemaLoader';
@@ -22,7 +22,7 @@ export interface BaseFormProps {
   onCancel?: () => void;
   isSubmitting?: boolean;
   isDisabled?: boolean;
-  showSidebar?: boolean;
+  // showSidebar?: boolean;
   // Dynamic schema form props
   schemaName?: string;
   entity?: any;
@@ -96,14 +96,10 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   children,
   onSubmit,
   className = '',
-  sidebarSections = [],
+  // sidebarSections and sidebarChildren remain available to callers but framework no longer renders a sidebar
+  sidebarSections,
   sidebarChildren,
-  submitLabel = 'Save',
-  cancelLabel = 'Cancel',
   onCancel,
-  isSubmitting = false,
-  isDisabled = false,
-  showSidebar = false,
   // Dynamic schema form props
   schemaName,
   entity,
@@ -217,10 +213,64 @@ export const BaseForm: React.FC<BaseFormProps> = ({
     }
   }, [effectiveActiveTab, onTabChange]);
 
+  // Normalize entity and store so framework hooks work with backend schemas that use non-standard id fields
+  const normalizedEntity = React.useMemo(() => {
+    if (!entity || !schema) return entity;
+    const idField = (schema as any).idFieldName;
+    if (idField && (entity as any)[idField] !== undefined && (entity as any).id === undefined) {
+      return { ...entity, id: (entity as any)[idField] };
+    }
+    return entity;
+  }, [entity, schema]);
+
+  const normalizedStore = React.useMemo(() => {
+    if (!store || !schema) return store;
+    const idField = (schema as any).idFieldName;
+    // If store already provides createItem/updateItem, prefer those; otherwise wrap existing methods
+    const proxy: any = { ...store };
+
+    // Wrap create to normalize id field on returned entity
+    if (!proxy.createItem) {
+      const createFn = proxy.createReport || proxy.create || proxy.createItem;
+      if (createFn) {
+        proxy.createItem = async (data: any) => {
+          const saved = await createFn(data);
+          if (saved && idField && saved[idField] !== undefined && saved.id === undefined) {
+            (saved as any).id = saved[idField];
+          }
+          return saved;
+        };
+      }
+    }
+
+    // Wrap update to normalize id field on returned entity
+    if (!proxy.updateItem) {
+      const updateFn = proxy.updateReport || proxy.update || proxy.updateItem;
+      if (updateFn) {
+        proxy.updateItem = async (id: string, data: any) => {
+          const saved = await updateFn(id, data);
+          if (saved && idField && saved[idField] !== undefined && saved.id === undefined) {
+            (saved as any).id = saved[idField];
+          }
+          return saved;
+        };
+      }
+    }
+
+    // Ensure updateItemInList exists by delegating to existing method names if present
+    if (!proxy.updateItemInList) {
+      proxy.updateItemInList = proxy.updateItemInList || proxy.updateItem || proxy.updateReport;
+    }
+
+    return proxy;
+  }, [store, schema]);
+
   const form = isDynamicForm
     ? useEntityFormWithStore<any, any>({
-        entity: schema ? entity : undefined,
-        store,
+        entity: schema ? normalizedEntity : undefined,
+        store: normalizedStore,
+        createMethodName: 'createItem',
+        updateMethodName: 'updateItem',
         entityToFormData: (entityData) => {
           if (!schema) return {};
           
@@ -759,45 +809,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
     return null;
   }
 
-  // Build sidebar sections with actions conditionally included
-  const allSidebarSections: SidebarSectionProps[] = showSidebar
-    ? [
-        {
-          title: 'Actions',
-          content: (
-            <div className="base-form__actions">
-              {onCancel && (
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  disabled={isSubmitting || isDisabled}
-                  className="base-form__btn base-form__btn--secondary"
-                >
-                  {cancelLabel}
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={isSubmitting || isDisabled}
-                className="base-form__btn base-form__btn--primary"
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="base-form__spinner" />
-                    {submitLabel}
-                  </>
-                ) : (
-                  submitLabel
-                )}
-              </button>
-            </div>
-          ),
-          collapsible: true,
-          defaultCollapsed: false,
-        },
-        ...sidebarSections,
-      ]
-    : sidebarSections;
+  // Sidebar removed from framework-level forms. Callers can still opt to render their own sidebars
 
   const handleFormSubmit = isDynamicForm ? handleDynamicSubmit : onSubmit;
 
@@ -864,50 +876,18 @@ export const BaseForm: React.FC<BaseFormProps> = ({
     );
   };
 
-  // Calculate grid columns based on number of sections and orientation
-  const calculateGridColumns = () => {
-    const sectionsToRender = fieldSections || formTabsFieldSections || {};
-    const sectionCount = Object.keys(sectionsToRender).length;
-    
-    // Get orientation from the active tab in schema
-    const activeTabData = schema?.formTabs?.find(tab => tab.name === effectiveActiveTab);
-    const orientation = activeTabData?.sectionOrientation || 'horizontal';
-    
-    // If vertical orientation, always use single column
-    if (orientation === 'vertical') {
-      return '1fr';
-    }
-    
-    // Horizontal orientation - use multiple columns based on section count
-    if (sectionCount === 0) return '1fr';
-    if (sectionCount === 1) return '1fr';
-    if (sectionCount === 2) return 'repeat(2, 1fr)';
-    return 'repeat(3, 1fr)';
-  };
-
   // Only render form content if we have determined the tab structure
   // This prevents fields from flashing before tabs are organized
   const shouldRenderFormContent = !isDynamicForm || (schema && (tabList.length > 0 || !schema.formTabs));
 
   // Render dynamic form sections
   const useFlexbox = shouldUseFlexbox();
+  const containerClass = useFlexbox 
+    ? 'base-form__sections-container--flex'
+    : `base-form__sections-container base-form__sections-container--grid-${Object.keys(fieldSections || formTabsFieldSections || {}).length || 1}`;
+  
   const formContent = shouldRenderFormContent && isDynamicForm ? (
-    <div 
-      className={`${className}__sections-container`}
-      style={{
-        display: useFlexbox ? 'flex' : 'grid',
-        ...(useFlexbox ? {
-          flexDirection: 'row',
-          gap: '1.25rem',
-          width: '100%',
-          alignItems: 'flex-start',
-        } : {
-          gridTemplateColumns: calculateGridColumns(),
-          gap: '1.25rem',
-          width: '100%',
-        }),
-      }}
-    >
+    <div className={containerClass}>
       {/* Render sections from formTabs if available, otherwise use fieldSections prop */}
       {(() => {
         const sectionsToRender = fieldSections || formTabsFieldSections || {};
@@ -953,14 +933,12 @@ export const BaseForm: React.FC<BaseFormProps> = ({
               return (
                 <div 
                   key={sectionTitle} 
-                  className={`${className}__section ${sectionLayoutClass}`}
-                  style={{
-                    ...(sectionMinWidth && { minWidth: sectionMinWidth }),
-                    ...(sectionMaxWidth && { maxWidth: sectionMaxWidth }),
-                    ...(sectionFlex != null && { flex: sectionFlex }),
-                    ...(sectionFlexGrow != null && { flexGrow: sectionFlexGrow }),
-                    ...(sectionFlexShrink != null && { flexShrink: sectionFlexShrink }),
-                  }}
+                  className={`${className}__section ${sectionLayoutClass}${useFlexbox ? ' base-form__section--flex' : ''}`}
+                  data-min-width={sectionMinWidth}
+                  data-max-width={sectionMaxWidth}
+                  data-flex={sectionFlex}
+                  data-flex-grow={sectionFlexGrow}
+                  data-flex-shrink={sectionFlexShrink}
                 >
                   <h3 className={`${className}__section-title`}>{sectionTitle}</h3>
                   {visibleFields.map(fieldName => {
@@ -1018,10 +996,8 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       onSubmit={handleFormSubmit} 
       className={formClassName} 
       autoComplete="off"
-      style={{
-        maxWidth: formMaxWidth,
-        minWidth: formMinWidth,
-      }}
+      data-max-width={formMaxWidth || '900px'}
+      data-min-width={formMinWidth}
     >
       {/* Render tabs if using formTabs structure and showTabs is true */}
       {showTabs && schema?.formTabs && tabList.length > 0 && (
@@ -1042,12 +1018,13 @@ export const BaseForm: React.FC<BaseFormProps> = ({
           {shouldRenderFormContent ? formContent : null}
         </div>
 
-        <Sidebar sections={allSidebarSections}>
-          {sidebarChildren}
-        </Sidebar>
+        {/* Sidebar intentionally removed at framework level */}
       </div>
     </form>
   );
 };
+        // <Sidebar sections={allSidebarSections}>
+        //   {sidebarChildren}
+        // </Sidebar>
 
 export default BaseForm;

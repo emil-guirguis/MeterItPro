@@ -23,6 +23,7 @@
  */
 
 import React, { useState } from 'react';
+import { FormModal } from './FormModal';
 import type { ReactElement } from 'react';
 import './EntityManagementPage.css';
 
@@ -157,7 +158,7 @@ export function EntityManagementPage<TEntity extends { id?: string | number }, T
     ...formProps,
   };
 
-  const ModalComponent_ = ModalComponent || DefaultModal;
+  const ModalComponent_ = ModalComponent || FormModal;
 
   return (
     <Layout title={title}>

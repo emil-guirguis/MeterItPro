@@ -28,7 +28,7 @@ class MeterElement extends BaseModel {
    * @override
    */
   static get primaryKey() {
-    return 'id';
+    return 'meter_element_id';
   }
 
   /**

@@ -4,7 +4,7 @@
  * Prefetches commonly used schemas on app startup to improve performance
  */
 
-import { prefetchSchemas } from '@framework/components/form/utils/schemaLoader';
+import { prefetchSchemas, getAvailableSchemas } from '@framework/components/form/utils/schemaLoader';
 
 /**
  * List of entities to prefetch on app startup
@@ -35,7 +35,26 @@ export async function prefetchAppSchemas(): Promise<void> {
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
     console.log('[Schema Prefetch] API URL:', apiUrl);
     
-    await prefetchSchemas(ENTITIES_TO_PREFETCH, { baseUrl: apiUrl });
+    // Fetch available schemas dynamically from backend and prefetch them
+    let entitiesToFetch = ENTITIES_TO_PREFETCH;
+    try {
+      const available = await getAvailableSchemas(apiUrl);
+      const discovered = available
+        .map(s => {
+          // endpoint is like "/api/schema/contact" - take last segment
+          const parts = (s.endpoint || '').split('/');
+          return parts.pop() || s.entityName.toLowerCase();
+        })
+        .filter(Boolean);
+      if (discovered.length > 0) {
+        console.log('[Schema Prefetch] Discovered schemas from backend:', discovered);
+        entitiesToFetch = Array.from(new Set([...ENTITIES_TO_PREFETCH, ...discovered]));
+      }
+    } catch (e) {
+      console.warn('[Schema Prefetch] Could not fetch available schemas, falling back to static list', e);
+    }
+
+    await prefetchSchemas(entitiesToFetch, { baseUrl: apiUrl });
     
     const duration = Date.now() - startTime;
     console.log(`[Schema Prefetch] ✅ Completed in ${duration}ms`);

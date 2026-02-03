@@ -43,7 +43,7 @@ class Contact extends BaseModel {
      * @override
      */
     static get primaryKey() {
-        return 'id';
+        return 'contact_id';
     }
 
     /**

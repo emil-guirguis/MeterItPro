@@ -9,6 +9,7 @@ import {
   isCacheFresh,
   createCacheConfig,
 } from '../utils';
+import { loadSchema } from '@framework/components/form/utils/schemaLoader';
 
 // Generic service interface
 export interface EntityService<T> {
@@ -266,6 +267,23 @@ export const createEntityStore = <T extends { id: string }>(
           const response = await service.getAll(queryParams);
           console.log('[fetchItems] Got response:', response);
 
+          // Normalize ID fields based on schema idFieldName if present
+          try {
+            const schema = await loadSchema(options.name);
+            const idField = schema?.idFieldName;
+            if (idField && Array.isArray(response.items)) {
+              response.items = response.items.map((it: any) => {
+                if ((it.id === undefined || it.id === null) && it[idField] !== undefined) {
+                  return { ...it, id: it[idField] };
+                }
+                return it;
+              });
+            }
+          } catch (e) {
+            // ignore schema load errors - proceed with original items
+            console.warn('[fetchItems] Could not load schema for id normalization:', e);
+          }
+
           set((state) => {
             state.items = response.items as any;
             state.total = response.total;
@@ -319,6 +337,17 @@ export const createEntityStore = <T extends { id: string }>(
             }
           });
 
+          // Normalize ID based on schema if necessary
+          try {
+            const schema = await loadSchema(options.name);
+            const idField = schema?.idFieldName;
+            if (idField && item && (item.id === undefined || item.id === null) && item[idField] !== undefined) {
+              (item as any).id = item[idField];
+            }
+          } catch (e) {
+            console.warn('[fetchItem] Could not normalize id:', e);
+          }
+
           return item;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Failed to fetch item';
@@ -358,6 +387,17 @@ export const createEntityStore = <T extends { id: string }>(
             state.loading = false;
             state.error = null;
           });
+
+          // Normalize ID based on schema if necessary
+          try {
+            const schema = await loadSchema(options.name);
+            const idField = schema?.idFieldName;
+            if (idField && newItem && (newItem.id === undefined || newItem.id === null) && newItem[idField] !== undefined) {
+              (newItem as any).id = newItem[idField];
+            }
+          } catch (e) {
+            console.warn('[createItem] Could not normalize id:', e);
+          }
 
           return newItem;
         } catch (error) {
@@ -412,6 +452,17 @@ export const createEntityStore = <T extends { id: string }>(
             }
             state.error = null;
           });
+
+          // Normalize ID based on schema if necessary
+          try {
+            const schema = await loadSchema(options.name);
+            const idField = schema?.idFieldName;
+            if (idField && updatedItem && (updatedItem.id === undefined || updatedItem.id === null) && updatedItem[idField] !== undefined) {
+              (updatedItem as any).id = updatedItem[idField];
+            }
+          } catch (e) {
+            console.warn('[updateItemById] Could not normalize id:', e);
+          }
 
           return updatedItem;
         } catch (error) {

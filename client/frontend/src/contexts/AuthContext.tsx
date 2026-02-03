@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { AuthContextType, AuthState, LoginCredentials, User, UserRole } from '../types/auth';
+import { ROLE_PERMISSIONS } from '../types/auth';
 import { authService } from '../services/authService';
 
 // Initial state
@@ -165,7 +166,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           addLog('✅ Token found in storage, verifying with backend...');
           try {
             // Verify token with backend to get user data
-            const user = await authService.verifyToken();
+            let user = await authService.verifyToken();
+            // Normalize permissions shape if backend returned nested object
+            const normalizePermissions = (perms: any) => {
+              if (!perms) return [];
+              if (Array.isArray(perms)) return perms;
+              if (typeof perms === 'object') {
+                const result: string[] = [];
+                Object.entries(perms).forEach(([moduleName, actions]) => {
+                  if (typeof actions === 'object' && actions !== null) {
+                    Object.entries(actions).forEach(([actionName, allowed]) => {
+                      if (allowed) {
+                        result.push(`${moduleName}:${actionName}`);
+                      }
+                    });
+                  }
+                });
+                return result;
+              }
+              return [];
+            };
+            if (user && user.permissions) {
+              (user as any).permissions = normalizePermissions((user as any).permissions);
+            }
             addLog('✅ Verify endpoint response: ' + JSON.stringify(user));
             if (user) {
               addLog('✅ Token verified, user authenticated: ' + user.email);
@@ -247,14 +270,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Ensure locations are included in the response
       const locations = authResponse.locations || [];
       console.log('📍 [AUTH] Locations to store:', locations.length, 'locations');
-      
-      dispatch({ 
-        type: 'LOGIN_SUCCESS', 
-        payload: {
-          user: authResponse.user,
-          locations: locations
-        }
-      });
+        // Normalize permissions if necessary
+        const normalizePermissions = (perms: any) => {
+          if (!perms) return [];
+          if (Array.isArray(perms)) return perms;
+          if (typeof perms === 'object') {
+            const result: string[] = [];
+            Object.entries(perms).forEach(([moduleName, actions]) => {
+              if (typeof actions === 'object' && actions !== null) {
+                Object.entries(actions).forEach(([actionName, allowed]) => {
+                  if (allowed) {
+                    result.push(`${moduleName}:${actionName}`);
+                  }
+                });
+              }
+            });
+            return result;
+          }
+          return [];
+        };
+
+        const normalizedUser = {
+          ...authResponse.user,
+          permissions: normalizePermissions(authResponse.user.permissions),
+        };
+
+        dispatch({ 
+          type: 'LOGIN_SUCCESS', 
+          payload: {
+            user: normalizedUser,
+            locations: locations
+          }
+        });
       console.log('✅ Login completed successfully in AuthContext');
     } catch (error) {
       console.error('❌ Login failed in context:', error);
@@ -305,10 +352,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update stored tokens
       authService.storeTokens(authResponse.token, authResponse.refreshToken, authResponse.expiresIn);
       
+      // Normalize permissions for refreshed user
+      const normalizePermissions = (perms: any) => {
+        if (!perms) return [];
+        if (Array.isArray(perms)) return perms;
+        if (typeof perms === 'object') {
+          const result: string[] = [];
+          Object.entries(perms).forEach(([moduleName, actions]) => {
+            if (typeof actions === 'object' && actions !== null) {
+              Object.entries(actions).forEach(([actionName, allowed]) => {
+                if (allowed) {
+                  result.push(`${moduleName}:${actionName}`);
+                }
+              });
+            }
+          });
+          return result;
+        }
+        return [];
+      };
+
+      const normalizedUser = {
+        ...authResponse.user,
+        permissions: normalizePermissions(authResponse.user.permissions),
+      };
+
       dispatch({ 
         type: 'REFRESH_TOKEN_SUCCESS', 
         payload: {
-          user: authResponse.user,
+          user: normalizedUser,
           locations: authResponse.locations || []
         }
       });
@@ -339,14 +411,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       const hasPermission = state.user.permissions.includes(permission);
-      if (!hasPermission) {
-        console.warn('[AUTH] checkPermission: Permission denied', {
-          permission,
-          userPermissions: state.user.permissions,
-          userRole: state.user.role
-        });
+      if (hasPermission) return true;
+
+      // Fallback: if user's role grants the permission, allow it (backend may omit explicit perms)
+      try {
+        const rolePerms = ROLE_PERMISSIONS[(state.user as any).role as UserRole];
+        if (rolePerms && Array.isArray(rolePerms) && rolePerms.includes(permission as any)) {
+          console.log('[AUTH] checkPermission: Permission granted via role mapping', { permission, userRole: state.user.role });
+          return true;
+        }
+      } catch (e) {
+        // ignore and continue to other fallbacks
       }
-      return hasPermission;
+
+      // Try common normalization alternatives (singular/plural mismatches)
+      const [module, action] = (permission || '').split(':');
+      if (module && action) {
+        const altCandidates: string[] = [];
+        // pluralize
+        if (!module.endsWith('s')) altCandidates.push(`${module}s:${action}`);
+        // singularize
+        if (module.endsWith('s')) altCandidates.push(`${module.replace(/s$/, '')}:${action}`);
+        // namespace fallback: try prefixing with 'core' or 'app' (some backends use namespacing)
+        altCandidates.push(`${module}:*`);
+
+        for (const alt of altCandidates) {
+          if (state.user.permissions.includes(alt)) {
+            console.log('[AUTH] checkPermission: Permission granted via alternative match', { permission, alt, userRole: state.user.role });
+            return true;
+          }
+        }
+      }
+
+      console.warn('[AUTH] checkPermission: Permission denied', {
+        permission,
+        userPermissions: state.user.permissions,
+        userRole: state.user.role
+      });
+      return false;
     }
     
     // Handle permissions as nested object: { module: { action: boolean } }
@@ -368,7 +470,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Check if module exists and action is true
       const permissionsObj = state.user.permissions as Record<string, Record<string, boolean>>;
-      const hasPermission = permissionsObj[module]?.[action] === true;
+      let hasPermission = permissionsObj[module]?.[action] === true;
+      // Try pluralization fallback if module key not found
+      if (!hasPermission) {
+        const pluralKey = module.endsWith('s') ? module : `${module}s`;
+        const singularKey = module.endsWith('s') ? module.replace(/s$/, '') : module;
+        if (permissionsObj[pluralKey]?.[action] === true) hasPermission = true;
+        if (!hasPermission && permissionsObj[singularKey]?.[action] === true) hasPermission = true;
+      }
       
       if (!hasPermission) {
         console.warn('[AUTH] checkPermission: Permission denied', {

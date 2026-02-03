@@ -8,7 +8,7 @@
  */
 
 /* Import Sidebar styles for form sidebars */
-@import '../sidebar/Sidebar.css';
+/* @import '../sidebar/Sidebar.css'; */
 
 /* Form Container - flex layout with main content and sidebar */
 .base-form {
@@ -25,6 +25,19 @@
   max-height: 100vh;
 }
 
+/* Form width constraints from data attributes */
+.base-form[data-max-width] {
+  max-width: var(--form-max-width);
+}
+
+.base-form[data-min-width] {
+  min-width: var(--form-min-width);
+}
+
+/* Apply data attribute values as CSS variables */
+.base-form[data-max-width] { --form-max-width: attr(data-max-width); }
+.base-form[data-min-width] { --form-min-width: attr(data-min-width); }
+
 /* Content wrapper - contains main form and sidebar */
 .base-form__content {
   display: flex;
@@ -36,6 +49,7 @@
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  max-height: 80vh;
 }
 
 .base-form__main {
@@ -52,6 +66,47 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 1.25rem;
   width: 100%;
+  margin: 0 auto;
+}
+
+/* Flexbox layout for sections with flex properties */
+.base-form__sections-container--flex {
+  display: flex;
+  flex-direction: row;
+  gap: 1.25rem;
+  width: 100%;
+  align-items: flex-start;
+  margin: 0 auto;
+}
+
+/* Grid layout variants */
+.base-form__sections-container--grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.base-form__sections-container--grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.base-form__sections-container--grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Section flex properties */
+.base-form__section--flex {
+  flex: 1;
+}
+
+.base-form__section--flex[data-flex] {
+  flex: attr(data-flex);
+}
+
+.base-form__section--flex[data-flex-grow] {
+  flex-grow: attr(data-flex-grow);
+}
+
+.base-form__section--flex[data-flex-shrink] {
+  flex-shrink: attr(data-flex-shrink);
 }
 
 /* Grid Layout Classes - Applied dynamically based on schema */
@@ -87,6 +142,22 @@
   width: 100%;
   display: block;
 }
+
+/* Section width constraints from data attributes */
+.base-form__section[data-min-width] {
+  min-width: var(--section-min-width);
+}
+
+.base-form__section[data-max-width] {
+  max-width: var(--section-max-width);
+}
+
+/* Apply data attribute values as CSS variables */
+.base-form__section[data-min-width="auto"] { --section-min-width: auto; }
+.base-form__section[data-min-width]:not([data-min-width="auto"]) { --section-min-width: attr(data-min-width); }
+
+.base-form__section[data-max-width="none"] { --section-max-width: none; }
+.base-form__section[data-max-width]:not([data-max-width="none"]) { --section-max-width: attr(data-max-width); }
 
 .base-form__section:last-of-type {
   margin-bottom: 0;
@@ -464,11 +535,11 @@ div.form-container div.MuiFormControl-root {
     width: 100%;
   }
 
-  .base-form__sidebar {
+  /* .base-form__sidebar {
     flex: 1;
     min-width: auto;
     flex-direction: row;
-  }
+  } */
 }
 
 @media (max-width: 768px) {
@@ -483,9 +554,9 @@ div.form-container div.MuiFormControl-root {
     gap: 1rem;
   }
 
-  .base-form__sidebar {
+  /* .base-form__sidebar {
     flex-direction: column;
-  }
+  } */
 }
 
 @media (max-width: 480px) {

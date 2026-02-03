@@ -28,6 +28,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
+import { useSchema } from '../../form/utils/schemaLoader';
 import type {
   BaseListConfig,
   BaseListReturn,
@@ -88,6 +89,9 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
 
   // Get store instance
   const store = useStore();
+  
+  // Load entity schema to determine special behaviors (e.g., soft-delete via `active` flag)
+  const { schema: entitySchema } = useSchema(entityName);
 
   // State management
   const [searchQuery, setSearchQueryState] = useState('');
@@ -174,18 +178,15 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
       return;
     }
     
-    // If active filter exists, set it and fetch with that filter
+    // If active filter exists, set it (do not fetch here - filters effect will trigger fetch)
     if (hasActiveFilter) {
       console.log('[useBaseList] Initializing default active filter to true');
       const defaultFilters = { active: 'true' };
       setFiltersState(defaultFilters);
       
-      // Set filters in store and fetch
+      // Set filters in store; do NOT call fetchItems here to avoid duplicate requests
       if (store.setFilters) {
         store.setFilters(defaultFilters);
-      }
-      if (store.fetchItems) {
-        (store.fetchItems as any)({ _bypassCache: true });
       }
     } else {
       // No active filter, just fetch all items
@@ -293,9 +294,18 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
     if (!item) return;
 
     try {
-      if (store.deleteItem) {
+      const hasActiveFlag = !!(entitySchema && entitySchema.entityFields && entitySchema.entityFields.active);
+
+      if (hasActiveFlag && store.updateItem) {
+        // Toggle the active flag instead of deleting the record
+        const currentActive = (item as any).active === undefined ? false : Boolean((item as any).active);
+        await store.updateItem((item as any).id, { active: !currentActive });
+        if (store.fetchItems) {
+          await store.fetchItems();
+        }
+      } else if (store.deleteItem) {
+        // Fallback to hard delete if no active flag or update not available
         await store.deleteItem((item as any).id);
-        // Refresh data after deletion
         if (store.fetchItems) {
           await store.fetchItems();
         }
@@ -902,18 +912,29 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
     renderStats,
     renderExportModal,
     renderImportModal,
-    renderDeleteConfirmation: () => (
-      <ConfirmationModal
-        isOpen={deleteConfirmation.isOpen}
-        title={`Delete ${entityName}`}
-        message={`Are you sure you want to delete ${entityName} "${deleteConfirmation.itemName}"? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
-        type="danger"
-        onConfirm={confirmDelete}
-        onCancel={cancelDelete}
-      />
-    ),
+    renderDeleteConfirmation: () => {
+      const hasActiveFlag = !!(entitySchema && entitySchema.entityFields && entitySchema.entityFields.active);
+      const isActive = deleteConfirmation.item ? Boolean((deleteConfirmation.item as any).active) : true;
+      const title = hasActiveFlag ? (isActive ? `Deactivate ${entityName}` : `Activate ${entityName}`) : `Delete ${entityName}`;
+      const message = hasActiveFlag
+        ? `Are you sure you want to ${isActive ? 'deactivate' : 'activate'} ${entityName} "${deleteConfirmation.itemName}"? This will ${isActive ? 'prevent' : 'allow'} it from appearing in active lists.`
+        : `Are you sure you want to delete ${entityName} "${deleteConfirmation.itemName}"? This action cannot be undone.`;
+      const confirmText = hasActiveFlag ? (isActive ? 'Deactivate' : 'Activate') : 'Delete';
+      const modalType = hasActiveFlag ? 'warning' : 'danger';
+
+      return (
+        <ConfirmationModal
+          isOpen={deleteConfirmation.isOpen}
+          title={title}
+          message={message}
+          confirmText={confirmText}
+          cancelText="Cancel"
+          type={modalType}
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
+      );
+    },
 
     // Data
     columns: memoizedColumns,
