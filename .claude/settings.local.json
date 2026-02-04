@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(ren backend api)",
+      "Bash(powershell -Command \"Rename-Item -Path ''c:/Projects/MeterItPro/client/backend'' -NewName ''api'' -Force\")",
+      "Bash(powershell -Command:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

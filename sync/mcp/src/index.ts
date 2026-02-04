@@ -19,7 +19,8 @@ import winston from 'winston';
 import { Pool } from 'pg';
 import { initializePools, remotePool as globalRemotePool } from './data-sync/data-sync.js';
 import { ClientSystemApiClient } from './api/client-system-api.js';
-import { LocalApiServer, createAndStartLocalApiServer } from './api/server.js';
+// API Server has been moved to sync/api for consistency with client architecture
+// import { LocalApiServer, createAndStartLocalApiServer } from './api/server.js';
 import { RemoteToLocalSyncAgent } from './remote_to_local-sync/sync-agent.js';
 import { BACnetMeterReadingAgent } from './bacnet-collection/bacnet-reading-agent.js';
 import { MeterReadingCleanupAgent } from './bacnet-collection/meter-reading-cleanup-agent.js';
@@ -69,7 +70,8 @@ const logger = winston.createLogger({
  */
 class SyncMcpServer {
   private server: Server;
-  private apiServer?: LocalApiServer;
+  // API Server has been moved to sync/api
+  // private apiServer?: LocalApiServer;
   private syncDatabase?: SyncDatabase;
   private remotePool?: Pool;
   private remoteToLocalSyncAgent?: RemoteToLocalSyncAgent;
@@ -228,14 +230,8 @@ class SyncMcpServer {
         await this.syncManager.start();
         console.log('✅ [Services] Sync Manager started');
 
-        // Step 11: Initialize Local API Server
-        console.log('🌐 [Services] Initializing Local API Server...');
-        this.apiServer = await createAndStartLocalApiServer(this.syncDatabase, this.remoteToLocalSyncAgent, this.bacnetMeterReadingAgent, undefined, this.remotePool);
-
-        // Step 12: Set Sync Manager on API Server
-        console.log('🔗 [Services] Setting Sync Manager on Local API Server...');
-        this.apiServer.setSyncManager(this.syncManager);
-        console.log('✅ [Services] Sync Manager set on Local API Server');
+        // API Server has been moved to sync/api for consistency with client architecture
+        // Run separately: cd sync/api && npm run dev
 
         this.isInitialized = true;
         console.log('✅ [Services] All services initialized successfully\n');
@@ -689,9 +685,10 @@ class SyncMcpServer {
       await this.remoteToLocalSyncAgent.stop();
     }
 
-    if (this.apiServer) {
-      await this.apiServer.stop();
-    }
+    // API Server has been moved to sync/api
+    // if (this.apiServer) {
+    //   await this.apiServer.stop();
+    // }
 
     if (this.remotePool) {
       await this.closeRemotePool(this.remotePool);

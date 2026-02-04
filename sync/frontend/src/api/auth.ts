@@ -9,27 +9,30 @@ export interface LoginCredentials {
 
 export interface AuthResponse {
   success: boolean;
-  token?: string;
-  refreshToken?: string;
-  user?: {
-    users_id: number;
-    email: string;
-    name: string;
-    status: string;
-  };
-  tenant?: {
-    tenant_id: number;
-    name: string;
-    url?: string;
-    street?: string;
-    street2?: string;
-    city?: string;
-    state?: string;
-    zip?: string;
-    country?: string;
-    active?: boolean;
-    created_at?: string;
-    updated_at?: string;  
+  data?: {
+    token?: string;
+    refreshToken?: string;
+    expiresIn?: number;
+    user?: {
+      users_id: number;
+      email: string;
+      name: string;
+      status: string;
+    };
+    tenant?: {
+      tenant_id: number;
+      name: string;
+      url?: string;
+      street?: string;
+      street2?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
+      country?: string;
+      active?: boolean;
+      created_at?: string;
+      updated_at?: string;
+    };
   };
   error?: string;
 }
@@ -50,7 +53,9 @@ export const authApi = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
       console.log('🔐 [Auth] Attempting login for:', credentials.email);
-      
+      console.log('🔐 [Auth] API Base URL:', CLIENT_API_URL);
+      console.log('🔐 [Auth] Full URL:', `${CLIENT_API_URL}/auth/login`);
+
       const response = await authClient.post<AuthResponse>('/auth/login', {
         email: credentials.email,
         password: credentials.password,
@@ -68,8 +73,8 @@ export const authApi = {
       }
 
       // Check if user is active
-      if (response.data.user?.status !== 'active') {
-        console.error('❌ [Auth] User is not active:', response.data.user?.status);
+      if (response.data.data?.user?.status !== 'active') {
+        console.error('❌ [Auth] User is not active:', response.data.data?.user?.status);
         return {
           success: false,
           error: 'Your account is not active. Please contact support.',
@@ -77,7 +82,7 @@ export const authApi = {
       }
 
       // Check if user has a tenant
-      if (!response.data.tenant?.tenant_id) {
+      if (!response.data.data?.tenant?.tenant_id) {
         console.error('❌ [Auth] User has no associated tenant');
         return {
           success: false,
@@ -85,23 +90,23 @@ export const authApi = {
         };
       }
 
-      console.log('📊 [Auth] User tenant:', response.data.tenant);
-      
+      console.log('📊 [Auth] User tenant:', response.data.data?.tenant);
+
       // Fetch full tenant data from company settings endpoint
-      let fullTenantData = response.data.tenant;
-      if (response.data.token) {
+      let fullTenantData = response.data.data?.tenant;
+      if (response.data.data?.token) {
         try {
           console.log('📡 [Auth] Fetching full tenant data from company settings...');
           const settingsResponse = await authClient.get('/settings/company', {
             headers: {
-              'Authorization': `Bearer ${response.data.token}`,
+              'Authorization': `Bearer ${response.data.data.token}`,
             },
           });
-          
+
           if (settingsResponse.data?.data) {
             // Map settings data to tenant format
             fullTenantData = {
-              ...response.data.tenant,
+              ...response.data.data.tenant,
               url: settingsResponse.data.data.url,
               street: settingsResponse.data.data.street,
               street2: settingsResponse.data.data.street2,
@@ -118,13 +123,15 @@ export const authApi = {
           // Continue with basic tenant info if full fetch fails
         }
       }
-      
+
       return {
         success: true,
-        user: response.data.user,
-        tenant: fullTenantData,
-        token: response.data.token,
-        refreshToken: response.data.refreshToken,
+        data: {
+          user: response.data.data?.user,
+          tenant: fullTenantData,
+          token: response.data.data?.token,
+          refreshToken: response.data.data?.refreshToken,
+        },
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {

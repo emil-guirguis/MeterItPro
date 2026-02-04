@@ -329,7 +329,7 @@ class User extends BaseModel {
             console.log('[USER MODEL] ✓ User found by email');
             console.log('[USER MODEL] User object keys:', Object.keys(result));
             console.log('[USER MODEL] User data:', {
-                id: result.id,
+                users_id: result.users_id,
                 email: result.email,
                 name: result.name,
                 role: result.role,

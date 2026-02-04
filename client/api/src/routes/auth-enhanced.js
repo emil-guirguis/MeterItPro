@@ -146,7 +146,7 @@ async function get2FAMethods(userId) {
       [userId]
     );
 
-    return result.rows ? result.rows.map(row => /** @type {any} */ (row).method_type) : [];
+    return result.rows ? result.rows.map(row => /** @type {any} */(row).method_type) : [];
   } catch (error) {
     console.error('Error getting 2FA methods:', error);
     return [];
@@ -163,7 +163,7 @@ async function get2FAMethods(userId) {
 async function checkPasswordResetRateLimit(email, maxRequests = 3, windowMs = 60 * 60 * 1000) {
   try {
     const oneHourAgo = new Date(Date.now() - windowMs);
-    
+
     const result = await db.query(
       `SELECT COUNT(*) as count FROM auth_logs 
        WHERE event_type = 'password_reset_requested' 
@@ -172,7 +172,7 @@ async function checkPasswordResetRateLimit(email, maxRequests = 3, windowMs = 60
       [email, oneHourAgo]
     );
 
-    const count = parseInt(/** @type {any} */ (result.rows[0]).count, 10);
+    const count = parseInt(/** @type {any} */(result.rows[0]).count, 10);
     return count < maxRequests;
   } catch (error) {
     console.error('Error checking rate limit:', error);
@@ -295,7 +295,7 @@ router.post('/signup', [
     } catch (err) {
       const error = /** @type {Error} */ (err);
       console.error('[SIGNUP] Transaction error:', error);
-      
+
       // Check for duplicate email
       if (error.message && error.message.includes('duplicate key')) {
         return res.status(409).json({
@@ -303,7 +303,7 @@ router.post('/signup', [
           message: 'An account with this email already exists'
         });
       }
-      
+
       return res.status(500).json({
         success: false,
         message: 'Failed to create account',
@@ -331,6 +331,7 @@ router.post('/login', [
   body('password').notEmpty().withMessage('Password is required')
 ], async (req, res) => {
   try {
+    console.log('[DEBUG] Login endpoint hit - email:', req.body.email);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -346,7 +347,6 @@ router.post('/login', [
 
     // Find user by email (Requirement 9.1)
     const user = await User.findByEmail(email);
-
     if (!user) {
       // Log failed login attempt
       await AuthLoggingService.logEvent({
@@ -398,7 +398,7 @@ router.post('/login', [
         status: 'failed',
         ipAddress,
         userAgent,
-        details: { 
+        details: {
           reason: 'invalid_password',
           attempts: failureStatus.attempts,
           is_locked: failureStatus.isLocked
@@ -444,7 +444,7 @@ router.post('/login', [
         status: 'pending_2fa',
         ipAddress,
         userAgent,
-        details: { 
+        details: {
           reason: '2fa_required',
           methods: twoFAMethods
         }
@@ -488,12 +488,35 @@ router.post('/login', [
       permissions = user.permissions;
     }
 
-    res.json({
+    // Fetch tenant information
+    // @ts-ignore - tenant_id is dynamically set by schema initialization
+    const tenantId = user.tenant_id;
+    let tenantInfo = null;
+
+    if (tenantId) {
+      try {
+        const tenantResult = await db.query(
+          'SELECT tenant_id, name, url, street, street2, city, state, zip, country, active, created_at, updated_at, api_key FROM tenant WHERE tenant_id = $1',
+          [tenantId]
+        );
+
+        if (tenantResult.rows && tenantResult.rows.length > 0) {
+          tenantInfo = tenantResult.rows[0];
+        }
+      } catch (tenantErr) {
+        console.error('Error fetching tenant info:', tenantErr);
+        // Continue without tenant info
+      }
+    }
+
+    const responseData = {
       success: true,
       data: {
         user: {
           // @ts-ignore - properties are dynamically set by schema initialization
           users_id: user.users_id,
+          // @ts-ignore
+          tenant_id: user.tenant_id,
           // @ts-ignore
           email: user.email,
           // @ts-ignore
@@ -502,14 +525,17 @@ router.post('/login', [
           role: user.role,
           permissions: permissions,
           // @ts-ignore
-          status: user.active ? 'active' : 'inactive',
-          // @ts-ignore
-          client: user.tenant_id
+          status: user.active ? 'active' : 'inactive'
         },
+        tenant: tenantInfo,
         token,
         expiresIn: 60 * 60 // 1 hour
       }
-    });
+    };
+
+    // @ts-ignore
+    console.log('[DEBUG] Sending response - user.active:', user.active, '-> status:', responseData.data.user.status);
+    res.json(responseData);
   } catch (error) {
     console.error('Login error:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -656,6 +682,24 @@ router.post('/verify-2fa', [
       permissions = user.permissions;
     }
 
+    // Fetch tenant information
+    let tenantInfo = null;
+    if (tenantId) {
+      try {
+        const tenantResult = await db.query(
+          'SELECT tenant_id, name, url, street, street2, city, state, zip, country, active, created_at, updated_at FROM tenant WHERE tenant_id = $1',
+          [tenantId]
+        );
+
+        if (tenantResult.rows && tenantResult.rows.length > 0) {
+          tenantInfo = tenantResult.rows[0];
+        }
+      } catch (tenantErr) {
+        console.error('Error fetching tenant info:', tenantErr);
+        // Continue without tenant info
+      }
+    }
+
     res.json({
       success: true,
       data: {
@@ -670,10 +714,9 @@ router.post('/verify-2fa', [
           role: user.role,
           permissions: permissions,
           // @ts-ignore
-          status: user.active ? 'active' : 'inactive',
-          // @ts-ignore
-          client: user.tenant_id
+          status: user.active ? 'active' : 'inactive'
         },
+        tenant: tenantInfo,
         token,
         expiresIn: 60 * 60 // 1 hour
       }
@@ -1059,7 +1102,7 @@ router.post('/2fa/setup', authenticateToken, [
       setupData = await TwoFactorService.generateTOTPSecret(user.email);
     } else if (method === 'email_otp') {
       // Email OTP doesn't need setup data (Requirements 6.1, 6.2, 6.3)
-      setupData = { 
+      setupData = {
         message: 'Email OTP will be sent to your email during login',
         method: 'email_otp'
       };
@@ -1071,8 +1114,8 @@ router.post('/2fa/setup', authenticateToken, [
           message: 'Phone number is required for SMS OTP'
         });
       }
-      setupData = { 
-        phone_number: phoneNumber, 
+      setupData = {
+        phone_number: phoneNumber,
         message: 'SMS OTP will be sent to your phone during login',
         method: 'sms_otp'
       };

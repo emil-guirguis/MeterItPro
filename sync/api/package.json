@@ -1,0 +1,35 @@
+{
+  "name": "meteritpro-sync-api",
+  "version": "1.0.0",
+  "description": "Backend API for MeterIt Pro Sync Service",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "dev:node": "npm run build && node dist/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^5.1.0",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/node": "^20.19.25",
+    "@types/pg": "^8.15.5",
+    "tsx": "^4.19.4",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "sync",
+    "api",
+    "postgresql",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT"
+}

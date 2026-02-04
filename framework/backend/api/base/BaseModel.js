@@ -323,7 +323,7 @@ class BaseModel {
   static _getDb() {
     // Import database connection (lazy load to avoid circular dependencies)
     if (!this._db) {
-      this._db = require('../../../../client/backend/src/config/database');
+      this._db = require('../../../../client/api/src/config/database');
     }
     return this._db;
   }
@@ -1316,12 +1316,12 @@ class BaseModel {
     try {
       // Try to require the model from the standard location
       // This assumes models are in client/backend/src/models/
-      const modelPath = `../../../../client/backend/src/models/${modelName}WithSchema`;
+      const modelPath = `../../../../client/api/src/models/${modelName}WithSchema`;
       return require(modelPath);
     } catch (error) {
       // Try without "WithSchema" suffix
       try {
-        const modelPath = `../../../../client/backend/src/models/${modelName}`;
+        const modelPath = `../../../../client/api/src/models/${modelName}`;
         return require(modelPath);
       } catch (error2) {
         const errorMessage = error2 instanceof Error ? error2.message : String(error2);
@@ -1592,7 +1592,7 @@ class BaseModel {
     }
 
     const relationship = relationships[relationshipName];
-    const RelatedModel = require(`../../../client/backend/src/models/${relationship.model}WithSchema`);
+    const RelatedModel = require(`../../../client/api/src/models/${relationship.model}WithSchema`);
     
     const results = new Map();
 

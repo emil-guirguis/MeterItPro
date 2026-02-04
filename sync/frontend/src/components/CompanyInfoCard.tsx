@@ -313,14 +313,14 @@ export default function CompanyInfoCard() {
 
       const response = await authApi.login(loginData);
 
-      if (!response.success || !response.token || !response.tenant) {
+      if (!response.success || !response.data?.token || !response.data?.tenant) {
         setLoginError(response.error || 'Login failed. Please check your credentials.');
         return;
       }
 
       // Sync tenant from remote to local database
       try {
-        const syncedTenantInfo = await tenantApi.syncTenantFromRemote(response.tenant.tenant_id);
+        const syncedTenantInfo = await tenantApi.syncTenantFromRemote(response.data?.tenant?.tenant_id);
 
         if (syncedTenantInfo) {
           setTenantInfo(syncedTenantInfo);
