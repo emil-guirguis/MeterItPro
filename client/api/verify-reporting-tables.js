@@ -17,7 +17,7 @@ async function verifyTables() {
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-      AND table_name IN ('reports', 'report_history', 'report_email_logs')
+      AND table_name IN ('report', 'report_history', 'report_email_logs')
       ORDER BY table_name
     `);
     
@@ -43,7 +43,7 @@ async function verifyTables() {
       const indexResult = await db.query(`
         SELECT indexname 
         FROM pg_indexes 
-        WHERE tablename IN ('reports', 'report_history', 'report_email_logs')
+        WHERE tablename IN ('report', 'report_history', 'report_email_logs')
         AND indexname LIKE 'idx_%'
         ORDER BY tablename, indexname
       `);

@@ -261,7 +261,7 @@ export class EmailSender {
   ): Promise<string> {
     try {
       const query = `
-        INSERT INTO report_email_logs (reports_id, report_history_id, recipient, sent_at, status, error_details, created_at)
+        INSERT INTO report_email_logs (report_id, report_history_id, recipient, sent_at, status, error_details, created_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING report_email_logs_id as id
       `;

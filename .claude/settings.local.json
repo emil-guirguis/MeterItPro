@@ -6,7 +6,8 @@
       "Bash(powershell -Command \"Rename-Item -Path ''c:/Projects/MeterItPro/client/backend'' -NewName ''api'' -Force\")",
       "Bash(powershell -Command:*)",
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

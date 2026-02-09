@@ -84,13 +84,130 @@ app.get('/api/health/remote-db', async (_req, res) => {
   }
 });
 
+// Health check for MCP server (checks for recent activity in sync_log)
+app.get('/api/health/mcp', async (_req, res) => {
+  try {
+    // Check if there's recent MCP activity by looking at sync_log entries
+    // MCP is considered healthy if there's activity within the last 5 minutes
+    // or if there are no errors in the last sync operation
+    const query = `
+      SELECT
+        COUNT(*) FILTER (WHERE synced_at > NOW() - INTERVAL '5 minutes') as recent_activity,
+        (SELECT success FROM sync_log ORDER BY synced_at DESC LIMIT 1) as last_success,
+        (SELECT synced_at FROM sync_log ORDER BY synced_at DESC LIMIT 1) as last_activity
+      FROM sync_log
+    `;
+    const result = await syncPool.query(query);
+    const row = result.rows[0];
+
+    const recentActivity = parseInt(row.recent_activity, 10);
+    const lastSuccess = row.last_success;
+    const lastActivity = row.last_activity;
+
+    // MCP is healthy if:
+    // 1. There's recent activity (within 5 minutes), OR
+    // 2. The last sync was successful (even if not recent - may be idle)
+    // 3. No sync_log entries yet means MCP may be initializing
+    const isHealthy = recentActivity > 0 || lastSuccess === true || lastActivity === null;
+
+    if (isHealthy) {
+      res.json({
+        status: 'ok',
+        service: 'mcp',
+        recent_activity: recentActivity,
+        last_success: lastSuccess,
+        last_activity: lastActivity,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(503).json({
+        status: 'error',
+        service: 'mcp',
+        error: 'MCP server appears inactive or last operation failed',
+        recent_activity: recentActivity,
+        last_success: lastSuccess,
+        last_activity: lastActivity
+      });
+    }
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      service: 'mcp',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// Health check for remote client API
+app.get('/api/health/remote-api', async (_req, res) => {
+  try {
+    // Get tenant API key for authentication
+    const tenantQuery = `SELECT api_key FROM tenant LIMIT 1`;
+    const tenantResult = await syncPool.query(tenantQuery);
+
+    if (tenantResult.rows.length === 0 || !tenantResult.rows[0].api_key) {
+      res.status(503).json({
+        status: 'error',
+        service: 'remote-api',
+        error: 'No tenant configured or missing API key'
+      });
+      return;
+    }
+
+    const apiKey = tenantResult.rows[0].api_key;
+    const clientApiUrl = process.env.CLIENT_API_URL || 'http://localhost:3001';
+
+    // Make a health check request to the client API
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const response = await fetch(`${clientApiUrl}/health`, {
+        method: 'GET',
+        headers: {
+          'x-api-key': apiKey,
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        res.json({
+          status: 'ok',
+          service: 'remote-api',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(503).json({
+          status: 'error',
+          service: 'remote-api',
+          error: `Client API returned status ${response.status}`
+        });
+      }
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      res.status(503).json({
+        status: 'error',
+        service: 'remote-api',
+        error: fetchError instanceof Error ? fetchError.message : 'Connection failed'
+      });
+    }
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      service: 'remote-api',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
 // Get tenant information from local database
 app.get('/api/local/tenant', async (_req, res) => {
   try {
     console.log('📥 [API] GET /api/local/tenant - Request received');
 
     const query = `
-      SELECT tenant_id, name, url, street, street2, city, state, zip, country, active
+      SELECT tenant_id, name, url, street, street2, city, state, zip, country, active, api_key
       FROM tenant
       LIMIT 1
     `;
@@ -108,6 +225,80 @@ app.get('/api/local/tenant', async (_req, res) => {
     res.json(result.rows[0]);
   } catch (error) {
     console.error('❌ [API] GET /api/local/tenant - Error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// Save tenant data directly to local database (from remote API response)
+app.post('/api/local/tenant', async (req, res) => {
+  try {
+    console.log('📥 [API] POST /api/local/tenant - Request received');
+    console.log('📥 [API] Request body:', req.body);
+
+    const { tenant_id, name, url, street, street2, city, state, zip, country, active, api_key } = req.body;
+
+    if (!tenant_id || !name) {
+      console.error('❌ [API] Missing required fields: tenant_id and name');
+      return res.status(400).json({
+        error: 'tenant_id and name are required'
+      });
+    }
+
+    // Upsert to local sync database
+    console.log('🔄 [API] Upserting tenant to local database...');
+    const upsertQuery = `
+      INSERT INTO tenant (tenant_id, name, url, street, street2, city, state, zip, country, active, api_key)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ON CONFLICT (tenant_id) DO UPDATE SET
+        name = EXCLUDED.name,
+        url = EXCLUDED.url,
+        street = EXCLUDED.street,
+        street2 = EXCLUDED.street2,
+        city = EXCLUDED.city,
+        state = EXCLUDED.state,
+        zip = EXCLUDED.zip,
+        country = EXCLUDED.country,
+        active = EXCLUDED.active,
+        api_key = EXCLUDED.api_key
+      RETURNING *
+    `;
+    const upsertResult = await syncPool.query(upsertQuery, [
+      tenant_id,
+      name,
+      url || null,
+      street || null,
+      street2 || null,
+      city || null,
+      state || null,
+      zip || null,
+      country || null,
+      active ?? true,
+      api_key || null,
+    ]);
+
+    const savedTenant = upsertResult.rows[0];
+    console.log('✅ [API] Tenant saved successfully:', savedTenant.name);
+
+    // Return saved tenant (without api_key for security)
+    const response = {
+      tenant_id: savedTenant.tenant_id,
+      name: savedTenant.name,
+      url: savedTenant.url,
+      street: savedTenant.street,
+      street2: savedTenant.street2,
+      city: savedTenant.city,
+      state: savedTenant.state,
+      zip: savedTenant.zip,
+      country: savedTenant.country,
+      active: savedTenant.active,
+    };
+
+    console.log(`📤 [API] POST /api/local/tenant - Success`);
+    res.json(response);
+  } catch (error) {
+    console.error('❌ [API] POST /api/local/tenant - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -295,7 +486,7 @@ app.get('/api/local/sync-status', async (_req, res) => {
 
     // Get recent sync logs
     const logsQuery = `
-      SELECT id as sync_log_id, batch_size, success, error_message, synced_at
+      SELECT sync_log_id, batch_size, success, error_message, synced_at
       FROM sync_log
       ORDER BY synced_at DESC
       LIMIT 10
@@ -354,11 +545,10 @@ app.get('/api/sync/meter-reading-upload/status', async (_req, res) => {
     const queueResult = await syncPool.query(queueQuery);
     const queueSize = parseInt(queueResult.rows[0].count, 10);
 
-    // Get last upload from sync_log
+    // Get last sync from sync_log (no operation_type column, so just get latest)
     const lastUploadQuery = `
       SELECT success, error_message, synced_at, batch_size
       FROM sync_log
-      WHERE operation_type = 'upload'
       ORDER BY synced_at DESC
       LIMIT 1
     `;
@@ -401,9 +591,8 @@ app.get('/api/sync/meter-reading-upload/log', async (_req, res) => {
     console.log('📥 [API] GET /api/sync/meter-reading-upload/log - Request received');
 
     const query = `
-      SELECT id as sync_operation_id, operation_type, batch_size as readings_count, success, error_message, synced_at as created_at
+      SELECT sync_log_id as sync_operation_id, 'sync' as operation_type, batch_size as readings_count, success, error_message, synced_at as created_at
       FROM sync_log
-      WHERE operation_type = 'upload'
       ORDER BY synced_at DESC
       LIMIT 20
     `;

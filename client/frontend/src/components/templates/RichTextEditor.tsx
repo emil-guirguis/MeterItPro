@@ -16,25 +16,23 @@ import {
   DialogActions,
   TextField
 } from '@mui/material';
-import {
-  FormatBold as BoldIcon,
-  FormatItalic as ItalicIcon,
-  FormatUnderlined as UnderlineIcon,
-  FormatListBulleted as BulletListIcon,
-  FormatListNumbered as NumberListIcon,
-  Link as LinkIcon,
-  Image as ImageIcon,
-  Code as CodeIcon,
-  Undo as UndoIcon,
-  Redo as RedoIcon,
-  FormatSize as FontSizeIcon,
-  FormatColorText as TextColorIcon,
-  FormatAlignLeft as AlignLeftIcon,
-  FormatAlignCenter as AlignCenterIcon,
-  FormatAlignRight as AlignRightIcon,
-  FormatAlignJustify as AlignJustifyIcon,
-  Help as HelpIcon
-} from '@mui/icons-material';
+import BoldIcon from '@mui/icons-material/FormatBold';
+import ItalicIcon from '@mui/icons-material/FormatItalic';
+import UnderlineIcon from '@mui/icons-material/FormatUnderlined';
+import BulletListIcon from '@mui/icons-material/FormatListBulleted';
+import NumberListIcon from '@mui/icons-material/FormatListNumbered';
+import LinkIcon from '@mui/icons-material/Link';
+import ImageIcon from '@mui/icons-material/Image';
+import CodeIcon from '@mui/icons-material/Code';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
+import FontSizeIcon from '@mui/icons-material/FormatSize';
+import TextColorIcon from '@mui/icons-material/FormatColorText';
+import AlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
+import AlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
+import AlignRightIcon from '@mui/icons-material/FormatAlignRight';
+import AlignJustifyIcon from '@mui/icons-material/FormatAlignJustify';
+import HelpIcon from '@mui/icons-material/Help';
 import './RichTextEditor.css';
 
 interface RichTextEditorProps {

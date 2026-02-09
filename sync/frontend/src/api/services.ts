@@ -44,14 +44,15 @@ export const syncApi = {
 export const meterSyncApi = {
   getStatus: async (): Promise<MeterSyncStatus> => {
     try {
+      // Use the meter-sync-status endpoint which provides detailed meter sync info
       const response = await apiClient.get<MeterSyncStatus>('/api/local/meter-sync-status');
       return response.data;
     } catch (error) {
       console.error('❌ [Meter Sync] Failed to fetch meter sync status:', error);
       if (axios.isAxiosError(error)) {
         throw new Error(
-          error.response?.data?.message || 
-          error.message || 
+          error.response?.data?.error ||
+          error.message ||
           'Failed to fetch meter sync status'
         );
       }
@@ -61,6 +62,7 @@ export const meterSyncApi = {
 
   triggerSync: async (): Promise<{ success: boolean; message: string; result?: any }> => {
     try {
+      // Use the meter-sync-trigger endpoint for triggering meter sync
       const response = await apiClient.post<{ success: boolean; message: string; result?: any }>(
         '/api/local/meter-sync-trigger'
       );
@@ -69,8 +71,8 @@ export const meterSyncApi = {
       console.error('❌ [Meter Sync] Failed to trigger meter sync:', error);
       if (axios.isAxiosError(error)) {
         throw new Error(
-          error.response?.data?.message || 
-          error.message || 
+          error.response?.data?.error ||
+          error.message ||
           'Failed to trigger meter sync'
         );
       }
@@ -82,14 +84,15 @@ export const meterSyncApi = {
 export const meterReadingApi = {
   getStatus: async (): Promise<any> => {
     try {
+      // Use the BACnet meter reading status endpoint
       const response = await apiClient.get<any>('/api/meter-reading/status');
       return response.data;
     } catch (error) {
       console.error('❌ [Meter Reading] Failed to fetch meter reading status:', error);
       if (axios.isAxiosError(error)) {
         throw new Error(
-          error.response?.data?.error || 
-          error.message || 
+          error.response?.data?.error ||
+          error.message ||
           'Failed to fetch meter reading status'
         );
       }
@@ -99,6 +102,7 @@ export const meterReadingApi = {
 
   triggerCollection: async (): Promise<{ success: boolean; message: string; cycle_result?: any }> => {
     try {
+      // Use the BACnet meter reading trigger endpoint
       const response = await apiClient.post<{ success: boolean; message: string; cycle_result?: any }>(
         '/api/meter-reading/trigger'
       );
@@ -107,8 +111,8 @@ export const meterReadingApi = {
       console.error('❌ [Meter Reading] Failed to trigger meter reading collection:', error);
       if (axios.isAxiosError(error)) {
         throw new Error(
-          error.response?.data?.error || 
-          error.message || 
+          error.response?.data?.error ||
+          error.message ||
           'Failed to trigger meter reading collection'
         );
       }
@@ -337,6 +341,7 @@ export const tenantApi = {
         zip: tenantData.zip,
         country: tenantData.country,
         active: tenantData.active,
+        api_key: tenantData.api_key,
       };
       
       console.log('💾 [Tenant] Sending payload:', payload);

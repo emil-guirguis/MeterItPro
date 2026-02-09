@@ -21,14 +21,12 @@ import {
   TextField,
   Paper,
 } from '@mui/material';
-import {
-  Security as SecurityIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Delete as DeleteIcon,
-  Refresh as RefreshIcon,
-  CheckCircle as CheckCircleIcon,
-} from '@mui/icons-material';
+import SecurityIcon from '@mui/icons-material/Security';
+import PhoneIcon from '@mui/icons-material/Phone';
+import EmailIcon from '@mui/icons-material/Email';
+import DeleteIcon from '@mui/icons-material/Delete';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useTheme, useMediaQuery } from '@mui/material';
 import authService from '../../services/authService';
 

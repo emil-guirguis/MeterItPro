@@ -481,7 +481,7 @@ router.post('/signup', [
 
         console.log('[SIGNUP] Created user:', newUser.id);
 
-        return { tenantId, user: newUser };
+        return { tenantId, user: newUser, apiKey };
       });
 
       // Log payment information (for future processing)
@@ -493,7 +493,8 @@ router.post('/signup', [
         message: 'Account created successfully',
         data: {
           tenantId: result.tenantId,
-          userId: result.user.id
+          userId: result.user.id,
+          apiKey: result.apiKey
         }
       });
     } catch (err) {

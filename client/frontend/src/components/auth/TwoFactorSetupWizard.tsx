@@ -26,12 +26,10 @@ import {
   Card,
   CardContent,
 } from '@mui/material';
-import {
-  CheckCircle as CheckCircleIcon,
-  ContentCopy as ContentCopyIcon,
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
-} from '@mui/icons-material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import authService from '../../services/authService';
 
 type TwoFactorMethod = 'totp' | 'email_otp' | 'sms_otp';

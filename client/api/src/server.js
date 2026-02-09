@@ -131,11 +131,6 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
     await initializeMeterIntegrationService();
     console.log('✅ [INIT] Meter integration service initialized');
 
-    console.log('🔄 [INIT] Initializing meter monitoring service...');
-    // Initialize meter monitoring service
-    await initializeMeterMonitoringService();
-    console.log('✅ [INIT] Meter monitoring service initialized');
-
     console.log('🔄 [INIT] Initializing threading system...');
     // Initialize threading service first (required for auto collection)
     await initializeThreadingSystem();
@@ -326,33 +321,7 @@ async function initializeMeterIntegrationService() {
 /**
  * Initialize meter monitoring service
  */
-async function initializeMeterMonitoringService() {
-  try {
-    console.log('🔄 [METER_MONITORING] Starting initialization...');
-    // Import MeterMonitoringService
-    const meterMonitoringService = require('./services/MeterMonitoringService');
-    console.log('� [MEeTER_MONITORING] MeterMonitoringService imported');
-    
-    // Initialize with default configuration
-    const result = await meterMonitoringService.initialize();
-    console.log('🔄 [METER_MONITORING] Initialize result:', result);
-    
-    if (result.success) {
-      console.log('📊 [METER_MONITORING] Initialized successfully');
-      
-      // Start monitoring if enabled
-      console.log('🔄 [METER_MONITORING] Starting monitoring...');
-      meterMonitoringService.startMonitoring();
-      console.log('✅ [METER_MONITORING] Monitoring started');
-    } else {
-      console.log('⚠️ [METER_MONITORING] Initialization failed:', result.error);
-    }
-  } catch (error) {
-    console.error('❌ [METER_MONITORING] Failed to initialize:', error.message);
-    console.error('❌ [METER_MONITORING] Stack:', error.stack);
-    // Don't exit the process - the server can still run without monitoring
-  }
-}
+// Meter monitoring service removed - no longer used
 
 /**
  * Initialize auto meter collection service (threaded mode only)

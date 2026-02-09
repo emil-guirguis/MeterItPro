@@ -6,8 +6,8 @@
  * Supports multiple data structures: nested objects, flat arrays, key-value pairs, and permissions.
  */
 
-import React, { useEffect, useState } from 'react';
-import JsonView from '@microlink/react-json-view';
+import React, { useEffect, useState, Suspense } from 'react';
+const JsonView = React.lazy(() => import('@microlink/react-json-view'));
 import {
   Box,
   Typography,
@@ -153,19 +153,21 @@ export const JSONBField: React.FC<JSONBFieldProps> = ({
         }}
       >
         {deserializedValue !== undefined && deserializedValue !== null ? (
-          <JsonView
-            {...{
-              src: deserializedValue,
-              shouldExpandNode: () => !jsonbConfig?.collapsed,
-              collapseStringsAfterLength:
-                jsonbConfig?.collapseStringsAfterLength ?? 50,
-              displayDataTypes: jsonbConfig?.displayDataTypes ?? true,
-              enableClipboard: jsonbConfig?.enableClipboard ?? true,
-              quotesOnKeys: jsonbConfig?.quotesOnKeys ?? true,
-              sortKeys: jsonbConfig?.sortKeys ?? false,
-              theme: jsonbConfig?.theme as any ?? 'default',
-            } as any}
-          />
+          <Suspense fallback={<Typography variant="body2">Loading JSON viewer...</Typography>}>
+            <JsonView
+              {...{
+                src: deserializedValue,
+                shouldExpandNode: () => !jsonbConfig?.collapsed,
+                collapseStringsAfterLength:
+                  jsonbConfig?.collapseStringsAfterLength ?? 50,
+                displayDataTypes: jsonbConfig?.displayDataTypes ?? true,
+                enableClipboard: jsonbConfig?.enableClipboard ?? true,
+                quotesOnKeys: jsonbConfig?.quotesOnKeys ?? true,
+                sortKeys: jsonbConfig?.sortKeys ?? false,
+                theme: jsonbConfig?.theme as any ?? 'default',
+              } as any}
+            />
+          </Suspense>
         ) : (
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             No data

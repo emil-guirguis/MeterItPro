@@ -4,7 +4,7 @@ const CLIENT_API_URL = import.meta.env.VITE_CLIENT_API_URL || 'https://client.me
 
 export interface LoginCredentials {
   email: string;
-  password: string;
+  apiKey: string;
 }
 
 export interface AuthResponse {
@@ -47,90 +47,48 @@ const authClient = axios.create({
 
 export const authApi = {
   /**
-   * Login with email and password
+   * Connect to remote system with email and API key
    * Returns user and tenant information if successful
    */
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
-      console.log('🔐 [Auth] Attempting login for:', credentials.email);
+      console.log('🔐 [Auth] Attempting sync connect for:', credentials.email);
       console.log('🔐 [Auth] API Base URL:', CLIENT_API_URL);
-      console.log('🔐 [Auth] Full URL:', `${CLIENT_API_URL}/auth/login`);
+      console.log('🔐 [Auth] Full URL:', `${CLIENT_API_URL}/sync/connect`);
 
-      const response = await authClient.post<AuthResponse>('/auth/login', {
+      const response = await authClient.post<AuthResponse>('/sync/connect', {
         email: credentials.email,
-        password: credentials.password,
+        apiKey: credentials.apiKey,
       });
 
-      console.log('✅ [Auth] Login successful');
-      
+      console.log('✅ [Auth] Sync connect successful');
+
       // Validate response
       if (!response.data.success) {
-        console.error('❌ [Auth] Login failed:', response.data.error);
+        console.error('❌ [Auth] Connect failed:', response.data.error);
         return {
           success: false,
-          error: response.data.error || 'Login failed',
-        };
-      }
-
-      // Check if user is active
-      if (response.data.data?.user?.status !== 'active') {
-        console.error('❌ [Auth] User is not active:', response.data.data?.user?.status);
-        return {
-          success: false,
-          error: 'Your account is not active. Please contact support.',
+          error: response.data.error || 'Connection failed',
         };
       }
 
       // Check if user has a tenant
       if (!response.data.data?.tenant?.tenant_id) {
-        console.error('❌ [Auth] User has no associated tenant');
+        console.error('❌ [Auth] No tenant data in response');
         return {
           success: false,
-          error: 'Your account is not associated with a company. Please contact support.',
+          error: 'No tenant data received. Please contact support.',
         };
       }
 
-      console.log('📊 [Auth] User tenant:', response.data.data?.tenant);
+      console.log('📊 [Auth] Tenant data:', response.data.data?.tenant);
 
-      // Fetch full tenant data from company settings endpoint
-      let fullTenantData = response.data.data?.tenant;
-      if (response.data.data?.token) {
-        try {
-          console.log('📡 [Auth] Fetching full tenant data from company settings...');
-          const settingsResponse = await authClient.get('/settings/company', {
-            headers: {
-              'Authorization': `Bearer ${response.data.data.token}`,
-            },
-          });
-
-          if (settingsResponse.data?.data) {
-            // Map settings data to tenant format
-            fullTenantData = {
-              ...response.data.data.tenant,
-              url: settingsResponse.data.data.url,
-              street: settingsResponse.data.data.street,
-              street2: settingsResponse.data.data.street2,
-              city: settingsResponse.data.data.city,
-              state: settingsResponse.data.data.state,
-              zip: settingsResponse.data.data.zip,
-              country: settingsResponse.data.data.country,
-              active: settingsResponse.data.data.active,
-            };
-            console.log('✅ [Auth] Full tenant data fetched:', fullTenantData);
-          }
-        } catch (err) {
-          console.warn('⚠️ [Auth] Failed to fetch full tenant data, using basic info:', err);
-          // Continue with basic tenant info if full fetch fails
-        }
-      }
-
+      // The /sync/connect endpoint returns full tenant data including api_key
       return {
         success: true,
         data: {
           user: response.data.data?.user,
-          tenant: fullTenantData,
-          token: response.data.data?.token,
-          refreshToken: response.data.data?.refreshToken,
+          tenant: response.data.data?.tenant,
         },
       };
     } catch (error) {
@@ -161,7 +119,7 @@ export const authApi = {
         if (error.response?.status === 401) {
           return {
             success: false,
-            error: 'Invalid email or password',
+            error: 'Invalid email or API key',
           };
         }
 

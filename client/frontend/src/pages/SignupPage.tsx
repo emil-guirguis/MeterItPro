@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { TextField, Button, Typography, Box, Paper, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, Alert, CircularProgress } from '@mui/material';
+import { TextField, Button, Typography, Box, Paper, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Tooltip } from '@mui/material';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckIcon from '@mui/icons-material/Check';
 import logo from '../assets/meteritpro-logo.svg';
 import './SignupPage.css';
 
@@ -33,6 +35,9 @@ const SignupPage: React.FC = () => {
   const { plan } = useParams<{ plan?: string }>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
+  const [apiKey, setApiKey] = useState<string>('');
+  const [copied, setCopied] = useState(false);
   const [formData, setFormData] = useState<SignupFormData>({
     companyName: '',
     companyPhone: '',
@@ -97,6 +102,27 @@ const SignupPage: React.FC = () => {
     return true;
   };
 
+  const handleCopyApiKey = async () => {
+    try {
+      await navigator.clipboard.writeText(apiKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy API key:', err);
+    }
+  };
+
+  const handleCloseApiKeyDialog = () => {
+    setShowApiKeyDialog(false);
+    navigate('/login', {
+      state: {
+        email: formData.userEmail,
+        password: formData.password,
+        message: 'Account created successfully! Please log in.'
+      }
+    });
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
@@ -147,14 +173,20 @@ const SignupPage: React.FC = () => {
         throw new Error(data.message || 'Failed to create account');
       }
 
-      // Redirect to login with pre-filled credentials
-      navigate('/login', { 
-        state: { 
-          email: formData.userEmail, 
-          password: formData.password,
-          message: 'Account created successfully! Please log in.' 
-        } 
-      });
+      // Show the API key dialog
+      if (data.data?.apiKey) {
+        setApiKey(data.data.apiKey);
+        setShowApiKeyDialog(true);
+      } else {
+        // Fallback: redirect to login if no API key returned
+        navigate('/login', {
+          state: {
+            email: formData.userEmail,
+            password: formData.password,
+            message: 'Account created successfully! Please log in.'
+          }
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during signup');
     } finally {
@@ -366,6 +398,72 @@ const SignupPage: React.FC = () => {
           </form>
         </Paper>
       </div>
+
+      {/* API Key Dialog */}
+      <Dialog
+        open={showApiKeyDialog}
+        onClose={() => {}}
+        maxWidth="sm"
+        fullWidth
+        disableEscapeKeyDown
+      >
+        <DialogTitle>Account Created Successfully!</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="body2" fontWeight="bold">
+              Important: Save your API Key now!
+            </Typography>
+            <Typography variant="body2">
+              You will need this API key to connect your sync server. This key will not be shown again.
+            </Typography>
+          </Alert>
+
+          <Typography variant="body2" color="textSecondary" gutterBottom>
+            Your Sync Server API Key:
+          </Typography>
+
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              p: 2,
+              bgcolor: 'grey.100',
+              borderRadius: 1,
+              fontFamily: 'monospace'
+            }}
+          >
+            <Typography
+              variant="body1"
+              sx={{
+                flex: 1,
+                wordBreak: 'break-all',
+                fontFamily: 'monospace'
+              }}
+            >
+              {apiKey}
+            </Typography>
+            <Tooltip title={copied ? 'Copied!' : 'Copy to clipboard'}>
+              <IconButton onClick={handleCopyApiKey} size="small">
+                {copied ? <CheckIcon color="success" /> : <ContentCopyIcon />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+            Use this API key when setting up your sync server to connect it to your account.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="contained"
+            onClick={handleCloseApiKeyDialog}
+            disabled={!copied}
+          >
+            I've Saved My API Key - Continue to Login
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

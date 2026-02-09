@@ -15,8 +15,11 @@ import {
   TableHead,
   TableRow,
   Paper,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import SyncIcon from '@mui/icons-material/Sync';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAppStore } from '../stores/useAppStore';
 import { syncApi, tenantApi, meterSyncApi } from '../api/services';
 import CompanyInfoCard from '../components/CompanyInfoCard';
@@ -24,7 +27,8 @@ import BACnetMeterReadingCard from '../components/BACnetMeterReadingCard';
 import MeterSyncCard from '../components/MeterSyncCard';
 import { MeterSyncStatus } from '../types';
 
-const POLLING_INTERVAL = parseInt(import.meta.env.VITE_POLLING_INTERVAL || '500000');
+// 17 minutes polling interval (17 * 60 * 1000 = 1,020,000 ms)
+const POLLING_INTERVAL = 17 * 60 * 1000;
 
 interface SyncMessage {
   text: string;
@@ -43,23 +47,32 @@ export default function SyncStatus() {
 
   const fetchSyncStatus = async () => {
     try {
-      const status = await syncApi.getStatus();
-      setSyncStatus(status);
-
-      // Try to fetch tenant data (non-blocking)
+      // First, try to fetch tenant data
+      let currentTenant = null;
       try {
         const tenantData = await tenantApi.getTenantInfo();
         setTenantInfo(tenantData);
+        currentTenant = tenantData;
       } catch (err) {
-        console.warn('Could not fetch tenant info during polling:', err);
+        console.warn('Could not fetch tenant info:', err);
+        // If no tenant exists, don't fetch other data
+        setLastUpdate(new Date());
+        setError(null);
+        return;
       }
 
-      // Try to fetch meter sync status (non-blocking)
-      try {
-        const meterStatus = await meterSyncApi.getStatus();
-        setMeterSyncStatus(meterStatus);
-      } catch (err) {
-        console.warn('Could not fetch meter sync status:', err);
+      // Only fetch sync status and meter data if tenant exists
+      if (currentTenant) {
+        const status = await syncApi.getStatus();
+        setSyncStatus(status);
+
+        // Try to fetch meter sync status (non-blocking)
+        try {
+          const meterStatus = await meterSyncApi.getStatus();
+          setMeterSyncStatus(meterStatus);
+        } catch (err) {
+          console.warn('Could not fetch meter sync status:', err);
+        }
       }
 
       setLastUpdate(new Date());
@@ -69,6 +82,12 @@ export default function SyncStatus() {
       setError(errorMessage);
       console.error('Error fetching sync status:', err);
     }
+  };
+
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    await fetchSyncStatus();
+    setIsLoading(false);
   };
 
   const handleManualSync = async () => {
@@ -107,8 +126,11 @@ export default function SyncStatus() {
     setIsLoading(true);
     fetchSyncStatus().finally(() => setIsLoading(false));
 
+    // Poll every 17 minutes
     const interval = setInterval(fetchSyncStatus, POLLING_INTERVAL);
+
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (isLoading && !syncStatus) {
@@ -123,11 +145,22 @@ export default function SyncStatus() {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Sync Status</Typography>
-        {lastUpdate && (
-          <Typography variant="body2" color="text.secondary">
-            Last updated: {lastUpdate.toLocaleTimeString()}
-          </Typography>
-        )}
+        <Box display="flex" alignItems="center" gap={2}>
+          {lastUpdate && (
+            <Typography variant="body2" color="text.secondary">
+              Last updated: {lastUpdate.toLocaleTimeString()}
+            </Typography>
+          )}
+          <Tooltip title="Refresh data">
+            <IconButton
+              onClick={handleRefresh}
+              disabled={isLoading}
+              color="primary"
+            >
+              {isLoading ? <CircularProgress size={24} /> : <RefreshIcon />}
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       {syncMessage && (
@@ -340,14 +373,18 @@ export default function SyncStatus() {
           </>
         )}
 
-        {/* BACnet and Meter Sync Cards - Always show */}
-        <Grid item xs={12}>
-          <MeterSyncCard />
-        </Grid>
+        {/* BACnet and Meter Sync Cards - Only show if tenant is connected */}
+        {tenantInfo && (
+          <>
+            <Grid item xs={12}>
+              <MeterSyncCard />
+            </Grid>
 
-        <Grid item xs={12}>
-          <BACnetMeterReadingCard />
-        </Grid>
+            <Grid item xs={12}>
+              <BACnetMeterReadingCard />
+            </Grid>
+          </>
+        )}
       </Grid>
 
       {/* Sync Error Logs - Only show if tenant is connected */}

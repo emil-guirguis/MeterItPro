@@ -114,7 +114,7 @@ export const isReportNameUnique = async (
   }
 
   try {
-    let query = 'SELECT COUNT(*) as count FROM reports WHERE name = $1';
+    let query = 'SELECT COUNT(*) as count FROM report WHERE name = $1';
     const params: any[] = [reportName.trim()];
 
     // If excluding a specific report ID (for updates), add that to the query

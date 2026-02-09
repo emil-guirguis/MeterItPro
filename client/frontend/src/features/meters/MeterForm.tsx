@@ -32,6 +32,10 @@ export const MeterForm: React.FC<MeterFormProps> = ({
   const meters = useMetersEnhanced();
   const baseValidationDataProvider = useValidationDataProvider();
   const [isParentSaved, setIsParentSaved] = useState(!!meter?.meter_id);
+  // Selected type state for create flow so users can always choose meter type
+  const [selectedType, setSelectedType] = useState<'physical' | 'virtual' | null>(
+    meter?.meter_type || meter?.type || meterType || 'physical'
+  );
   
 
   // Memoize the provider function to prevent unnecessary re-renders of ValidationFieldSelect
@@ -47,29 +51,52 @@ export const MeterForm: React.FC<MeterFormProps> = ({
     setIsParentSaved(true);
   }, []);
 
-  // Determine meter type from meter object or meterType prop
-  // Priority: meter.meter_type > meterType prop > null
-  const determinedMeterType = meter?.meter_type || meterType || null;
+  // Determine meter type from meter object or selectedType state
+  const determinedMeterType = meter?.meter_type || meter?.type || selectedType || null;
 
-  // Determine if meter is virtual
-  const isVirtual = meter?.meter_type === 'virtual' || meterType === 'virtual';
+  // Determine if meter is virtual (check both possible property names + selectedType)
+  const isVirtual =
+    meter?.meter_type === 'virtual' ||
+    meter?.type === 'virtual' ||
+    selectedType === 'virtual' ||
+    meterType === 'virtual';
   const meterId = meter?.meter_id || meter?.id;
+  // Default installation date to today for create flow
+  const todayIsoDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const initialEntity = meter ?? { installation_date: todayIsoDate };
 
   return (
     <FormContainer>
       <div className="form-container__content">
+        {/* Always show a meter type selector for create flow so user can set physical/virtual */}
+        {!meter && (
+          <div className="meter-type-selector" style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8 }}>Meter Type</label>
+            <select
+              value={selectedType || 'physical'}
+              onChange={(e) => setSelectedType(e.target.value as 'physical' | 'virtual')}
+              disabled={loading}
+            >
+              <option value="physical">Physical</option>
+              <option value="virtual">Virtual</option>
+            </select>
+          </div>
+        )}
         <BaseForm
           schemaName="meter"
-          entity={meter}
+          entity={initialEntity}
           store={meters}
           onCancel={onCancel}
           onSubmit={onSubmit}
-          className="meter-form"
+          className={`meter-form ${isVirtual ? 'meter-form--virtual' : 'meter-form--physical'}`}
           loading={loading}
           validationDataProvider={validationDataProvider}
           showTabs={true}
           meterType={determinedMeterType}
-          excludeFields={isVirtual ? ['serial_number', 'device_id', 'ip', 'port', 'elements'] : ['elements']}
+          // Keep framework-managed connection fields excluded for virtual meters,
+          // but allow the `elements` field to be rendered so `renderCustomField`
+          // can provide the custom ElementsGrid / CombinedMetersTab UI.
+          excludeFields={isVirtual ? ['serial_number', 'device_id', 'ip', 'port'] : []}
           fieldsToClean={['id', 'elements']}
           renderCustomField={(fieldName, _fieldDef, _value, _error, _isDisabled, _onChange) => {
             console.log(`[MeterForm] renderCustomField - fieldName: ${fieldName}`, {

@@ -15,7 +15,8 @@ import {
   Container,
   Link,
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useNavigate } from 'react-router-dom';
 import type { LoginCredentials, ValidationError } from '../../types/auth';
 import { validateLoginCredentials } from '../../types/auth';

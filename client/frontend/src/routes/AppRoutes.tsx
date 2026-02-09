@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 import { ProtectedRoute, AuthGuard } from '../components/auth';
@@ -7,14 +7,16 @@ import LoginPage from '../pages/LoginPage';
 import LandingPage from '../pages/LandingPage';
 import SignupPage from '../pages/SignupPage';
 import { ForgotPasswordPage, PasswordResetPage, TwoFactorManagementPage } from '../pages/auth';
-import { DashboardPage } from '../pages/DashboardPage';
-import { MeterReadingsPage } from '../pages/MeterReadingsPage';
-import { UserManagementPage } from '../features/users';
-import { LocationManagementPage } from '../features/locations';
-import { ContactManagementPage } from '../features/contacts';
-import { DeviceManagementPage } from '../features/devices';
+const DashboardPage = lazy(() => import('../pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const MeterReadingsPage = lazy(() => import('../pages/MeterReadingsPage').then(m => ({ default: m.MeterReadingsPage })));
+const UserManagementPage = lazy(() => import('../features/users').then(m => ({ default: m.UserManagementPage })));
+const LocationManagementPage = lazy(() => import('../features/locations').then(m => ({ default: m.LocationManagementPage })));
+const ContactManagementPage = lazy(() => import('../features/contacts').then(m => ({ default: m.ContactManagementPage })));
+const DeviceManagementPage = lazy(() => import('../features/devices').then(m => ({ default: m.DeviceManagementPage })));
 import { Permission } from '../types/auth';
-import { SettingsPage, MetersPage, ReportsPage } from '../pages';
+const SettingsPage = lazy(() => import('../pages').then(m => ({ default: m.SettingsPage })));
+const MetersPage = lazy(() => import('../pages').then(m => ({ default: m.MetersPage })));
+const ReportsPage = lazy(() => import('../pages').then(m => ({ default: m.ReportsPage })));
 import ManagementForm from '../components/management/ManagementForm';
 
 // Dashboard Page with Layout
@@ -37,7 +39,8 @@ const UnauthorizedPage = () => (
 const AppRoutes: React.FC = () => {
   return (
     <AuthProvider>
-      <Routes>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
@@ -189,6 +192,7 @@ const AppRoutes: React.FC = () => {
         {/* Catch all - redirect to landing */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </AuthProvider>
   );
 };

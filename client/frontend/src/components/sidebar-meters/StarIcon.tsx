@@ -1,5 +1,6 @@
 import React from 'react';
-import { Star, StarOutline } from '@mui/icons-material';
+import Star from '@mui/icons-material/Star';
+import StarOutline from '@mui/icons-material/StarOutline';
 import { CircularProgress, IconButton } from '@mui/material';
 import './StarIcon.css';
 
