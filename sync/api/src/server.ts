@@ -609,6 +609,290 @@ app.get('/api/sync/meter-reading-upload/log', async (_req, res) => {
   }
 });
 
+// Get meter sync status (mirrors the old MCP API endpoint)
+app.get('/api/local/meter-sync-status', async (_req, res) => {
+  try {
+    console.log('📥 [API] GET /api/local/meter-sync-status - Request received');
+
+    // Get last sync log entry
+    const lastSyncQuery = `
+      SELECT success, error_message, synced_at, batch_size
+      FROM sync_log
+      ORDER BY synced_at DESC
+      LIMIT 1
+    `;
+    const lastSyncResult = await syncPool.query(lastSyncQuery);
+    const lastSync = lastSyncResult.rows[0] || null;
+
+    // Get active meter count
+    const meterCountQuery = `SELECT COUNT(*) as count FROM meter WHERE active = true`;
+    const meterCountResult = await syncPool.query(meterCountQuery);
+    const meterCount = parseInt(meterCountResult.rows[0].count, 10);
+
+    const response = {
+      last_sync_at: lastSync?.synced_at || null,
+      last_sync_success: lastSync?.success ?? null,
+      last_sync_error: lastSync && !lastSync.success ? (lastSync.error_message || null) : null,
+      inserted_count: 0,
+      updated_count: 0,
+      deleted_count: 0,
+      meter_count: meterCount,
+      is_syncing: false,
+    };
+
+    console.log(`📤 [API] GET /api/local/meter-sync-status - Meters: ${meterCount}`);
+    res.json(response);
+  } catch (error) {
+    console.error('❌ [API] GET /api/local/meter-sync-status - Error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// Trigger meter sync (delegates to MCP sync agent via remote database re-sync)
+app.post('/api/local/meter-sync-trigger', async (_req, res) => {
+  try {
+    console.log('📥 [API] POST /api/local/meter-sync-trigger - Request received');
+
+    if (!remotePool) {
+      return res.status(503).json({
+        success: false,
+        message: 'Remote database pool not available',
+      });
+    }
+
+    // Get tenant_id from local database
+    const tenantQuery = `SELECT tenant_id FROM tenant LIMIT 1`;
+    const tenantResult = await syncPool.query(tenantQuery);
+
+    if (tenantResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No tenant configured',
+      });
+    }
+
+    const tenantId = tenantResult.rows[0].tenant_id;
+
+    // Sync meters from remote to local
+    const remoteMetersQuery = `
+      SELECT m.meter_id, m.device_id, m.ip, m.port, m.active,
+             me.meter_element_id, me.element, me.name as name
+      FROM meter m
+        JOIN meter_element me ON me.meter_id = m.meter_id
+      WHERE m.tenant_id = $1
+    `;
+    const remoteMeters = await remotePool.query(remoteMetersQuery, [tenantId]);
+
+    let inserted = 0;
+    let updated = 0;
+
+    for (const meter of remoteMeters.rows) {
+      const upsertQuery = `
+        INSERT INTO meter (meter_id, device_id, name, active, ip, port, meter_element_id, element)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (meter_id, meter_element_id) DO UPDATE SET
+          device_id = EXCLUDED.device_id,
+          name = EXCLUDED.name,
+          active = EXCLUDED.active,
+          ip = EXCLUDED.ip,
+          port = EXCLUDED.port,
+          element = EXCLUDED.element
+        RETURNING (xmax = 0) as is_insert
+      `;
+      const result = await syncPool.query(upsertQuery, [
+        meter.meter_id,
+        meter.device_id,
+        meter.name,
+        meter.active,
+        meter.ip,
+        meter.port,
+        meter.meter_element_id,
+        meter.element,
+      ]);
+
+      if (result.rows[0]?.is_insert) {
+        inserted++;
+      } else {
+        updated++;
+      }
+    }
+
+    // Sync registers from remote to local
+    const remoteRegistersQuery = `
+      SELECT register_id, name, register, unit, field_name
+      FROM register
+    `;
+    const remoteRegisters = await remotePool.query(remoteRegistersQuery);
+
+    let registerInserted = 0;
+    let registerUpdated = 0;
+
+    for (const reg of remoteRegisters.rows) {
+      const upsertRegQuery = `
+        INSERT INTO register (register_id, name, register, unit, field_name)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (register_id) DO UPDATE SET
+          name = EXCLUDED.name,
+          register = EXCLUDED.register,
+          unit = EXCLUDED.unit,
+          field_name = EXCLUDED.field_name
+        RETURNING (xmax = 0) as is_insert
+      `;
+      const regResult = await syncPool.query(upsertRegQuery, [
+        reg.register_id,
+        reg.name,
+        reg.register,
+        reg.unit,
+        reg.field_name,
+      ]);
+
+      if (regResult.rows[0]?.is_insert) {
+        registerInserted++;
+      } else {
+        registerUpdated++;
+      }
+    }
+
+    // Sync device_register from remote to local
+    const remoteDeviceRegistersQuery = `
+      SELECT device_register_id, device_id, register_id
+      FROM device_register
+    `;
+    const remoteDeviceRegisters = await remotePool.query(remoteDeviceRegistersQuery);
+
+    let drInserted = 0;
+    let drUpdated = 0;
+
+    for (const dr of remoteDeviceRegisters.rows) {
+      const upsertDrQuery = `
+        INSERT INTO device_register (device_register_id, device_id, register_id)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (device_id, register_id) DO UPDATE SET
+          device_register_id = EXCLUDED.device_register_id
+        RETURNING (xmax = 0) as is_insert
+      `;
+      const drResult = await syncPool.query(upsertDrQuery, [
+        dr.device_register_id,
+        dr.device_id,
+        dr.register_id,
+      ]);
+
+      if (drResult.rows[0]?.is_insert) {
+        drInserted++;
+      } else {
+        drUpdated++;
+      }
+    }
+
+    // Log the sync operation
+    await syncPool.query(
+      `INSERT INTO sync_log (batch_size, success, synced_at) VALUES ($1, true, NOW())`,
+      [remoteMeters.rows.length]
+    );
+
+    const response = {
+      success: true,
+      message: `Sync completed: Meters(${inserted} ins, ${updated} upd), Registers(${registerInserted} ins, ${registerUpdated} upd), DeviceRegisters(${drInserted} ins, ${drUpdated} upd)`,
+      result: {
+        inserted,
+        updated,
+        deleted: 0,
+        registers: { inserted: registerInserted, updated: registerUpdated },
+        deviceRegisters: { inserted: drInserted, updated: drUpdated },
+        timestamp: new Date(),
+      },
+    };
+
+    console.log(`📤 [API] POST /api/local/meter-sync-trigger - ${response.message}`);
+    res.json(response);
+  } catch (error) {
+    console.error('❌ [API] POST /api/local/meter-sync-trigger - Error:', error);
+
+    // Log the failed sync
+    try {
+      await syncPool.query(
+        `INSERT INTO sync_log (batch_size, success, error_message, synced_at) VALUES (0, false, $1, NOW())`,
+        [error instanceof Error ? error.message : String(error)]
+      );
+    } catch { /* ignore logging errors */ }
+
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// Get BACnet meter reading status (database-backed approximation)
+app.get('/api/meter-reading/status', async (_req, res) => {
+  try {
+    console.log('📥 [API] GET /api/meter-reading/status - Request received');
+
+    // Get recent reading stats from the database
+    const recentStatsQuery = `
+      SELECT
+        COUNT(*) as total_readings,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '1 hour') as readings_last_hour,
+        MAX(created_at) as last_reading_at
+      FROM meter_reading
+    `;
+    const statsResult = await syncPool.query(recentStatsQuery);
+    const stats = statsResult.rows[0];
+
+    // Get active meter count
+    const meterCountQuery = `SELECT COUNT(*) as count FROM meter WHERE active = true`;
+    const meterCountResult = await syncPool.query(meterCountQuery);
+    const meterCount = parseInt(meterCountResult.rows[0].count, 10);
+
+    // Check if MCP agent is running by looking for recent readings (within last 5 minutes)
+    const recentActivityQuery = `
+      SELECT COUNT(*) as count FROM meter_reading
+      WHERE created_at >= NOW() - INTERVAL '5 minutes'
+    `;
+    const recentActivityResult = await syncPool.query(recentActivityQuery);
+    const hasRecentActivity = parseInt(recentActivityResult.rows[0].count, 10) > 0;
+
+    const response = {
+      agent_status: {
+        isRunning: hasRecentActivity,
+        totalCyclesExecuted: 0,
+        totalReadingsCollected: parseInt(stats.total_readings, 10),
+        totalErrorsEncountered: 0,
+      },
+      last_cycle_result: stats.last_reading_at ? {
+        cycleId: 'db-query',
+        startTime: stats.last_reading_at,
+        endTime: stats.last_reading_at,
+        metersProcessed: meterCount,
+        readingsCollected: parseInt(stats.readings_last_hour, 10),
+        errorCount: 0,
+        success: true,
+      } : null,
+      active_errors: [],
+      note: 'Status is derived from database. BACnet agent runs in the MCP process.',
+    };
+
+    console.log(`📤 [API] GET /api/meter-reading/status - Readings last hour: ${stats.readings_last_hour}`);
+    res.json(response);
+  } catch (error) {
+    console.error('❌ [API] GET /api/meter-reading/status - Error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// Trigger BACnet meter reading (not supported from standalone API)
+app.post('/api/meter-reading/trigger', async (_req, res) => {
+  console.log('📥 [API] POST /api/meter-reading/trigger - Request received');
+  res.status(503).json({
+    success: false,
+    message: 'BACnet meter reading collection is managed by the MCP process. This API cannot trigger it directly.',
+  });
+});
+
 // ==================== ERROR HANDLING ====================
 
 // 404 handler

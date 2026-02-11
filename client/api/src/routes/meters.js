@@ -312,6 +312,7 @@ router.get('/', requirePermission('meter:read'), async (req, res) => {
     // Build options for findAll
     const options = {
       where,
+      include: ['device'],
       limit: parseInt(limit),
       offset: (parseInt(page) - 1) * parseInt(limit),
       tenant_id: req.user?.tenant_id || req.user?.tenantId // Automatic tenant filtering

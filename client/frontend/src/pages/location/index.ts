@@ -1,1 +1,0 @@
-export { LocationManagementPage } from './LocationManagementPage';``

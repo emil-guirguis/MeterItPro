@@ -38,7 +38,7 @@ export function FormModal<T = any>({
     const forms = document.querySelectorAll('form');
     if (forms.length > 0) {
       const form = forms[forms.length - 1] as HTMLFormElement;
-      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      form.requestSubmit();
     }
   };
 

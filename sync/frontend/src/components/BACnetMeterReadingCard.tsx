@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
+import InfoIcon from '@mui/icons-material/Info';
 import SyncIcon from '@mui/icons-material/Sync';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { meterReadingApi } from '../api/services';
@@ -139,14 +140,14 @@ export default function BACnetMeterReadingCard() {
               {agentStatus.isRunning ? (
                 <CheckCircleIcon color="success" fontSize="large" />
               ) : (
-                <ErrorIcon color="error" fontSize="large" />
+                <InfoIcon color="info" fontSize="large" />
               )}
               <Box>
                 <Typography variant="h6">Collection Status & Control</Typography>
                 <Chip
-                  icon={agentStatus.isRunning ? <CheckCircleIcon /> : <ErrorIcon />}
-                  label={agentStatus.isRunning ? 'Running' : 'Stopped'}
-                  color={agentStatus.isRunning ? 'success' : 'error'}
+                  icon={agentStatus.isRunning ? <CheckCircleIcon /> : <InfoIcon />}
+                  label={agentStatus.isRunning ? 'Running' : 'MCP Managed'}
+                  color={agentStatus.isRunning ? 'success' : 'info'}
                   size="small"
                 />
               </Box>
@@ -163,8 +164,8 @@ export default function BACnetMeterReadingCard() {
           </Box>
 
           {!agentStatus.isRunning && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              BACnet meter reading agent is not running. Manual collection is disabled.
+            <Alert severity="info" sx={{ mb: 2 }}>
+              BACnet collection agent status is managed by the MCP process. Data shown is from the local database.
             </Alert>
           )}
 

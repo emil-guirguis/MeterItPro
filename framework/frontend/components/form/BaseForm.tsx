@@ -762,7 +762,11 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       name: isAddressField ? `field_${fieldName}` : fieldName,
       label: fieldDef.label,
       type: fieldType === 'phone' ? 'tel' : fieldType,
-      value: fieldType === 'checkbox' ? (value || false) : (value || ''),
+      value: fieldType === 'checkbox'
+        ? (value || false)
+        : fieldType === 'date' && value
+          ? String(value).slice(0, 10)
+          : (value || ''),
       error,
       touched: !!error,
       help: fieldDef.description,
@@ -1032,6 +1036,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       onSubmit={handleFormSubmit}
       className={formClassName}
       autoComplete="off"
+      noValidate
       data-form-max-width={formMaxWidth || schema?.formMaxWidth || undefined}
       style={{
         '--form-max-width': formMaxWidth || schema?.formMaxWidth || undefined,

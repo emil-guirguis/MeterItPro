@@ -11,6 +11,7 @@ export interface CachedMeter {
   meter_element_id: number;
   element: string;
   device_id: number;
+  register_id: number;
 }
 
 export class MeterCache {
@@ -55,6 +56,7 @@ export class MeterCache {
           meter_element_id: row.meter_element_id,
           element: row.element,
           device_id: row.device_id,  
+          register_id: row.register_id,
         };
 
         this.meters.set(cacheKey, cachedMeter);

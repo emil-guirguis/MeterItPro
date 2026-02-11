@@ -398,13 +398,23 @@ class BaseModel {
     console.log('Fields available:', fields.map(f => ({ name: f.name, dbField: f.dbField, type: f.type })));
     
     const deserializedRow = deserializeRow(row, fields);
-    
+
     console.log('After deserializeRow:');
     console.log('Deserialized keys:', Object.keys(deserializedRow));
     console.log('Deserialized data:', JSON.stringify(deserializedRow, null, 2));
     console.log('█'.repeat(120) + '\n');
-    
-    return new this(deserializedRow);
+
+    const instance = new this(deserializedRow);
+
+    // Preserve relationship data (objects/arrays from JOINs) that aren't schema fields
+    const fieldNames = new Set(fields.map(f => f.name));
+    for (const [key, value] of Object.entries(row)) {
+      if (!fieldNames.has(key) && value !== null && typeof value === 'object') {
+        instance[key] = value;
+      }
+    }
+
+    return instance;
   }
 
   /**

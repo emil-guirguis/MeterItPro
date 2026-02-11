@@ -42,13 +42,13 @@ class Meter extends BaseModel {
         type: 'belongsTo',
         model: 'Device',
         foreignKey: 'device_id',
-        targetKey: 'id'
+        targetKey: 'device_id'
       },
       location: {
         type: 'belongsTo',
         model: 'Location',
         foreignKey: 'location_id',
-        targetKey: 'id'
+        targetKey: 'location_id'
       }
     };
   }
@@ -115,7 +115,7 @@ class Meter extends BaseModel {
                   dbField: 'device_id',
                   min: 1,
                   maxLength: 200,
-                  showOn: ['list', 'form'],
+                  showOn: ['form'],
                   validate: true,
                   validationFields: ['manufacturer', 'model_number'],
                   visibleFor: ['physical'],
@@ -187,7 +187,7 @@ class Meter extends BaseModel {
               ],
             }),
             section({
-              name: 'Status & Installation',
+              name: 'Status',
               order: 3,
               fields: [
                 field({
@@ -346,16 +346,7 @@ class Meter extends BaseModel {
           type: FieldTypes.STRING,
           default: '',
           readOnly: true,
-          label: 'Device Manufacturer',
-          dbField: null,
-          showOn: ['list'],
-        }),
-
-        model: field({
-          type: FieldTypes.STRING,
-          default: '',
-          readOnly: true,
-          label: 'Model',
+          label: 'Device',
           dbField: null,
           showOn: ['list'],
         }),

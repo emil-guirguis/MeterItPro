@@ -16,7 +16,11 @@
       "Bash(del \"c:\\\\Projects\\\\MeterItPro\\\\sync\\\\frontend\\\\nul\")",
       "Bash(findstr:*)",
       "Bash(npx eslint:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(node:*)",
+      "Bash(del:*)",
+      "Bash(del \"c:\\\\Projects\\\\MeterItPro\\\\framework\\\\frontend\\\\components\\\\modal\\\\EntityManagementPage.css\")",
+      "Bash(dir:*)"
     ]
   }
 }

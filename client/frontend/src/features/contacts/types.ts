@@ -6,7 +6,7 @@
  */
 
 export type Contact = {
-  id?: string; // Alias for contact_id for compatibility with EntityManagementPage
+  id?: string;
   contact_id?: number;
   name: string;
   company?: string;

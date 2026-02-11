@@ -57,6 +57,11 @@ export interface ComprehensiveSyncResult {
     updated: number;
     deleted: number;
   };
+  registers: {
+    inserted: number;
+    updated: number;
+    deleted: number;
+  };
   deviceRegisters: {
     inserted: number;
     updated: number;

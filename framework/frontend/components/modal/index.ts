@@ -8,4 +8,3 @@ export * from './Toast';
 export * from './Modal';
 export * from './FormModal';
 export { default as ConfirmationModal } from './ConfirmationModal';
-export * from './EntityManagementPage';
