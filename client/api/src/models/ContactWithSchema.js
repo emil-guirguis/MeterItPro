@@ -54,7 +54,7 @@ class Contact extends BaseModel {
             entityName: 'Contact',
             tableName: 'contact',
             description: 'Contact entity for customers, vendors, and other business contacts',
-            formMaxWidth: '400px',
+            formMaxWidth: '650px',
 
             customListColumns: {
                 //                 createTwoLineColumn,
@@ -75,6 +75,7 @@ class Contact extends BaseModel {
                             name: 'Information',
                             order: 1,
                             flex: 1,  // Takes remaining space
+                            minWidth: '300px',
                             fields: [
                                 field({
                                     name: 'name',

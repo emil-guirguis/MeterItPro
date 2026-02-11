@@ -37,23 +37,6 @@ foreach ($port in $Ports) {
   Stop-PortProcess -Port $port
 }
 
-# Stop MCP Modbus Agent
-Write-Host "[stop-dev] Stopping MCP Modbus Agent..." -ForegroundColor Yellow
-try {
-  $mcpProcesses = Get-WmiObject Win32_Process | Where-Object { 
-    $_.Name -eq "node.exe" -and 
-    ($_.CommandLine -like "*standalone-collector.mjs*" -or 
-     $_.CommandLine -like "*mcp-modbus-agent*")
-  }
-  
-  foreach ($proc in $mcpProcesses) {
-    Write-Host ("[stop-dev] Stopping MCP Agent PID {0}" -f $proc.ProcessId) -ForegroundColor Yellow
-    Stop-Process -Id $proc.ProcessId -Force -ErrorAction SilentlyContinue
-  }
-} catch {
-  Write-Warning "[stop-dev] Error stopping MCP Agent: $_"
-}
-
 # Optional cleanup: terminate known dev tools if still running (vite, rolldown-vite)
 foreach ($name in @('vite', 'rolldown-vite')) {
   try {

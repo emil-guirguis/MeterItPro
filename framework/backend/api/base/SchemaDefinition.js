@@ -30,7 +30,8 @@ const FieldTypes = {
   URL: 'url',
   OBJECT: 'object',
   ARRAY: 'array',
-  JSON: 'json'
+  JSON: 'json',
+  SELECT: 'select',
 };
 
 /**
@@ -208,6 +209,7 @@ function tab(config) {
  * @param {Object} definition.customListColumns - Custom columns that appear in lists
  * @param {Object} [definition.formFields] - Fields that appear in forms (user-editable) - OPTIONAL if formTabs is provided
  * @param {Array<Object>} [definition.formTabs] - Hierarchical tab/section/field organization with embedded field definitions
+ * @param {string} [definition.formMaxWidth] - CSS max-width for the form element (e.g., '600px')
  * @param {Object} [definition.entityFields] - Additional fields in entity (read-only, computed)
  * @param {Object} [definition.relationships] - Entity relationships
  * @param {Object} [definition.validation] - Entity-level validation rules
@@ -252,6 +254,7 @@ function defineSchema(definition) {
     description: definition.description || '',
     formFields: formFields,
     formTabs: definition.formTabs || null,
+    formMaxWidth: definition.formMaxWidth || null,
     entityFields: definition.entityFields || {},
     relationships: definition.relationships || {},
     validation: definition.validation || {},

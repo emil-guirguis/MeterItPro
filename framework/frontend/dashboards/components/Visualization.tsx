@@ -266,6 +266,11 @@ const BarVisualization: React.FC<VisualizationProps> = ({
   columns,
   height = 300,
 }) => {
+  const recharts = useRecharts();
+  if (!recharts) {
+    return <div style={{ height }} className="visualization-empty">Loading chart...</div>;
+  }
+  const { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, Legend } = recharts;
   // Handle empty data
   if (!data || columns.length === 0) {
     return (

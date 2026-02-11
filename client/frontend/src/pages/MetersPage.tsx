@@ -133,7 +133,7 @@ const MetersPage: React.FC = () => {
             </div>
             <div className="detail-item">
               <label>Protocol:</label>
-              <span>Modbus TCP</span>
+              <span>TCP</span>
             </div>
           </div>
         </div>

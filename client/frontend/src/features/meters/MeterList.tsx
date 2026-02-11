@@ -60,7 +60,7 @@ export const MeterList: React.FC<MeterListProps> = ({
           render: (value: { ipAddress?: string; port?: number }, meter) => (
             <div className="table-cell--two-line">
               <div className="table-cell__primary">
-                {value?.ipAddress || 'Not configured'}:{value?.port || 502}
+                {value?.ipAddress || 'Not configured'}:{value?.port || 47808}
               </div>
               {value?.ipAddress && (
                 <button

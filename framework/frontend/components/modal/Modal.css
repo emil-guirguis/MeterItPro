@@ -69,6 +69,13 @@
   max-width: 1200px;
 }
 
+/* When the modal contains a form with a max-width, shrink the modal to fit */
+.modal:has([data-form-max-width]) {
+  width: fit-content;
+  max-width: 90vw;
+  min-width: auto;
+}
+
 .modal--fullscreen {
   width: 100%;
   height: 100%;

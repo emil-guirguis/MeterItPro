@@ -6,8 +6,6 @@
 beforeAll(() => {
   // Set test environment variables
   process.env.NODE_ENV = 'test';
-  process.env.MODBUS_IP = '10.10.10.22';
-  process.env.MODBUS_PORT = '502';
   process.env.DATABASE_URL = 'postgresql://localhost:5432/test';
   process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
 });

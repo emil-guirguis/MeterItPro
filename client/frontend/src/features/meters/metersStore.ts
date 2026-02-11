@@ -241,7 +241,7 @@ const metersService = {
 
 // Create meters store
 export const useMetersStore = createEntityStore(metersService, {
-  name: 'meters',
+  name: 'meter',
   cache: {
     ttl: 2 * 60 * 1000, // 2 minutes (meters data changes frequently)
     maxAge: 10 * 60 * 1000, // 10 minutes

@@ -65,6 +65,7 @@ export interface BackendSchema {
       flexShrink?: number | null;
     }>;
   }>;
+  formMaxWidth?: string | null;
   relationships: Record<string, any>;
   validation: Record<string, any>;
   version: string;
@@ -213,6 +214,8 @@ function convertFieldDefinition(backendField: BackendFieldDefinition & { validat
     // Preserve validation field properties for dropdown rendering
     ...(backendField.validate != null && { validate: backendField.validate }),
     ...(backendField.validationFields && { validationFields: backendField.validationFields }),
+    // Preserve readOnly property for disabling fields
+    ...(backendField.readOnly != null && { readOnly: backendField.readOnly }),
     // Preserve showOn property for visibility control
     ...(backendField.showOn && { showOn: backendField.showOn }),
     // Preserve formGrouping for tab/section organization
@@ -249,6 +252,7 @@ export interface ConvertedSchema {
   }> | null;
   entityName: string;
   description: string;
+  formMaxWidth?: string | null;
   relationships: Record<string, any>;
   /**
    * Primary key field name in backend schema (e.g., 'contact_id')
@@ -306,6 +310,7 @@ export function convertSchema(backendSchema: BackendSchema): ConvertedSchema {
     formTabs: backendSchema.formTabs || null,
     entityName: backendSchema.entityName,
     description: backendSchema.description,
+    formMaxWidth: backendSchema.formMaxWidth || null,
     relationships: backendSchema.relationships,
     idFieldName,
   };

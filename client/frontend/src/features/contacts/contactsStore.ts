@@ -186,7 +186,7 @@ const contactsService = {
 } as any;
 
 export const useContactsStore = createEntityStore(contactsService, {
-  name: 'contacts',
+  name: 'contact',
   cache: {
     ttl: 10 * 60 * 1000, // 10 minutes
     maxAge: 60 * 60 * 1000, // 1 hour

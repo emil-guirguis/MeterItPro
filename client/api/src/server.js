@@ -22,7 +22,6 @@ const settingsRoutes = require('./routes/settings');
 const uploadRoutes = require('./routes/upload');
 const syncRoutes = require('./routes/sync');
 const schemaRoutes = require('./routes/schema');
-// const directMeterRoutes = require('./routes/directMeter'); // Temporarily disabled
 const devicesRoutes = require('./routes/device');
 const deviceRegisterRoutes = require('./routes/deviceRegister');
 const registersRoutes = require('./routes/registers');
@@ -342,7 +341,7 @@ async function initializeAutoMeterCollection() {
       },
       meters: {
         defaultIP: process.env.DEFAULT_METER_IP,
-        defaultPort: parseInt(process.env.DEFAULT_METER_PORT) || 502,
+        defaultPort: parseInt(process.env.DEFAULT_METER_PORT) || 47808,
         registers: {
           voltage: { address: 5, count: 1, scale: 200, unit: 'V' },
           current: { address: 6, count: 1, scale: 100, unit: 'A' },
@@ -502,7 +501,6 @@ app.use('/api/upload', authenticateToken, setTenantContext, uploadRoutes);
 // Sync routes use API key authentication (not JWT), so no authenticateToken middleware
 app.use('/api/sync', syncRoutes);
 app.use('/api/schema', authenticateToken, setTenantContext, schemaRoutes);
-// app.use('/api', authenticateToken, setTenantContext, directMeterRoutes); // Temporarily disabled
 app.use('/api/device', authenticateToken, setTenantContext, devicesRoutes);
 app.use('/api/devices/:deviceId/registers', authenticateToken, setTenantContext, deviceRegisterRoutes);
 app.use('/api/registers', authenticateToken, setTenantContext, registersRoutes);

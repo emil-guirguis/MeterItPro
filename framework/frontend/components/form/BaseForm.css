@@ -25,18 +25,10 @@
   max-height: 100vh;
 }
 
-/* Form width constraints from data attributes */
-.base-form[data-max-width] {
+/* Form width constraints from CSS custom properties set via inline style */
+.base-form[data-form-max-width] {
   max-width: var(--form-max-width);
 }
-
-.base-form[data-min-width] {
-  min-width: var(--form-min-width);
-}
-
-/* Apply data attribute values as CSS variables */
-.base-form[data-max-width] { --form-max-width: attr(data-max-width); }
-.base-form[data-min-width] { --form-min-width: attr(data-min-width); }
 
 /* Content wrapper - contains main form and sidebar */
 .base-form__content {

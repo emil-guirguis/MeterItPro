@@ -7,7 +7,15 @@
       "Bash(powershell -Command:*)",
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(done)",
+      "Bash(del \"c:\\\\Projects\\\\MeterItPro\\\\client\\\\api\\\\nul\")",
+      "Bash(del \"c:\\\\Projects\\\\MeterItPro\\\\sync\\\\frontend\\\\nul\")",
+      "Bash(findstr:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }

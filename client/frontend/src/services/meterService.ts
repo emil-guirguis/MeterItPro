@@ -149,7 +149,7 @@ class MeterService {
 
         // Validate that all meters have required fields
         const validMeters = response.data.data.filter((meter) => {
-          if (!meter.id || !meter.name || !meter.identifier) {
+          if (!meter.id || !meter.name) {
             console.warn('Meter missing required fields:', meter);
             return false;
           }
@@ -177,25 +177,22 @@ class MeterService {
           throw new Error('Meter ID is required');
         }
 
-        const response: AxiosResponse<ApiResponse<VirtualMeterConfig>> = await apiClient.get(
-          `/meters/${meterId}/virtual-config`
-        );
+        const response = await apiClient.get(`/meters/${meterId}/virtual-config`);
+        const body = response.data;
 
-        if (!response.data.data) {
-          throw new Error('Invalid response format: missing data field');
+        if (!body.success) {
+          throw new Error(body.message || 'Failed to fetch virtual meter config');
         }
 
-        const config = response.data.data;
+        // Backend returns { success, meterId, selectedMeters }
+        const selectedMeters: Meter[] = body.selectedMeters || [];
+        const selectedMeterIds = selectedMeters.map((m: Meter) => m.id);
 
-        // Validate response structure
-        if (!Array.isArray(config.selectedMeterIds)) {
-          config.selectedMeterIds = [];
-        }
-        if (!Array.isArray(config.selectedMeterElementIds)) {
-          config.selectedMeterElementIds = [];
-        }
-
-        return config;
+        return {
+          meterId: body.meterId,
+          selectedMeterIds,
+          selectedMeterElementIds: [],
+        };
       } catch (error) {
         const message = getErrorMessage(error);
         throw new Error(`Failed to load virtual meter configuration: ${message}`);

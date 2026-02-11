@@ -131,7 +131,7 @@ const devicesService = {
 };
 
 export const useDeviceStore = createEntityStore(devicesService, {
-  name: 'devices',
+  name: 'device',
   cache: {
     ttl: 10 * 60 * 1000, // 10 minutes
     maxAge: 60 * 60 * 1000, // 1 hour

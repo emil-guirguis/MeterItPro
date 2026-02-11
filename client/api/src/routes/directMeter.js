@@ -12,20 +12,6 @@ router.post('/direct-meter-read', (req, res) => {
   });
 });
 
-router.get('/modbus-pool-stats', (req, res) => {
-  res.status(410).json({
-    success: false,
-    error: 'Modbus pool stats endpoint has been disabled (Modbus protocol removed)',
-    timestamp: new Date().toISOString()
-  });
-});
 
-router.post('/test-modbus-connection', (req, res) => {
-  res.status(410).json({
-    success: false,
-    error: 'Modbus connection test endpoint has been disabled (Modbus protocol removed)',
-    timestamp: new Date().toISOString()
-  });
-});
 
 module.exports = router;
