@@ -42,6 +42,7 @@ class User extends BaseModel {
             entityName: 'User',
             tableName: 'users',
             description: 'User entity for authentication and authorization',
+            formMaxWidth: '700px',
 
             customListColumns: {},
 
@@ -117,12 +118,15 @@ class User extends BaseModel {
                                     placeholder: 'viewer',
                                     filertable: ['true'],
                                     showOn: ['list', 'form'],
-                                }),                            ],
+                                }),],
                         }),
                         section({
                             name: 'Status',
                             order: 2,
-                            maxWidth: '200px',
+                            maxWidth: '100px',
+                            flexGrow: 0,
+                            flexShrink: 0,
+
                             fields: [
                                 field({
                                     name: 'active',
@@ -130,7 +134,7 @@ class User extends BaseModel {
                                     type: FieldTypes.BOOLEAN,
                                     default: true,
                                     required: false,
-                                    label: 'Active Status',
+                                    label: 'Active',
                                     dbField: 'active',
                                     showOn: ['list', 'form'],
                                 }),
@@ -143,30 +147,17 @@ class User extends BaseModel {
                     order: 2,
                     sections: [
                         section({
-                            name: 'Access Control',
+                            name: 'Permissions',
                             order: 1,
+                            maxWidth: '400px',
                             fields: [
                                 field({
-                                    name: 'role',
-                                    order: 1,
-                                    type: FieldTypes.STRING,
-                                    default: 'viewer',
-                                    required: false,
-                                    label: 'Role',
-                                    dbField: 'role',
-                                    maxLength: 20,
-                                    enumValues: ['admin', 'manager', 'technician', 'viewer'],
-                                    placeholder: 'viewer',
-                                    filertable: ['true'],
-                                    showOn: ['list', 'form'],
-                                }),
-                                field({
                                     name: 'permissions',
-                                    order: 2,
+                                    order: 1,
                                     type: FieldTypes.JSON,
                                     default: {},
                                     required: false,
-                                    label: 'Permissions',
+                                    label: '',
                                     dbField: 'permissions',
                                     showOn: ['form'],
                                 }),
@@ -175,6 +166,7 @@ class User extends BaseModel {
                         section({
                             name: 'Password Reset',
                             order: 2,
+                            maxWidth: '200px',
                             fields: [
                                 field({
                                     name: 'password_reset_actions',
@@ -358,7 +350,7 @@ class User extends BaseModel {
 
         // Validate passwordHash property is non-empty string
         // @ts-ignore - passwordHash is dynamically set by schema initialization
-        if (!this.passwordHash || typeof this.passwordHash !== 'string' || 
+        if (!this.passwordHash || typeof this.passwordHash !== 'string' ||
             // @ts-ignore - passwordHash is dynamically set by schema initialization
             this.passwordHash.trim() === '') {
             // @ts-ignore - email and id are dynamically set by schema initialization
@@ -423,12 +415,12 @@ class User extends BaseModel {
         if (typeof storedPermissions === 'string') {
             try {
                 const parsed = JSON.parse(storedPermissions);
-                
+
                 // If it's a flat array, convert to nested object
                 if (Array.isArray(parsed)) {
                     return PermissionsService.toNestedObject(parsed);
                 }
-                
+
                 // If it's a nested object, validate and return
                 if (PermissionsService.validatePermissionsObject(parsed)) {
                     return parsed;

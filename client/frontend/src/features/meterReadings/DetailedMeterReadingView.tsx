@@ -124,22 +124,21 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
         {/* Left: Meter Information */}
         <div className="meter-info-card">
           <div className="info-row">
-            <span className="info-label">Meter Driver</span>
-            <span className="info-value">: {meterInfo.driver}</span>
-          </div>
-          <div className="info-row">
             <span className="info-label">Description</span>
-            <span className="info-value">: {meterInfo.description}</span>
+            <span className="info-value"> {meterInfo.description}</span>
           </div>
           <div className="info-row">
             <span className="info-label">Serial Number</span>
-            <span className="info-value">: {meterInfo.serialNumber}</span>
+            <span className="info-value"> {meterInfo.serialNumber}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Reading Date</span>
+            <span className="info-value"> {reading.timestamp ? new Date(reading.timestamp).toLocaleString() : 'N/A'}</span>
           </div>
           {/* Frequency Display */}
           <div className="info-row">
             <div className="frequency-section">
               <span className="frequency-label">Frequency</span>
-              <span className="frequency-colon">:</span>
               <span className="frequency-value">{formatNumber(reading.frequency, 2)}</span>
               <span className="frequency-unit">Hz</span>
             </div>
@@ -152,13 +151,13 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
           <h3 className="card-title">Total Consumption</h3>
           <div className="energy-row">
             <span className="energy-label">Active</span>
-            <span className="energy-colon">:</span>
+            <span className="energy-colon"></span>
             <span className="energy-value">{formatNumber(reading.activeEnergyTotal, 2)}</span>
             <span className="energy-unit">kWh</span>
           </div>
           <div className="energy-row">
             <span className="energy-label">Reactive</span>
-            <span className="energy-colon">:</span>
+            <span className="energy-colon"></span>
             <span className="energy-value">{formatNumber(reading.reactiveEnergyTotal, 2)}</span>
             <span className="energy-unit">kVArh</span>
           </div>
@@ -166,13 +165,13 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
           <h3 className="card-title">Total Generation</h3>
           <div className="energy-row">
             <span className="energy-label">Active</span>
-            <span className="energy-colon">:</span>
+            <span className="energy-colon"></span>
             <span className="energy-value">{formatNumber(reading.activeEnergyExport, 2)}</span>
             <span className="energy-unit">kWh</span>
           </div>
           <div className="energy-row">
             <span className="energy-label">Reactive</span>
-            <span className="energy-colon">:</span>
+            <span className="energy-colon"></span>
             <span className="energy-value">{formatNumber(reading.reactiveEnergyExport, 2)}</span>
             <span className="energy-unit">kVArh</span>
           </div>

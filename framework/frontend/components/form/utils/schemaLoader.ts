@@ -19,6 +19,7 @@ export interface BackendFieldDefinition {
   default: any;
   required: boolean;
   readOnly: boolean;
+  disable: boolean;
   label: string;
   description: string;
   placeholder: string;
@@ -214,8 +215,9 @@ function convertFieldDefinition(backendField: BackendFieldDefinition & { validat
     // Preserve validation field properties for dropdown rendering
     ...(backendField.validate != null && { validate: backendField.validate }),
     ...(backendField.validationFields && { validationFields: backendField.validationFields }),
-    // Preserve readOnly property for disabling fields
+    // Preserve readOnly and disable properties for disabling fields
     ...(backendField.readOnly != null && { readOnly: backendField.readOnly }),
+    ...(backendField.disable != null && { disable: backendField.disable }),
     // Preserve showOn property for visibility control
     ...(backendField.showOn && { showOn: backendField.showOn }),
     // Preserve formGrouping for tab/section organization

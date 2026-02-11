@@ -9,9 +9,8 @@
 .form-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
   background: var(--color-background, #f9fafb);
-  overflow: hidden;
+  overflow: visible;
   margin: 0;
   padding: 0;
 }
@@ -19,9 +18,8 @@
 /* Form Content Area */
 .form-container__content {
   flex: 1;
-  overflow: auto;
+  overflow: visible;
   display: flex;
-  min-height: 0;
   padding: 0;
   margin: 0;
 }
@@ -31,7 +29,6 @@
   padding: 1.25rem;
   padding-top: 0.75rem;
   flex: 1;
-  height: 100%;
   overflow: visible;
   margin: 0;
 }

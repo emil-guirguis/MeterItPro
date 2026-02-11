@@ -190,6 +190,32 @@ class FavoritesService {
   }
 
   /**
+   * Update the order of favorites
+   * @param tenantId - The tenant ID
+   * @param userId - The user ID
+   * @param orderedIds - Array of { favorite_id, order_by } pairs
+   */
+  async updateFavoriteOrder(
+    tenantId: number,
+    userId: number,
+    orderedIds: { favorite_id: number; order_by: number }[]
+  ): Promise<void> {
+    try {
+      await this.apiClient.put(`/favorites/order`, {
+        tenant_id: tenantId,
+        users_id: userId,
+        order: orderedIds,
+      });
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.message || 'Failed to update favorite order';
+        throw new Error(message);
+      }
+      throw new Error('Network error occurred');
+    }
+  }
+
+  /**
    * Check if an entity is favorited
    * @param favorites - Array of favorite records
    * @param meterId - The meter ID (id1)

@@ -37,8 +37,8 @@
   font-style: italic;
 }
 
-.meter-list,
-.element-list {
+.meter-element-selector .meter-list,
+.meter-element-selector .element-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -108,25 +108,25 @@
 }
 
 /* Scrollbar styling */
-.meter-list::-webkit-scrollbar,
-.element-list::-webkit-scrollbar {
+.meter-element-selector .meter-list::-webkit-scrollbar,
+.meter-element-selector .element-list::-webkit-scrollbar {
   width: 6px;
 }
 
-.meter-list::-webkit-scrollbar-track,
-.element-list::-webkit-scrollbar-track {
+.meter-element-selector .meter-list::-webkit-scrollbar-track,
+.meter-element-selector .element-list::-webkit-scrollbar-track {
   background: #f1f5f9;
   border-radius: 3px;
 }
 
-.meter-list::-webkit-scrollbar-thumb,
-.element-list::-webkit-scrollbar-thumb {
+.meter-element-selector .meter-list::-webkit-scrollbar-thumb,
+.meter-element-selector .element-list::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 3px;
 }
 
-.meter-list::-webkit-scrollbar-thumb:hover,
-.element-list::-webkit-scrollbar-thumb:hover {
+.meter-element-selector .meter-list::-webkit-scrollbar-thumb:hover,
+.meter-element-selector .element-list::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
@@ -137,8 +137,8 @@
     gap: 16px;
   }
 
-  .meter-list,
-  .element-list {
+  .meter-element-selector .meter-list,
+  .meter-element-selector .element-list {
     max-height: 250px;
   }
 

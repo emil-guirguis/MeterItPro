@@ -81,23 +81,18 @@ export const DeviceForm: React.FC<DeviceFormProps> = ({
   };
 
   return (
-    <div className="device-form-container">
-      {/* Tab Content */}
-      <div className="device-form__content">
-        <BaseForm
-          schemaName="device"
-          entity={device}
-          store={devices}
-          onCancel={onCancel}
-          onSubmit={handleReadOnlySubmit}
-          className="device-form device-form--readonly"
-          loading={loading}
-          showTabs={true}
-          onTabChange={undefined}
-          renderCustomField={renderCustomField}
-        />
-      </div>
-    </div>
+    <BaseForm
+      schemaName="device"
+      entity={device}
+      store={devices}
+      onCancel={onCancel}
+      onSubmit={handleReadOnlySubmit}
+      className="device-form device-form--readonly"
+      loading={loading}
+      showTabs={true}
+      onTabChange={undefined}
+      renderCustomField={renderCustomField}
+    />
   );
 };
 

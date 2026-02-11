@@ -49,24 +49,13 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
 
       // Flatten elements for easier access
       const allElements: { [meterId: string]: any[] } = {};
-      const allFavorites: any[] = [];
-      
+
       metersData.forEach((meter: any) => {
         allElements[meter.id] = meter.elements || [];
-        meter.elements?.forEach((el: any) => {
-          if (el.is_favorited && el.favorite_id) {
-            allFavorites.push({
-              favorite_id: el.favorite_id,
-              tenant_id: parseInt(tenantId),
-              users_id: parseInt(userId),
-              table_name: 'meter',
-              id1: meter.id,
-              id2: el.meter_element_id,
-              favorite_name: el.favorite_name || `${meter.name} - Unknown Element`
-            });
-          }
-        });
       });
+
+      // Load favorites separately to get order_by field
+      const allFavorites = await favoritesService.getFavorites(parseInt(tenantId), parseInt(userId));
 
       setMeters(meters);
       setFavorites(allFavorites);
@@ -140,21 +129,43 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
       try {
         const meterIdNum = parseInt(meterId);
         const elementIdNum = elementId ? parseInt(elementId) : undefined;
-        console.log('[SidebarMetersSection.handleFavoriteToggle] Called with meterId:', meterId, 'elementId:', elementId, 'parsed:', meterIdNum, elementIdNum);
-        const isFavorite = favoritesService.isFavorite(favorites, meterIdNum, elementIdNum);
 
-        if (isFavorite) {
-          // Remove favorite
-          await favoritesService.removeFavorite(
-            parseInt(tenantId),
-            parseInt(userId),
-            'meter',
-            meterIdNum,
-            elementIdNum
+        // Determine favorite state from meterElements (source of truth for the star UI)
+        const elements = meterElements[meterIdNum] || meterElements[meterId] || [];
+        const element = elementIdNum !== undefined
+          ? elements.find((el: any) => Number(el.meter_element_id) === elementIdNum)
+          : null;
+        const isFavorited = element ? !!element.is_favorited : false;
+
+        if (isFavorited) {
+          // Find the favorite record to get its ID, using Number() to avoid type mismatches
+          const favorite = favorites.find(
+            (fav) => Number(fav.id1) === meterIdNum && Number(fav.id2) === (elementIdNum ?? 0)
           );
+          if (favorite) {
+            await favoritesService.removeFavoriteById(favorite.favorite_id, parseInt(tenantId));
+          }
+
+          // Remove from favorites state
+          setFavorites((prev) =>
+            prev.filter((fav) => !(Number(fav.id1) === meterIdNum && Number(fav.id2) === (elementIdNum ?? 0)))
+          );
+
+          // Update meterElements to reflect unfavorited status
+          setMeterElements((prev) => {
+            const updated = { ...prev };
+            const key = updated[meterIdNum] ? meterIdNum : meterId;
+            if (updated[key]) {
+              updated[key] = updated[key].map((el: any) =>
+                Number(el.meter_element_id) === (elementIdNum ?? 0)
+                  ? { ...el, is_favorited: false }
+                  : el
+              );
+            }
+            return updated;
+          });
         } else {
           // Add favorite
-          console.log('[SidebarMetersSection.handleFavoriteToggle] Adding favorite with elementIdNum:', elementIdNum, 'elementId:', elementId);
           await favoritesService.addFavorite(
             parseInt(tenantId),
             parseInt(userId),
@@ -162,22 +173,35 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
             meterIdNum,
             elementIdNum
           );
-        }
 
-        // Reload favorites
-        const updatedFavorites = await favoritesService.getFavorites(
-          parseInt(tenantId),
-          parseInt(userId)
-        );
-        setFavorites(updatedFavorites);
+          // Reload favorites to get the new record with favorite_id and favorite_name
+          const updatedFavorites = await favoritesService.getFavorites(
+            parseInt(tenantId),
+            parseInt(userId)
+          );
+          setFavorites(updatedFavorites);
+
+          // Update meterElements to reflect favorited status
+          setMeterElements((prev) => {
+            const updated = { ...prev };
+            const key = updated[meterIdNum] ? meterIdNum : meterId;
+            if (updated[key]) {
+              updated[key] = updated[key].map((el: any) =>
+                Number(el.meter_element_id) === (elementIdNum ?? 0)
+                  ? { ...el, is_favorited: true }
+                  : el
+              );
+            }
+            return updated;
+          });
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update favorite';
         setError(message);
         console.error('Error updating favorite:', err);
-        // Show error toast (could be implemented with a toast library)
       }
     },
-    [tenantId, userId, favorites]
+    [tenantId, userId, favorites, meterElements]
   );
 
   /**
@@ -191,9 +215,44 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
         id1: fav.id1,
         id2: fav.id2,
         favorite_name: fav.favorite_name || '',
+        order_by: fav.order_by,
       };
     });
   }, [favorites]);
+
+  /**
+   * Handle reorder of favorites from drag-and-drop
+   */
+  const handleFavoritesReorder = useCallback(
+    async (reorderedFavorites: FavoriteDisplay[]) => {
+      // Build the order update payload
+      const orderedIds = reorderedFavorites.map((fav, index) => ({
+        favorite_id: fav.favorite_id,
+        order_by: index + 1,
+      }));
+
+      console.log('[SidebarMetersSection] Reorder called, orderedIds:', orderedIds);
+
+      // Optimistically update the favorites state to match the new order
+      setFavorites((prev) => {
+        const reordered = reorderedFavorites.map((display, index) => {
+          const original = prev.find((f) => Number(f.favorite_id) === Number(display.favorite_id));
+          return original ? { ...original, order_by: index + 1 } : null;
+        }).filter(Boolean) as typeof prev;
+        return reordered.length > 0 ? reordered : prev;
+      });
+
+      // Persist to backend
+      try {
+        await favoritesService.updateFavoriteOrder(parseInt(tenantId), parseInt(userId), orderedIds);
+        console.log('[SidebarMetersSection] Order saved successfully');
+      } catch (err) {
+        console.error('[SidebarMetersSection] Error saving favorite order:', err);
+        setError('Failed to save favorite order');
+      }
+    },
+    [tenantId, userId]
+  );
 
   /**
    * Handle favorite item click from FavoritesSection
@@ -242,15 +301,16 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
       // Update favorites list by removing the item
       setFavorites((prev) =>
         prev.filter(
-          (fav) => !(fav.id1 === meterIdNum && fav.id2 === elementIdNum)
+          (fav) => !(Number(fav.id1) === meterIdNum && Number(fav.id2) === elementIdNum)
         )
       );
 
       // Update meterElements to reflect unfavorited status
       setMeterElements((prev) => {
         const updated = { ...prev };
-        if (updated[meterIdNum]) {
-          updated[meterIdNum] = updated[meterIdNum].map((el) =>
+        const key = updated[meterIdNum] ? meterIdNum : meterId;
+        if (updated[key]) {
+          updated[key] = updated[key].map((el: any) =>
             Number(el.meter_element_id) === elementIdNum
               ? { ...el, is_favorited: false }
               : el
@@ -306,6 +366,7 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
               meterElements={meterElements}
               onItemClick={handleFavoritesItemClick}
               onStarClick={handleFavoritesStarClick}
+              onReorder={handleFavoritesReorder}
             />
           )}
 

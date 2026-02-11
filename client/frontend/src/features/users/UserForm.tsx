@@ -7,7 +7,7 @@
  */
 
 import React, { useState } from 'react';
-import { BaseForm, FormContainer } from '@framework/components/form';
+import { BaseForm } from '@framework/components/form';
 import { JSONBPermissionsRenderer } from '@framework/components/jsonbfield';
 import { useUsersEnhanced } from './usersStore';
 import type { User } from '../../types/auth';
@@ -137,7 +137,7 @@ export const UserForm: React.FC<UserFormProps> = ({
   };
 
   return (
-    <FormContainer>
+    <>
       {/* Change Password Modal */}
       <ChangePasswordModal
         open={showChangePasswordModal}
@@ -147,22 +147,19 @@ export const UserForm: React.FC<UserFormProps> = ({
         }}
       />
 
-      {/* User Form */}
-      <div className="form-container__content">
-        <BaseForm
-          schemaName="user"
-          entity={user}
-          store={users}
-          onCancel={onCancel}
-          onSubmit={onSubmit}
-          className="user-form"
-          loading={loading}
-          excludeFields={user?.users_id ? ['passwordHash', 'lastLogin', 'password'] : ['passwordHash', 'lastLogin']}
-          renderCustomField={renderCustomField}
-          showTabs={true}
-        />
-      </div>
-    </FormContainer>
+      <BaseForm
+        schemaName="user"
+        entity={user}
+        store={users}
+        onCancel={onCancel}
+        onSubmit={onSubmit}
+        className="user-form"
+        loading={loading}
+        excludeFields={user?.users_id ? ['passwordHash', 'lastLogin', 'password'] : ['passwordHash', 'lastLogin']}
+        renderCustomField={renderCustomField}
+        showTabs={true}
+      />
+    </>
   );
 };
 

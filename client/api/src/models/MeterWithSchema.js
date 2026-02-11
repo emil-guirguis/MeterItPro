@@ -61,7 +61,7 @@ class Meter extends BaseModel {
       entityName: 'Meter',
       tableName: 'meter',
       description: 'Meter entity for managing electric, gas, water, and other utility meters',
-      formMaxWidth: '600px',
+      formMaxWidth: '770px',
 
       customListColumns: {},
 

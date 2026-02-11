@@ -747,9 +747,9 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       }));
     }
 
-    // Convert description/notes fields to textarea
-    const isNoteField = ['description', 'notes', 'note', 'comments', 'comment', 'remarks', 'memo'].includes(fieldName.toLowerCase());
-    if (isNoteField) {
+    // Convert description/notes fields to textarea, but only when maxLength is large enough to warrant it
+    const isNoteField = ['notes', 'note', 'comments', 'comment', 'remarks', 'memo'].includes(fieldName.toLowerCase());
+    if (isNoteField && (!fieldDef.maxLength || fieldDef.maxLength > 255)) {
       fieldType = 'textarea';
     }
 
@@ -767,7 +767,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       touched: !!error,
       help: fieldDef.description,
       required: fieldDef.required,
-      disabled: isFormDisabled || !!fieldDef.readOnly,
+      disabled: isFormDisabled || !!fieldDef.readOnly || !!fieldDef.disable,
       placeholder: fieldDef.placeholder,
       options: fieldOptions,
       min: fieldDef.min,

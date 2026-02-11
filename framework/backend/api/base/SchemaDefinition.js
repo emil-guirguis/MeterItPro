@@ -43,6 +43,7 @@ const FieldTypes = {
  * @param {*} definition.default - Default value
  * @param {boolean} [definition.required=false] - Whether field is required
  * @param {boolean} [definition.readOnly=false] - Whether field is read-only
+ * @param {boolean} [definition.disable=false] - Whether field is disabled (greyed out and non-editable)
  * @param {string} [definition.label] - Human-readable label
  * @param {string} [definition.description] - Field description
  * @param {string} [definition.placeholder] - Placeholder text
@@ -77,6 +78,7 @@ function field(definition) {
     default: definition.default,
     required: definition.required || false,
     readOnly: definition.readOnly || false,
+    disable: definition.disable || false,
     label: definition.label || '',
     description: definition.description || '',
     placeholder: definition.placeholder || '',

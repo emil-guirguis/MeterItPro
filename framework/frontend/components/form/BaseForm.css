@@ -17,17 +17,16 @@
   gap: 0;
   padding: 0;
   background: var(--color-background, #f9fafb);
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
   min-width: 0;
   margin: 0 auto;
-  height: 100%;
-  max-height: 100vh;
 }
 
 /* Form width constraints from CSS custom properties set via inline style */
 .base-form[data-form-max-width] {
-  max-width: var(--form-max-width);
+  width: var(--form-max-width);
+  max-width: 100%;
 }
 
 /* Content wrapper - contains main form and sidebar */
@@ -38,10 +37,8 @@
   padding-top: 0;
   width: 100%;
   min-width: 0;
-  overflow-y: auto;
+  overflow-y: visible;
   flex: 1;
-  min-height: 0;
-  max-height: 80vh;
 }
 
 .base-form__main {

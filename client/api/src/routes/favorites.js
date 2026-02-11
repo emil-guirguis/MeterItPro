@@ -173,13 +173,14 @@ router.get('/', async (req, res) => {
     // Query that joins favorite with meter and meter_element tables to get names
     // Use COALESCE to handle NULL values from LEFT JOINs
     let query = `
-      SELECT 
+      SELECT
         f.favorite_id,
         f.tenant_id,
         f.users_id,
         f.table_name,
         f.id1,
         f.id2,
+        f.order_by,
         m.name as meter_name,
         me.element,
         me.name as element_name,
@@ -201,7 +202,7 @@ router.get('/', async (req, res) => {
       params.push(table_name);
     }
 
-    query += ' ORDER BY f.favorite_id DESC';
+    query += ' ORDER BY COALESCE(f.order_by, 999999) ASC, f.favorite_id ASC';
 
     const result = await db.query(query, params);
 
@@ -215,6 +216,59 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch favorites',
+      error: errorMessage,
+    });
+  }
+});
+
+/**
+ * PUT /api/favorites/order
+ * Update the display order of favorites
+ * Body: { tenant_id, users_id, order: [{ favorite_id, order_by }] }
+ */
+router.put('/order', async (req, res) => {
+  console.log('[favorites.PUT /order] Request received:', JSON.stringify(req.body));
+  try {
+    if (!db) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection not available',
+      });
+    }
+
+    const { tenant_id, users_id, order } = req.body;
+
+    if (!tenant_id || !users_id || !Array.isArray(order)) {
+      console.log('[favorites.PUT /order] Validation failed - tenant_id:', tenant_id, 'users_id:', users_id, 'order is array:', Array.isArray(order));
+      return res.status(400).json({
+        success: false,
+        message: 'tenant_id, users_id, and order array are required',
+      });
+    }
+
+    // Update each favorite's order_by in a transaction
+    await db.query('BEGIN');
+    for (const item of order) {
+      const result = await db.query(
+        'UPDATE public.favorite SET order_by = $1 WHERE favorite_id = $2 AND tenant_id = $3 AND users_id = $4',
+        [item.order_by, item.favorite_id, tenant_id, users_id]
+      );
+      console.log('[favorites.PUT /order] Updated favorite_id:', item.favorite_id, 'order_by:', item.order_by, 'rows affected:', result.rowCount);
+    }
+    await db.query('COMMIT');
+
+    console.log('[favorites.PUT /order] Order updated successfully');
+    res.json({
+      success: true,
+      message: 'Favorite order updated successfully',
+    });
+  } catch (error) {
+    await db.query('ROLLBACK').catch(() => {});
+    console.error('[favorites.PUT /order] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update favorite order',
       error: errorMessage,
     });
   }
@@ -268,10 +322,17 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Get the next order_by value
+    const maxOrderResult = await db.query(
+      'SELECT COALESCE(MAX(order_by), 0) + 1 as next_order FROM public.favorite WHERE tenant_id = $1 AND users_id = $2',
+      [tenant_id, users_id]
+    );
+    const nextOrder = maxOrderResult.rows[0].next_order;
+
     // Insert new favorite
     const result = await db.query(
-      'INSERT INTO public.favorite (tenant_id, users_id, table_name, id1, id2) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [tenant_id, users_id, table_name, id1, id2Value]
+      'INSERT INTO public.favorite (tenant_id, users_id, table_name, id1, id2, order_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [tenant_id, users_id, table_name, id1, id2Value, nextOrder]
     );
 
     console.log('[favorites.POST] Inserted favorite with id2:', id2Value, 'Result:', result.rows[0]);

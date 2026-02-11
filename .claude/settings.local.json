@@ -15,7 +15,8 @@
       "Bash(del \"c:\\\\Projects\\\\MeterItPro\\\\client\\\\api\\\\nul\")",
       "Bash(del \"c:\\\\Projects\\\\MeterItPro\\\\sync\\\\frontend\\\\nul\")",
       "Bash(findstr:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npm ls:*)"
     ]
   }
 }

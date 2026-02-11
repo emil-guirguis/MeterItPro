@@ -51,6 +51,7 @@ class Location extends BaseModel {
             entityName: 'Location',
             tableName: 'location',
             description: 'Location entity',
+            formMaxWidth: '700px',
 
             customListColumns: {},
 
@@ -61,7 +62,7 @@ class Location extends BaseModel {
                     order: 1,
                     sections: [
                         section({
-                            name: 'Basic Information',
+                            name: 'Information',
                             order: 1,
                             fields: [
                                 field({
@@ -93,30 +94,8 @@ class Location extends BaseModel {
                             ],
                         }),
                         section({
-                            name: 'Status',
+                            name: 'Address',
                             order: 2,
-                            fields: [
-                                field({
-                                    name: 'active',
-                                    order: 2,
-                                    type: FieldTypes.BOOLEAN,
-                                    default: true,
-                                    required: false,
-                                    label: 'Active',
-                                    dbField: 'active',
-                                    showOn: ['list', 'form'],
-                                }),
-                            ],
-                        }),
-                    ],
-                }),
-                tab({
-                    name: 'Address',
-                    order: 2,
-                    sections: [
-                        section({
-                            name: 'Address Information',
-                            order: 1,
                             fields: [
                                 field({
                                     name: 'street',
@@ -192,11 +171,30 @@ class Location extends BaseModel {
                                 }),
                             ],
                         }),
+                        section({
+                            name: 'Status',
+                            order: 3,
+                            maxWidth: '100px',
+                            flexGrow: 0,
+                            flexShrink: 0,
+                            fields: [
+                                field({
+                                    name: 'active',
+                                    order: 2,
+                                    type: FieldTypes.BOOLEAN,
+                                    default: true,
+                                    required: false,
+                                    label: 'Active',
+                                    dbField: 'active',
+                                    showOn: ['list', 'form'],
+                                }),
+                            ],
+                        }),
                     ],
                 }),
                 tab({
                     name: 'Additional Info',
-                    order: 3,
+                    order: 2,
                     sections: [
                         section({
                             name: 'Notes',
@@ -217,13 +215,16 @@ class Location extends BaseModel {
                         section({
                             name: 'Audit',
                             order: 3,
+                            maxWidth: '200px',
+                            flexGrow: 0,
+                            flexShrink: 0,
                             fields: [
                                 field({
                                     name: 'created_at',
                                     order: 1,
                                     type: FieldTypes.DATE,
                                     default: null,
-                                    readOnly: true,
+                                    disable: true,
                                     label: 'Created At',
                                     dbField: 'created_at',
                                     showOn: ['form'],
@@ -233,7 +234,7 @@ class Location extends BaseModel {
                                     order: 2,
                                     type: FieldTypes.DATE,
                                     default: null,
-                                    readOnly: true,
+                                    disable: true,
                                     label: 'Updated At',
                                     dbField: 'updated_at',
                                     showOn: ['form'],
