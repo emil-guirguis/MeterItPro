@@ -30,7 +30,8 @@ const FieldTypes = {
   URL: 'url',
   OBJECT: 'object',
   ARRAY: 'array',
-  JSON: 'json'
+  JSON: 'json',
+  SELECT: 'select',
 };
 
 /**
@@ -42,6 +43,7 @@ const FieldTypes = {
  * @param {*} definition.default - Default value
  * @param {boolean} [definition.required=false] - Whether field is required
  * @param {boolean} [definition.readOnly=false] - Whether field is read-only
+ * @param {boolean} [definition.disable=false] - Whether field is disabled (greyed out and non-editable)
  * @param {string} [definition.label] - Human-readable label
  * @param {string} [definition.description] - Field description
  * @param {string} [definition.placeholder] - Placeholder text
@@ -76,6 +78,7 @@ function field(definition) {
     default: definition.default,
     required: definition.required || false,
     readOnly: definition.readOnly || false,
+    disable: definition.disable || false,
     label: definition.label || '',
     description: definition.description || '',
     placeholder: definition.placeholder || '',
@@ -208,6 +211,7 @@ function tab(config) {
  * @param {Object} definition.customListColumns - Custom columns that appear in lists
  * @param {Object} [definition.formFields] - Fields that appear in forms (user-editable) - OPTIONAL if formTabs is provided
  * @param {Array<Object>} [definition.formTabs] - Hierarchical tab/section/field organization with embedded field definitions
+ * @param {string} [definition.formMaxWidth] - CSS max-width for the form element (e.g., '600px')
  * @param {Object} [definition.entityFields] - Additional fields in entity (read-only, computed)
  * @param {Object} [definition.relationships] - Entity relationships
  * @param {Object} [definition.validation] - Entity-level validation rules
@@ -252,6 +256,7 @@ function defineSchema(definition) {
     description: definition.description || '',
     formFields: formFields,
     formTabs: definition.formTabs || null,
+    formMaxWidth: definition.formMaxWidth || null,
     entityFields: definition.entityFields || {},
     relationships: definition.relationships || {},
     validation: definition.validation || {},

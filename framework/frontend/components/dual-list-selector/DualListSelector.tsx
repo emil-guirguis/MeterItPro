@@ -162,6 +162,7 @@ export const DualListSelector = React.forwardRef<
       const itemId = getItemId(item);
       const isDragging = draggedItem && getItemId(draggedItem) === itemId;
       const isFocused = focusedItemId === itemId && focusedSide === side;
+      const isSelected = side === 'right';
 
       return (
         <div
@@ -177,7 +178,7 @@ export const DualListSelector = React.forwardRef<
           onFocus={() => handleFocus(itemId, side)}
           tabIndex={0}
           role="option"
-          aria-selected={side === 'right' ? 'true' : 'false'}
+          aria-selected={isSelected ? 'true' : 'false'}
         >
           {renderItem ? renderItem(item) : getItemLabel(item)}
         </div>
@@ -187,25 +188,25 @@ export const DualListSelector = React.forwardRef<
     // Render a list container
     const renderList = (items: any[], side: 'left' | 'right') => {
       const isEmpty = items.length === 0;
+      const ariaLabel = side === 'left' ? 'Available items' : 'Selected items';
 
       return (
-        <div
-          className="dual-list-selector__list-container"
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, side)}
-          role="listbox"
-          aria-label={side === 'left' ? 'Available items' : 'Selected items'}
-        >
-          {isEmpty ? (
+        <>
+          <div
+            className="dual-list-selector__list-container"
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, side)}
+            role="listbox"
+            aria-label={ariaLabel}
+          >
+            {items.map((item) => renderListItem(item, side))}
+          </div>
+          {isEmpty && (
             <div className="dual-list-selector__empty-state">
               {emptyStateMessage}
             </div>
-          ) : (
-            <div className="dual-list-selector__list">
-              {items.map((item) => renderListItem(item, side))}
-            </div>
           )}
-        </div>
+        </>
       );
     };
 

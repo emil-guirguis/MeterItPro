@@ -124,6 +124,166 @@ export class LocalApiServer {
       }
     });
 
+    // Health check for MCP server (checks for recent activity in sync_log)
+    this.app.get('/api/health/mcp', async (_req, res) => {
+      try {
+        const query = `
+          SELECT
+            COUNT(*) FILTER (WHERE synced_at > NOW() - INTERVAL '5 minutes') as recent_activity,
+            (SELECT success FROM sync_log ORDER BY synced_at DESC LIMIT 1) as last_success,
+            (SELECT synced_at FROM sync_log ORDER BY synced_at DESC LIMIT 1) as last_activity
+          FROM sync_log
+        `;
+        const result = await syncPool.query(query);
+        const row = result.rows[0];
+
+        const recentActivity = parseInt(row.recent_activity, 10);
+        const lastSuccess = row.last_success;
+        const lastActivity = row.last_activity;
+
+        const isHealthy = recentActivity > 0 || lastSuccess === true || lastActivity === null;
+
+        if (isHealthy) {
+          res.json({
+            status: 'ok',
+            service: 'mcp',
+            recent_activity: recentActivity,
+            last_success: lastSuccess,
+            last_activity: lastActivity,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          res.status(503).json({
+            status: 'error',
+            service: 'mcp',
+            error: 'MCP server appears inactive or last operation failed',
+            recent_activity: recentActivity,
+            last_success: lastSuccess,
+            last_activity: lastActivity
+          });
+        }
+      } catch (error) {
+        res.status(503).json({
+          status: 'error',
+          service: 'mcp',
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+
+    // Health check for remote client API
+    this.app.get('/api/health/remote-api', async (_req, res) => {
+      try {
+        const tenantQuery = `SELECT api_key FROM tenant LIMIT 1`;
+        const tenantResult = await syncPool.query(tenantQuery);
+
+        if (tenantResult.rows.length === 0 || !tenantResult.rows[0].api_key) {
+          return res.status(503).json({
+            status: 'error',
+            service: 'remote-api',
+            error: 'No tenant configured or missing API key'
+          });
+        }
+
+        const apiKey = tenantResult.rows[0].api_key;
+        const clientApiUrl = process.env.CLIENT_API_URL || 'http://localhost:3001';
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        try {
+          const response = await fetch(`${clientApiUrl}/health`, {
+            method: 'GET',
+            headers: { 'x-api-key': apiKey },
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            res.json({
+              status: 'ok',
+              service: 'remote-api',
+              timestamp: new Date().toISOString()
+            });
+          } else {
+            res.status(503).json({
+              status: 'error',
+              service: 'remote-api',
+              error: `Client API returned status ${response.status}`
+            });
+          }
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          res.status(503).json({
+            status: 'error',
+            service: 'remote-api',
+            error: fetchError instanceof Error ? fetchError.message : 'Connection failed'
+          });
+        }
+      } catch (error) {
+        res.status(503).json({
+          status: 'error',
+          service: 'remote-api',
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+
+    // Save tenant data to local database
+    this.app.post('/api/local/tenant', async (req, res) => {
+      try {
+        console.log('📥 [API] POST /api/local/tenant - Request received');
+        const { tenant_id, name, url, street, street2, city, state, zip, country, active, api_key } = req.body;
+
+        if (!tenant_id || !name) {
+          return res.status(400).json({ error: 'tenant_id and name are required' });
+        }
+
+        const upsertQuery = `
+          INSERT INTO tenant (tenant_id, name, url, street, street2, city, state, zip, country, active, api_key)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          ON CONFLICT (tenant_id) DO UPDATE SET
+            name = EXCLUDED.name,
+            url = EXCLUDED.url,
+            street = EXCLUDED.street,
+            street2 = EXCLUDED.street2,
+            city = EXCLUDED.city,
+            state = EXCLUDED.state,
+            zip = EXCLUDED.zip,
+            country = EXCLUDED.country,
+            active = EXCLUDED.active,
+            api_key = EXCLUDED.api_key
+          RETURNING *
+        `;
+        const upsertResult = await syncPool.query(upsertQuery, [
+          tenant_id, name, url || null, street || null, street2 || null,
+          city || null, state || null, zip || null, country || null,
+          active ?? true, api_key || null,
+        ]);
+
+        const savedTenant = upsertResult.rows[0];
+        console.log('✅ [API] Tenant saved successfully:', savedTenant.name);
+
+        res.json({
+          tenant_id: savedTenant.tenant_id,
+          name: savedTenant.name,
+          url: savedTenant.url,
+          street: savedTenant.street,
+          street2: savedTenant.street2,
+          city: savedTenant.city,
+          state: savedTenant.state,
+          zip: savedTenant.zip,
+          country: savedTenant.country,
+          active: savedTenant.active,
+        });
+      } catch (error) {
+        console.error('❌ [API] POST /api/local/tenant - Error:', error);
+        res.status(500).json({
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+
     // Get tenant information from memory
     this.app.get('/api/local/tenant', async (_req, res, next) => {
       try {

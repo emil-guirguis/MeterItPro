@@ -17,12 +17,10 @@ import {
   ListItemText,
   IconButton,
 } from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  CheckCircle,
-  Cancel,
-} from '@mui/icons-material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Cancel from '@mui/icons-material/Cancel';
 import authService from '../../services/authService';
 import { PasswordValidator } from '../../utils/passwordValidator';
 

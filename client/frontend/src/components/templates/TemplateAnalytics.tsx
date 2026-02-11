@@ -15,12 +15,10 @@ import {
   Chip,
   LinearProgress
 } from '@mui/material';
-import {
-  TrendingUp as TrendingUpIcon,
-  Email as EmailIcon,
-  CheckCircle as SuccessIcon,
-  Error as ErrorIcon
-} from '@mui/icons-material';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import EmailIcon from '@mui/icons-material/Email';
+import SuccessIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
 import { LoadingSpinner } from '@framework/components/common';
 import { templateService } from '../../services/templateService';
 

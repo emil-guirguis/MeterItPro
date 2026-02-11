@@ -108,7 +108,7 @@ export async function syncDeviceRegisters(
           const registerExists = await validateEntityExists(syncPool, 'register', remoteAssociation.register_id);
 
           if (!registerExists) {
-            console.warn(`   ⚠️  Skipping device_register: register_id=${remoteAssociation.register_id} does not exist in sync database`);
+            console.warn(`   ⚠️  Skipping device_register: register_id=${remoteAssociation.register} does not exist in sync database`);
             skippedCount++;
             continue;
           }
@@ -139,7 +139,7 @@ export async function syncDeviceRegisters(
             const registerExists = await validateEntityExists(syncPool, 'register', remoteAssociation.register_id);
 
             if (!registerExists) {
-              console.warn(`   ⚠️  Skipping device_register update: register_id=${remoteAssociation.register_id} does not exist in sync database`);
+              console.warn(`   ⚠️  Skipping device_register update: register_id=${remoteAssociation.register} does not exist in sync database`);
               skippedCount++;
               continue;
             }

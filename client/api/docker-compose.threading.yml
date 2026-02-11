@@ -43,17 +43,7 @@ services:
       THREADING_AUTO_START: ${THREADING_AUTO_START:-true}
       WORKER_MAX_MEMORY_MB: ${WORKER_MAX_MEMORY_MB:-512}
       WORKER_LOG_LEVEL: ${WORKER_LOG_LEVEL:-info}
-      
-      # Modbus configuration
-      MODBUS_HOST: ${MODBUS_HOST:-modbus-simulator}
-      MODBUS_PORT: ${MODBUS_PORT:-502}
-      MODBUS_TIMEOUT: ${MODBUS_TIMEOUT:-5000}
-      MODBUS_RETRY_ATTEMPTS: ${MODBUS_RETRY_ATTEMPTS:-3}
-      MODBUS_UNIT_ID: ${MODBUS_UNIT_ID:-1}
-      MODBUS_REGISTER_START: ${MODBUS_REGISTER_START:-0}
-      MODBUS_REGISTER_COUNT: ${MODBUS_REGISTER_COUNT:-10}
-      MODBUS_COLLECTION_INTERVAL: ${MODBUS_COLLECTION_INTERVAL:-5000}
-      
+
       # Database configuration
       DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
       DB_TIMEOUT: ${DB_TIMEOUT:-10000}
@@ -80,22 +70,6 @@ services:
       retries: 3
       start_period: 40s
 
-  # Modbus simulator (for testing)
-  modbus-simulator:
-    image: oitc/modbus-server
-    container_name: mcp-modbus-simulator
-    restart: unless-stopped
-    ports:
-      - "502:502"
-    networks:
-      - mcp-network
-    environment:
-      MODBUS_PORT: 502
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "502"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
 
   # Redis for caching (optional)
   redis:

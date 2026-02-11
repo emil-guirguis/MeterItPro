@@ -69,6 +69,7 @@ export interface TenantInfo {
   zip?: string;
   country?: string;
   active?: boolean;
+  api_key?: string;
 }
 
 // Re-export connection types

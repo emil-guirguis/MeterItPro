@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { AppLayoutWrapper as AppLayout } from '../../components/layout';
 import { FormModal } from '@framework/components/modal';
 import { useReportsEnhanced } from './reportsStore';
@@ -7,7 +7,7 @@ import { Permission } from '../../types/auth';
 import './ReportManagementPage.css'
 import type { Report } from '../../services/reportingService';
 
-export const ReportManagementPage: React.FC<{ onReportSelect?: (reportId: string) => void }> = () => {
+export const ReportManagementPage: React.FC<{ onReportSelect?: (reportId: string) => void }> = ({ onReportSelect }) => {
   const { checkPermission } = useAuth();
   const reports = useReportsEnhanced();
 
@@ -67,6 +67,13 @@ export const ReportManagementPage: React.FC<{ onReportSelect?: (reportId: string
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Report Management', path: '/reports' },
   ];
+
+  // If an external consumer passed an onReportSelect prop, call it when selection changes
+  useEffect(() => {
+    if (!onReportSelect || !selectedReport) return;
+    const reportId = (selectedReport as any).report_id || (selectedReport as any)._id;
+    if (reportId) onReportSelect(reportId);
+  }, [selectedReport, onReportSelect]);
 
   return (
     <AppLayout 

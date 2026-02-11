@@ -129,16 +129,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       try {
         dispatch({ type: 'SET_LOADING', payload: true });
-        
-        // Check if user explicitly logged out - FIRST priority
-        if (authService.hasLogoutFlag()) {
-          addLog('🚪 User explicitly logged out, clearing any remaining tokens and skipping auto-login');
-          // Ensure tokens are cleared even if logout didn't complete properly
-          authService.clearStoredToken();
-          dispatch({ type: 'SET_LOADING', payload: false });
-          return;
-        }
-        
+
+                
         // Dev auto-login (local only)
         const autoLoginEnabled = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
         const devEmail = import.meta.env.VITE_DEV_EMAIL as string | undefined;
@@ -155,6 +147,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             dispatch({ type: 'SET_LOADING', payload: false });
             return;
           }
+        }
+
+        
+        // Check if user explicitly logged out - FIRST priority
+        if (authService.hasLogoutFlag()) {
+          addLog('🚪 User explicitly logged out, clearing any remaining tokens and skipping auto-login');
+          // Ensure tokens are cleared even if logout didn't complete properly
+          authService.clearStoredToken();
+          dispatch({ type: 'SET_LOADING', payload: false });
+          return;
         }
 
         // Check if user has a stored token

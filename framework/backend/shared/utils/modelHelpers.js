@@ -143,15 +143,16 @@ function buildInsertSQL(tableName, fields, data, context = {}) {
     if (value === undefined || (key === 'id' && (value === null || value === undefined))) {
       continue;
     }
-    
+
     const field = fieldMap.get(key);
     const fieldType = field ? field.type : null;
-    
-    // Skip read-only fields EXCEPT tenant_id (which must be set during creation)
-    if (field && field.readOnly && key !== 'tenant_id') {
+
+    // Skip read-only fields with null/undefined values (auto-generated: PKs, timestamps)
+    // Read-only fields WITH a value are still inserted (e.g. is_virtual set during creation)
+    if (field && field.readOnly && (value === null || value === undefined)) {
       continue;
     }
-    
+
     // Skip fields with no database column (computed fields)
     if (field && field.dbField === null) {
       continue;

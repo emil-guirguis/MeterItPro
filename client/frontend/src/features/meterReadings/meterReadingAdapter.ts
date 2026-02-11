@@ -15,7 +15,7 @@ interface RawMeterReading {
   
   // Meter info
   meter_name?: string;
-  meter_type?: string;
+  // meter_type?: string;
   serial_number?: string;
   meter_ip?: string;
   meter_port?: string;
@@ -163,7 +163,7 @@ export function adaptMeterReading(raw: RawMeterReading): {
 } {
   // Extract meter info
   const meterInfo: MeterInfo = {
-    driver: raw.meter_type || raw.meter_protocol || 'Unknown Driver',
+    driver: raw.meter_protocol || 'Unknown Driver',
     description: raw.meter_name || raw.meter_notes || 'No Description',
     serialNumber: raw.serial_number || 'N/A',
   };

@@ -102,10 +102,18 @@ export async function initializePools() {
   // try {
   //   remote = await remotePool.connect();
   //   console.log('Successfully connected to the remote  database');
-  //   remote.release(); 
+  //   remote.release();
   // } catch (err) {
   //   console.error('Failed to connect to the remote  database', err);
   // }
+
+  // Ensure local sync database schema is up to date
+  try {
+    await syncPool.query(`ALTER TABLE meter ADD COLUMN IF NOT EXISTS meter_element_id INTEGER NOT NULL DEFAULT 0`);
+    await syncPool.query(`ALTER TABLE meter ADD COLUMN IF NOT EXISTS element VARCHAR(255)`);
+  } catch (err) {
+    console.warn('Schema migration note:', err instanceof Error ? err.message : err);
+  }
 }
 
 /**
@@ -169,14 +177,41 @@ export class SyncDatabase {
       // Create meter table
       await execQuery(this.pool,
         `CREATE TABLE IF NOT EXISTS meter (
-          meter_id INTEGER PRIMARY KEY,
+          meter_id INTEGER NOT NULL,
           device_id INTEGER,
+          register_id INTEGER,
           location_id INTEGER,
           ip VARCHAR(50),
           port VARCHAR(10),
           active BOOLEAN DEFAULT true,
-          meter_element_id INTEGER,
-          element VARCHAR(255)
+          meter_element_id INTEGER NOT NULL DEFAULT 0,
+          element VARCHAR(255),
+          PRIMARY KEY (meter_id, meter_element_id)
+        )`);
+
+      // Add columns if they don't exist (for existing tables created before these were added)
+      await execQuery(this.pool,
+        `ALTER TABLE meter ADD COLUMN IF NOT EXISTS meter_element_id INTEGER NOT NULL DEFAULT 0`);
+      await execQuery(this.pool,
+        `ALTER TABLE meter ADD COLUMN IF NOT EXISTS element VARCHAR(255)`);
+
+      // Create register table
+      await execQuery(this.pool,
+        `CREATE TABLE IF NOT EXISTS register (
+          register_id INTEGER PRIMARY KEY,
+          name VARCHAR(255),
+          register INTEGER,
+          unit VARCHAR(50),
+          field_name VARCHAR(255)
+        )`);
+
+      // Create device_register table
+      await execQuery(this.pool,
+        `CREATE TABLE IF NOT EXISTS device_register (
+          device_register_id INTEGER,
+          device_id INTEGER NOT NULL,
+          register_id INTEGER NOT NULL,
+          PRIMARY KEY (device_id, register_id)
         )`);
 
       // Create meter_reading table
@@ -249,24 +284,6 @@ export class SyncDatabase {
         )
       `);
 
-
-      // Create device_register table
-      await execQuery(this.pool,
-        `
-        CREATE TABLE IF NOT EXISTS device_register (
-          device_register_id SERIAL PRIMARY KEY,
-          device_id INTEGER NOT NULL,
-          register_id INTEGER NOT NULL REFERENCES register(register_id),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE(device_id, register_id)
-        )
-      `);
-      await execQuery(this.pool, `CREATE INDEX IF NOT EXISTS idx_meter_reading_meter_id ON meter_reading(meter_id)`);
-      await execQuery(this.pool, `CREATE INDEX IF NOT EXISTS idx_meter_reading_is_synchronized ON meter_reading(is_synchronized)`);
-      await execQuery(this.pool, `CREATE INDEX IF NOT EXISTS idx_sync_log_synced_at ON sync_log(synced_at)`);
-      await execQuery(this.pool, `CREATE INDEX IF NOT EXISTS idx_device_register_device_id ON device_register(device_id)`);
-      await execQuery(this.pool, `CREATE INDEX IF NOT EXISTS idx_device_register_register_id ON device_register(register_id)`);
 
       console.log('✅ [SQL] Database schema initialized successfully');
     } catch (error) {
@@ -519,7 +536,7 @@ export class SyncDatabase {
    */
   async getTenantBatchConfig(tenantId: number): Promise<{ downloadBatchSize: number; uploadBatchSize: number }> {
     try {
-      const query = `SELECT download_batch_size, upload_batch_size FROM tenant WHERE id = $1`;
+      const query = `SELECT download_batch_size, upload_batch_size FROM tenant`;
       const result = await execQuery(this.pool, query, [tenantId], 'data-sync.ts>getTenantBatchConfig');
 
       if (result.rows.length === 0) {
@@ -774,7 +791,7 @@ export class SyncDatabase {
            port, 
            meter_element_id, 
            element, 
-           device_id 
+           device_id
          FROM meter
          WHERE active = true 
          ORDER BY meter_id, meter_element_id`
@@ -786,7 +803,7 @@ export class SyncDatabase {
            port, 
            meter_element_id, 
            element, 
-           device_id 
+           device_id
          FROM meter
          ORDER BY meter_id, meter_element_id`;
 

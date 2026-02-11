@@ -41,6 +41,8 @@ class Device extends BaseModel {
             entityName: 'Device',
             tableName: 'device',
             description: 'Device entity',
+            formMaxWidth: '770px',
+
 
             customListColumns: {},
 
@@ -51,8 +53,9 @@ class Device extends BaseModel {
                     order: 1,
                     sections: [
                         section({
-                            name: 'Device Information',
+                            name: '',
                             order: 1,
+                            flex: 1,  // Takes remaining space
                             fields: [
                                 field({
                                     name: 'manufacturer',
@@ -113,23 +116,6 @@ class Device extends BaseModel {
                                 }),
                             ],
                         }),
-                        section({
-                            name: 'Status',
-                            order: 2,
-                            fields: [
-                                field({
-                                    name: 'active',
-                                    order: 1,
-                                    type: FieldTypes.BOOLEAN,
-                                    default: true,
-                                    required: true,
-                                    readOnly: true,
-                                    label: 'Active',
-                                    dbField: 'active',
-                                    showOn: ['list', 'form'],
-                                }),
-                            ],
-                        }),
                     ],
                 }),
                 tab({
@@ -137,7 +123,7 @@ class Device extends BaseModel {
                     order: 2,
                     sections: [
                         section({
-                            name: 'Meter Registers',
+                            name: '',
                             order: 1,
                             fields: [
                                 field({
@@ -148,38 +134,6 @@ class Device extends BaseModel {
                                     required: false,
                                     readOnly: true,
                                     label: 'Registers',
-                                    showOn: ['form'],
-                                }),
-                            ],
-                        }),
-                    ],
-                }),
-                tab({
-                    name: 'Additional Info',
-                    order: 3,
-                    sections: [
-                        section({
-                            name: 'Audit',
-                            order: 1,
-                            fields: [
-                                field({
-                                    name: 'created_at',
-                                    order: 1,
-                                    type: FieldTypes.DATE,
-                                    default: null,
-                                    readOnly: true,
-                                    label: 'Created At',
-                                    dbField: 'created_at',
-                                    showOn: ['form'],
-                                }),
-                                field({
-                                    name: 'updated_at',
-                                    order: 2,
-                                    type: FieldTypes.DATE,
-                                    default: null,
-                                    readOnly: true,
-                                    label: 'Updated At',
-                                    dbField: 'updated_at',
                                     showOn: ['form'],
                                 }),
                             ],

@@ -70,7 +70,7 @@ class AutoMeterCollectionService {
             },
             meters: {
                 defaultIP: defaultMeterIp || '10.10.10.22',
-                defaultPort: defaultMeterPort ? parseInt(defaultMeterPort, 10) : 502,
+                defaultPort: defaultMeterPort ? parseInt(defaultMeterPort, 10) : 47808,
                 registers: {
                     voltage: { address: 5, count: 1, scale: 200, unit: 'V' },
                     current: { address: 6, count: 1, scale: 100, unit: 'A' },
@@ -307,7 +307,7 @@ class AutoMeterCollectionService {
     getMeterConfig(meter) {
         return {
             ip: this.config && this.config.meters ? this.config.meters.defaultIP : '10.10.10.22',
-            port: this.config && this.config.meters ? this.config.meters.defaultPort : 502,
+            port: this.config && this.config.meters ? this.config.meters.defaultPort : 47808,
         };
     }
 

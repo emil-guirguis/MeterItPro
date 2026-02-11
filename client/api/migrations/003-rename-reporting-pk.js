@@ -32,24 +32,24 @@ async function runMigration() {
       `ALTER TABLE report_email_logs DROP CONSTRAINT IF EXISTS report_email_logs_history_id_fkey`,
       
       // Rename primary keys
-      `ALTER TABLE reports RENAME COLUMN id TO reports_id`,
+      `ALTER TABLE reports RENAME COLUMN id TO report_id`,
       `ALTER TABLE report_history RENAME COLUMN id TO report_history_id`,
-      `ALTER TABLE report_history RENAME COLUMN report_id TO reports_id`,
+      `ALTER TABLE report_history RENAME COLUMN report_id TO report_id`,
       `ALTER TABLE report_email_logs RENAME COLUMN id TO report_email_logs_id`,
-      `ALTER TABLE report_email_logs RENAME COLUMN report_id TO reports_id`,
+      `ALTER TABLE report_email_logs RENAME COLUMN report_id TO report_id`,
       `ALTER TABLE report_email_logs RENAME COLUMN history_id TO report_history_id`,
       
       // Re-add foreign key constraints
-      `ALTER TABLE report_history ADD CONSTRAINT report_history_reports_id_fkey 
-       FOREIGN KEY (reports_id) REFERENCES reports(reports_id) ON DELETE CASCADE`,
-      `ALTER TABLE report_email_logs ADD CONSTRAINT report_email_logs_reports_id_fkey 
-       FOREIGN KEY (reports_id) REFERENCES reports(reports_id) ON DELETE CASCADE`,
+      `ALTER TABLE report_history ADD CONSTRAINT report_history_report_id_fkey 
+       FOREIGN KEY (report_id) REFERENCES reports(report_id) ON DELETE CASCADE`,
+      `ALTER TABLE report_email_logs ADD CONSTRAINT report_email_logs_report_id_fkey 
+       FOREIGN KEY (report_id) REFERENCES reports(report_id) ON DELETE CASCADE`,
       `ALTER TABLE report_email_logs ADD CONSTRAINT report_email_logs_report_history_id_fkey 
        FOREIGN KEY (report_history_id) REFERENCES report_history(report_history_id) ON DELETE CASCADE`,
       
       // Rename indexes
-      `ALTER INDEX IF EXISTS idx_report_history_report_id RENAME TO idx_report_history_reports_id`,
-      `ALTER INDEX IF EXISTS idx_report_email_logs_report_id RENAME TO idx_report_email_logs_reports_id`,
+      `ALTER INDEX IF EXISTS idx_report_history_report_id RENAME TO idx_report_history_report_id`,
+      `ALTER INDEX IF EXISTS idx_report_email_logs_report_id RENAME TO idx_report_email_logs_report_id`,
       `ALTER INDEX IF EXISTS idx_report_email_logs_history_id RENAME TO idx_report_email_logs_report_history_id`,
       `ALTER INDEX IF EXISTS idx_report_history_report_executed RENAME TO idx_report_history_reports_executed`,
       `ALTER INDEX IF EXISTS idx_report_email_logs_history_recipient RENAME TO idx_report_email_logs_report_history_recipient`,

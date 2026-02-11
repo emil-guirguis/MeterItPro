@@ -81,7 +81,7 @@ class MCPService {
   }
 
   /**
-   * Test connections (Modbus and database) via MCP agent
+   * Test connections via MCP agent
    */
   async testConnections(): Promise<any> {
     return this.callMCPTool('test_connections');

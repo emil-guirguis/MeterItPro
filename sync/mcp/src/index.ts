@@ -79,6 +79,8 @@ class SyncMcpServer {
   private meterReadingCleanupAgent?: MeterReadingCleanupAgent;
   private syncManager?: SyncManager;
   private isInitialized: boolean = false;
+  private isDatabaseReady: boolean = false;
+  private tenantCheckInterval?: ReturnType<typeof setInterval>;
 
   constructor() {
     this.server = new Server(
@@ -98,16 +100,15 @@ class SyncMcpServer {
   }
 
   /**
-   * Initialize services
+   * Initialize database services (called once at startup)
    */
-  private async initializeServices(): Promise<void> {
-    if (this.isInitialized) {
-      console.log('ℹ️  [Services] Already initialized, skipping...');
+  private async initializeDatabase(): Promise<void> {
+    if (this.isDatabaseReady) {
       return;
     }
 
     try {
-      console.log('\n🔧 [Services] Initializing Sync MCP services...');
+      console.log('\n🔧 [Services] Initializing database...');
 
       // Step 1: Initialize database pools (creates global syncPool and remotePool)
       console.log('🔗 [Services] Initializing database pools...');
@@ -132,116 +133,192 @@ class SyncMcpServer {
       await this.syncDatabase.initialize();
       console.log('✅ [Services] Database schema initialized');
 
+      this.isDatabaseReady = true;
+      console.log('✅ [Services] Database ready\n');
+    } catch (error) {
+      console.error('❌ [Services] Failed to initialize database:', error);
+      throw error;
+    }
+  }
 
+  /**
+   * Initialize agents (only when tenant exists)
+   */
+  private async initializeAgents(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+
+    if (!this.isDatabaseReady || !this.syncDatabase) {
+      console.log('⏳ [Services] Database not ready, cannot start agents');
+      return;
+    }
+
+    try {
+      // Re-initialize tenant cache to check for tenant
       await cacheManager.tenantCache.initialize(this.syncDatabase);
       const tenant = cacheManager.tenantCache.getTenant();
       const tenantId = tenant?.tenant_id || 0;
 
-      console.log('✅ [sync\mcp\src\index.ts.initializeServices] TenantCache initialized');
-
-      if (tenantId > 0) {
-        // Step 4b: Update tenant API key from environment
-        const apiKeyFromEnv = process.env.CLIENT_API_KEY || '';
-        if (apiKeyFromEnv) {
-          console.log('🔑 [Services] Updating tenant API key from environment...');
-          await this.syncDatabase.updateTenantApiKey(apiKeyFromEnv);
-          console.log('✅ [Services] Tenant API key updated');
-        } else {
-          console.warn('⚠️  [Services] No CLIENT_API_KEY in environment - API uploads may fail');
-        }
-
-        // Create API client for uploads
-        const apiClient = new ClientSystemApiClient({
-          apiUrl: process.env.CLIENT_API_URL || 'http://localhost:3001/api',
-          apiKey: apiKeyFromEnv,
-          timeout: parseInt(process.env.API_TIMEOUT || '30000', 10),
-          maxRetries: parseInt(process.env.MAX_RETRIES || '5', 10),
-        });
-        console.log('✅ [Services] Client System API Client created');
-
-        this.bacnetMeterReadingAgent = new BACnetMeterReadingAgent({
-          syncDatabase: this.syncDatabase,
-          collectionIntervalSeconds: getBACnetCollectionIntervalSeconds(),
-          uploadCronExpression: getBACnetUploadCronExpression(),
-          enableAutoStart: process.env.BACNET_AUTO_START !== 'false',
-          bacnetInterface: process.env.BACNET_INTERFACE || '0.0.0.0',
-          bacnetPort: parseInt(process.env.BACNET_PORT || '47808', 10),
-          connectionTimeoutMs: parseInt(process.env.BACNET_CONNECTION_TIMEOUT_MS || '5000', 10),
-          readTimeoutMs: parseInt(process.env.BACNET_READ_TIMEOUT_MS || '1000', 10),
-          batchReadTimeoutMs: parseInt(process.env.BACNET_BATCH_READ_TIMEOUT_MS || '1000', 10),
-          sequentialReadTimeoutMs: parseInt(process.env.BACNET_SEQUENTIAL_READ_TIMEOUT_MS || '1000', 10),
-          connectivityCheckTimeoutMs: parseInt(process.env.BACNET_CONNECTIVITY_CHECK_TIMEOUT_MS || '2000', 10),
-          enableConnectivityCheck: process.env.BACNET_ENABLE_CONNECTIVITY_CHECK !== 'false',
-          enableSequentialFallback: process.env.BACNET_ENABLE_SEQUENTIAL_FALLBACK !== 'false',
-          adaptiveBatchSizing: process.env.BACNET_ADAPTIVE_BATCH_SIZING !== 'false',
-          apiClient: apiClient,
-        }, logger);
-        console.log('✅ [Services] BACnet Meter Reading Agent initialized');
-
-        // Initialize Remote to Local Sync Agent
-        console.log('🔄 [Services] Initializing Remote to Local Sync Agent...');
-        this.remotePool = this.getRemoteDatabasePool();
-
-        this.remoteToLocalSyncAgent = new RemoteToLocalSyncAgent({
-          syncDatabase: this.syncDatabase,
-          remotePool: this.remotePool,
-          syncIntervalMinutes: parseInt(process.env.METER_SYNC_INTERVAL_MINUTES || '60', 10),
-          enableAutoSync: process.env.METER_SYNC_AUTO_START !== 'false',
-          bacnetMeterReadingAgent: this.bacnetMeterReadingAgent,
-        });
-        console.log('✅ [Services] Remote to Local Sync Agent initialized');
-
-        // Step 7: Start Sync Agent (syncs all 3 entities AND loads caches)
-        console.log('▶️  [Services] Starting Remote to Local Sync Agent...');
-        await this.remoteToLocalSyncAgent.start();
-        console.log('✅ [Services] Remote to Local Sync Agent started (all data synced and caches loaded)');
-
-        // Step 8: Start BACnet Meter Reading Agent AFTER sync agent completes
-        console.log('▶️  [Services] Starting BACnet Meter Reading Agent...');
-        await this.bacnetMeterReadingAgent.start();
-        console.log('✅ [Services] BACnet Meter Reading Agent started');
-
-        // Step 9: Initialize and start Meter Reading Cleanup Agent
-        console.log('🧹 [Services] Initializing Meter Reading Cleanup Agent...');
-        this.meterReadingCleanupAgent = new MeterReadingCleanupAgent({
-          database: this.syncDatabase,
-          retentionDays: parseInt(process.env.METER_READING_RETENTION_DAYS || '60', 10),
-          enableAutoStart: process.env.METER_READING_CLEANUP_AUTO_START !== 'false',
-        }, logger);
-        console.log('✅ [Services] Meter Reading Cleanup Agent initialized');
-
-        console.log('▶️  [Services] Starting Meter Reading Cleanup Agent...');
-        await this.meterReadingCleanupAgent.start();
-        console.log('✅ [Services] Meter Reading Cleanup Agent started');
-
-        // Step 10: Initialize Sync Manager
-        console.log('🔄 [Services] Initializing Sync Manager...');
-        this.syncManager = new SyncManager({
-          database: this.syncDatabase,
-          apiClient: apiClient,
-          syncIntervalMinutes: parseInt(process.env.METER_SYNC_INTERVAL_MINUTES || '60', 10),
-          batchSize: parseInt(process.env.BATCH_SIZE || '1000', 10),
-          maxRetries: parseInt(process.env.MAX_RETRIES || '5', 10),
-          enableAutoSync: process.env.METER_SYNC_AUTO_START !== 'false',
-        });
-        console.log('✅ [Services] Sync Manager initialized');
-
-        console.log('▶️  [Services] Starting Sync Manager...');
-        await this.syncManager.start();
-        console.log('✅ [Services] Sync Manager started');
-
-        // API Server has been moved to sync/api for consistency with client architecture
-        // Run separately: cd sync/api && npm run dev
-
-        this.isInitialized = true;
-        console.log('✅ [Services] All services initialized successfully\n');
+      if (tenantId <= 0) {
+        console.log('⏳ [Services] No tenant found, agents will not start. Waiting for tenant sync...');
+        return;
       }
+
+      console.log(`\n🔧 [Services] Tenant found (ID: ${tenantId}), initializing agents...`);
+
+      // Stop tenant check interval since we found a tenant
+      if (this.tenantCheckInterval) {
+        clearInterval(this.tenantCheckInterval);
+        this.tenantCheckInterval = undefined;
+        console.log('✅ [Services] Stopped tenant check polling');
+      }
+
+      // Get API key from tenant cache (loaded from database)
+      const apiKey = tenant?.api_key || '';
+      if (!apiKey) {
+        console.warn('⚠️  [Services] No api_key in tenant record - API uploads may fail');
+      } else {
+        console.log(`🔑 [Services] Using api_key from tenant: ${apiKey.substring(0, 8)}...`);
+      }
+
+      // Create API client for uploads
+      const apiClient = new ClientSystemApiClient({
+        apiUrl: process.env.CLIENT_API_URL || 'http://localhost:3001/api',
+        apiKey: apiKey,
+        timeout: parseInt(process.env.API_TIMEOUT || '30000', 10),
+        maxRetries: parseInt(process.env.MAX_RETRIES || '5', 10),
+      });
+      console.log('✅ [Services] Client System API Client created');
+
+      this.bacnetMeterReadingAgent = new BACnetMeterReadingAgent({
+        syncDatabase: this.syncDatabase,
+        collectionIntervalSeconds: getBACnetCollectionIntervalSeconds(),
+        uploadCronExpression: getBACnetUploadCronExpression(),
+        enableAutoStart: process.env.BACNET_AUTO_START !== 'false',
+        bacnetInterface: process.env.BACNET_INTERFACE || '0.0.0.0',
+        bacnetPort: parseInt(process.env.BACNET_PORT || '47808', 10),
+        connectionTimeoutMs: parseInt(process.env.BACNET_CONNECTION_TIMEOUT_MS || '5000', 10),
+        readTimeoutMs: parseInt(process.env.BACNET_READ_TIMEOUT_MS || '1000', 10),
+        batchReadTimeoutMs: parseInt(process.env.BACNET_BATCH_READ_TIMEOUT_MS || '1000', 10),
+        sequentialReadTimeoutMs: parseInt(process.env.BACNET_SEQUENTIAL_READ_TIMEOUT_MS || '1000', 10),
+        connectivityCheckTimeoutMs: parseInt(process.env.BACNET_CONNECTIVITY_CHECK_TIMEOUT_MS || '2000', 10),
+        enableConnectivityCheck: process.env.BACNET_ENABLE_CONNECTIVITY_CHECK !== 'false',
+        enableSequentialFallback: process.env.BACNET_ENABLE_SEQUENTIAL_FALLBACK !== 'false',
+        adaptiveBatchSizing: process.env.BACNET_ADAPTIVE_BATCH_SIZING !== 'false',
+        apiClient: apiClient,
+      }, logger);
+      console.log('✅ [Services] BACnet Meter Reading Agent initialized');
+
+      // Initialize Remote to Local Sync Agent
+      console.log('🔄 [Services] Initializing Remote to Local Sync Agent...');
+      this.remotePool = this.getRemoteDatabasePool();
+
+      this.remoteToLocalSyncAgent = new RemoteToLocalSyncAgent({
+        syncDatabase: this.syncDatabase,
+        remotePool: this.remotePool,
+        syncIntervalMinutes: parseInt(process.env.METER_SYNC_INTERVAL_MINUTES || '60', 10),
+        enableAutoSync: process.env.METER_SYNC_AUTO_START !== 'false',
+        bacnetMeterReadingAgent: this.bacnetMeterReadingAgent,
+      });
+      console.log('✅ [Services] Remote to Local Sync Agent initialized');
+
+      // Step 7: Start Sync Agent (syncs all 3 entities AND loads caches)
+      console.log('▶️  [Services] Starting Remote to Local Sync Agent...');
+      await this.remoteToLocalSyncAgent.start();
+      console.log('✅ [Services] Remote to Local Sync Agent started (all data synced and caches loaded)');
+
+      // Step 8: Start BACnet Meter Reading Agent AFTER sync agent completes
+      console.log('▶️  [Services] Starting BACnet Meter Reading Agent...');
+      await this.bacnetMeterReadingAgent.start();
+      console.log('✅ [Services] BACnet Meter Reading Agent started');
+
+      // Step 9: Initialize and start Meter Reading Cleanup Agent
+      console.log('🧹 [Services] Initializing Meter Reading Cleanup Agent...');
+      this.meterReadingCleanupAgent = new MeterReadingCleanupAgent({
+        database: this.syncDatabase,
+        retentionDays: parseInt(process.env.METER_READING_RETENTION_DAYS || '60', 10),
+        enableAutoStart: process.env.METER_READING_CLEANUP_AUTO_START !== 'false',
+      }, logger);
+      console.log('✅ [Services] Meter Reading Cleanup Agent initialized');
+
+      console.log('▶️  [Services] Starting Meter Reading Cleanup Agent...');
+      await this.meterReadingCleanupAgent.start();
+      console.log('✅ [Services] Meter Reading Cleanup Agent started');
+
+      // Step 10: Initialize Sync Manager
+      console.log('🔄 [Services] Initializing Sync Manager...');
+      this.syncManager = new SyncManager({
+        database: this.syncDatabase,
+        apiClient: apiClient,
+        syncIntervalMinutes: parseInt(process.env.METER_SYNC_INTERVAL_MINUTES || '60', 10),
+        batchSize: parseInt(process.env.BATCH_SIZE || '1000', 10),
+        maxRetries: parseInt(process.env.MAX_RETRIES || '5', 10),
+        enableAutoSync: process.env.METER_SYNC_AUTO_START !== 'false',
+      });
+      console.log('✅ [Services] Sync Manager initialized');
+
+      console.log('▶️  [Services] Starting Sync Manager...');
+      await this.syncManager.start();
+      console.log('✅ [Services] Sync Manager started');
+
+      this.isInitialized = true;
+      console.log('✅ [Services] All agents initialized and started successfully\n');
     } catch (error) {
-      console.error('❌ [Services] Failed to initialize services:', error);
+      console.error('❌ [Services] Failed to initialize agents:', error);
       if (this.remotePool) {
         await this.closeRemotePool(this.remotePool);
       }
       throw error;
+    }
+  }
+
+  /**
+   * Start periodic tenant check (polls for tenant every 30 seconds)
+   */
+  private startTenantCheckPolling(): void {
+    if (this.tenantCheckInterval) {
+      return;
+    }
+
+    console.log('🔍 [Services] Starting tenant check polling (every 30 seconds)...');
+    this.tenantCheckInterval = setInterval(async () => {
+      if (this.isInitialized) {
+        // Already initialized, stop polling
+        if (this.tenantCheckInterval) {
+          clearInterval(this.tenantCheckInterval);
+          this.tenantCheckInterval = undefined;
+        }
+        return;
+      }
+
+      console.log('🔍 [Services] Checking for tenant...');
+      try {
+        await this.initializeAgents();
+      } catch (error) {
+        console.error('❌ [Services] Error during tenant check:', error);
+      }
+    }, 30000); // Check every 30 seconds
+  }
+
+  /**
+   * Initialize services (database first, then agents if tenant exists)
+   */
+  private async initializeServices(): Promise<void> {
+    if (this.isInitialized) {
+      console.log('ℹ️  [Services] Already initialized, skipping...');
+      return;
+    }
+
+    // Initialize database first
+    await this.initializeDatabase();
+
+    // Try to initialize agents (will succeed if tenant exists)
+    await this.initializeAgents();
+
+    // If agents didn't start, start polling for tenant
+    if (!this.isInitialized) {
+      this.startTenantCheckPolling();
     }
   }
 
@@ -668,6 +745,12 @@ class SyncMcpServer {
    */
   async shutdown(): Promise<void> {
     logger.info('Shutting down Sync MCP Server...');
+
+    // Stop tenant check polling
+    if (this.tenantCheckInterval) {
+      clearInterval(this.tenantCheckInterval);
+      this.tenantCheckInterval = undefined;
+    }
 
     if (this.syncManager) {
       await this.syncManager.stop();

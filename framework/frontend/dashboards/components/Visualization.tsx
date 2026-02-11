@@ -1,21 +1,28 @@
-import React from 'react';
-import {
-  PieChart,
-  Pie,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
+import React, { useEffect, useState } from 'react';
+// Dynamically import recharts to avoid bundling it into the main chunk.
+// This keeps the visualization code in a separate chunk that loads only when needed.
+let _recharts: any = null;
+
+function useRecharts() {
+  const [mod, setMod] = useState<any>(null);
+  useEffect(() => {
+    let mounted = true;
+    if (_recharts) {
+      setMod(_recharts);
+      return;
+    }
+    import('recharts').then((m) => {
+      _recharts = m;
+      if (mounted) setMod(m);
+    }).catch(() => {
+      // ignore
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  return mod;
+}
 import type { VisualizationType } from '../types';
 import './Visualization.css';
 
@@ -76,6 +83,11 @@ const PieVisualization: React.FC<VisualizationProps> = ({
   columns,
   height = 300,
 }) => {
+  const recharts = useRecharts();
+  if (!recharts) {
+    return <div style={{ height }} className="visualization-empty">Loading chart...</div>;
+  }
+  const { ResponsiveContainer, PieChart, Pie, Tooltip, Cell } = recharts;
   // Handle array data - sum all values
   let dataObj: VisualizationData;
   if (Array.isArray(data)) {
@@ -147,6 +159,11 @@ const LineVisualization: React.FC<VisualizationProps> = ({
   columns,
   height = 300,
 }) => {
+  const recharts = useRecharts();
+  if (!recharts) {
+    return <div style={{ height }} className="visualization-empty">Loading chart...</div>;
+  }
+  const { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend } = recharts;
   // Handle empty data
   if (!data || columns.length === 0) {
     return (
@@ -249,6 +266,11 @@ const BarVisualization: React.FC<VisualizationProps> = ({
   columns,
   height = 300,
 }) => {
+  const recharts = useRecharts();
+  if (!recharts) {
+    return <div style={{ height }} className="visualization-empty">Loading chart...</div>;
+  }
+  const { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, Legend } = recharts;
   // Handle empty data
   if (!data || columns.length === 0) {
     return (

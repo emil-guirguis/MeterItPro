@@ -85,7 +85,7 @@ export const Modal: React.FC<ModalProps> = ({
     const forms = document.querySelectorAll('form');
     if (forms.length > 0) {
       const form = forms[forms.length - 1] as HTMLFormElement;
-      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      form.requestSubmit();
     }
   };
 

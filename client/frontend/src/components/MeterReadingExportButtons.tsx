@@ -36,10 +36,8 @@ import {
   Box,
   Stack,
 } from '@mui/material';
-import {
-  FileDownload as FileDownloadIcon,
-  Email as EmailIcon,
-} from '@mui/icons-material';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import EmailIcon from '@mui/icons-material/Email';
 import { handleExport, type ExportOptions } from '../utils/exportHandler';
 import { handleEmail, type EmailOptions } from '../utils/emailHandler';
 import { formatExportFilename } from '../utils/filenameFormatter';

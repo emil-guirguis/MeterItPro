@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BaseList } from '@framework/components/list';
 import { useUsersEnhanced } from './usersStore';
 import { useBaseList } from '@framework/components/list/hooks';
 import { useAuth } from '../../hooks/useAuth';
+import { useSchema } from '@framework/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema, generateFiltersFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
 import type { User } from '../../types/auth';
 import { Permission } from '../../types/auth';
 import {
-  userColumns,
-  userFilters,
   userStats,
   createUserBulkActions,
   userExportConfig,
@@ -26,6 +26,21 @@ export const UserList: React.FC<UserListProps> = ({
 }) => {
   const users = useUsersEnhanced();
   const auth = useAuth();
+  const { schema } = useSchema('user');
+
+  // Generate columns and filters from schema (same pattern as ContactList)
+  const columns = useMemo(() => {
+    if (!schema) return [];
+    return generateColumnsFromSchema<User>(schema.formFields, {
+      fieldOrder: ['name', 'role', 'active'],
+      responsive: 'hide-mobile',
+    });
+  }, [schema]);
+
+  const filters = useMemo(() => {
+    if (!schema) return [];
+    return generateFiltersFromSchema(schema.formFields);
+  }, [schema]);
 
   const handleUserDelete = (user: User) => {
     showConfirmation({
@@ -60,8 +75,8 @@ export const UserList: React.FC<UserListProps> = ({
       update: Permission.USER_UPDATE,
       delete: Permission.USER_DELETE,
     },
-    columns: userColumns,
-    filters: userFilters,
+    columns,
+    filters,
     stats: userStats,
     bulkActions: createUserBulkActions(
       { bulkUpdateStatus: async (ids: string[], status: string) => {

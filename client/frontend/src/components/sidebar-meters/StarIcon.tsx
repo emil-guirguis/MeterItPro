@@ -1,5 +1,6 @@
 import React from 'react';
-import { Star, StarOutline } from '@mui/icons-material';
+import Star from '@mui/icons-material/Star';
+import StarOutline from '@mui/icons-material/StarOutline';
 import { CircularProgress, IconButton } from '@mui/material';
 import './StarIcon.css';
 
@@ -53,11 +54,13 @@ export const StarIcon: React.FC<StarIconProps> = ({
           <Star
             className="star-icon-filled"
             data-testid={`star-icon-filled-${id1}-${id2}`}
+            sx={{ fontSize: '20px' }}
           />
         ) : (
           <StarOutline
             className="star-icon-outlined"
             data-testid={`star-icon-outlined-${id1}-${id2}`}
+            sx={{ fontSize: '20px' }}
           />
         )}
       </IconButton>

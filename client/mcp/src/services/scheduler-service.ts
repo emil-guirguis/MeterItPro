@@ -53,8 +53,8 @@ export class SchedulerService {
   private async loadEnabledReports(): Promise<Report[]> {
     try {
       const query = `
-        SELECT reports_id as id, name, type, schedule, recipients, config, enabled, created_at, updated_at
-        FROM reports
+        SELECT report_id as id, name, type, schedule, recipients, config, enabled, created_at, updated_at
+        FROM report
         WHERE enabled = true
         ORDER BY created_at ASC
       `;

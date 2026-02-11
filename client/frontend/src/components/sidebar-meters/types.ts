@@ -35,6 +35,7 @@ export interface Favorite {
   id2: number;  // meter_element_id
   created_at: string;
   favorite_name?: string;
+  order_by?: number;
 }
 
 export interface MeterReading {
@@ -91,6 +92,7 @@ export interface FavoriteDisplay {
   id1: number;  // meter_id
   id2: number;  // meter_element_id
   favorite_name: string;
+  order_by?: number;
 }
 
 export interface FavoritesSectionProps {
@@ -99,6 +101,7 @@ export interface FavoritesSectionProps {
   meterElements: { [meterId: string]: MeterElement[] };
   onItemClick: (meterId: string, elementId: string, favoriteName?: string, gridType?: 'simple' | 'baselist') => void;
   onStarClick: (favoriteId: number, meterId: string, elementId: string) => Promise<void>;
+  onReorder?: (reorderedFavorites: FavoriteDisplay[]) => void;
 }
 
 export interface MetersListProps {

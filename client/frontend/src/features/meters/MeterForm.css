@@ -6,3 +6,41 @@
   width: 100%;
   min-height: 400px;
 }
+/*
+ Hide the CombinedMetersTab for physical meters (prevent ElementsGrid showing inside that tab)
+ and hide the ElementsGrid for virtual meters so only the CombinedMetersTab is visible.
+ Using !important because BaseForm/third-party styles may otherwise display these sections.
+*/
+.meter-form--physical .combined-meters-tab {
+  display: none !important;
+}
+
+.meter-form--virtual .meter-form__elements-grid {
+  display: none !important;
+}
+
+.meter-form__placeholder {
+  padding: 16px;
+}
+
+/* Physical/Virtual type bubble */
+.meter-type-bubble {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.meter-type-bubble--physical {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.meter-type-bubble--virtual {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}

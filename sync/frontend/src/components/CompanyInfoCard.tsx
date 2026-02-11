@@ -81,9 +81,9 @@ interface LoginModalProps {
   open: boolean;
   isLoggingIn: boolean;
   loginError: string | null;
-  loginData: { email: string; password: string };
+  loginData: { email: string; apiKey: string };
   onClose: () => void;
-  onLoginDataChange: (data: { email: string; password: string }) => void;
+  onLoginDataChange: (data: { email: string; apiKey: string }) => void;
   onLogin: () => Promise<void>;
 }
 
@@ -112,20 +112,20 @@ function LoginModal({
           value={loginData.email}
           onChange={(e) => onLoginDataChange({ ...loginData, email: e.target.value })}
           margin="normal"
-          placeholder="Enter your email"
+          placeholder="Enter your account email"
           disabled={isLoggingIn}
           autoComplete="email"
+          helperText="The email address associated with the account"
         />
         <TextField
           fullWidth
-          label="Password"
-          type="password"
-          value={loginData.password}
-          onChange={(e) => onLoginDataChange({ ...loginData, password: e.target.value })}
+          label="API Key"
+          value={loginData.apiKey}
+          onChange={(e) => onLoginDataChange({ ...loginData, apiKey: e.target.value })}
           margin="normal"
-          placeholder="Enter your password"
+          placeholder="Enter your API key from signup"
           disabled={isLoggingIn}
-          autoComplete="current-password"
+          helperText="The API key you received when you signed up"
         />
       </DialogContent>
       <DialogActions>
@@ -135,7 +135,7 @@ function LoginModal({
         <Button
           variant="contained"
           onClick={onLogin}
-          disabled={isLoggingIn || !loginData.email || !loginData.password}
+          disabled={isLoggingIn || !loginData.email || !loginData.apiKey}
         >
           {isLoggingIn ? 'Connecting...' : 'Connect'}
         </Button>
@@ -148,13 +148,35 @@ function LoginModal({
  * Connection Status Display Component
  */
 function ConnectionStatusDisplay() {
-  const { status, isRemoteSystemConnected } = useConnectionStatus();
+  const { status, isRemoteSystemConnected, isLocalSystemConnected } = useConnectionStatus();
 
   return (
     <>
       <Box mt={3} mb={3} display="flex" gap={2} justifyContent="center" flexWrap="wrap">
         <ConnectionStatusIndicator
-          label="Local Sync"
+          label="Sync API"
+          state={status.syncApi}
+          tooltip={
+            status.syncApi === ConnectionState.CONNECTED
+              ? 'Sync API server is running and operational'
+              : status.syncApi === ConnectionState.DISCONNECTED
+                ? 'Sync API server is not running'
+                : 'Checking Sync API server...'
+          }
+        />
+        <ConnectionStatusIndicator
+          label="MCP Server"
+          state={status.mcpServer}
+          tooltip={
+            status.mcpServer === ConnectionState.CONNECTED
+              ? 'MCP server is running and processing data'
+              : status.mcpServer === ConnectionState.DISCONNECTED
+                ? 'MCP server is not running or inactive'
+                : 'Checking MCP server status...'
+          }
+        />
+        <ConnectionStatusIndicator
+          label="Local DB"
           state={status.syncDb}
           tooltip={
             status.syncDb === ConnectionState.CONNECTED
@@ -188,8 +210,14 @@ function ConnectionStatusDisplay() {
         />
       </Box>
 
-      {!isRemoteSystemConnected && (
-        <Alert severity="warning" sx={{ mb: 3 }} icon={<WarningIcon />}>
+      {!isLocalSystemConnected && (
+        <Alert severity="error" sx={{ mb: 2 }} icon={<WarningIcon />}>
+          Local sync services are not fully operational. Please ensure the Sync API and MCP servers are running.
+        </Alert>
+      )}
+
+      {isLocalSystemConnected && !isRemoteSystemConnected && (
+        <Alert severity="warning" sx={{ mb: 2 }} icon={<WarningIcon />}>
           Unable to reach remote Client System. Meter readings are being queued locally and will sync when connection is restored.
         </Alert>
       )}
@@ -219,22 +247,20 @@ function TenantInfoDisplay({ tenantInfo }: { tenantInfo: TenantInfo }) {
           </Typography>
           <Typography variant="body1">
             {tenantInfo.street}
-            {tenantInfo.street2 && `, ${tenantInfo.street2}`}
+            {tenantInfo.street2 && <> · {tenantInfo.street2}</>}
+            <br />
+            {tenantInfo.city && `${tenantInfo.city}, `}
+            {tenantInfo.state} {tenantInfo.zip}
+            {tenantInfo.country && tenantInfo.country.toLowerCase() !== 'usa' && (
+              <>
+                <br />
+                {tenantInfo.country}
+              </>
+            )}
           </Typography>
         </Box>
       )}
 
-      {(tenantInfo.city || tenantInfo.state || tenantInfo.zip) && (
-        <Box mt={2}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Location
-          </Typography>
-          <Typography variant="body1">
-            {[tenantInfo.city, tenantInfo.state, tenantInfo.zip].filter(Boolean).join(', ')}
-            {tenantInfo.country && `, ${tenantInfo.country}`}
-          </Typography>
-        </Box>
-      )}
 
       {tenantInfo.url && (
         <Box mt={2}>
@@ -267,7 +293,7 @@ export default function CompanyInfoCard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [loginData, setLoginData] = useState({ email: '', apiKey: '' });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -277,6 +303,7 @@ export default function CompanyInfoCard() {
       try {
         setIsLoading(true);
         setError(null);
+
         const data = await tenantApi.getTenantInfo();
 
         if (data !== null && !isValidTenantInfo(data)) {
@@ -311,34 +338,35 @@ export default function CompanyInfoCard() {
       setIsLoggingIn(true);
       setLoginError(null);
 
+      // Call the remote /sync/connect endpoint with email, password, and API key
       const response = await authApi.login(loginData);
 
-      if (!response.success || !response.data?.token || !response.data?.tenant) {
-        setLoginError(response.error || 'Login failed. Please check your credentials.');
+      if (!response.success || !response.data?.tenant) {
+        setLoginError(response.error || 'Connection failed. Please check your credentials and API key.');
         return;
       }
 
-      // Sync tenant from remote to local database
+      // Save tenant data (including api_key) to local database
       try {
-        const syncedTenantInfo = await tenantApi.syncTenantFromRemote(response.data?.tenant?.tenant_id);
+        const syncedTenantInfo = await tenantApi.syncTenantToLocal(response.data.tenant);
 
         if (syncedTenantInfo) {
           setTenantInfo(syncedTenantInfo);
           setShowLoginModal(false);
-          setLoginData({ email: '', password: '' });
+          setLoginData({ email: '', apiKey: '' });
 
           // Refresh the page to load all components with new tenant data
           setTimeout(() => window.location.reload(), 500);
         } else {
-          setLoginError('Failed to sync tenant data. Please try again.');
+          setLoginError('Failed to save tenant data. Please try again.');
         }
       } catch (syncErr) {
-        console.error('Failed to sync tenant:', syncErr);
-        setLoginError('Failed to sync tenant data. Please try again.');
+        console.error('Failed to save tenant:', syncErr);
+        setLoginError('Failed to save tenant data. Please try again.');
       }
     } catch (err) {
       setLoginError(getErrorMessage(err));
-      console.error('Login error:', err);
+      console.error('Connection error:', err);
     } finally {
       setIsLoggingIn(false);
     }
@@ -366,10 +394,11 @@ export default function CompanyInfoCard() {
             <Box display="flex" alignItems="center" gap={2} mb={2}>
               <ErrorIcon color="error" fontSize="large" />
               <Box flex={1}>
-                <Typography variant="h6">Company Info</Typography>
+                <Typography variant="h6">Company Info & System Status</Typography>
                 <Chip label="Error" color="error" size="small" icon={<ErrorIcon />} />
               </Box>
             </Box>
+            <ConnectionStatusDisplay />
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
@@ -409,7 +438,7 @@ export default function CompanyInfoCard() {
             <Box display="flex" alignItems="center" gap={2} mb={2}>
               <BusinessIcon color="warning" fontSize="large" />
               <Box flex={1}>
-                <Typography variant="h6">Company Info</Typography>
+                <Typography variant="h6">Company Info & System Status</Typography>
                 <Chip
                   label="Not Connected"
                   color="warning"
@@ -418,6 +447,7 @@ export default function CompanyInfoCard() {
                 />
               </Box>
             </Box>
+            <ConnectionStatusDisplay />
             <Alert severity="warning" sx={{ mb: 2 }}>
               <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
                 No tenant found - Database not initialized

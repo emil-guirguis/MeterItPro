@@ -25,14 +25,11 @@ import {
   ListItemText,
   ListItemButton
 } from '@mui/material';
-import {
-  ExpandMore as ExpandMoreIcon,
-  Preview as PreviewIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-
-  Help as HelpIcon
-} from '@mui/icons-material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import PreviewIcon from '@mui/icons-material/Preview';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
+import HelpIcon from '@mui/icons-material/Help';
 
 import { LoadingSpinner, Toast } from '@framework/components/common';
 import { TemplateEditor } from './TemplateEditor';

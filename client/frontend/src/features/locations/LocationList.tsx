@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BaseList } from '@framework/components/list/BaseList';
 import { useLocationsEnhanced } from './locationsStore';
 import { useBaseList } from '@framework/components/list/hooks';
 import { useAuth } from '../../hooks/useAuth';
+import { useSchema } from '@framework/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema, generateFiltersFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
 import { Permission } from '../../types/auth';
 import type { Location } from '../../types/entities';
 import {
-  locationColumns,
-  locationFilters,
   locationStats,
   createLocationBulkActions,
   locationExportConfig,
@@ -26,6 +26,21 @@ export const LocationList: React.FC<LocationListProps> = ({
 }) => {
   const locations = useLocationsEnhanced();
   const auth = useAuth();
+  const { schema } = useSchema('location');
+
+  // Generate columns and filters from schema (same pattern as ContactList)
+  const columns = useMemo(() => {
+    if (!schema) return [];
+    return generateColumnsFromSchema<Location>(schema.formFields, {
+      fieldOrder: ['name', 'type', 'active'],
+      responsive: 'hide-mobile',
+    });
+  }, [schema]);
+
+  const filters = useMemo(() => {
+    if (!schema) return [];
+    return generateFiltersFromSchema(schema.formFields);
+  }, [schema]);
 
   const handleLocationDelete = (location: Location) => {
     showConfirmation({
@@ -60,8 +75,8 @@ export const LocationList: React.FC<LocationListProps> = ({
       update: Permission.LOCATION_UPDATE,
       delete: Permission.LOCATION_DELETE,
     },
-    columns: locationColumns,
-    filters: locationFilters,
+    columns,
+    filters,
     stats: locationStats,
     bulkActions: createLocationBulkActions(
       { bulkUpdateStatus: locations.bulkUpdateStatus },

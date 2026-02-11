@@ -1,6 +1,7 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { Devices as PhysicalIcon, Cloud as VirtualIcon } from '@mui/icons-material';
+import PhysicalIcon from '@mui/icons-material/Devices';
+import VirtualIcon from '@mui/icons-material/Cloud';
 import './MeterTypeSelector.css';
 
 interface MeterTypeSelectorProps {

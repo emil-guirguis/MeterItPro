@@ -169,16 +169,14 @@ export const JSONBPermissionsRenderer: React.FC<JSONBPermissionsRendererProps> =
     <Box
       key={name}
       className="permissions-field"
-      sx={{
-        mb: 2,
-      }}
+      sx={{ mb: 1 }}
     >
       {/* Label */}
       <Typography
-        variant="subtitle1"
+        variant="subtitle2"
         sx={{
           fontWeight: 600,
-          mb: 2,
+          mb: 1,
         }}
       >
         {label}
@@ -192,7 +190,7 @@ export const JSONBPermissionsRenderer: React.FC<JSONBPermissionsRendererProps> =
           sx={{
             display: 'block',
             color: 'text.secondary',
-            mb: 2,
+            mb: 1,
           }}
         >
           {description}
@@ -200,7 +198,7 @@ export const JSONBPermissionsRenderer: React.FC<JSONBPermissionsRendererProps> =
       )}
 
       {/* Permissions Container */}
-      <Box className="permissions-container" sx={{ mb: 2 }}>
+      <Box className="permissions-container">
         {moduleOrder.map((module) => {
           const permissions = allPermissions[module];
           if (!permissions) return null;
@@ -211,8 +209,8 @@ export const JSONBPermissionsRenderer: React.FC<JSONBPermissionsRendererProps> =
               className="permission-group"
               elevation={0}
               sx={{
-                p: 2.5,
-                mb: 2,
+                p: 1.5,
+                mb: 1,
                 backgroundColor: 'background.paper',
                 border: '1px solid',
                 borderColor: 'divider',
@@ -224,11 +222,12 @@ export const JSONBPermissionsRenderer: React.FC<JSONBPermissionsRendererProps> =
                 variant="subtitle2"
                 sx={{
                   fontWeight: 600,
-                  mb: 2,
-                  pb: 1.5,
+                  mb: 1,
+                  pb: 0.75,
                   borderBottom: '2px solid',
                   borderColor: 'primary.main',
                   color: 'text.primary',
+                  fontSize: '0.8rem',
                 }}
               >
                 {moduleNames[module] || module}
@@ -239,49 +238,47 @@ export const JSONBPermissionsRenderer: React.FC<JSONBPermissionsRendererProps> =
                 sx={{
                   display: 'grid',
                   gridTemplateColumns: {
-                    xs: '1fr',
-                    sm: 'repeat(2, 1fr)',
-                    md: 'repeat(3, 1fr)',
+                    xs: 'repeat(2, 1fr)',
+                    sm: 'repeat(4, 1fr)',
                   },
-                  gap: 2,
+                  gap: 0,
                 }}
                 className="permission-group-items"
               >
                 {permissions.map((permission) => {
                   const [, action] = permission.split(':');
                   return (
-                    <Box key={permission}>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={selectedPermissions.includes(permission)}
-                            onChange={(e) =>
-                              handlePermissionChange(permission, e.target.checked)
-                            }
-                            disabled={disabled}
-                            size="medium"
-                            sx={{
-                              '&.Mui-checked': {
-                                color: 'primary.main',
-                              },
-                            }}
-                          />
-                        }
-                        label={
-                          <Typography variant="body2" sx={{ ml: 0.5 }}>
-                            {formatActionName(action)}
-                          </Typography>
-                        }
-                        sx={{
-                          m: 0,
-                          width: '100%',
-                          '&:hover': {
-                            backgroundColor: 'action.hover',
-                            borderRadius: 0.5,
-                          },
-                        }}
-                      />
-                    </Box>
+                    <FormControlLabel
+                      key={permission}
+                      control={
+                        <Checkbox
+                          checked={selectedPermissions.includes(permission)}
+                          onChange={(e) =>
+                            handlePermissionChange(permission, e.target.checked)
+                          }
+                          disabled={disabled}
+                          size="small"
+                          sx={{
+                            py: 0.25,
+                            '&.Mui-checked': {
+                              color: 'primary.main',
+                            },
+                          }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                          {formatActionName(action)}
+                        </Typography>
+                      }
+                      sx={{
+                        m: 0,
+                        '&:hover': {
+                          backgroundColor: 'action.hover',
+                          borderRadius: 0.5,
+                        },
+                      }}
+                    />
                   );
                 })}
               </Box>

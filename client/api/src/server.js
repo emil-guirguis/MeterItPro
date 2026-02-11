@@ -22,7 +22,6 @@ const settingsRoutes = require('./routes/settings');
 const uploadRoutes = require('./routes/upload');
 const syncRoutes = require('./routes/sync');
 const schemaRoutes = require('./routes/schema');
-// const directMeterRoutes = require('./routes/directMeter'); // Temporarily disabled
 const devicesRoutes = require('./routes/device');
 const deviceRegisterRoutes = require('./routes/deviceRegister');
 const registersRoutes = require('./routes/registers');
@@ -130,11 +129,6 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
     // Initialize meter integration service
     await initializeMeterIntegrationService();
     console.log('✅ [INIT] Meter integration service initialized');
-
-    console.log('🔄 [INIT] Initializing meter monitoring service...');
-    // Initialize meter monitoring service
-    await initializeMeterMonitoringService();
-    console.log('✅ [INIT] Meter monitoring service initialized');
 
     console.log('🔄 [INIT] Initializing threading system...');
     // Initialize threading service first (required for auto collection)
@@ -326,33 +320,7 @@ async function initializeMeterIntegrationService() {
 /**
  * Initialize meter monitoring service
  */
-async function initializeMeterMonitoringService() {
-  try {
-    console.log('🔄 [METER_MONITORING] Starting initialization...');
-    // Import MeterMonitoringService
-    const meterMonitoringService = require('./services/MeterMonitoringService');
-    console.log('� [MEeTER_MONITORING] MeterMonitoringService imported');
-    
-    // Initialize with default configuration
-    const result = await meterMonitoringService.initialize();
-    console.log('🔄 [METER_MONITORING] Initialize result:', result);
-    
-    if (result.success) {
-      console.log('📊 [METER_MONITORING] Initialized successfully');
-      
-      // Start monitoring if enabled
-      console.log('🔄 [METER_MONITORING] Starting monitoring...');
-      meterMonitoringService.startMonitoring();
-      console.log('✅ [METER_MONITORING] Monitoring started');
-    } else {
-      console.log('⚠️ [METER_MONITORING] Initialization failed:', result.error);
-    }
-  } catch (error) {
-    console.error('❌ [METER_MONITORING] Failed to initialize:', error.message);
-    console.error('❌ [METER_MONITORING] Stack:', error.stack);
-    // Don't exit the process - the server can still run without monitoring
-  }
-}
+// Meter monitoring service removed - no longer used
 
 /**
  * Initialize auto meter collection service (threaded mode only)
@@ -373,7 +341,7 @@ async function initializeAutoMeterCollection() {
       },
       meters: {
         defaultIP: process.env.DEFAULT_METER_IP,
-        defaultPort: parseInt(process.env.DEFAULT_METER_PORT) || 502,
+        defaultPort: parseInt(process.env.DEFAULT_METER_PORT) || 47808,
         registers: {
           voltage: { address: 5, count: 1, scale: 200, unit: 'V' },
           current: { address: 6, count: 1, scale: 100, unit: 'A' },
@@ -533,7 +501,6 @@ app.use('/api/upload', authenticateToken, setTenantContext, uploadRoutes);
 // Sync routes use API key authentication (not JWT), so no authenticateToken middleware
 app.use('/api/sync', syncRoutes);
 app.use('/api/schema', authenticateToken, setTenantContext, schemaRoutes);
-// app.use('/api', authenticateToken, setTenantContext, directMeterRoutes); // Temporarily disabled
 app.use('/api/device', authenticateToken, setTenantContext, devicesRoutes);
 app.use('/api/devices/:deviceId/registers', authenticateToken, setTenantContext, deviceRegisterRoutes);
 app.use('/api/registers', authenticateToken, setTenantContext, registersRoutes);

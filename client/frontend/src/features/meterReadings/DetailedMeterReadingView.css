@@ -135,7 +135,7 @@
 }
 
 .phase-data-table thead {
-  background-color: #4a90a4;
+  background-color: #3b4dd6;
   color: #fff;
 }
 
@@ -314,12 +314,12 @@
 
 .time-button:hover {
   background-color: #f0f0f0;
-  border-color: #4a90a4;
+  border-color: #3b4dd6;
 }
 
 .time-button--active {
-  background-color: #4a90a4;
-  border-color: #4a90a4;
+  background-color: #3b4dd6;
+  border-color: #3b4dd6;
   color: #fff;
 }
 
@@ -345,7 +345,7 @@
 
 .graph-type-button:hover {
   background-color: #f0f0f0;
-  border-color: #4a90a4;
+  border-color: #3b4dd6;
 }
 
 .graph-type-button--active {

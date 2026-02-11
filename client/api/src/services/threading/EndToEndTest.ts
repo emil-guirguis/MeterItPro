@@ -75,19 +75,6 @@ export class EndToEndTest {
         enableProfiling: false,
         logLevel: 'info',
         moduleConfig: {
-          modbus: {
-            host: 'localhost',
-            port: 502,
-            timeout: 3000,
-            retryAttempts: 2,
-            retryDelay: 500,
-            unitId: 1,
-            registers: {
-              start: 0,
-              count: 5,
-              interval: 2000
-            }
-          },
           database: {
             connectionString: 'mongodb://localhost:27017/test-mcp',
             poolSize: 5,

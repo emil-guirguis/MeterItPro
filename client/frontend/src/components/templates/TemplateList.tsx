@@ -15,16 +15,14 @@ import {
   Alert,
   Tooltip
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  ContentCopy as DuplicateIcon,
-  Visibility as PreviewIcon,
-  MoreVert as MoreIcon,
-  FileDownload as ExportIcon,
-  FileUpload as ImportIcon
-} from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import DuplicateIcon from '@mui/icons-material/ContentCopy';
+import PreviewIcon from '@mui/icons-material/Visibility';
+import MoreIcon from '@mui/icons-material/MoreVert';
+import ExportIcon from '@mui/icons-material/FileDownload';
+import ImportIcon from '@mui/icons-material/FileUpload';
 import { DataTable, LoadingSpinner, Toast } from '@framework/components/common';
 import { SearchFilter } from '@framework/components/common';
 import { templateService } from '../../services/templateService';

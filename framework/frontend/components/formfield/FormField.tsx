@@ -12,7 +12,6 @@ import {
   InputAdornment,
   Switch,
 } from '@mui/material';
-// import { MuiTelInput } from 'mui-tel-input';
 import { NumberSpinner } from './NumberSpinner';
 import { URLLink } from './URLLink';
 
@@ -319,14 +318,34 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
           );
 
         case 'tel':
-        case 'phone':
+        case 'phone': {
+          // Format phone as US: (XXX) XXX-XXXX
+          const formatPhoneValue = (input: string): string => {
+            const digits = input.replace(/\D/g, '').slice(0, 10);
+            if (digits.length === 0) return '';
+            if (digits.length <= 3) return `(${digits}`;
+            if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+            return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+          };
+
+          const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+            const formatted = formatPhoneValue(e.target.value);
+            const syntheticEvent = {
+              target: {
+                name,
+                value: formatted,
+              },
+            } as React.ChangeEvent<HTMLInputElement>;
+            onChange(syntheticEvent);
+          };
+
           return (
             <TextField
               id={fieldId}
               name={name}
               label={label}
               value={value ?? ''}
-              onChange={onChange}
+              onChange={handlePhoneChange}
               onBlur={onBlur}
               required={required}
               disabled={disabled}
@@ -334,12 +353,14 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               variant="outlined"
               error={showError}
               helperText={showError ? error : help}
-              placeholder={placeholder}
+              placeholder={placeholder || '() -'}
               type="tel"
+              inputProps={{ maxLength: 14 }}
               {...(showError && { 'aria-invalid': true })}
               aria-describedby={showError ? errorId : undefined}
             />
           );
+        }
 
         case 'date':
         case 'time':

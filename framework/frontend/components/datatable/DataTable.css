@@ -180,8 +180,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
-  /* Set minimum width to ensure horizontal scrolling when needed */
-  min-width: max-content;
+  table-layout: auto;
 }
 
 .data-table__table--striped tbody tr:nth-child(even) {

@@ -42,13 +42,13 @@ class Meter extends BaseModel {
         type: 'belongsTo',
         model: 'Device',
         foreignKey: 'device_id',
-        targetKey: 'id'
+        targetKey: 'device_id'
       },
       location: {
         type: 'belongsTo',
         model: 'Location',
         foreignKey: 'location_id',
-        targetKey: 'id'
+        targetKey: 'location_id'
       }
     };
   }
@@ -61,7 +61,7 @@ class Meter extends BaseModel {
       entityName: 'Meter',
       tableName: 'meter',
       description: 'Meter entity for managing electric, gas, water, and other utility meters',
-      formMaxWidth: '600px',
+      formMaxWidth: '770px',
 
       customListColumns: {},
 
@@ -70,6 +70,7 @@ class Meter extends BaseModel {
         tab({
           name: 'Meter',
           order: 1,
+          minWidth: '400px',
           sections: [
             section({
               name: 'Information',
@@ -98,7 +99,7 @@ class Meter extends BaseModel {
                   required: true,
                   label: 'Serial Number',
                   dbField: 'serial_number',
-                  maxLength: 200,
+                  maxLength: 200, 
                   placeholder: 'Enter serial number',
                   filertable: ['true'],
                   showOn: ['list', 'form'],
@@ -113,7 +114,8 @@ class Meter extends BaseModel {
                   label: 'Device',
                   dbField: 'device_id',
                   min: 1,
-                  showOn: ['list', 'form'],
+                  maxLength: 200,
+                  showOn: ['form'],
                   validate: true,
                   validationFields: ['manufacturer', 'model_number'],
                   visibleFor: ['physical'],
@@ -131,8 +133,28 @@ class Meter extends BaseModel {
                   validate: true,
                   validationFields: ['name'],
                 }),
+                field({
+                  name: 'type',
+                  order: 5,
+                  type: FieldTypes.SELECT,
+                  default: 'electric',
+                  required: true,
+                  label: 'Meter Type',
+                  dbField: 'type',
+                  readOnly: false,
+                  enumValues: ['electric', 'gas', 'water', 'steam', 'other'],
+                  enumLabels: {
+                    electric: 'Electric',
+                    gas: 'Gas',
+                    water: 'Water',
+                    steam: 'Steam',
+                    other: 'Other',
+                  },
+                  showOn: ['form', 'list'],
+                }),
               ],
             }),
+
             section({
               name: 'Network',
               order: 2,
@@ -153,19 +175,19 @@ class Meter extends BaseModel {
                   name: 'port',
                   order: 2,
                   type: FieldTypes.NUMBER,
-                  default: 502,
+                  default: 47808,
                   required: true,
                   label: 'Port Number',
                   dbField: 'port',
                   min: 1,
                   max: 65535,
-                  placeholder: '502',
+                  placeholder: '47808',
                   showOn: ['form'],
                 }),
               ],
             }),
             section({
-              name: 'Status & Installation',
+              name: 'Status',
               order: 3,
               fields: [
                 field({
@@ -190,6 +212,23 @@ class Meter extends BaseModel {
                   placeholder: 'Select date',
                   showOn: ['form'],
                 }),
+                            // Meter Type selector - always visible so users can set physical/virtual on create
+                field({
+                  name: 'is_virtual',
+                  order: 3,
+                  type: FieldTypes.SELECT,
+                  default: 'physical',
+                  required: true,
+                  label: 'Physical/Virtual',
+                  dbField: 'is_virtual',
+                  readOnly: true,
+                  enumValues: ['physical', 'virtual'],
+                  enumLabels: {
+                    physical: 'Physical',
+                    virtual: 'Virtual',
+                  },
+                  showOn: ['form', 'list'],
+                }),
               ],
             }),
           ],
@@ -203,6 +242,16 @@ class Meter extends BaseModel {
               name: 'Meter Elements',
               order: 1,
               fields: [
+                field({
+                  name: 'elements',
+                  order: 1,
+                  type: FieldTypes.OBJECT,
+                  default: null,
+                  required: false,
+                  label: 'Elements',
+                  dbField: null,
+                  showOn: ['form'],
+                }),
               ],
             }),
           ],
@@ -297,16 +346,7 @@ class Meter extends BaseModel {
           type: FieldTypes.STRING,
           default: '',
           readOnly: true,
-          label: 'Device Manufacturer',
-          dbField: null,
-          showOn: ['list'],
-        }),
-
-        model: field({
-          type: FieldTypes.STRING,
-          default: '',
-          readOnly: true,
-          label: 'Model',
+          label: 'Device',
           dbField: null,
           showOn: ['list'],
         }),

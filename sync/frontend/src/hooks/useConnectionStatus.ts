@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { ConnectionState } from '../types/connection';
 
 interface ConnectionStatusState {
+  syncApi: ConnectionState;
+  mcpServer: ConnectionState;
   syncDb: ConnectionState;
   remoteDb: ConnectionState;
   remoteApi: ConnectionState;
@@ -9,13 +11,20 @@ interface ConnectionStatusState {
 
 const CHECK_INTERVAL = 60000; // 60 seconds
 const CHECK_TIMEOUT = 5000; // 5 seconds
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
 /**
- * Custom hook to check and monitor connection status for local sync DB,
- * remote client DB, and remote API
+ * Custom hook to check and monitor connection status for:
+ * - Sync API server
+ * - MCP server
+ * - Local sync DB
+ * - Remote client DB
+ * - Remote client API
  */
 export function useConnectionStatus() {
   const [status, setStatus] = useState<ConnectionStatusState>({
+    syncApi: ConnectionState.CHECKING,
+    mcpServer: ConnectionState.CHECKING,
     syncDb: ConnectionState.CHECKING,
     remoteDb: ConnectionState.CHECKING,
     remoteApi: ConnectionState.CHECKING,
@@ -29,7 +38,8 @@ export function useConnectionStatus() {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const response = await fetch(endpoint, {
+      const url = `${API_BASE_URL}${endpoint}`;
+      const response = await fetch(url, {
         method: 'GET',
         signal: controller.signal,
       });
@@ -44,6 +54,20 @@ export function useConnectionStatus() {
 
   const checkAllConnections = async () => {
     try {
+      // Check sync API server
+      const syncApiConnected = await checkConnection('/health');
+      setStatus((prev) => ({
+        ...prev,
+        syncApi: syncApiConnected ? ConnectionState.CONNECTED : ConnectionState.DISCONNECTED,
+      }));
+
+      // Check MCP server status
+      const mcpServerConnected = await checkConnection('/api/health/mcp');
+      setStatus((prev) => ({
+        ...prev,
+        mcpServer: mcpServerConnected ? ConnectionState.CONNECTED : ConnectionState.DISCONNECTED,
+      }));
+
       // Check local sync database
       const syncDbConnected = await checkConnection('/api/health/sync-db');
       setStatus((prev) => ({
@@ -58,8 +82,8 @@ export function useConnectionStatus() {
         remoteDb: remoteDbConnected ? ConnectionState.CONNECTED : ConnectionState.DISCONNECTED,
       }));
 
-      // Check remote API (Client System)
-      const remoteApiConnected = await checkConnection('/api/local/sync-status');
+      // Check remote client API
+      const remoteApiConnected = await checkConnection('/api/health/remote-api');
       setStatus((prev) => ({
         ...prev,
         remoteApi: remoteApiConnected ? ConnectionState.CONNECTED : ConnectionState.DISCONNECTED,
@@ -79,19 +103,27 @@ export function useConnectionStatus() {
     return () => clearInterval(interval);
   }, []);
 
-  const isAllConnected = 
+  const isAllConnected =
+    status.syncApi === ConnectionState.CONNECTED &&
+    status.mcpServer === ConnectionState.CONNECTED &&
     status.syncDb === ConnectionState.CONNECTED &&
     status.remoteDb === ConnectionState.CONNECTED &&
     status.remoteApi === ConnectionState.CONNECTED;
 
-  const isRemoteSystemConnected = 
+  const isRemoteSystemConnected =
     status.remoteDb === ConnectionState.CONNECTED &&
     status.remoteApi === ConnectionState.CONNECTED;
+
+  const isLocalSystemConnected =
+    status.syncApi === ConnectionState.CONNECTED &&
+    status.mcpServer === ConnectionState.CONNECTED &&
+    status.syncDb === ConnectionState.CONNECTED;
 
   return {
     status,
     isAllConnected,
     isRemoteSystemConnected,
+    isLocalSystemConnected,
     refresh: checkAllConnections,
   };
 }

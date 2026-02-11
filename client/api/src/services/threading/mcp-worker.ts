@@ -117,9 +117,6 @@ class MCPWorkerThread {
         };
       }
 
-      // MCP Server instantiation removed (Modbus protocol removed)
-      this.logger.info('MCP Server start requested but Modbus protocol has been removed');
-
       return {
         type: 'error',
         error: 'MCP Server start not available (Modbus protocol removed)',

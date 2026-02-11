@@ -43,6 +43,12 @@ export interface BaseFormProps {
   validationDataProvider?: (entityName: string, fieldDef: any) => Promise<Array<{ id: any; label: string }>>;
   showTabs?: boolean;
   onTabChange?: (tabName: string) => void;
+  /**
+   * Optional callback to render custom content for a specific tab.
+   * Called when the active tab's sections produce no field content.
+   * Receives the active tab name and should return React content or null.
+   */
+  renderTabContent?: (tabName: string) => React.ReactNode | null;
   // Form width constraints
   formMaxWidth?: string;
   formMinWidth?: string;
@@ -113,6 +119,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   validationDataProvider,
   showTabs = true,
   onTabChange,
+  renderTabContent,
   // Form width constraints
   formMaxWidth,
   formMinWidth,
@@ -740,9 +747,9 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       }));
     }
 
-    // Convert description/notes fields to textarea
-    const isNoteField = ['description', 'notes', 'note', 'comments', 'comment', 'remarks', 'memo'].includes(fieldName.toLowerCase());
-    if (isNoteField) {
+    // Convert description/notes fields to textarea, but only when maxLength is large enough to warrant it
+    const isNoteField = ['notes', 'note', 'comments', 'comment', 'remarks', 'memo'].includes(fieldName.toLowerCase());
+    if (isNoteField && (!fieldDef.maxLength || fieldDef.maxLength > 255)) {
       fieldType = 'textarea';
     }
 
@@ -755,12 +762,16 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       name: isAddressField ? `field_${fieldName}` : fieldName,
       label: fieldDef.label,
       type: fieldType === 'phone' ? 'tel' : fieldType,
-      value: fieldType === 'checkbox' ? (value || false) : (value || ''),
+      value: fieldType === 'checkbox'
+        ? (value || false)
+        : fieldType === 'date' && value
+          ? String(value).slice(0, 10)
+          : (value || ''),
       error,
       touched: !!error,
       help: fieldDef.description,
       required: fieldDef.required,
-      disabled: isFormDisabled,
+      disabled: isFormDisabled || !!fieldDef.readOnly || !!fieldDef.disable,
       placeholder: fieldDef.placeholder,
       options: fieldOptions,
       min: fieldDef.min,
@@ -899,6 +910,19 @@ export const BaseForm: React.FC<BaseFormProps> = ({
         });
         
         if (sectionEntries.length > 0) {
+          // Check if all sections have empty visible fields - if so, use renderTabContent fallback
+          const allSectionsEmpty = sectionEntries.every(([, fieldNames]) => {
+            const visible = (Array.isArray(fieldNames) ? fieldNames : []).filter(f => !excludeFields.includes(f));
+            return visible.length === 0;
+          });
+
+          if (allSectionsEmpty && renderTabContent && effectiveActiveTab) {
+            const tabContent = renderTabContent(effectiveActiveTab);
+            if (tabContent) {
+              return tabContent;
+            }
+          }
+
           return sectionEntries.map(
             ([sectionTitle, fieldNames]) => {
               console.log('[BaseForm] Rendering section:', {
@@ -906,11 +930,11 @@ export const BaseForm: React.FC<BaseFormProps> = ({
                 fieldNames,
                 isArray: Array.isArray(fieldNames),
               });
-              
+
               // fieldNames should always be an array from useFormTabs
               const visibleFields = (Array.isArray(fieldNames) ? fieldNames : []).filter(f => !excludeFields.includes(f));
               console.log('[BaseForm] Visible fields in section:', { sectionTitle, visibleFields });
-              
+
               if (visibleFields.length === 0) {
                 console.log('[BaseForm] Section has no visible fields, skipping');
                 return null;
@@ -930,15 +954,31 @@ export const BaseForm: React.FC<BaseFormProps> = ({
               
               console.log('[BaseForm] Section layout:', { sectionTitle, sectionMinWidth, sectionMaxWidth, sectionFlex, sectionFlexGrow, sectionFlexShrink });
 
+              // Build inline styles for flex/width properties since CSS attr() doesn't work for these
+              const sectionStyle: React.CSSProperties = {};
+              if (useFlexbox) {
+                if (sectionFlex !== undefined && sectionFlex !== null) {
+                  sectionStyle.flex = sectionFlex;
+                }
+                if (sectionFlexGrow !== undefined && sectionFlexGrow !== null) {
+                  sectionStyle.flexGrow = sectionFlexGrow;
+                }
+                if (sectionFlexShrink !== undefined && sectionFlexShrink !== null) {
+                  sectionStyle.flexShrink = sectionFlexShrink;
+                }
+              }
+              if (sectionMinWidth) {
+                sectionStyle.minWidth = sectionMinWidth;
+              }
+              if (sectionMaxWidth) {
+                sectionStyle.maxWidth = sectionMaxWidth;
+              }
+
               return (
-                <div 
-                  key={sectionTitle} 
+                <div
+                  key={sectionTitle}
                   className={`${className}__section ${sectionLayoutClass}${useFlexbox ? ' base-form__section--flex' : ''}`}
-                  data-min-width={sectionMinWidth}
-                  data-max-width={sectionMaxWidth}
-                  data-flex={sectionFlex}
-                  data-flex-grow={sectionFlexGrow}
-                  data-flex-shrink={sectionFlexShrink}
+                  style={Object.keys(sectionStyle).length > 0 ? sectionStyle : undefined}
                 >
                   <h3 className={`${className}__section-title`}>{sectionTitle}</h3>
                   {visibleFields.map(fieldName => {
@@ -991,13 +1031,17 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   );
 
   return (
-    <form 
+    <form
       id={`form-${schemaName || 'base'}`}
-      onSubmit={handleFormSubmit} 
-      className={formClassName} 
+      onSubmit={handleFormSubmit}
+      className={formClassName}
       autoComplete="off"
-      data-max-width={formMaxWidth || '900px'}
-      data-min-width={formMinWidth}
+      noValidate
+      data-form-max-width={formMaxWidth || schema?.formMaxWidth || undefined}
+      style={{
+        '--form-max-width': formMaxWidth || schema?.formMaxWidth || undefined,
+        ...(formMinWidth ? { '--form-min-width': formMinWidth } : {}),
+      } as React.CSSProperties}
     >
       {/* Render tabs if using formTabs structure and showTabs is true */}
       {showTabs && schema?.formTabs && tabList.length > 0 && (

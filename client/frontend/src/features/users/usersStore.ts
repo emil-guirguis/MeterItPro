@@ -166,7 +166,7 @@ const usersService = {
 
 // Create users store
 export const useUsersStore = createEntityStore(usersService, {
-  name: 'users',
+  name: 'user',
   cache: {
     ttl: 5 * 60 * 1000, // 5 minutes
     maxAge: 30 * 60 * 1000, // 30 minutes

@@ -33,21 +33,21 @@ router.get('/elements', requirePermission('meter:read'), asyncHandler(async (req
 
   try {
     // Build the base query
-    let query = 'SELECT m.meter_id as id, m.name, m.identifier FROM public.meter m WHERE m.tenant_id = $1';
+    let query = 'SELECT m.meter_id as id, m.name, m.serial_number as identifier FROM public.meter m WHERE m.tenant_id = $1';
     
     const params = [tenantId];
     let paramCount = 2;
 
-    // Filter by type if provided
-    if (type) {
-      query += ' AND m.meter_type = $' + paramCount;
-      params.push(type);
-      paramCount++;
-    }
+    // // Filter by type if provided
+    // if (type) {
+    //   query += ' AND m.meter_type = $' + paramCount;
+    //   params.push(type);
+    //   paramCount++;
+    // }
 
     // Filter by search query if provided (search in name or identifier)
     if (searchQuery) {
-      query += ' AND (LOWER(m.name) LIKE LOWER($' + paramCount + ') OR LOWER(m.identifier) LIKE LOWER($' + (paramCount + 1) + '))';
+      query += ' AND (LOWER(m.name) LIKE LOWER($' + paramCount + ') OR LOWER(m.serial_number) LIKE LOWER($' + (paramCount + 1) + '))';
       params.push('%' + searchQuery + '%');
       params.push('%' + searchQuery + '%');
       paramCount += 2;
@@ -140,10 +140,10 @@ router.get('/:meterId/virtual-config', requirePermission('meter:read'), asyncHan
     // Query the meter_virtual table to find all selected meters for this virtual meter
     // Join with the meter table to get full meter details
     const query = `
-      SELECT 
+      SELECT
         m.meter_id as id,
         m.name,
-        m.identifier
+        m.serial_number as identifier
       FROM public.meter_virtual mv
       JOIN public.meter m ON mv.selected_meter_id = m.meter_id
       WHERE mv.meter_id = $1
@@ -312,6 +312,7 @@ router.get('/', requirePermission('meter:read'), async (req, res) => {
     // Build options for findAll
     const options = {
       where,
+      include: ['device'],
       limit: parseInt(limit),
       offset: (parseInt(page) - 1) * parseInt(limit),
       tenant_id: req.user?.tenant_id || req.user?.tenantId // Automatic tenant filtering
@@ -360,6 +361,11 @@ router.post('/', requirePermission('meter:create'), async (req, res) => {
     
     // Remove fields that don't exist in the database
     delete meterData.elements;
+
+    // Convert is_virtual select value ("virtual"/"physical") to boolean for DB
+    if (meterData.is_virtual !== undefined) {
+      meterData.is_virtual = meterData.is_virtual === 'virtual' || meterData.is_virtual === true;
+    }
     
     console.log('[METER CREATE] After delete - meterData keys:', Object.keys(meterData));
     console.log('[METER CREATE] Final meterData:', JSON.stringify(meterData, null, 2));
@@ -445,7 +451,12 @@ router.put('/:id', requirePermission('meter:update'), asyncHandler(async (req, r
   delete updateData.tenant_id;  // cannot be changed
   delete updateData.tenantId;   // cannot be changed
   delete updateData.elements;   // custom field, not in database
-  
+
+  // Convert is_virtual select value ("virtual"/"physical") to boolean for DB
+  if (updateData.is_virtual !== undefined) {
+    updateData.is_virtual = updateData.is_virtual === 'virtual' || updateData.is_virtual === true;
+  }
+
   console.log('Filtered update data:', JSON.stringify(updateData, null, 2));
   
   // Update the meter using instance method

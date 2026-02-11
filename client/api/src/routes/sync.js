@@ -417,6 +417,127 @@ router.get('/getmregisters', authenticateSyncServer, async (req, res) => {
 });
 
 /**
+ * POST /api/sync/connect
+ * Validate email and API key to return tenant data
+ *
+ * Used by sync servers to authenticate and retrieve tenant information.
+ * Validates:
+ * 1. Email belongs to a user in the system
+ * 2. API key matches the user's tenant
+ *
+ * Request body:
+ * {
+ *   "email": "user@example.com",
+ *   "apiKey": "uuid-api-key"
+ * }
+ */
+router.post(
+  '/connect',
+  [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('apiKey').notEmpty().withMessage('API key is required')
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array()
+        });
+      }
+
+      const { email, apiKey } = req.body;
+      const User = require('../models/UserWithSchema');
+
+      console.log(`🔐 [Sync Connect] Validating connection for: ${email}`);
+
+      // Find user by email to get their tenant
+      const user = await User.findByEmail(email);
+      if (!user) {
+        console.log(`❌ [Sync Connect] User not found: ${email}`);
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid email or API key'
+        });
+      }
+
+      // Check if user is active
+      if (!user.active) {
+        console.log(`❌ [Sync Connect] User is inactive: ${email}`);
+        return res.status(401).json({
+          success: false,
+          message: 'Account is inactive'
+        });
+      }
+
+      // Get tenant and verify API key
+      const tenantResult = await db.query(
+        'SELECT * FROM tenant WHERE tenant_id = $1',
+        [user.tenant_id]
+      );
+
+      if (tenantResult.rows.length === 0) {
+        console.log(`❌ [Sync Connect] Tenant not found for user: ${email}`);
+        return res.status(404).json({
+          success: false,
+          message: 'Tenant not found'
+        });
+      }
+
+      const tenant = tenantResult.rows[0];
+
+      // Verify API key matches
+      if (tenant.api_key !== apiKey) {
+        console.log(`❌ [Sync Connect] API key mismatch for tenant: ${tenant.tenant_id}`);
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid email or API key'
+        });
+      }
+
+      console.log(`✅ [Sync Connect] Successfully validated ${email} for tenant ${tenant.name}`);
+
+      // Return tenant data (including api_key for sync server to use)
+      res.json({
+        success: true,
+        message: 'Connected successfully',
+        data: {
+          tenant: {
+            tenant_id: tenant.tenant_id,
+            name: tenant.name,
+            url: tenant.url,
+            street: tenant.street,
+            street2: tenant.street2,
+            city: tenant.city,
+            state: tenant.state,
+            zip: tenant.zip,
+            country: tenant.country,
+            api_key: tenant.api_key,
+            download_batch_size: tenant.download_batch_size,
+            upload_batch_size: tenant.upload_batch_size
+          },
+          user: {
+            users_id: user.id,
+            email: user.email,
+            name: user.name
+          }
+        }
+      });
+    } catch (error) {
+      console.error('❌ [Sync Connect] Error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({
+        success: false,
+        message: 'Connection failed',
+        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      });
+    }
+  }
+);
+
+/**
  * POST /api/sync/trigger-upload
  * Manually trigger meter reading upload from frontend
  * 

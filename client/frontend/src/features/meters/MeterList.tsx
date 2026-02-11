@@ -60,7 +60,7 @@ export const MeterList: React.FC<MeterListProps> = ({
           render: (value: { ipAddress?: string; port?: number }, meter) => (
             <div className="table-cell--two-line">
               <div className="table-cell__primary">
-                {value?.ipAddress || 'Not configured'}:{value?.port || 502}
+                {value?.ipAddress || 'Not configured'}:{value?.port || 47808}
               </div>
               {value?.ipAddress && (
                 <button
@@ -74,6 +74,28 @@ export const MeterList: React.FC<MeterListProps> = ({
               )}
             </div>
           ),
+        };
+      }
+      // Show "Physical" or "Virtual" instead of boolean true/false
+      if (col.key === 'is_virtual') {
+        return {
+          ...col,
+          render: (_value: any, meter: Meter) => {
+            const isVirtual = (meter as any).is_virtual === true || (meter as any).is_virtual === 'virtual';
+            return isVirtual ? 'Virtual' : 'Physical';
+          },
+        };
+      }
+      // Show device manufacturer + model from the joined device relationship
+      if (col.key === 'device') {
+        return {
+          ...col,
+          render: (_value: any, meter: Meter) => {
+            const device = (meter as any).device;
+            if (!device) return '';
+            const parts = [device.manufacturer, device.model_number].filter(Boolean);
+            return parts.join(' - ') || '';
+          },
         };
       }
       return col;

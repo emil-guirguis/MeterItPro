@@ -1,6 +1,6 @@
 /**
  * Meter Form
- * 
+ *
  * Uses the dynamic schema-based BaseForm to render the meter form.
  * All validation, field rendering, and form management is handled by BaseForm.
  * Fields are automatically organized into tabs and sections based on formGrouping metadata.
@@ -32,7 +32,11 @@ export const MeterForm: React.FC<MeterFormProps> = ({
   const meters = useMetersEnhanced();
   const baseValidationDataProvider = useValidationDataProvider();
   const [isParentSaved, setIsParentSaved] = useState(!!meter?.meter_id);
-  
+  // Selected type state for create flow so users can always choose meter type
+  const [selectedType, setSelectedType] = useState<'physical' | 'virtual' | null>(
+    meterType || 'physical'
+  );
+
 
   // Memoize the provider function to prevent unnecessary re-renders of ValidationFieldSelect
   const validationDataProvider = useCallback(
@@ -47,39 +51,82 @@ export const MeterForm: React.FC<MeterFormProps> = ({
     setIsParentSaved(true);
   }, []);
 
-  // Determine meter type from meter object or meterType prop
-  // Priority: meter.meter_type > meterType prop > null
-  const determinedMeterType = meter?.meter_type || meterType || null;
-
-  // Determine if meter is virtual
-  const isVirtual = meter?.meter_type === 'virtual' || meterType === 'virtual';
+  // Determine if meter is virtual: check the stored value for edit, or selectedType for create
+  const isVirtual = meter
+    ? (meter.is_virtual === 'virtual' || meter.is_virtual === true)
+    : selectedType === 'virtual';
+  const determinedMeterType = isVirtual ? 'virtual' : 'physical';
   const meterId = meter?.meter_id || meter?.id;
+  // Default installation date to today for create flow
+  const todayIsoDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const initialEntity = meter
+    ? { ...meter, is_virtual: (meter.is_virtual === true || meter.is_virtual === 'virtual') ? 'virtual' : 'physical' }
+    : { installation_date: todayIsoDate, is_virtual: selectedType || 'physical' };
 
   return (
     <FormContainer>
       <div className="form-container__content">
         <BaseForm
           schemaName="meter"
-          entity={meter}
+          entity={initialEntity}
           store={meters}
           onCancel={onCancel}
           onSubmit={onSubmit}
-          className="meter-form"
+          className={`meter-form ${isVirtual ? 'meter-form--virtual' : 'meter-form--physical'}`}
           loading={loading}
           validationDataProvider={validationDataProvider}
           showTabs={true}
           meterType={determinedMeterType}
-          excludeFields={isVirtual ? ['serial_number', 'device_id', 'ip', 'port', 'elements'] : ['elements']}
+          // Keep framework-managed connection fields excluded for virtual meters,
+          // but allow the `elements` field to be rendered so `renderCustomField`
+          // can provide the custom ElementsGrid / CombinedMetersTab UI.
+          excludeFields={isVirtual ? ['serial_number', 'device_id', 'ip', 'port'] : []}
           fieldsToClean={['id', 'elements']}
-          renderCustomField={(fieldName, _fieldDef, _value, _error, _isDisabled, _onChange) => {
-            console.log(`[MeterForm] renderCustomField - fieldName: ${fieldName}`, {
-              meter_id: meter?.meter_id,
-              id: meter?.id,
-              meter: meter,
-              hasMeterId: !!meter?.meter_id,
-              isVirtual,
-            });
-            
+          renderTabContent={(tabName) => {
+            // Render custom content for tabs that have no schema-defined fields
+            if (tabName === 'Elements' && !isVirtual) {
+              if (!meterId) {
+                return <div className="meter-form__placeholder">Save the meter first to manage elements</div>;
+              }
+              return (
+                <div className="meter-form__elements-grid">
+                  <ElementsGrid
+                    meterId={Number(meterId)}
+                    onError={(error) => console.error('ElementsGrid error:', error)}
+                    onSuccess={(message) => console.log('ElementsGrid success:', message)}
+                  />
+                </div>
+              );
+            }
+            if (tabName === 'Combined Meters' && isVirtual) {
+              if (!meterId) {
+                return <div className="meter-form__placeholder">Save the meter first to manage combined meters</div>;
+              }
+              return (
+                <div className="meter-form__combined-meters-tab">
+                  <CombinedMetersTab
+                    meterId={meterId}
+                    isVirtual={true}
+                    isParentSaved={isParentSaved}
+                    onParentSave={handleParentSave}
+                    onError={(error) => console.error('CombinedMetersTab error:', error)}
+                  />
+                </div>
+              );
+            }
+            return null;
+          }}
+          renderCustomField={(fieldName, _fieldDef, value, _error, isDisabled, onChange) => {
+            // is_virtual field: render as a non-editable bubble/chip
+            if (fieldName === 'is_virtual') {
+              const isPhysical = value !== 'virtual' && value !== true;
+              return (
+                <div className={`meter-type-bubble ${isPhysical ? 'meter-type-bubble--physical' : 'meter-type-bubble--virtual'}`}>
+                  {isPhysical ? 'Physical' : 'Virtual'}
+                </div>
+              );
+            }
+
             // When rendering the "elements" field, show ElementsGrid for physical meters or CombinedMetersTab for virtual meters
             if (fieldName === 'elements') {
               console.log(`[MeterForm] Rendering elements field`, {
@@ -87,7 +134,7 @@ export const MeterForm: React.FC<MeterFormProps> = ({
                 isVirtual,
                 shouldRenderGrid: !!meterId,
               });
-              
+
               if (!meterId) {
                 console.log(`[MeterForm] ❌ No meter_id, returning placeholder`);
                 return <div>Save the meter first to manage elements</div>;

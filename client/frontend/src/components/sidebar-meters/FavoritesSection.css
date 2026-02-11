@@ -75,9 +75,30 @@
   color: #555;
 }
 
-.favorite-item-text::before {
-  content: '★ ';
-  color: #ffc107;
-  margin-right: 4px;
-  font-size: 12px;
+.favorite-drag-handle {
+  display: flex;
+  align-items: center;
+  cursor: grab;
+  color: #bbb;
+  flex-shrink: 0;
+  padding: 0 2px;
 }
+
+.favorite-drag-handle:active {
+  cursor: grabbing;
+}
+
+.favorite-drag-handle .MuiSvgIcon-root {
+  font-size: 18px;
+}
+
+.favorite-item.dragging {
+  opacity: 0.4;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.favorite-item.drag-over {
+  border-top: 2px solid #1976d2;
+  margin-top: 0;
+}
+

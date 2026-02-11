@@ -6,7 +6,21 @@
       "Bash(powershell -Command \"Rename-Item -Path ''c:/Projects/MeterItPro/client/backend'' -NewName ''api'' -Force\")",
       "Bash(powershell -Command:*)",
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(done)",
+      "Bash(del \"c:\\\\Projects\\\\MeterItPro\\\\client\\\\api\\\\nul\")",
+      "Bash(del \"c:\\\\Projects\\\\MeterItPro\\\\sync\\\\frontend\\\\nul\")",
+      "Bash(findstr:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm ls:*)",
+      "Bash(node:*)",
+      "Bash(del:*)",
+      "Bash(del \"c:\\\\Projects\\\\MeterItPro\\\\framework\\\\frontend\\\\components\\\\modal\\\\EntityManagementPage.css\")",
+      "Bash(dir:*)"
     ]
   }
 }

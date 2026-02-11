@@ -1,44 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Alert, Button, IconButton } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import type { FavoritesSectionProps } from './types';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import type { FavoritesSectionProps, FavoriteDisplay } from './types';
 import { StarIcon } from './StarIcon';
 import './FavoritesSection.css';
 
-/**
- * FavoritesSection Component
- * Displays a dedicated section for favorited meter elements
- * 
- * Requirements: 4.1, 4.3, 5.1, 5.2
- * 
- * Responsibilities:
- * - Display "Favorites" header that is visually distinct
- * - Render list of favorited meter elements
- * - Display empty state message when no favorites exist
- * - Format each favorite as "meter_name - element-element_name"
- * - Handle star icon clicks to remove favorites
- * - Handle item clicks to display meter readings grid
- */
 export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
   favorites,
   onItemClick,
   onStarClick,
+  onReorder,
 }) => {
   const [loadingStars, setLoadingStars] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragItemRef = useRef<number | null>(null);
 
-  /**
-   * Create a click handler for star icon that removes the favorite
-   * Requirements: 5.4
-   */
   const createStarClickHandler = (favoriteId: number, meterId: number, elementId: number) => {
     return async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
-      
-      console.log(`[FavoritesSection] Removing favorite - favoriteId: ${favoriteId}, meterId: ${meterId}, elementId: ${elementId}`);
-      
+
       const key = `${meterId}:${elementId}`;
       setLoadingStars((prev) => new Set(prev).add(key));
       setErrors((prev) => {
@@ -51,7 +36,6 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
         await onStarClick(favoriteId, String(meterId), String(elementId));
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to remove from favorites';
-        console.error(`[FavoritesSection] Error removing favorite ${key}:`, err);
         setErrors((prev) => {
           const next = new Map(prev);
           next.set(key, errorMessage);
@@ -67,9 +51,6 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
     };
   };
 
-  /**
-   * Handle retry for a failed star click
-   */
   const handleRetry = async (favoriteId: number, meterId: number, elementId: number) => {
     const key = `${meterId}:${elementId}`;
     setErrors((prev) => {
@@ -77,48 +58,74 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
       next.delete(key);
       return next;
     });
-    
+
     const handler = createStarClickHandler(favoriteId, meterId, elementId);
     await handler({ stopPropagation: () => {} } as React.MouseEvent<HTMLButtonElement>);
   };
 
-  /**
-   * Handle favorite item click - displays simple grid
-   * Requirements: 5.3
-   */
   const handleFavoriteItemClick = (meterId: number, elementId: number, favoriteName: string) => {
-    console.log('[FavoritesSection] ===== FAVORITE CLICKED (SINGLE) =====');
-    console.log('[FavoritesSection] meterId:', meterId, 'type:', typeof meterId);
-    console.log('[FavoritesSection] elementId:', elementId, 'type:', typeof elementId);
-    console.log('[FavoritesSection] favoriteName:', favoriteName);
-    console.log('[FavoritesSection] Calling onItemClick with gridType: simple');
     onItemClick(String(meterId), String(elementId), favoriteName, 'simple');
-    console.log('[FavoritesSection] ===== FAVORITE CLICK COMPLETE =====');
   };
 
-  /**
-   * Handle favorite item double-click - displays old grid
-   * Requirements: 5.3
-   */
   const handleFavoriteItemDoubleClick = (meterId: number, elementId: number, favoriteName: string) => {
-    console.log('[FavoritesSection] ===== FAVORITE CLICKED (DOUBLE) =====');
-    console.log('[FavoritesSection] meterId:', meterId, 'type:', typeof meterId);
-    console.log('[FavoritesSection] elementId:', elementId, 'type:', typeof elementId);
-    console.log('[FavoritesSection] favoriteName:', favoriteName);
-    console.log('[FavoritesSection] Calling onItemClick with gridType: baselist');
     onItemClick(String(meterId), String(elementId), favoriteName, 'baselist');
-    console.log('[FavoritesSection] ===== FAVORITE DOUBLE-CLICK COMPLETE =====');
   };
 
-  
-  // Don't render anything if there are no favorites
+  // Drag-and-drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+    dragItemRef.current = index;
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    const fromIndex = dragItemRef.current;
+    console.log('[FavoritesSection] Drop: fromIndex:', fromIndex, 'dropIndex:', dropIndex);
+    if (fromIndex === null || fromIndex === dropIndex) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    // Build reordered list
+    const reordered = [...favorites];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+
+    setDragIndex(null);
+    setDragOverIndex(null);
+    dragItemRef.current = null;
+
+    console.log('[FavoritesSection] Calling onReorder with', reordered.length, 'items');
+    if (onReorder) {
+      onReorder(reordered);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+    dragItemRef.current = null;
+  };
+
   if (favorites.length === 0) {
     return null;
   }
 
   return (
     <div className="favorites-section">
-      {/* Favorites Header - visually distinct */}
       <div className="favorites-header">
         <h3 className="favorites-title">Favorites</h3>
         <IconButton
@@ -130,67 +137,75 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
         </IconButton>
       </div>
 
-      {/* Favorites List */}
       {!isCollapsed && (
         <div className="favorites-list">
-        {favorites.map((favorite) => {
-          const key = `${favorite.id1}:${favorite.id2}`;
-          const isLoading = loadingStars.has(key);
-          const error = errors.get(key);
+          {favorites.map((favorite, index) => {
+            const key = `${favorite.id1}:${favorite.id2}`;
+            const isLoading = loadingStars.has(key);
+            const error = errors.get(key);
 
-          return (
-            <div key={key} className="favorite-item">
-              {/* Error Alert with Retry Option */}
-              {error && (
-                <Alert
-                  severity="error"
-                  onClose={() => {
-                    setErrors((prev) => {
-                      const next = new Map(prev);
-                      next.delete(key);
-                      return next;
-                    });
-                  }}
-                  action={
-                    <Button
-                      color="inherit"
-                      size="small"
-                      onClick={() => handleRetry(favorite.favorite_id, favorite.id1, favorite.id2)}
-                      disabled={isLoading}
-                    >
-                      Retry
-                    </Button>
-                  }
-                  sx={{ mb: 1 }}
-                >
-                  {error}
-                </Alert>
-              )}
-
+            return (
               <div
-                className="favorite-item-content"
-                onClick={() => handleFavoriteItemClick(favorite.id1, favorite.id2, favorite.favorite_name || '')}
-                onDoubleClick={() => handleFavoriteItemDoubleClick(favorite.id1, favorite.id2, favorite.favorite_name || '')}
+                key={key}
+                className={`favorite-item${dragIndex === index ? ' dragging' : ''}${dragOverIndex === index ? ' drag-over' : ''}`}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
+                onDragEnd={handleDragEnd}
               >
-                {/* Favorite display text: "meter_name - element-element_name" */}
-                {/* Provide fallback if favorite_name is undefined or empty */}
-                <span className="favorite-item-text">
-                  {favorite.favorite_name || `Meter ${favorite.id1} - Element ${favorite.id2}`}
-                </span>
-              </div>
+                {error && (
+                  <Alert
+                    severity="error"
+                    onClose={() => {
+                      setErrors((prev) => {
+                        const next = new Map(prev);
+                        next.delete(key);
+                        return next;
+                      });
+                    }}
+                    action={
+                      <Button
+                        color="inherit"
+                        size="small"
+                        onClick={() => handleRetry(favorite.favorite_id, favorite.id1, favorite.id2)}
+                        disabled={isLoading}
+                      >
+                        Retry
+                      </Button>
+                    }
+                    sx={{ mb: 1 }}
+                  >
+                    {error}
+                  </Alert>
+                )}
 
-              {/* Star Icon for removing favorite */}
-              <StarIcon
-                id1={String(favorite.id1)}
-                id2={String(favorite.id2)}
-                is_favorited={true}
-                is_loading={isLoading}
-                on_click={createStarClickHandler(favorite.favorite_id, favorite.id1, favorite.id2)}
-              />
-            </div>
-          );
-        })}
-      </div>
+                <div className="favorite-drag-handle">
+                  <DragIndicatorIcon />
+                </div>
+
+                <div
+                  className="favorite-item-content"
+                  onClick={() => handleFavoriteItemClick(favorite.id1, favorite.id2, favorite.favorite_name || '')}
+                  onDoubleClick={() => handleFavoriteItemDoubleClick(favorite.id1, favorite.id2, favorite.favorite_name || '')}
+                >
+                  <span className="favorite-item-text">
+                    {favorite.favorite_name || `Meter ${favorite.id1} - Element ${favorite.id2}`}
+                  </span>
+                </div>
+
+                <StarIcon
+                  id1={String(favorite.id1)}
+                  id2={String(favorite.id2)}
+                  is_favorited={true}
+                  is_loading={isLoading}
+                  on_click={createStarClickHandler(favorite.favorite_id, favorite.id1, favorite.id2)}
+                />
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

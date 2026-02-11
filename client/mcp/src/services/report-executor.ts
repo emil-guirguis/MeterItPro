@@ -229,7 +229,7 @@ export class ReportExecutor {
   ): Promise<string> {
     try {
       const query = `
-        INSERT INTO report_history (reports_id, executed_at, status, error_message, created_at)
+        INSERT INTO report_history (report_id, executed_at, status, error_message, created_at)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING report_history_id as id
       `;

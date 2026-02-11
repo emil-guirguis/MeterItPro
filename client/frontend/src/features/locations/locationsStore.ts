@@ -160,7 +160,7 @@ const locationsService: EntityService<LocationEntity> = {
 };
 
 export const useLocationsStore = createEntityStore(locationsService, {
-  name: 'locations',
+  name: 'location',
   cache: {
     ttl: 10 * 60 * 1000,
     maxAge: 60 * 60 * 1000,

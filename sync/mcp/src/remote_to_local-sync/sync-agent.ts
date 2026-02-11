@@ -17,6 +17,7 @@ import { MeterSyncResult, MeterSyncStatus, SyncDatabase, ComprehensiveSyncResult
 import { syncPool } from '../data-sync/data-sync.js';
 import { syncMeters } from './sync-meter.js';
 import { syncDeviceRegisters } from './sync-device-register.js';
+import { syncRegisters } from './sync-register.js';
 import { syncTenant } from './sync-tenant.js';
 import { BACnetMeterReadingAgent } from '../bacnet-collection/bacnet-reading-agent.js';
 import { cacheManager } from '../cache/index.js';
@@ -197,9 +198,16 @@ export class RemoteToLocalSyncAgent {
 
       const meterSyncResult = await syncMeters(this.remotePool, syncPool, this.tenantId as number, this.syncDatabase);
 
+      // ==================== REGISTER SYNC ====================
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`PHASE 3: REGISTER SYNCHRONIZATION`);
+      console.log(`${'='.repeat(60)}`);
+
+      const registerSyncResult = await syncRegisters(this.remotePool, syncPool, this.syncDatabase);
+
       // ==================== DEVICE REGISTER SYNC ====================
       console.log(`\n${'='.repeat(60)}`);
-      console.log(`PHASE 3: DEVICE REGISTER SYNCHRONIZATION`);
+      console.log(`PHASE 4: DEVICE REGISTER SYNCHRONIZATION`);
       console.log(`${'='.repeat(60)}`);
 
       const deviceRegisterSyncResult = await syncDeviceRegisters(this.remotePool, syncPool, this.syncDatabase);
@@ -210,7 +218,7 @@ export class RemoteToLocalSyncAgent {
       console.log(`${'='.repeat(60)}`);
 
       const comprehensiveResult: ComprehensiveSyncResult = {
-        success: tenantSyncResult.success && meterSyncResult.success && deviceRegisterSyncResult.success,
+        success: tenantSyncResult.success && meterSyncResult.success && registerSyncResult.success && deviceRegisterSyncResult.success,
         tenants: {
           inserted: tenantSyncResult.inserted,
           updated: tenantSyncResult.updated,
@@ -220,6 +228,11 @@ export class RemoteToLocalSyncAgent {
           inserted: meterSyncResult.inserted,
           updated: meterSyncResult.updated,
           deleted: meterSyncResult.deleted,
+        },
+        registers: {
+          inserted: registerSyncResult.inserted,
+          updated: registerSyncResult.updated,
+          deleted: registerSyncResult.deleted,
         },
         deviceRegisters: {
           inserted: deviceRegisterSyncResult.inserted,
@@ -235,6 +248,8 @@ export class RemoteToLocalSyncAgent {
         comprehensiveResult.error = `Tenant sync failed: ${tenantSyncResult.error}`;
       } else if (!meterSyncResult.success) {
         comprehensiveResult.error = `Meter sync failed: ${meterSyncResult.error}`;
+      } else if (!registerSyncResult.success) {
+        comprehensiveResult.error = `Register sync failed: ${registerSyncResult.error}`;
       } else if (!deviceRegisterSyncResult.success) {
         comprehensiveResult.error = `Device register sync failed: ${deviceRegisterSyncResult.error}`;
       }
@@ -243,6 +258,7 @@ export class RemoteToLocalSyncAgent {
       console.log(`\n📊 COMPREHENSIVE SYNC RESULTS:`);
       console.log(`   Tenants:          Inserted: ${comprehensiveResult.tenants.inserted}, Updated: ${comprehensiveResult.tenants.updated}, Deleted: ${comprehensiveResult.tenants.deleted}`);
       console.log(`   Meters:           Inserted: ${comprehensiveResult.meters.inserted}, Updated: ${comprehensiveResult.meters.updated}, Deleted: ${comprehensiveResult.meters.deleted}`);
+      console.log(`   Registers:        Inserted: ${comprehensiveResult.registers.inserted}, Updated: ${comprehensiveResult.registers.updated}, Deleted: ${comprehensiveResult.registers.deleted}`);
       console.log(`   Device Registers: Inserted: ${comprehensiveResult.deviceRegisters.inserted}, Updated: ${comprehensiveResult.deviceRegisters.updated}, Deleted: ${comprehensiveResult.deviceRegisters.deleted}, Skipped: ${comprehensiveResult.deviceRegisters.skipped}`);
 
       if (comprehensiveResult.success) {
