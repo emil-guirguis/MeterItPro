@@ -67,6 +67,8 @@ export default defineConfig({
       'recharts',
       'zustand',
       'axios',
+      'react-grid-layout',
+      'react-resizable',
     ],
   },
   optimizeDeps: {
