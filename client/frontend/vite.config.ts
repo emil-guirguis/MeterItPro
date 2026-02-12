@@ -54,6 +54,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@framework': path.resolve(__dirname, '../../framework/frontend'),
+      // Force a single copy of React across client and framework bundles
+      'react': path.resolve(__dirname, 'node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+      'react/jsx-runtime': path.resolve(__dirname, 'node_modules/react/jsx-runtime'),
+      'react/jsx-dev-runtime': path.resolve(__dirname, 'node_modules/react/jsx-dev-runtime'),
     },
     // Prevent duplicate copies of common libs (avoid bundling framework's node_modules separately)
     dedupe: [
