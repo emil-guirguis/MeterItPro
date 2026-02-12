@@ -13,7 +13,7 @@
     "sync:mcp": "cd sync/mcp && npm run dev",
     "sync:frontend": "cd sync/frontend && npm run dev",
     "install-all": "npm install && cd client/api && npm install && cd ../frontend && npm install && cd ../../sync/api && npm install && cd ../mcp && npm install && cd ../frontend && npm install",
-    "build:client": "cd client/frontend && npm run build",
+    "build:client": "cd client/frontend && npm install && npm run build",
     "build:sync": "cd sync/frontend && npm run build",
     "build": "npm run build:client && npm run build:sync",
     "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./stop-dev.ps1"
