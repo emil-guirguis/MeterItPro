@@ -35,5 +35,8 @@
   "license": "MIT",
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "4.55.1"
+  },
+  "dependencies": {
+    "all": "^0.0.0"
   }
 }
