@@ -138,25 +138,18 @@ export default defineConfig({
 
           const nm = '/node_modules/';
 
-          // React core: keep react and react-dom separate so react chunk stays smaller
+          // React core: keep react, react-dom, and scheduler together to avoid circular chunks
           if (
             normalizedId.includes(`${nm}react${nm}`) ||
+            normalizedId.includes(`${nm}react-dom${nm}`) ||
+            normalizedId.includes(`${nm}scheduler${nm}`) ||
             normalizedId.includes('react.production') ||
-            normalizedId.includes('react-jsx-runtime')
+            normalizedId.includes('react-jsx-runtime') ||
+            normalizedId.includes('react-dom-client.production') ||
+            normalizedId.includes('react-dom.production') ||
+            normalizedId.includes('scheduler/cjs')
           ) {
             return 'vendor-react';
-          }
-
-          if (
-            normalizedId.includes(`${nm}react-dom${nm}`) ||
-            normalizedId.includes('react-dom-client.production') ||
-            normalizedId.includes('react-dom.production')
-          ) {
-            return 'vendor-react-dom';
-          }
-
-          if (normalizedId.includes(`${nm}scheduler${nm}`) || normalizedId.includes('scheduler/cjs')) {
-            return 'vendor-scheduler';
           }
 
           // Router
@@ -223,23 +216,6 @@ export default defineConfig({
           // Framework-local modules (keep framework code separate)
           if (normalizedId.includes('/framework/frontend/') || normalizedId.includes('/framework/node_modules/')) {
             return 'vendor-framework';
-          }
-
-          // Misc commonly-large libraries - extract explicitly
-          if (normalizedId.includes(`${nm}react-is${nm}`) || normalizedId.includes('react-is/')) {
-            return 'vendor-react-is';
-          }
-
-          if (normalizedId.includes(`${nm}react-transition-group${nm}`) || normalizedId.includes('react-transition-group/')) {
-            return 'vendor-rtg';
-          }
-
-          if (normalizedId.includes('popperjs/core') || normalizedId.includes(`${nm}@popperjs${nm}`)) {
-            return 'vendor-popper';
-          }
-
-          if (normalizedId.includes('@emotion') || normalizedId.includes(`${nm}emotion${nm}`)) {
-            return 'vendor-emotion';
           }
 
           // Default fallback
