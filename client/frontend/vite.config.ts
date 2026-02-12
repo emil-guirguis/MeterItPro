@@ -54,11 +54,15 @@ export default defineConfig({
   resolve: {
     alias: {
       '@framework': path.resolve(__dirname, '../../framework/frontend'),
-      // Force a single copy of React across client and framework bundles
+      // Force ALL package imports to resolve from client/frontend/node_modules
+      // This prevents framework/frontend/node_modules from creating duplicate copies
       'react': path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
       'react/jsx-runtime': path.resolve(__dirname, 'node_modules/react/jsx-runtime'),
       'react/jsx-dev-runtime': path.resolve(__dirname, 'node_modules/react/jsx-dev-runtime'),
+      'react-grid-layout': path.resolve(__dirname, 'node_modules/react-grid-layout'),
+      'react-resizable': path.resolve(__dirname, 'node_modules/react-resizable'),
+      'recharts': path.resolve(__dirname, 'node_modules/recharts'),
     },
     // Prevent duplicate copies of common libs (avoid bundling framework's node_modules separately)
     dedupe: [
