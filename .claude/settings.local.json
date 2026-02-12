@@ -25,7 +25,9 @@
       "Bash(psql:*)",
       "Bash(npx wrangler deploy:*)",
       "Bash(npx wrangler secret put:*)",
-      "Bash(npx wrangler deployments:*)"
+      "Bash(npx wrangler deployments:*)",
+      "Bash(npx wrangler secret list:*)",
+      "Bash(npx wrangler hyperdrive:*)"
     ]
   }
 }

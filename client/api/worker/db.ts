@@ -1,6 +1,6 @@
 /**
  * Database module for Cloudflare Worker
- * Provides pg Pool wrapper compatible with the existing API patterns.
+ * Uses Hyperdrive for connection pooling to Supabase.
  */
 
 import { Pool, PoolClient } from 'pg';
@@ -10,6 +10,7 @@ export interface Env {
   JWT_SECRET: string;
   JWT_EXPIRES_IN?: string;
   FRONTEND_URL?: string;
+  HYPERDRIVE: { connectionString: string };
 }
 
 let pool: Pool | null = null;
@@ -17,8 +18,7 @@ let pool: Pool | null = null;
 export function getPool(env: Env): Pool {
   if (!pool) {
     pool = new Pool({
-      connectionString: env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+      connectionString: env.HYPERDRIVE.connectionString,
       max: 5,
       idleTimeoutMillis: 10000,
       connectionTimeoutMillis: 10000,

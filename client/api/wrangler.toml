@@ -11,7 +11,6 @@ FRONTEND_URL = "https://meteritpro.com"
 # npx wrangler secret put DATABASE_URL
 # npx wrangler secret put JWT_SECRET
 
-# Optional: Hyperdrive for connection pooling (requires Workers Paid plan)
-# [[hyperdrive]]
-# binding = "HYPERDRIVE"
-# id = "<your-hyperdrive-id>"
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "48644504510e40829be6f314dacc1ef3"
