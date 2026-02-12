@@ -63,10 +63,21 @@ const SignupPage: React.FC = () => {
     }
   }, [plan]);
 
+  const formatPhone = (input: string): string => {
+    const digits = input.replace(/\D/g, '').slice(0, 10);
+    if (digits.length === 0) return '';
+    if (digits.length <= 3) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+
   const handleInputChange = (field: keyof SignupFormData) => (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setFormData({ ...formData, [field]: event.target.value });
+    const value = (field === 'companyPhone' || field === 'userPhone')
+      ? formatPhone(event.target.value)
+      : event.target.value;
+    setFormData({ ...formData, [field]: value });
   };
 
   const validateForm = (): boolean => {
@@ -237,9 +248,12 @@ const SignupPage: React.FC = () => {
               <TextField
                 fullWidth
                 label="Company Phone"
+                type="tel"
                 value={formData.companyPhone}
                 onChange={handleInputChange('companyPhone')}
                 margin="normal"
+                placeholder="(___) ___-____"
+                inputProps={{ maxLength: 14 }}
               />
               <TextField
                 fullWidth
@@ -314,9 +328,12 @@ const SignupPage: React.FC = () => {
               <TextField
                 fullWidth
                 label="Phone"
+                type="tel"
                 value={formData.userPhone}
                 onChange={handleInputChange('userPhone')}
                 margin="normal"
+                placeholder="(___) ___-____"
+                inputProps={{ maxLength: 14 }}
               />
               <TextField
                 fullWidth
