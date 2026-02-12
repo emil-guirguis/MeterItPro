@@ -37,21 +37,24 @@ const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
 // --- CORS ---
 
-app.use('*', async (c, next) => {
-  const allowedOrigins = c.env.FRONTEND_URL
-    ? c.env.FRONTEND_URL.split(',')
-    : ['http://localhost:5173'];
+app.use('*', cors({
+  origin: (origin, c) => {
+    const allowedOrigins = c.env.FRONTEND_URL
+      ? c.env.FRONTEND_URL.split(',').map((s: string) => s.trim())
+      : ['http://localhost:5173'];
+    return allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  },
+  credentials: true,
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-API-Key'],
+  exposeHeaders: ['Content-Range', 'X-Content-Range'],
+}));
 
-  const origin = c.req.header('origin') || '';
-  const isAllowed = !origin || allowedOrigins.includes(origin);
+// --- Global error handler (ensures CORS headers on unhandled errors) ---
 
-  return cors({
-    origin: isAllowed ? origin : allowedOrigins[0],
-    credentials: true,
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-API-Key'],
-    exposeHeaders: ['Content-Range', 'X-Content-Range'],
-  })(c, next);
+app.onError((err, c) => {
+  console.error('[WORKER] Unhandled error:', err);
+  return c.json({ success: false, message: 'Internal server error' }, 500);
 });
 
 // --- Health check ---
