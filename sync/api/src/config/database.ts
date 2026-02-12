@@ -6,7 +6,6 @@
 
 import { Pool } from 'pg';
 // Note: dotenv is loaded by server.ts before this module is imported
-
 export interface DatabaseConfig {
   host: string;
   port: number;

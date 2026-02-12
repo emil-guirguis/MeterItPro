@@ -518,6 +518,8 @@ router.post('/login', [
           // @ts-ignore
           tenant_id: user.tenant_id,
           // @ts-ignore
+          client: user.tenant_id,
+          // @ts-ignore
           email: user.email,
           // @ts-ignore
           name: user.name,

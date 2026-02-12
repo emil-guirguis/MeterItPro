@@ -14,22 +14,26 @@ class Report extends BaseModel {
         Report.schema.initializeFromData(this, data);
     }
 
-    get report_id() {
-        return this.id;
-    }
-
-    set report_id(value) {
-        this.id = value;
-    }
-
+    
+    /**
+     * @override
+     */
     static get tableName() {
         return 'report';
     }
 
+    
+    /**
+     * @override
+     */
     static get primaryKey() {
         return 'report_id';
     }
 
+    
+    /**
+     * @override
+     */
     static get schema() {
         const schemaDefinition = {
             entityName: 'Report',
@@ -39,11 +43,11 @@ class Report extends BaseModel {
 
             formTabs: [
                 tab({
-                    name: 'Basic Info',
+                    name: 'General',
                     order: 1,
                     sections: [
                         section({
-                            name: 'Report Details',
+                            name: 'Details',
                             order: 1,
                             flex: 1,
                             fields: [
@@ -79,13 +83,13 @@ class Report extends BaseModel {
                                     showOn: ['list', 'form'],
                                 }),
                                 field({
-                                    name: 'enabled',
+                                    name: 'active',
                                     order: 3,
                                     type: FieldTypes.BOOLEAN,
                                     default: true,
                                     required: false,
-                                    label: 'Enabled',
-                                    dbField: 'enabled',
+                                    label: 'Active',
+                                    dbField: 'active',
                                     filterable: ['true'],
                                     showOn: ['list', 'form'],
                                 }),
@@ -106,11 +110,11 @@ class Report extends BaseModel {
                                     name: 'schedule',
                                     order: 1,
                                     type: FieldTypes.STRING,
-                                    default: '0 9 * * *',
+                                    default: '',
                                     required: true,
                                     label: 'Schedule',
                                     dbField: 'schedule',
-                                    placeholder: '0 9 * * * (Daily at 9 AM)',
+                                    placeholder: 'Daily at 9 AM',
                                     helpText: 'Cron format: minute hour day month day-of-week. Examples: 0 9 * * * (Daily at 9 AM), 0 9 * * 1 (Weekly on Monday)',
                                     showOn: ['form'],
                                     // Mark as custom field for frontend rendering

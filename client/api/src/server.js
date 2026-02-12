@@ -25,23 +25,17 @@ const schemaRoutes = require('./routes/schema');
 const devicesRoutes = require('./routes/device');
 const deviceRegisterRoutes = require('./routes/deviceRegister');
 const registersRoutes = require('./routes/registers');
-const autoCollectionRoutes = require('./routes/autoCollection');
 const meterElementRoutes = require('./routes/meterElement');
 const dashboardRoutes = require('./routes/dashboard');
 const favoritesRoutes = require('./routes/favorites');
 const aiSearchRoutes = require('./routes/aiSearch');
 const reportsRoutes = require('./routes/reports');
 const emailLogsRoutes = require('./routes/email-logs');
-// const { router: threadingRoutes, initializeThreadingService } = require('./routes/threading');
-
 // Import tenant isolation middleware
 const { setTenantContext } = require('./middleware/tenantContext');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-
-// Threading service (will be initialized after PostgreSQL connection)
-let threadingService = null;
 
 // PostgreSQL connection will be handled by the database module
 
@@ -115,33 +109,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
     await initializeNotificationScheduler();
     console.log('✅ [INIT] Notification scheduler initialized');
 
-    console.log('🔄 [INIT] Initializing notification agent...');
-    // Initialize notification agent
-    await initializeNotificationAgent();
-    console.log('✅ [INIT] Notification agent initialized');
-
-    // console.log('🔄 [INIT] Initializing meter data analyzer...');
-    // // Initialize meter data analyzer
-    // await initializeMeterDataAnalyzer();
-    // console.log('✅ [INIT] Meter data analyzer initialized');
-
-    console.log('🔄 [INIT] Initializing meter integration service...');
-    // Initialize meter integration service
-    await initializeMeterIntegrationService();
-    console.log('✅ [INIT] Meter integration service initialized');
-
-    console.log('🔄 [INIT] Initializing threading system...');
-    // Initialize threading service first (required for auto collection)
-    await initializeThreadingSystem();
-    console.log('✅ [INIT] Threading system initialization completed');
-
     console.log('✅ [INIT] All services initialized successfully');
-    console.log('✅ [INIT] Initialization async function completing...');
-
-    // Initialize auto meter collection service (requires threading service)
-    // TEMPORARILY DISABLED - service methods are commented out
-    // await initializeAutoMeterCollection();
-    
     console.log('✅ [INIT] Initialization complete - server should now be running');
   } catch (error) {
     console.error('❌ [INIT] Initialization error:', error.message);
@@ -236,249 +204,6 @@ async function initializeNotificationScheduler() {
   }
 }
 
-/**
- * Initialize notification agent
- * Monitors meter health and creates notifications
- */
-async function initializeNotificationAgent() {
-  try {
-    console.log('🔔 [NOTIFICATION_AGENT] Starting initialization...');
-    // Import NotificationAgent
-    const notificationAgent = require('./services/NotificationAgent');
-
-    console.log('🔔 [NOTIFICATION_AGENT] NotificationAgent imported');
-    
-    // Initialize with default configuration
-    await notificationAgent.initialize();
-    console.log('🔔 [NOTIFICATION_AGENT] Initialize result: success');
-    
-    console.log('✅ [NOTIFICATION_AGENT] Initialized successfully');
-  } catch (error) {
-    console.error('❌ [NOTIFICATION_AGENT] Failed to initialize:', error.message);
-    console.error('❌ [NOTIFICATION_AGENT] Stack:', error.stack);
-    // Don't exit the process - the server can still run without agent
-  }
-}
-
-// /**
-//  * Initialize meter data analyzer
-//  */
-// async function initializeMeterDataAnalyzer() {
-//   try {
-//     console.log('🔄 [METER_ANALYZER] Starting initialization...');
-//     // Import MeterDataAnalyzer
-//     const meterDataAnalyzer = require('./services/MeterDataAnalyzer');
-//     console.log('🔄 [METER_ANALYZER] MeterDataAnalyzer imported');
-    
-//     // Initialize with default configuration
-//     const result = await meterDataAnalyzer.initialize();
-//     console.log('� [ METER_ANALYZER] Initialize result:', result);
-    
-//     if (result.success) {
-//       console.log('📊 [METER_ANALYZER] Initialized successfully');
-      
-//       // Start monitoring if enabled
-//       console.log('🔄 [METER_ANALYZER] Starting monitoring...');
-//       meterDataAnalyzer.startMonitoring();
-//       console.log('✅ [METER_ANALYZER] Monitoring started');
-//     } else {
-//       console.log('⚠️ [METER_ANALYZER] Initialization failed:', result.error);
-//     }
-//   } catch (error) {
-//     console.error('❌ [METER_ANALYZER] Failed to initialize:', error.message);
-//     console.error('❌ [METER_ANALYZER] Stack:', error.stack);
-//     // Don't exit the process - the server can still run without analyzer
-//   }
-// }
-
-/**
- * Initialize meter integration service
- */
-async function initializeMeterIntegrationService() {
-  try {
-    console.log('🔄 [METER_INTEGRATION] Starting initialization...');
-    // Import MeterIntegrationService
-    const meterIntegrationService = require('./services/MeterIntegrationService');
-    console.log('🔄 [METER_INTEGRATION] MeterIntegrationService imported');
-    
-    // Initialize with default configuration
-    const result = await meterIntegrationService.initialize();
-    console.log('� [METEeR_INTEGRATION] Initialize result:', result);
-    
-    if (result.success) {
-      console.log('📡 [METER_INTEGRATION] Initialized successfully');
-    } else {
-      console.log('⚠️ [METER_INTEGRATION] Initialization failed:', result.error);
-    }
-  } catch (error) {
-    console.error('❌ [METER_INTEGRATION] Failed to initialize:', error.message);
-    console.error('❌ [METER_INTEGRATION] Stack:', error.stack);
-    // Don't exit the process - the server can still run without integration
-  }
-}
-
-/**
- * Initialize meter monitoring service
- */
-// Meter monitoring service removed - no longer used
-
-/**
- * Initialize auto meter collection service (threaded mode only)
- */
-async function initializeAutoMeterCollection() {
-  try {
-    // Import AutoMeterCollectionService
-    const autoMeterCollectionService = require('./services/AutoMeterCollectionService');
-    
-    // Simple configuration - threaded mode only, 30-second interval
-    const config = {
-      collection: {
-        enabled: true,
-        interval: 30000, // Fixed 30 seconds
-        batchSize: 10,
-        timeout: 10000,
-        retryAttempts: 2
-      },
-      meters: {
-        defaultIP: process.env.DEFAULT_METER_IP,
-        defaultPort: parseInt(process.env.DEFAULT_METER_PORT) || 47808,
-        registers: {
-          voltage: { address: 5, count: 1, scale: 200, unit: 'V' },
-          current: { address: 6, count: 1, scale: 100, unit: 'A' },
-          power: { address: 7, count: 1, scale: 1, unit: 'W' },
-          energy: { address: 8, count: 1, scale: 1, unit: 'Wh' },
-          frequency: { address: 0, count: 1, scale: 10, unit: 'Hz' },
-          powerFactor: { address: 9, count: 1, scale: 1000, unit: 'pf' }
-        }
-      },
-      database: {
-        batchInsert: false, // Use individual inserts for better error handling
-        maxBatchSize: 100
-      },
-      logging: {
-        logSuccessfulReads: true, // Show detailed collection logs
-        logFailedReads: true,
-        logInterval: 300000 // Log stats every 5 minutes
-      }
-    };
-    
-    // Initialize with threading service (required)
-    const result = await autoMeterCollectionService.initialize(config, threadingService);
-    
-    if (result.success) {
-      console.log('🔄 Auto meter collection service initialized (threaded mode)');
-      
-      // Auto-start collection immediately
-      const startResult = autoMeterCollectionService.startCollection();
-      
-      if (startResult.success) {
-        console.log('🔄 Auto meter collection started (30-second interval)');
-      } else {
-        console.log('⚠️ Failed to start auto meter collection:', startResult.message);
-      }
-    } else {
-      console.log('⚠️ Auto meter collection service initialization failed:', result.error);
-    }
-  } catch (error) {
-    console.error('❌ Failed to initialize auto meter collection service:', error.message);
-    // Don't exit the process - the server can still run without auto collection
-  }
-}
-
-/**
- * Initialize the threading system
- */
-async function initializeThreadingSystem() {
-  try {
-    console.log('🧵 [THREADING] Initializing MCP threading system...');
-    
-    console.log('🧵 [THREADING] Importing ThreadingService...');
-    // Import ThreadingService
-    const { ThreadingService } = require('./services/threading/ThreadingService.js');
-    console.log('🧵 [THREADING] ThreadingService imported successfully');
-    
-    console.log('🧵 [THREADING] Creating threading configuration...');
-    // Create threading service with default configuration
-    const threadingConfig = {
-      worker: {
-        maxMemoryMB: parseInt(process.env.WORKER_MAX_MEMORY_MB) || 512,
-        logLevel: process.env.WORKER_LOG_LEVEL || 'info',
-        moduleConfig: {
-          database: {
-            poolSize: parseInt(process.env.DB_POOL_SIZE) || 10,
-            timeout: parseInt(process.env.DB_TIMEOUT) || 10000,
-            retryAttempts: parseInt(process.env.DB_RETRY_ATTEMPTS) || 3,
-            batchSize: parseInt(process.env.DB_BATCH_SIZE) || 100,
-            flushInterval: parseInt(process.env.DB_FLUSH_INTERVAL) || 5000
-          }
-        }
-      }
-    };
-    console.log('🧵 [THREADING] Configuration created');
-    
-    console.log('🧵 [THREADING] Instantiating ThreadingService...');
-    threadingService = new ThreadingService(threadingConfig);
-    console.log('🧵 [THREADING] ThreadingService instantiated');
-    
-    // Initialize the threading routes with the service
-    // initializeThreadingService(threadingService); // Function not available yet
-    
-    console.log('🧵 [THREADING] Setting up event handlers...');
-    // Setup threading service event handlers
-    setupThreadingEventHandlers();
-    console.log('🧵 [THREADING] Event handlers set up');
-    
-    // Start the threading service if auto-start is enabled
-    if (process.env.THREADING_AUTO_START !== 'false') {
-      console.log('🧵 [THREADING] Starting threading service...');
-      const result = await threadingService.start();
-      console.log('🧵 [THREADING] Threading service start result:', result);
-      if (result.success) {
-        console.log(`✅ [THREADING] MCP threading system started -> Thread ID: ${result.threadId}`);
-      } else {
-        console.warn(`⚠️ [THREADING] MCP threading system failed to start: ${result.error}`);
-      }
-    } else {
-      console.log('🧵 [THREADING] MCP threading system initialized (auto-start disabled)');
-    }
-    console.log('🧵 [THREADING] Threading system initialization complete');
-  } catch (error) {
-    console.error('❌ [THREADING] Failed to initialize threading system:', error.message);
-    console.error('❌ [THREADING] Stack trace:', error.stack);
-    // Don't exit the process - the server can still run without threading
-  }
-}
-
-/**
- * Setup event handlers for the threading service
- */
-function setupThreadingEventHandlers() {
-  if (!threadingService) return;
-  
-  threadingService.on('workerStarted', (data) => {
-    console.log(`🧵 Worker thread started: ${data.threadId}`);
-  });
-  
-  threadingService.on('workerStopped', () => {
-    console.log('🧵 Worker thread stopped');
-  });
-  
-  threadingService.on('workerError', (data) => {
-    console.error('🧵 Worker thread error:', data.error.message);
-  });
-  
-  threadingService.on('workerUnhealthy', (data) => {
-    console.warn('🧵 Worker thread unhealthy:', data.reason);
-  });
-  
-  threadingService.on('restartSuccess', (data) => {
-    console.log(`🧵 Worker thread restarted successfully (attempt ${data.attemptNumber})`);
-  });
-  
-  threadingService.on('restartFailed', (data) => {
-    console.error(`🧵 Worker thread restart failed (attempt ${data.attemptNumber}): ${data.error}`);
-  });
-}
 
 // Import auth middleware for global application
 const { authenticateToken } = require('./middleware/auth');
@@ -504,14 +229,12 @@ app.use('/api/schema', authenticateToken, setTenantContext, schemaRoutes);
 app.use('/api/device', authenticateToken, setTenantContext, devicesRoutes);
 app.use('/api/devices/:deviceId/registers', authenticateToken, setTenantContext, deviceRegisterRoutes);
 app.use('/api/registers', authenticateToken, setTenantContext, registersRoutes);
-app.use('/api/auto-collection', authenticateToken, setTenantContext, autoCollectionRoutes);
 app.use('/api/meters/:meterId/elements', authenticateToken, setTenantContext, meterElementRoutes);
 app.use('/api/dashboard', authenticateToken, setTenantContext, dashboardRoutes);
 app.use('/api/favorites', authenticateToken, setTenantContext, favoritesRoutes);
 app.use('/api/ai/search', authenticateToken, setTenantContext, aiSearchRoutes);
 app.use('/api/reports', authenticateToken, setTenantContext, reportsRoutes);
 app.use('/api/email-logs', authenticateToken, setTenantContext, emailLogsRoutes);
-// app.use('/api/threading', authenticateToken, setTenantContext, threadingRoutes); // TEMPORARILY DISABLED
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -546,24 +269,6 @@ app.get('/api/health', async (req, res) => {
       schedulerHealth = { isHealthy: false, error: error.message };
     }
 
-    // Get meter data analyzer health status
-    let analyzerHealth = null;
-    try {
-      const meterDataAnalyzer = require('./services/MeterDataAnalyzer');
-      analyzerHealth = await meterDataAnalyzer.getHealthStatus();
-    } catch (error) {
-      analyzerHealth = { isHealthy: false, error: error.message };
-    }
-
-    // Get auto meter collection health status
-    let autoCollectionHealth = null;
-    try {
-      const autoMeterCollectionService = require('./services/AutoMeterCollectionService');
-      autoCollectionHealth = await autoMeterCollectionService.getHealthStatus();
-    } catch (error) {
-      autoCollectionHealth = { isHealthy: false, error: error.message };
-    }
-    
     const healthData = {
       status: 'OK',
       timestamp: new Date().toISOString(),
@@ -572,46 +277,14 @@ app.get('/api/health', async (req, res) => {
       templates: templatesHealth,
       email: emailHealth,
       scheduler: schedulerHealth,
-      analyzer: analyzerHealth,
-      autoCollection: autoCollectionHealth,
-      threading: null
     };
 
-    // Add threading system health if available
-    if (threadingService) {
-      try {
-        const threadingHealth = await threadingService.getHealthStatus();
-        healthData.threading = {
-          status: threadingHealth.isHealthy ? 'Healthy' : 'Unhealthy',
-          worker: {
-            running: threadingHealth.worker.isRunning,
-            threadId: threadingHealth.worker.threadId
-          },
-          lastHealthCheck: threadingHealth.lastCheck,
-          uptime: threadingHealth.uptime,
-          memoryUsage: threadingHealth.memory
-        };
-      } catch (error) {
-        healthData.threading = {
-          status: 'Error',
-          error: error.message
-        };
-      }
-    } else {
-      healthData.threading = {
-        status: 'Not Initialized'
-      };
-    }
-
     // Determine overall status
-    const isHealthy = healthData.database === 'Connected' && 
-                     (!threadingService || healthData.threading.status === 'Healthy') &&
+    const isHealthy = healthData.database === 'Connected' &&
                      (templatesHealth && templatesHealth.isHealthy) &&
                      (emailHealth && emailHealth.isHealthy) &&
-                     (schedulerHealth && schedulerHealth.isHealthy) &&
-                     (analyzerHealth && analyzerHealth.isHealthy) &&
-                     (autoCollectionHealth && autoCollectionHealth.isHealthy);
-    
+                     (schedulerHealth && schedulerHealth.isHealthy);
+
     healthData.status = isHealthy ? 'OK' : 'Degraded';
 
     res.json(healthData);
@@ -779,13 +452,6 @@ async function gracefulShutdown(signal) {
   console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
   
   try {
-    // Stop threading service first
-    if (threadingService) {
-      console.log('🧵 Stopping threading service...');
-      await threadingService.stop(true);
-      console.log('✅ Threading service stopped');
-    }
-    
     // Close PostgreSQL database connections
     console.log('📊 Closing database connections...');
     await db.disconnect();
@@ -840,7 +506,6 @@ const server = app.listen(PORT, () => {
   console.log(`🚀 [SERVER] Server running on port ${PORT}`);
   console.log(`📊 [SERVER] Environment: ${process.env.NODE_ENV}`);
   console.log(`🌐 [SERVER] Frontend URL: ${process.env.FRONTEND_URL}`);
-  console.log(`🧵 [SERVER] Threading auto-start: ${process.env.THREADING_AUTO_START !== 'false' ? 'enabled' : 'disabled'}`);
   console.log('✅ [SERVER] Server initialization complete - ready to accept requests');
   
   // Keep the process alive

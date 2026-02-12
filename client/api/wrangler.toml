@@ -1,0 +1,17 @@
+name = "meteritpro-api"
+main = "worker/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NODE_ENV = "production"
+FRONTEND_URL = "https://meteritpro.com"
+
+# Database connection is configured via secrets:
+# npx wrangler secret put DATABASE_URL
+# npx wrangler secret put JWT_SECRET
+
+# Optional: Hyperdrive for connection pooling (requires Workers Paid plan)
+# [[hyperdrive]]
+# binding = "HYPERDRIVE"
+# id = "<your-hyperdrive-id>"

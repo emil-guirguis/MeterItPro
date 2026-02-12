@@ -21,7 +21,10 @@
       "Bash(del:*)",
       "Bash(del \"c:\\\\Projects\\\\MeterItPro\\\\framework\\\\frontend\\\\components\\\\modal\\\\EntityManagementPage.css\")",
       "Bash(dir:*)",
-      "WebFetch(domain:meteritpro.com)"
+      "WebFetch(domain:meteritpro.com)",
+      "Bash(psql:*)",
+      "Bash(npx wrangler deploy:*)",
+      "Bash(npx wrangler secret put:*)"
     ]
   }
 }

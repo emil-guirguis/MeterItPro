@@ -1,0 +1,373 @@
+/**
+ * Meters CRUD routes - Hono worker
+ */
+
+import { Hono } from 'hono';
+import { query, transaction, Env } from '../db';
+import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
+import { findAll, findById, create, update, remove } from '../crud';
+
+const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
+
+// All routes require authentication
+app.use('*', authenticateToken);
+
+// --- Routes ---
+
+/**
+ * GET /elements
+ * Get available meters for selection in combined meters selector, favorites, and meter readings sidebar.
+ */
+app.get('/elements', requirePermission('meter:read'), async (c) => {
+  const { type, excludeIds, searchQuery } = c.req.query();
+  const tenantId = c.get('tenantId');
+
+  if (!tenantId) {
+    return c.json({ success: false, message: 'Tenant context required' }, 401);
+  }
+
+  try {
+    let sql = 'SELECT m.meter_id as id, m.name, m.serial_number as identifier FROM public.meter m WHERE m.tenant_id = $1';
+    const params: any[] = [tenantId];
+    let paramCount = 2;
+
+    // Filter by search query
+    if (searchQuery) {
+      sql += ` AND (LOWER(m.name) LIKE LOWER($${paramCount}) OR LOWER(m.serial_number) LIKE LOWER($${paramCount + 1}))`;
+      params.push(`%${searchQuery}%`);
+      params.push(`%${searchQuery}%`);
+      paramCount += 2;
+    }
+
+    // Exclude specific meter IDs
+    if (excludeIds) {
+      const excludeIdArray = excludeIds.split(',').map((id) => parseInt(id.trim(), 10)).filter((id) => !isNaN(id));
+      if (excludeIdArray.length > 0) {
+        const placeholders = excludeIdArray.map((_, i) => `$${paramCount + i}`).join(',');
+        sql += ` AND m.meter_id NOT IN (${placeholders})`;
+        params.push(...excludeIdArray);
+        paramCount += excludeIdArray.length;
+      }
+    }
+
+    sql += ' ORDER BY m.name ASC';
+
+    const result = await query(c.env, sql, params);
+
+    // Validate response data
+    const validatedData = result.rows.filter((row: any) => {
+      if (!row.id || !row.name || !row.identifier) {
+        console.warn('Skipping meter with missing required fields:', row);
+        return false;
+      }
+      return true;
+    });
+
+    return c.json({ success: true, data: validatedData });
+  } catch (error: any) {
+    console.error('Error fetching meter elements:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to fetch meter elements',
+      error: error.message,
+    }, 500);
+  }
+});
+
+/**
+ * GET /:meterId/virtual-config
+ * Get previously selected meters for a virtual meter.
+ */
+app.get('/:meterId/virtual-config', requirePermission('meter:read'), async (c) => {
+  const meterId = c.req.param('meterId');
+  const tenantId = c.get('tenantId');
+
+  if (!tenantId) {
+    return c.json({ success: false, message: 'Tenant context required' }, 401);
+  }
+
+  if (!meterId) {
+    return c.json({ success: false, message: 'Meter ID is required' }, 400);
+  }
+
+  try {
+    // Verify that the meter exists and belongs to the tenant
+    const meterCheckResult = await query(
+      c.env,
+      'SELECT meter_id FROM public.meter WHERE meter_id = $1 AND tenant_id = $2',
+      [meterId, tenantId]
+    );
+
+    if (meterCheckResult.rows.length === 0) {
+      return c.json({ success: false, message: 'Meter not found' }, 404);
+    }
+
+    // Query the meter_virtual table for all selected meters
+    const result = await query(
+      c.env,
+      `SELECT
+        m.meter_id as id,
+        m.name,
+        m.serial_number as identifier
+      FROM public.meter_virtual mv
+      JOIN public.meter m ON mv.selected_meter_id = m.meter_id
+      WHERE mv.meter_id = $1
+      ORDER BY m.name ASC`,
+      [meterId]
+    );
+
+    // Validate response data
+    const selectedMeters = result.rows.filter((row: any) => {
+      if (!row.id || !row.name || !row.identifier) {
+        console.warn('Skipping meter with missing required fields:', row);
+        return false;
+      }
+      return true;
+    });
+
+    return c.json({ success: true, meterId, selectedMeters });
+  } catch (error: any) {
+    console.error('Error fetching virtual meter config:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to fetch virtual meter configuration',
+      error: error.message,
+    }, 500);
+  }
+});
+
+/**
+ * POST /:meterId/virtual-config
+ * Save selected meters for a virtual meter.
+ */
+app.post('/:meterId/virtual-config', requirePermission('meter:update'), async (c) => {
+  const meterId = c.req.param('meterId');
+  const tenantId = c.get('tenantId');
+
+  if (!tenantId) {
+    return c.json({ success: false, message: 'Tenant context required' }, 401);
+  }
+
+  if (!meterId) {
+    return c.json({ success: false, message: 'Meter ID is required' }, 400);
+  }
+
+  const body = await c.req.json();
+  const { selectedMeterIds = [], selectedMeterElementIds = [] } = body;
+
+  // Validate request body
+  if (!Array.isArray(selectedMeterIds) || !Array.isArray(selectedMeterElementIds)) {
+    return c.json({
+      success: false,
+      message: 'selectedMeterIds and selectedMeterElementIds must be arrays',
+    }, 400);
+  }
+
+  if (selectedMeterIds.length !== selectedMeterElementIds.length) {
+    return c.json({
+      success: false,
+      message: 'selectedMeterIds and selectedMeterElementIds must have the same length',
+    }, 400);
+  }
+
+  try {
+    // Verify that the meter exists and belongs to the tenant
+    const meterCheckResult = await query(
+      c.env,
+      'SELECT meter_id FROM public.meter WHERE meter_id = $1 AND tenant_id = $2',
+      [meterId, tenantId]
+    );
+
+    if (meterCheckResult.rows.length === 0) {
+      return c.json({ success: false, message: 'Meter not found' }, 404);
+    }
+
+    // Use transaction for atomicity
+    await transaction(c.env, async (client) => {
+      // Delete existing records
+      await client.query('DELETE FROM public.meter_virtual WHERE meter_id = $1', [meterId]);
+
+      // Insert new records
+      if (selectedMeterIds.length > 0) {
+        const insertQuery = `
+          INSERT INTO public.meter_virtual (meter_id, selected_meter_id, select_meter_element_id)
+          VALUES ${selectedMeterIds.map((_: any, i: number) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(', ')}
+        `;
+        const insertParams: any[] = [meterId];
+        for (let i = 0; i < selectedMeterIds.length; i++) {
+          insertParams.push(selectedMeterIds[i]);
+          insertParams.push(selectedMeterElementIds[i]);
+        }
+        await client.query(insertQuery, insertParams);
+      }
+    });
+
+    return c.json({
+      success: true,
+      meterId,
+      savedConfiguration: {
+        selectedMeterIds,
+        selectedMeterElementIds,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error saving virtual meter config:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to save virtual meter configuration',
+      error: error.message,
+    }, 500);
+  }
+});
+
+// Get all meters with filtering and pagination
+app.get('/', requirePermission('meter:read'), async (c) => {
+  try {
+    const { page = '1', limit = '25', search } = c.req.query();
+    const tenantId = c.get('tenantId');
+
+    const result = await findAll(c.env, {
+      table: 'meter',
+      primaryKey: 'meter_id',
+      tenantId,
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      search: search || undefined,
+      searchFields: ['name', 'serial_number'],
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        items: result.rows,
+        total: result.pagination.total,
+        page: result.pagination.page,
+        pageSize: result.pagination.pageSize,
+        totalPages: result.pagination.totalPages,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error fetching meters:', error);
+    return c.json({ success: false, message: 'Failed to fetch meters' }, 500);
+  }
+});
+
+// Create meter
+app.post('/', requirePermission('meter:create'), async (c) => {
+  try {
+    const tenantId = c.get('tenantId');
+    if (!tenantId) {
+      return c.json({
+        success: false,
+        message: 'User must have a valid tenant_id to create meters',
+      }, 400);
+    }
+
+    const body = await c.req.json();
+    const meterData: Record<string, any> = {
+      ...body,
+      tenant_id: tenantId,
+    };
+
+    // Remove fields that don't exist in the database
+    delete meterData.elements;
+
+    // Convert is_virtual select value ("virtual"/"physical") to boolean for DB
+    if (meterData.is_virtual !== undefined) {
+      meterData.is_virtual = meterData.is_virtual === 'virtual' || meterData.is_virtual === true;
+    }
+
+    const meter = await create(c.env, 'meter', meterData);
+    return c.json({ success: true, data: meter }, 201);
+  } catch (error: any) {
+    console.error('Error creating meter:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to create meter',
+      error: error.message,
+      detail: error.detail,
+      code: error.code,
+    }, 500);
+  }
+});
+
+// Get single meter by ID
+app.get('/:id', requirePermission('meter:read'), async (c) => {
+  try {
+    const id = c.req.param('id');
+    const tenantId = c.get('tenantId');
+    const meter = await findById(c.env, 'meter', 'meter_id', id, tenantId);
+    if (!meter) {
+      return c.json({ success: false, message: 'Meter not found' }, 404);
+    }
+    return c.json({ success: true, data: meter });
+  } catch (error: any) {
+    console.error('Error fetching meter:', error);
+    return c.json({ success: false, message: 'Failed to fetch meter' }, 500);
+  }
+});
+
+// Update meter
+app.put('/:id', requirePermission('meter:update'), async (c) => {
+  try {
+    const id = c.req.param('id');
+    const tenantId = c.get('tenantId');
+
+    // Find the meter first
+    const meter = await findById(c.env, 'meter', 'meter_id', id, tenantId);
+    if (!meter) {
+      return c.json({ success: false, message: 'Meter not found' }, 404);
+    }
+
+    // Validate tenant ownership
+    if (meter.tenant_id !== tenantId) {
+      return c.json({
+        success: false,
+        message: 'You do not have permission to update this meter',
+      }, 403);
+    }
+
+    const body = await c.req.json();
+    const updateData: Record<string, any> = { ...body };
+
+    // Filter out fields that don't exist in the database or are read-only
+    delete updateData.device;
+    delete updateData.model;
+    delete updateData.status;
+    delete updateData.tenant_id;
+    delete updateData.tenantId;
+    delete updateData.elements;
+
+    // Convert is_virtual select value ("virtual"/"physical") to boolean for DB
+    if (updateData.is_virtual !== undefined) {
+      updateData.is_virtual = updateData.is_virtual === 'virtual' || updateData.is_virtual === true;
+    }
+
+    const updated = await update(c.env, 'meter', 'meter_id', id, updateData);
+    return c.json({ success: true, data: updated });
+  } catch (error: any) {
+    console.error('Error updating meter:', error);
+    return c.json({ success: false, message: 'Failed to update meter' }, 500);
+  }
+});
+
+// Delete meter
+app.delete('/:id', requirePermission('meter:delete'), async (c) => {
+  try {
+    const id = c.req.param('id');
+    const tenantId = c.get('tenantId');
+
+    const meter = await findById(c.env, 'meter', 'meter_id', id, tenantId);
+    if (!meter) {
+      return c.json({ success: false, message: 'Meter not found' }, 404);
+    }
+
+    await remove(c.env, 'meter', 'meter_id', id);
+    return c.json({ success: true, message: 'Meter deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting meter:', error);
+    return c.json({ success: false, message: 'Failed to delete meter' }, 500);
+  }
+});
+
+export default app;

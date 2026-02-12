@@ -58,11 +58,11 @@ class Location extends BaseModel {
             // NEW: Hierarchical tab structure with embedded field definitions
             formTabs: [
                 tab({
-                    name: 'Location',
+                    name: 'General',
                     order: 1,
                     sections: [
                         section({
-                            name: 'Information',
+                            name: 'Details',
                             order: 1,
                             fields: [
                                 field({

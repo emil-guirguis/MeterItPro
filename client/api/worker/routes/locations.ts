@@ -1,0 +1,166 @@
+/**
+ * Locations CRUD routes - Hono worker
+ */
+
+import { Hono } from 'hono';
+import { query, transaction, Env } from '../db';
+import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
+import { findAll, findById, create, update, remove } from '../crud';
+
+const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
+
+// All routes require authentication
+app.use('*', authenticateToken);
+
+// --- Routes ---
+
+// Get all locations with filtering and pagination
+app.get('/', requirePermission('location:read'), async (c) => {
+  try {
+    const { page = '1', limit = '25', search } = c.req.query();
+    const tenantId = c.get('tenantId');
+
+    const result = await findAll(c.env, {
+      table: 'location',
+      primaryKey: 'location_id',
+      tenantId,
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      search: search || undefined,
+      searchFields: ['name'],
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        items: result.rows,
+        total: result.pagination.total,
+        page: result.pagination.page,
+        pageSize: result.pagination.pageSize,
+        totalPages: result.pagination.totalPages,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error fetching locations:', error);
+    return c.json({ success: false, message: 'Failed to fetch locations' }, 500);
+  }
+});
+
+// Get single location by ID
+app.get('/:id', requirePermission('location:read'), async (c) => {
+  try {
+    const id = c.req.param('id');
+    const tenantId = c.get('tenantId');
+    const location = await findById(c.env, 'location', 'location_id', id, tenantId);
+    if (!location) {
+      return c.json({ success: false, message: 'Location not found' }, 404);
+    }
+    return c.json({ success: true, data: location });
+  } catch (error: any) {
+    console.error('Error fetching location:', error);
+    return c.json({ success: false, message: 'Failed to fetch location' }, 500);
+  }
+});
+
+// Create location
+app.post('/', requirePermission('location:create'), async (c) => {
+  try {
+    const tenantId = c.get('tenantId');
+    if (!tenantId) {
+      return c.json({
+        success: false,
+        message: 'User must have a valid tenant_id to create locations',
+      }, 400);
+    }
+
+    const body = await c.req.json();
+    const locationData: Record<string, any> = {
+      ...body,
+      tenant_id: tenantId,
+    };
+
+    const location = await create(c.env, 'location', locationData);
+    return c.json({ success: true, data: location }, 201);
+  } catch (error: any) {
+    console.error('Error creating location:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to create location',
+      error: error.message,
+      detail: error.detail,
+      code: error.code,
+    }, 500);
+  }
+});
+
+// Update location
+app.put('/:id', requirePermission('location:update'), async (c) => {
+  try {
+    const id = c.req.param('id');
+    const tenantId = c.get('tenantId');
+
+    // Find the location first
+    const location = await findById(c.env, 'location', 'location_id', id, tenantId);
+    if (!location) {
+      return c.json({ success: false, message: 'Location not found' }, 404);
+    }
+
+    // Validate tenant ownership
+    if (location.tenant_id !== tenantId) {
+      return c.json({
+        success: false,
+        message: 'You do not have permission to update this location',
+      }, 403);
+    }
+
+    const body = await c.req.json();
+    const updateData: Record<string, any> = { ...body };
+
+    // Remove tenant_id from update data - it cannot be changed
+    delete updateData.tenant_id;
+    delete updateData.tenantId;
+
+    const updated = await update(c.env, 'location', 'location_id', id, updateData);
+    return c.json({ success: true, data: updated });
+  } catch (error: any) {
+    console.error('Error updating location:', error);
+    return c.json({ success: false, message: 'Failed to update location' }, 500);
+  }
+});
+
+// Delete location
+app.delete('/:id', requirePermission('location:delete'), async (c) => {
+  try {
+    const id = c.req.param('id');
+    const tenantId = c.get('tenantId');
+
+    // Find the location first
+    const location = await findById(c.env, 'location', 'location_id', id, tenantId);
+    if (!location) {
+      return c.json({ success: false, message: 'Location not found' }, 404);
+    }
+
+    // Check for associated meters before deleting
+    const meterCountResult = await query(
+      c.env,
+      'SELECT COUNT(*) as count FROM meter WHERE location_id = $1 AND tenant_id = $2',
+      [id, tenantId]
+    );
+    const meterCount = parseInt(meterCountResult.rows[0].count, 10);
+
+    if (meterCount > 0) {
+      return c.json({
+        success: false,
+        message: `Cannot delete location. It has ${meterCount} meters associated with it.`,
+      }, 400);
+    }
+
+    await remove(c.env, 'location', 'location_id', id);
+    return c.json({ success: true, message: 'Location deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting location:', error);
+    return c.json({ success: false, message: 'Failed to delete location' }, 500);
+  }
+});
+
+export default app;
