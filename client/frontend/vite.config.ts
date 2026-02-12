@@ -54,15 +54,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@framework': path.resolve(__dirname, '../../framework/frontend'),
-      // Force ALL package imports to resolve from client/frontend/node_modules
-      // This prevents framework/frontend/node_modules from creating duplicate copies
-      'react': path.resolve(__dirname, 'node_modules/react'),
-      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
-      'react/jsx-runtime': path.resolve(__dirname, 'node_modules/react/jsx-runtime'),
-      'react/jsx-dev-runtime': path.resolve(__dirname, 'node_modules/react/jsx-dev-runtime'),
-      'react-grid-layout': path.resolve(__dirname, 'node_modules/react-grid-layout'),
-      'react-resizable': path.resolve(__dirname, 'node_modules/react-resizable'),
-      'recharts': path.resolve(__dirname, 'node_modules/recharts'),
     },
     // Prevent duplicate copies of common libs (avoid bundling framework's node_modules separately)
     dedupe: [
@@ -127,107 +118,12 @@ export default defineConfig({
     assetsDir: 'assets',
     rollupOptions: {
       onwarn(warning, warn) {
+        // Suppress circular dependency warnings from third-party libs
+        if (warning.code === 'CIRCULAR_DEPENDENCY') return;
         console.warn('\n⚠️  Build Warning:', warning.message);
         warn(warning);
       },
-      output: {
-        chunkFileNames: 'assets/[name]-[hash].js',
-        // Group vendor libraries into a small set of logical chunks.
-        // This avoids creating a large number of vendor-* per-package files while still
-        // separating heavy libraries from the app bundle.
-        manualChunks(id: string) {
-          // Normalize id and use posix paths for matching
-          const normalizedId = id.replace(/\\\\/g, '/').replace(/\\/g, '/').toLowerCase();
-          if (!normalizedId.includes('/node_modules/')) return;
-
-          const nm = '/node_modules/';
-
-          // React core: keep react, react-dom, and scheduler together to avoid circular chunks
-          if (
-            normalizedId.includes(`${nm}react${nm}`) ||
-            normalizedId.includes(`${nm}react-dom${nm}`) ||
-            normalizedId.includes(`${nm}scheduler${nm}`) ||
-            normalizedId.includes('react.production') ||
-            normalizedId.includes('react-jsx-runtime') ||
-            normalizedId.includes('react-dom-client.production') ||
-            normalizedId.includes('react-dom.production') ||
-            normalizedId.includes('scheduler/cjs')
-          ) {
-            return 'vendor-react';
-          }
-
-          // Router
-          if (normalizedId.includes(`${nm}react-router-dom${nm}`) || normalizedId.includes(`${nm}react-router${nm}`)) {
-            return 'vendor-router';
-          }
-
-          // MUI + Emotion (UI libs)
-          if (normalizedId.includes(`${nm}@mui${nm}`) || normalizedId.includes(`${nm}@material-ui${nm}`) || normalizedId.includes(`${nm}@emotion${nm}`)) {
-            return 'vendor-mui';
-          }
-
-          // MUI icons (separate to keep icon code isolated)
-          if (normalizedId.includes(`${nm}@mui${nm}icons-material${nm}`) || normalizedId.includes(`${nm}@material-ui${nm}icons${nm}`)) {
-            return 'vendor-mui-icons';
-          }
-
-          // Charts: split recharts, d3, and victory into separate chunks
-          if (
-            normalizedId.includes(`${nm}recharts${nm}`) ||
-            normalizedId.includes('client/frontend/node_modules/recharts') ||
-            normalizedId.includes('framework/frontend/node_modules/recharts') ||
-            (normalizedId.includes('recharts') && normalizedId.includes('production'))
-          ) {
-            return 'vendor-recharts';
-          }
-
-          if (
-            normalizedId.includes(`${nm}d3${nm}`) ||
-            normalizedId.includes('client/frontend/node_modules/d3') ||
-            normalizedId.includes('framework/frontend/node_modules/d3')
-          ) {
-            return 'vendor-d3';
-          }
-
-          if (normalizedId.includes(`${nm}victory-vendor${nm}`) || normalizedId.includes('victory-vendor')) {
-            return 'vendor-victory';
-          }
-
-          // Grid / layout libraries (react-grid-layout, react-resizable, react-draggable)
-          if (normalizedId.includes(`${nm}react-grid-layout${nm}`) || normalizedId.includes(`${nm}react-resizable${nm}`) || normalizedId.includes(`${nm}react-draggable${nm}`)) {
-            return 'vendor-grid';
-          }
-
-          // microlink / json viewers
-          if (normalizedId.includes(`${nm}@microlink${nm}`) || normalizedId.includes(`${nm}microlink${nm}`) || normalizedId.includes(`${nm}react-json-view${nm}`)) {
-            return 'vendor-microlink';
-          }
-
-          // State and utils
-          if (normalizedId.includes(`${nm}zustand${nm}`) || normalizedId.includes(`${nm}immer${nm}`) || normalizedId.includes('zustand')) {
-            return 'vendor-state';
-          }
-
-          // Utilities / misc heavy libs
-          if (normalizedId.includes(`${nm}lodash${nm}`) || normalizedId.includes(`${nm}decimal.js${nm}`) || normalizedId.includes(`${nm}decimal.js-light${nm}`) || normalizedId.includes(`${nm}fast-equals${nm}`)) {
-            return 'vendor-utils';
-          }
-
-          // Axios / network
-          if (normalizedId.includes(`${nm}axios${nm}`)) {
-            return 'vendor-axios';
-          }
-          // Framework-local modules (keep framework code separate)
-          if (normalizedId.includes('/framework/frontend/') || normalizedId.includes('/framework/node_modules/')) {
-            return 'vendor-framework';
-          }
-
-          // Default fallback
-          return 'vendor-others';
-        },
-      },
     },
-    // Increase warning limit slightly while we iterate on splitting
     chunkSizeWarningLimit: 600,
   },
   // Base path for production (leave empty for root domain)
