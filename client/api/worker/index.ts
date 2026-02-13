@@ -37,22 +37,21 @@ const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
 // --- CORS ---
 
+// Helper to get allowed origins from env
+function getAllowedOrigins(env: Env): string[] {
+  const frontendUrl = env.FRONTEND_URL || 'https://meteritpro.com';
+  return frontendUrl.split(',').map((s: string) => s.trim());
+}
+
 app.use('*', cors({
   origin: (origin, c) => {
-    const frontendUrl = c.env.FRONTEND_URL || 'https://meteritpro.com';
-    const allowedOrigins = frontendUrl.split(',').map((s: string) => s.trim());
-    
-    // Log CORS check for debugging
-    console.log('[CORS] Request origin:', origin);
-    console.log('[CORS] Allowed origins:', allowedOrigins);
-    
+    const allowedOrigins = getAllowedOrigins(c.env);
+
     if (!origin) {
       return allowedOrigins[0];
     }
-    
+
     const isAllowed = allowedOrigins.includes(origin);
-    console.log('[CORS] Origin allowed:', isAllowed);
-    
     return isAllowed ? origin : allowedOrigins[0];
   },
   credentials: true,
@@ -73,9 +72,10 @@ app.onError((err, c) => {
   
   // Add CORS headers manually if needed
   const frontendUrl = c.env.FRONTEND_URL || 'https://meteritpro.com';
+  const allowedOrigins = frontendUrl.split(',').map((s: string) => s.trim());
   const origin = c.req.header('origin');
-  
-  if (origin && frontendUrl.includes(origin)) {
+
+  if (origin && allowedOrigins.includes(origin)) {
     response.headers.set('Access-Control-Allow-Origin', origin);
     response.headers.set('Access-Control-Allow-Credentials', 'true');
   }

@@ -1,32 +1,10 @@
 import axios from 'axios';
 import type { AxiosResponse } from 'axios';
 import type { Favorite } from '../components/sidebar-meters/types';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+import apiClient from './apiClient';
 
 class FavoritesService {
-  private apiClient = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  constructor() {
-    // Add request interceptor to include auth token
-    this.apiClient.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
-      }
-    );
-  }
+  private apiClient = apiClient;
 
   /**
    * Get all meters with their elements and favorite status for the sidebar
