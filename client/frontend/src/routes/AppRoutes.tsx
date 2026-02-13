@@ -1,6 +1,5 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '../contexts/AuthContext';
 import { ProtectedRoute, AuthGuard } from '../components/auth';
 import AppLayoutWrapper from '../components/layout/AppLayoutWrapper';
 import LoginPage from '../pages/LoginPage';
@@ -38,7 +37,6 @@ const UnauthorizedPage = () => (
 
 const AppRoutes: React.FC = () => {
   return (
-    <AuthProvider>
       <Suspense fallback={<div>Loading...</div>}>
         <Routes>
         {/* Public Routes */}
@@ -193,7 +191,6 @@ const AppRoutes: React.FC = () => {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>
-    </AuthProvider>
   );
 };
 

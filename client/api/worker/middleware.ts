@@ -4,7 +4,7 @@
  */
 
 import { Context, Next } from 'hono';
-import jwt from 'jsonwebtoken';
+import { verify } from 'hono/jwt';
 import { query, Env } from './db';
 
 // Hono context variables set by middleware
@@ -27,9 +27,9 @@ export async function authenticateToken(c: Context<{ Bindings: Env; Variables: A
 
   let decoded: any;
   try {
-    decoded = jwt.verify(token, c.env.JWT_SECRET);
+    decoded = await verify(token, c.env.JWT_SECRET);
   } catch (err: any) {
-    if (err.name === 'TokenExpiredError') {
+    if (err.message?.includes('expired') || err.name === 'JwtTokenExpired') {
       return c.json({ success: false, message: 'Token expired' }, 401);
     }
     return c.json({ success: false, message: 'Invalid token' }, 401);

@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import jwt from 'jsonwebtoken';
+import { sign, verify } from 'hono/jwt';
 import bcrypt from 'bcryptjs';
 import speakeasy from 'speakeasy';
 import { query, transaction, Env } from '../db';
@@ -57,16 +57,32 @@ function getPermissionsByRole(role: string): any {
 
 // ===== TOKEN GENERATION UTILITIES =====
 
-function generateToken(userId: number, tenant_id: number, jwtSecret: string, expiresIn?: string): string {
-  return jwt.sign({ userId, tenant_id }, jwtSecret, {
-    expiresIn: expiresIn || '1h',
-  });
+function parseExpiresIn(expiresIn: string): number {
+  const match = expiresIn.match(/^(\d+)([smhd])$/);
+  if (!match) return 3600; // default 1h
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+  switch (unit) {
+    case 's': return value;
+    case 'm': return value * 60;
+    case 'h': return value * 3600;
+    case 'd': return value * 86400;
+    default: return 3600;
+  }
 }
 
-function generate2FASessionToken(userId: number, tenant_id: number, jwtSecret: string): string {
-  return jwt.sign({ userId, tenant_id, is2FASession: true }, jwtSecret, {
-    expiresIn: '10m',
-  });
+async function generateToken(userId: number, tenant_id: number, jwtSecret: string, expiresIn?: string): Promise<string> {
+  const seconds = parseExpiresIn(expiresIn || '1h');
+  return sign({ userId, tenant_id, exp: Math.floor(Date.now() / 1000) + seconds }, jwtSecret);
+}
+
+async function generateRefreshToken(userId: number, tenant_id: number, jwtSecret: string): Promise<string> {
+  // Refresh tokens last 7 days
+  return sign({ userId, tenant_id, isRefresh: true, exp: Math.floor(Date.now() / 1000) + 7 * 86400 }, jwtSecret);
+}
+
+async function generate2FASessionToken(userId: number, tenant_id: number, jwtSecret: string): Promise<string> {
+  return sign({ userId, tenant_id, is2FASession: true, exp: Math.floor(Date.now() / 1000) + 600 }, jwtSecret);
 }
 
 // ===== AUTH LOGGING (inline) =====
@@ -488,7 +504,7 @@ auth.post('/login', async (c) => {
     const twoFAMethods = await get2FAMethods(env(c), userId);
 
     if (twoFAMethods && twoFAMethods.length > 0) {
-      const tempSessionToken = generate2FASessionToken(userId, user.tenant_id, c.env.JWT_SECRET);
+      const tempSessionToken = await generate2FASessionToken(userId, user.tenant_id, c.env.JWT_SECRET);
 
       await logAuthEvent(env(c), {
         userId,
@@ -509,7 +525,8 @@ auth.post('/login', async (c) => {
     }
 
     // No 2FA - create full session
-    const token = generateToken(userId, user.tenant_id, c.env.JWT_SECRET, c.env.JWT_EXPIRES_IN);
+    const token = await generateToken(userId, user.tenant_id, c.env.JWT_SECRET, c.env.JWT_EXPIRES_IN);
+    const refreshToken = await generateRefreshToken(userId, user.tenant_id, c.env.JWT_SECRET);
 
     // Reset failed login attempts on successful login
     await resetFailedLoginAttempts(env(c), userId);
@@ -564,6 +581,7 @@ auth.post('/login', async (c) => {
         },
         tenant: tenantInfo,
         token,
+        refreshToken,
         expiresIn: 60 * 60,
       },
     };
@@ -602,7 +620,7 @@ auth.post('/verify-2fa', async (c) => {
     // Verify session token
     let decoded: any;
     try {
-      decoded = jwt.verify(session_token, c.env.JWT_SECRET);
+      decoded = await verify(session_token, c.env.JWT_SECRET);
       if (!decoded.is2FASession) {
         return c.json({ success: false, message: 'Invalid session token' }, 401);
       }
@@ -671,7 +689,8 @@ auth.post('/verify-2fa', async (c) => {
     }
 
     // Create full session
-    const token = generateToken(userId, tenantId, c.env.JWT_SECRET, c.env.JWT_EXPIRES_IN);
+    const token = await generateToken(userId, tenantId, c.env.JWT_SECRET, c.env.JWT_EXPIRES_IN);
+    const refreshTokenValue = await generateRefreshToken(userId, tenantId, c.env.JWT_SECRET);
 
     // Reset failed login attempts
     await resetFailedLoginAttempts(env(c), userId);
@@ -726,6 +745,7 @@ auth.post('/verify-2fa', async (c) => {
         },
         tenant: tenantInfo,
         token,
+        refreshToken: refreshTokenValue,
         expiresIn: 60 * 60,
       },
     });
@@ -1433,6 +1453,79 @@ auth.get('/verify', async (c) => {
   } catch (error: any) {
     console.error('Token verification error:', error);
     return c.json({ success: false, message: 'Token verification failed' }, 500);
+  }
+});
+
+/**
+ * POST /refresh
+ * Refresh access token using refresh token
+ */
+auth.post('/refresh', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { refreshToken: refreshTokenValue } = body;
+
+    if (!refreshTokenValue) {
+      return c.json({ success: false, message: 'Refresh token is required' }, 400);
+    }
+
+    // Verify refresh token
+    let decoded: any;
+    try {
+      decoded = await verify(refreshTokenValue, c.env.JWT_SECRET);
+      if (!decoded.isRefresh) {
+        return c.json({ success: false, message: 'Invalid refresh token' }, 401);
+      }
+    } catch (err) {
+      return c.json({ success: false, message: 'Refresh token expired or invalid' }, 401);
+    }
+
+    const userId = decoded.userId;
+    const tenantId = decoded.tenant_id;
+
+    // Look up user to ensure they still exist and are active
+    const userResult = await query(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
+    if (userResult.rows.length === 0) {
+      return c.json({ success: false, message: 'User not found' }, 401);
+    }
+
+    const user = userResult.rows[0];
+    if (!user.active) {
+      return c.json({ success: false, message: 'Account is inactive' }, 401);
+    }
+
+    // Generate new tokens
+    const newToken = await generateToken(userId, tenantId, c.env.JWT_SECRET, c.env.JWT_EXPIRES_IN);
+    const newRefreshToken = await generateRefreshToken(userId, tenantId, c.env.JWT_SECRET);
+
+    // Derive permissions
+    const userRole = (user.role || 'viewer').toLowerCase();
+    let permissions = getPermissionsByRole(userRole);
+    if (user.permissions && typeof user.permissions === 'object' && !Array.isArray(user.permissions)) {
+      permissions = user.permissions;
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        user: {
+          users_id: user.users_id,
+          tenant_id: user.tenant_id,
+          client: user.tenant_id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          permissions,
+          status: user.active ? 'active' : 'inactive',
+        },
+        token: newToken,
+        refreshToken: newRefreshToken,
+        expiresIn: 60 * 60,
+      },
+    });
+  } catch (error: any) {
+    console.error('Token refresh error:', error);
+    return c.json({ success: false, message: 'Token refresh failed' }, 500);
   }
 });
 

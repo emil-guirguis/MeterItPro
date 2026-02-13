@@ -27,7 +27,8 @@
       "Bash(npx wrangler secret put:*)",
       "Bash(npx wrangler deployments:*)",
       "Bash(npx wrangler secret list:*)",
-      "Bash(npx wrangler hyperdrive:*)"
+      "Bash(npx wrangler hyperdrive:*)",
+      "Bash(npx wrangler tail:*)"
     ]
   }
 }
