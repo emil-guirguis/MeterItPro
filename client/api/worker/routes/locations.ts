@@ -17,10 +17,10 @@ app.use('*', authenticateToken);
 // Get all locations with filtering and pagination
 app.get('/', requirePermission('location:read'), async (c) => {
   try {
-    const { page = '1', limit = '25', search } = c.req.query();
+    const qs = c.req.query();
     const tenantId = c.get('tenantId');
 
-    console.log('[LOCATION] GET / - tenantId:', tenantId, 'page:', page, 'limit:', limit);
+    console.log('[LOCATION] GET / - tenantId:', tenantId, 'page:', qs.page, 'limit:', qs.limit);
 
     if (!tenantId) {
       console.error('[LOCATION] No tenantId in context');
@@ -31,10 +31,12 @@ app.get('/', requirePermission('location:read'), async (c) => {
       table: 'location',
       primaryKey: 'location_id',
       tenantId,
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      search: search || undefined,
+      page: parseInt(qs.page || '1', 10),
+      limit: parseInt(qs.limit || '25', 10),
+      search: qs.search || undefined,
       searchFields: ['name'],
+      sortBy: qs.sortBy,
+      sortOrder: qs.sortOrder,
     });
 
     console.log('[LOCATION] Found', result.rows.length, 'locations');

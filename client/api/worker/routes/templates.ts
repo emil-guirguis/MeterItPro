@@ -39,7 +39,8 @@ app.get('/', requirePermission('template:read'), async (c) => {
       search: qs.search || undefined,
       searchFields: ['name', 'subject'],
       where,
-      orderBy: qs.sortBy ? `email_template.${qs.sortBy} ${qs.sortOrder === 'asc' ? 'ASC' : 'DESC'}` : 'email_template.created_at DESC',
+      sortBy: qs.sortBy,
+      sortOrder: qs.sortOrder,
     });
 
     return c.json({

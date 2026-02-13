@@ -53,6 +53,8 @@ app.get('/cards', requirePermission('dashboard:read'), async (c) => {
       where,
       search: qs.search || undefined,
       searchFields: ['card_name'],
+      sortBy: qs.sortBy,
+      sortOrder: qs.sortOrder,
     });
 
     const items = result.rows.map((card: any, index: number) => {

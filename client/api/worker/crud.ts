@@ -15,8 +15,15 @@ export interface FindAllOptions {
   searchFields?: string[];
   where?: Record<string, any>;
   orderBy?: string;
+  sortBy?: string;
+  sortOrder?: string;
   joins?: string;
   selectFields?: string;
+}
+
+/** Convert camelCase to snake_case for DB column names */
+function camelToSnake(str: string): string {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 }
 
 export interface FindAllResult {
@@ -32,16 +39,30 @@ export interface FindAllResult {
 export async function findAll(env: Env, opts: FindAllOptions): Promise<FindAllResult> {
   const {
     table,
+    primaryKey,
     tenantId,
     page = 1,
     limit = 25,
     search,
     searchFields = ['name'],
     where = {},
-    orderBy = `${table}.created_at DESC`,
+    sortBy,
+    sortOrder,
     joins = '',
     selectFields = `${table}.*`,
   } = opts;
+
+  // Build orderBy: explicit orderBy > sortBy param > primary key fallback
+  let orderBy = opts.orderBy;
+  if (!orderBy) {
+    if (sortBy) {
+      const col = camelToSnake(sortBy);
+      const dir = (sortOrder || 'desc').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+      orderBy = `${table}.${col} ${dir}`;
+    } else {
+      orderBy = `${table}.${primaryKey} DESC`;
+    }
+  }
 
   const params: any[] = [tenantId];
   let paramIdx = 2;

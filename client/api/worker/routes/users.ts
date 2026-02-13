@@ -91,17 +91,19 @@ function toNestedObject(flatArray: string[]): Record<string, Record<string, bool
 // Get all users with filtering and pagination
 app.get('/', requirePermission('user:read'), async (c) => {
   try {
-    const { page = '1', limit = '25', search } = c.req.query();
+    const qs = c.req.query();
     const tenantId = c.get('tenantId');
 
     const result = await findAll(c.env, {
       table: 'users',
       primaryKey: 'users_id',
       tenantId,
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      search: search || undefined,
+      page: parseInt(qs.page || '1', 10),
+      limit: parseInt(qs.limit || '25', 10),
+      search: qs.search || undefined,
       searchFields: ['name', 'email'],
+      sortBy: qs.sortBy,
+      sortOrder: qs.sortOrder,
     });
 
     return c.json({
