@@ -115,11 +115,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       }
 
       // Login succeeded, redirect
-      console.log('✅ Login successful, redirecting...');
+      console.log('✅ Login successful, redirecting to:', redirectTo);
       if (onSuccess) {
         onSuccess();
       } else {
-        window.location.href = redirectTo;
+        navigate(redirectTo, { replace: true });
       }
     } catch (error) {
       console.error('Login failed:', error);
@@ -151,7 +151,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       if (onSuccess) {
         onSuccess();
       } else {
-        window.location.href = redirectTo;
+        navigate(redirectTo, { replace: true });
       }
     } catch (error) {
       console.error('2FA success handler error:', error);

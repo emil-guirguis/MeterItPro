@@ -39,10 +39,21 @@ const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
 app.use('*', cors({
   origin: (origin, c) => {
-    const allowedOrigins = c.env.FRONTEND_URL
-      ? c.env.FRONTEND_URL.split(',').map((s: string) => s.trim())
-      : ['http://localhost:5173'];
-    return allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+    const frontendUrl = c.env.FRONTEND_URL || 'https://meteritpro.com';
+    const allowedOrigins = frontendUrl.split(',').map((s: string) => s.trim());
+    
+    // Log CORS check for debugging
+    console.log('[CORS] Request origin:', origin);
+    console.log('[CORS] Allowed origins:', allowedOrigins);
+    
+    if (!origin) {
+      return allowedOrigins[0];
+    }
+    
+    const isAllowed = allowedOrigins.includes(origin);
+    console.log('[CORS] Origin allowed:', isAllowed);
+    
+    return isAllowed ? origin : allowedOrigins[0];
   },
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -54,7 +65,22 @@ app.use('*', cors({
 
 app.onError((err, c) => {
   console.error('[WORKER] Unhandled error:', err);
-  return c.json({ success: false, message: 'Internal server error' }, 500);
+  console.error('[WORKER] Error type:', err?.constructor?.name);
+  console.error('[WORKER] Error message:', err?.message);
+  
+  // Ensure CORS headers are included in error responses
+  const response = c.json({ success: false, message: 'Internal server error' }, 500);
+  
+  // Add CORS headers manually if needed
+  const frontendUrl = c.env.FRONTEND_URL || 'https://meteritpro.com';
+  const origin = c.req.header('origin');
+  
+  if (origin && frontendUrl.includes(origin)) {
+    response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  return response;
 });
 
 // --- Health check ---

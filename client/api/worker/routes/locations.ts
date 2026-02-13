@@ -20,6 +20,13 @@ app.get('/', requirePermission('location:read'), async (c) => {
     const { page = '1', limit = '25', search } = c.req.query();
     const tenantId = c.get('tenantId');
 
+    console.log('[LOCATION] GET / - tenantId:', tenantId, 'page:', page, 'limit:', limit);
+
+    if (!tenantId) {
+      console.error('[LOCATION] No tenantId in context');
+      return c.json({ success: false, message: 'Tenant context required' }, 401);
+    }
+
     const result = await findAll(c.env, {
       table: 'location',
       primaryKey: 'location_id',
@@ -29,6 +36,8 @@ app.get('/', requirePermission('location:read'), async (c) => {
       search: search || undefined,
       searchFields: ['name'],
     });
+
+    console.log('[LOCATION] Found', result.rows.length, 'locations');
 
     return c.json({
       success: true,
@@ -41,8 +50,15 @@ app.get('/', requirePermission('location:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching locations:', error);
-    return c.json({ success: false, message: 'Failed to fetch locations' }, 500);
+    console.error('[LOCATION] Error fetching locations:', error);
+    console.error('[LOCATION] Error type:', error?.constructor?.name);
+    console.error('[LOCATION] Error message:', error?.message);
+    console.error('[LOCATION] Error stack:', error?.stack);
+    return c.json({ 
+      success: false, 
+      message: 'Failed to fetch locations',
+      ...(process.env.NODE_ENV !== 'production' && { detail: error?.message })
+    }, 500);
   }
 });
 

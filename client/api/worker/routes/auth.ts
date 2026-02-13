@@ -589,8 +589,18 @@ auth.post('/login', async (c) => {
     console.log('[DEBUG] Sending response - user.active:', user.active, '-> status:', responseData.data.user.status);
     return c.json(responseData);
   } catch (error: any) {
-    console.error('Login error:', error);
-    return c.json({ success: false, message: 'Login failed' }, 500);
+    console.error('[LOGIN] Unhandled error:', error);
+    console.error('[LOGIN] Error type:', error?.constructor?.name);
+    console.error('[LOGIN] Error message:', error?.message);
+    console.error('[LOGIN] Error stack:', error?.stack);
+    
+    // Return more detailed error in development
+    const isDev = c.env.NODE_ENV !== 'production';
+    return c.json({ 
+      success: false, 
+      message: 'Login failed',
+      ...(isDev && { detail: error?.message })
+    }, 500);
   }
 });
 

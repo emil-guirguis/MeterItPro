@@ -37,6 +37,49 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+// Define CORS headers once for reuse
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://meteritpro.com",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Request-ID",
+  "Access-Control-Allow-Credentials": "true",
+  "Access-Control-Max-Age": "86400",
+};
+
+export default {
+  async fetch(request, env, ctx) {
+    // 1. Fix CORS Preflight (OPTIONS request)
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
+    const startTime = Date.now();
+    const requestId = request.headers.get("X-Request-ID") || crypto.randomUUID();
+
+    try {
+      // 2. Perform your actual logic (e.g., Auth/Login)
+      // Note: Replace handleRequest with your actual logic
+      let response = await handleRequest(request, env); 
+
+      // 3. Reconstruct response to add your custom headers
+      const newResponse = new Response(response.body, response);
+      Object.entries(corsHeaders).forEach(([k, v]) => newResponse.headers.set(k, v));
+      newResponse.headers.set("X-Request-ID", requestId);
+      newResponse.headers.set("X-Response-Time", `${Date.now() - startTime}ms`);
+      
+      return newResponse;
+
+    } catch (err) {
+      // 4. Handle 500 Errors gracefully with CORS headers
+      // This ensures the browser can read the error instead of blocking it
+      return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders }
+      });
+    }
+  }
+};
+
 
 // node_modules/unenv/dist/runtime/_internal/utils.mjs
 // @__NO_SIDE_EFFECTS__
