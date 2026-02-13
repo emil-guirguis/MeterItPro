@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { BrowserRouter } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
 import { prefetchAppSchemas } from './utils/schemaPrefetch';
 import { invalidateExpiredCache } from '@framework/components/form/utils/schemaLoader';
@@ -43,9 +42,7 @@ function App() {
   return (
     <NotificationProvider>
       <MeterSelectionProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <AppRoutes />
       </MeterSelectionProvider>
     </NotificationProvider>
   );
