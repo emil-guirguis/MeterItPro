@@ -254,57 +254,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [state.isAuthenticated]);
 
   // Login function
-  const login = async (credentials: LoginCredentials): Promise<void> => {
+  const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
       console.log('🚀 Starting login process in AuthContext...');
       dispatch({ type: 'LOGIN_START' });
-      
+
       const authResponse = await authService.login(credentials);
-      console.log('📦 Auth response received in AuthContext:', authResponse);
-      console.log('📦 Auth response locations:', authResponse.locations);
-      
-      // Tokens are already stored in authService.login()
-      console.log('🔑 Token in storage after login:', authService.getStoredToken() ? 'EXISTS' : 'MISSING');
-      
-      console.log('📋 [AUTH] User permissions from backend:', authResponse.user.permissions);
-      console.log('📋 [AUTH] User role from backend:', authResponse.user.role);
-      
+      console.log('📦 Auth response received in AuthContext');
+
+      // If 2FA is required, don't dispatch LOGIN_SUCCESS yet - return early
+      if (authResponse.requires_2fa) {
+        dispatch({ type: 'SET_LOADING', payload: false });
+        return authResponse;
+      }
+
       // Ensure locations are included in the response
       const locations = authResponse.locations || [];
-      console.log('📍 [AUTH] Locations to store:', locations.length, 'locations');
-        // Normalize permissions if necessary
-        const normalizePermissions = (perms: any) => {
-          if (!perms) return [];
-          if (Array.isArray(perms)) return perms;
-          if (typeof perms === 'object') {
-            const result: string[] = [];
-            Object.entries(perms).forEach(([moduleName, actions]) => {
-              if (typeof actions === 'object' && actions !== null) {
-                Object.entries(actions).forEach(([actionName, allowed]) => {
-                  if (allowed) {
-                    result.push(`${moduleName}:${actionName}`);
-                  }
-                });
-              }
-            });
-            return result;
-          }
-          return [];
-        };
 
-        const normalizedUser = {
-          ...authResponse.user,
-          permissions: normalizePermissions(authResponse.user.permissions),
-        };
+      // Normalize permissions if necessary
+      const normalizePermissions = (perms: any) => {
+        if (!perms) return [];
+        if (Array.isArray(perms)) return perms;
+        if (typeof perms === 'object') {
+          const result: string[] = [];
+          Object.entries(perms).forEach(([moduleName, actions]) => {
+            if (typeof actions === 'object' && actions !== null) {
+              Object.entries(actions).forEach(([actionName, allowed]) => {
+                if (allowed) {
+                  result.push(`${moduleName}:${actionName}`);
+                }
+              });
+            }
+          });
+          return result;
+        }
+        return [];
+      };
 
-        dispatch({ 
-          type: 'LOGIN_SUCCESS', 
-          payload: {
-            user: normalizedUser,
-            locations: locations
-          }
-        });
+      const normalizedUser = {
+        ...authResponse.user,
+        permissions: normalizePermissions(authResponse.user.permissions),
+      };
+
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: {
+          user: normalizedUser,
+          locations: locations
+        }
+      });
       console.log('✅ Login completed successfully in AuthContext');
+      return authResponse;
     } catch (error) {
       console.error('❌ Login failed in context:', error);
       const errorMessage = error instanceof Error ? error.message : 'Login failed';

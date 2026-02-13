@@ -49,9 +49,7 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
-        // Refresh failed, clear tokens and redirect to login
-        tokenStorage.clearTokens();
-        window.location.href = '/login';
+        console.error('[API CLIENT] Token refresh failed:', refreshError);
         return Promise.reject(refreshError);
       }
     }

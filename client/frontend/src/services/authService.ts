@@ -43,9 +43,8 @@ class AuthService {
           try {
             const refreshToken = tokenStorage.getRefreshToken();
             if (!refreshToken) {
-              // No refresh token, go to login
-              tokenStorage.clearTokens();
-              window.location.href = '/login';
+              // No refresh token, let the auth context handle cleanup
+              console.error('[AUTH INTERCEPTOR] 401 received, no refresh token available.');
               return Promise.reject(error);
             }
 
@@ -57,10 +56,7 @@ class AuthService {
             originalRequest.headers.Authorization = `Bearer ${response.token}`;
             return this.apiClient(originalRequest);
           } catch (refreshError) {
-            console.error('[AUTH] Token refresh failed:', refreshError);
-            // Refresh failed, clear tokens and redirect to login
-            tokenStorage.clearTokens();
-            window.location.href = '/login';
+            console.error('[AUTH INTERCEPTOR] Token refresh failed:', refreshError);
             return Promise.reject(refreshError);
           }
         }

@@ -27,7 +27,7 @@ export async function authenticateToken(c: Context<{ Bindings: Env; Variables: A
 
   let decoded: any;
   try {
-    decoded = await verify(token, c.env.JWT_SECRET);
+    decoded = await verify(token, c.env.JWT_SECRET, 'HS256');
   } catch (err: any) {
     if (err.message?.includes('expired') || err.name === 'JwtTokenExpired') {
       return c.json({ success: false, message: 'Token expired' }, 401);

@@ -101,12 +101,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     setValidationErrors([]);
 
     try {
-      // Attempt login with credentials
-      const response = await authService.login(credentials);
+      // Single login call through the auth context (avoids duplicate API calls)
+      const response = await login(credentials);
 
       // Check if 2FA is required
       if (response.requires_2fa && response.session_token) {
-        // 2FA is required, show modal
         setSessionToken(response.session_token);
         setTwoFAMethod(response.twofa_method || 'totp');
         setRequires2FA(true);
@@ -115,22 +114,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         return;
       }
 
-      // No 2FA required, proceed with normal login
-      await login(credentials);
-
-      // Add a small delay to allow console logs to be visible
-      console.log('✅ Login successful, redirecting in 1 second...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Call success callback if provided
+      // Login succeeded, redirect
+      console.log('✅ Login successful, redirecting...');
       if (onSuccess) {
         onSuccess();
       } else {
-        // Default redirect behavior
         window.location.href = redirectTo;
       }
     } catch (error) {
-      // Error is handled by the auth context
       console.error('Login failed:', error);
       setIsSubmitting(false);
     }
@@ -151,9 +142,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       const tenantId = authResponse.user.client;
       localStorage.setItem('tenantId', tenantId);
 
-      // Update auth context
-      await login(credentials);
-
       // Close modal
       setShow2FAModal(false);
       setRequires2FA(false);
@@ -163,7 +151,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       if (onSuccess) {
         onSuccess();
       } else {
-        // Default redirect behavior
         window.location.href = redirectTo;
       }
     } catch (error) {

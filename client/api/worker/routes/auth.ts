@@ -620,7 +620,7 @@ auth.post('/verify-2fa', async (c) => {
     // Verify session token
     let decoded: any;
     try {
-      decoded = await verify(session_token, c.env.JWT_SECRET);
+      decoded = await verify(session_token, c.env.JWT_SECRET, 'HS256');
       if (!decoded.is2FASession) {
         return c.json({ success: false, message: 'Invalid session token' }, 401);
       }
@@ -1472,11 +1472,15 @@ auth.post('/refresh', async (c) => {
     // Verify refresh token
     let decoded: any;
     try {
-      decoded = await verify(refreshTokenValue, c.env.JWT_SECRET);
+      console.log('[REFRESH] Verifying refresh token, length:', refreshTokenValue.length);
+      decoded = await verify(refreshTokenValue, c.env.JWT_SECRET, 'HS256');
+      console.log('[REFRESH] Token verified, decoded:', JSON.stringify(decoded));
       if (!decoded.isRefresh) {
+        console.log('[REFRESH] Token missing isRefresh claim');
         return c.json({ success: false, message: 'Invalid refresh token' }, 401);
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[REFRESH] Token verify error:', err?.message || err, 'name:', err?.name);
       return c.json({ success: false, message: 'Refresh token expired or invalid' }, 401);
     }
 

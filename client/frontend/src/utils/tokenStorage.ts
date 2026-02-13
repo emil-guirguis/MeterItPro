@@ -22,9 +22,18 @@ class TokenStorage {
    * Store authentication tokens
    */
   storeTokens(token: string, refreshToken: string, expiresIn: number, rememberMe: boolean = false): void {
+    // Clear tokens from BOTH storages first to prevent stale tokens
+    // from the other storage being picked up by getToken()/getRefreshToken()
+    [localStorage, sessionStorage].forEach(s => {
+      s.removeItem(this.TOKEN_KEY);
+      s.removeItem(this.REFRESH_TOKEN_KEY);
+      s.removeItem(this.TOKEN_DATA_KEY);
+      s.removeItem(this.EXPIRES_AT_KEY);
+    });
+
     const storage = rememberMe ? localStorage : sessionStorage;
     const expiresAt = Date.now() + (expiresIn * 1000);
-    
+
     const tokenData: TokenData = {
       token,
       refreshToken,
@@ -35,10 +44,10 @@ class TokenStorage {
     // Store individual tokens for backward compatibility
     storage.setItem(this.TOKEN_KEY, token);
     storage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
-    
+
     // Store complete token data
     storage.setItem(this.TOKEN_DATA_KEY, JSON.stringify(tokenData));
-    
+
     // Clear logout flag when storing new tokens (user is logging in)
     this.clearLogoutFlag();
   }
