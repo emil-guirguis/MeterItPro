@@ -33,7 +33,9 @@
       "Bash(npx wrangler pages deploy:*)",
       "Bash(python:*)",
       "Bash(__NEW_LINE_50f86a4471b973a4__ sleep 2)",
-      "Bash(__NEW_LINE_50f86a4471b973a4__ echo \"=== /location ===\")"
+      "Bash(__NEW_LINE_50f86a4471b973a4__ echo \"=== /location ===\")",
+      "Bash(npm run build:worker:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

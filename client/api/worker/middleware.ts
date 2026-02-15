@@ -90,7 +90,14 @@ export function requirePermission(permission: string) {
     const [module, action] = permission.split(':');
     const perms = user.permissions;
 
-    if (perms && typeof perms === 'object' && perms[module] && perms[module][action]) {
+    // Handle array format: ["dashboard:read", "meter:read"]
+    if (Array.isArray(perms)) {
+      if (perms.includes(permission)) {
+        return next();
+      }
+    }
+    // Handle nested object format: { dashboard: { read: true } }
+    else if (perms && typeof perms === 'object' && perms[module] && perms[module][action]) {
       return next();
     }
 
