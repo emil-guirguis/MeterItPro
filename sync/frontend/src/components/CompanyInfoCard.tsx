@@ -346,24 +346,13 @@ export default function CompanyInfoCard() {
         return;
       }
 
-      // Save tenant data (including api_key) to local database
-      try {
-        const syncedTenantInfo = await tenantApi.syncTenantToLocal(response.data.tenant);
+      // Use tenant data from response
+      setTenantInfo(response.data.tenant);
+      setShowLoginModal(false);
+      setLoginData({ email: '', apiKey: '' });
 
-        if (syncedTenantInfo) {
-          setTenantInfo(syncedTenantInfo);
-          setShowLoginModal(false);
-          setLoginData({ email: '', apiKey: '' });
-
-          // Refresh the page to load all components with new tenant data
-          setTimeout(() => window.location.reload(), 500);
-        } else {
-          setLoginError('Failed to save tenant data. Please try again.');
-        }
-      } catch (syncErr) {
-        console.error('Failed to save tenant:', syncErr);
-        setLoginError('Failed to save tenant data. Please try again.');
-      }
+      // Refresh the page to load all components with new tenant data
+      setTimeout(() => window.location.reload(), 500);
     } catch (err) {
       setLoginError(getErrorMessage(err));
       console.error('Connection error:', err);
