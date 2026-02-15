@@ -20506,7 +20506,7 @@ app15.get("/", async (c) => {
     const total = parseInt(countResult.rows[0].total, 10);
     const result = await query(
       c.env,
-      `SELECT report_id, name, type, schedule, recipients, config, enabled, created_at, updated_at
+      `SELECT report_id, name, type, schedule, recipients, config, active, created_at, updated_at
        FROM public.report ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
@@ -20531,7 +20531,7 @@ app15.get("/:id", async (c) => {
     if (isNaN(Number(id))) return c.json({ success: false, message: "Invalid report ID format" }, 400);
     const result = await query(
       c.env,
-      `SELECT report_id, name, type, schedule, recipients, config, enabled, created_at, updated_at
+      `SELECT report_id, name, type, schedule, recipients, config, active, created_at, updated_at
        FROM public.report WHERE report_id = $1`,
       [id]
     );
@@ -20595,7 +20595,7 @@ app15.put("/:id", async (c) => {
     values.push(id);
     const result = await query(
       c.env,
-      `UPDATE public.report SET ${updates.join(", ")} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, enabled, created_at, updated_at`,
+      `UPDATE public.report SET ${updates.join(", ")} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, active, created_at, updated_at`,
       values
     );
     if (result.rows.length === 0) return c.json({ success: false, message: "Failed to update report" }, 500);
@@ -20623,9 +20623,9 @@ app15.patch("/:id/toggle", async (c) => {
   try {
     const id = c.req.param("id");
     if (isNaN(Number(id))) return c.json({ success: false, message: "Invalid report ID format" }, 400);
-    const getResult = await query(c.env, "SELECT report_id, name, enabled FROM public.report WHERE report_id = $1", [id]);
+    const getResult = await query(c.env, "SELECT report_id, name, active FROM public.report WHERE report_id = $1", [id]);
     if (getResult.rows.length === 0) return c.json({ success: false, message: "Report not found" }, 404);
-    const newEnabled = !getResult.rows[0].enabled;
+    const newEnabled = !getResult.rows[0].active;
     const result = await query(
       c.env,
       "UPDATE public.report SET enabled = $1, updated_at = $2 WHERE report_id = $3 RETURNING report_id, name, enabled, updated_at",

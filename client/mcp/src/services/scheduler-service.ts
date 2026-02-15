@@ -10,7 +10,7 @@ export interface Report {
   schedule: string;
   recipients: string[];
   config: Record<string, any>;
-  enabled: boolean;
+  active: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -24,15 +24,15 @@ export class SchedulerService {
   }
 
   /**
-   * Initialize the scheduler by loading all enabled reports from the database
+   * Initialize the scheduler by loading all active reports from the database
    * and creating cron jobs for each one
    */
   async initialize(): Promise<void> {
     logger.info('Initializing SchedulerService...');
     
     try {
-      const reports = await this.loadEnabledReports();
-      logger.info(`Loaded ${reports.length} enabled reports from database`);
+      const reports = await this.loadActiveReports();
+      logger.info(`Loaded ${reports.length} active reports from database`);
       
       for (const report of reports) {
         await this.createJob(report);
@@ -48,21 +48,21 @@ export class SchedulerService {
   }
 
   /**
-   * Load all enabled reports from the database
+   * Load all active reports from the database
    */
-  private async loadEnabledReports(): Promise<Report[]> {
+  private async loadActiveReports(): Promise<Report[]> {
     try {
       const query = `
-        SELECT report_id as id, name, type, schedule, recipients, config, enabled, created_at, updated_at
+        SELECT report_id as id, name, type, schedule, recipients, config, active, created_at, updated_at
         FROM report
-        WHERE enabled = true
+        WHERE active = true
         ORDER BY created_at ASC
       `;
       
       const result = await db.query<Report>(query);
       return result.rows;
     } catch (error) {
-      logger.error('Failed to load enabled reports', {
+      logger.error('Failed to load active reports', {
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -131,8 +131,8 @@ export class SchedulerService {
         logger.info(`Stopped and removed old job for report ${report.id}`);
       }
 
-      // Create new job if report is enabled
-      if (report.enabled) {
+      // Create new job if report is active
+      if (report.active) {
         await this.createJob(report);
       } else {
         logger.info(`Report ${report.id} is disabled, not creating new job`);

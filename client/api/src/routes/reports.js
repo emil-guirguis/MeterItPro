@@ -175,7 +175,7 @@ router.get('/', asyncHandler(async (req, res) => {
     const total = parseInt(countResult.rows[0].total, 10);
 
     const query = `
-      SELECT report_id, name, type, schedule, recipients, config, enabled, created_at, updated_at
+      SELECT report_id, name, type, schedule, recipients, config, active, created_at, updated_at
       FROM public.report
       ORDER BY created_at DESC
       LIMIT $1 OFFSET $2
@@ -236,7 +236,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 
   try {
     const query = `
-      SELECT report_id, name, type, schedule, recipients, config, enabled, created_at, updated_at
+      SELECT report_id, name, type, schedule, recipients, config, active, created_at, updated_at
       FROM public.report
       WHERE report_id = $1
     `;
@@ -404,7 +404,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
 
     if (updates.length === 0) {
       const query = `
-        SELECT report_id, name, type, schedule, recipients, config, enabled, created_at, updated_at
+        SELECT report_id, name, type, schedule, recipients, config, active, created_at, updated_at
         FROM public.report
         WHERE report_id = $1
       `;
@@ -563,9 +563,9 @@ router.patch('/:id/toggle', asyncHandler(async (req, res) => {
 
     const updateQuery = `
       UPDATE public.report
-      SET enabled = $1, updated_at = $2
+      SET active = $1, updated_at = $2
       WHERE report_id = $3
-      RETURNING report_id, name, enabled, updated_at
+      RETURNING report_id, name, active, updated_at
     `;
 
     const updateResult = await db.query(updateQuery, [newEnabledStatus, new Date(), id]);

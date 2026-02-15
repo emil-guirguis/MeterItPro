@@ -51,9 +51,9 @@ app.post('/', async (c) => {
     const now = new Date();
     const result = await query(
       c.env,
-      `INSERT INTO public.report (name, type, schedule, recipients, config, enabled, created_at, updated_at)
+      `INSERT INTO public.report (name, type, schedule, recipients, config, active, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING report_id, name, type, schedule, recipients, config, enabled, created_at, updated_at`,
+       RETURNING report_id, name, type, schedule, recipients, config, active , created_at, updated_at`,
       [name.trim(), type.trim(), schedule.trim(), JSON.stringify(recipients), JSON.stringify(config || {}), true, now, now]
     );
 
@@ -85,7 +85,7 @@ app.get('/', async (c) => {
 
     const result = await query(
       c.env,
-      `SELECT report_id, name, type, schedule, recipients, config, enabled, created_at, updated_at
+      `SELECT report_id, name, type, schedule, recipients, config, active , created_at, updated_at
        FROM public.report ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
@@ -114,7 +114,7 @@ app.get('/:id', async (c) => {
 
     const result = await query(
       c.env,
-      `SELECT report_id, name, type, schedule, recipients, config, enabled, created_at, updated_at
+      `SELECT report_id, name, type, schedule, recipients, config, active, created_at, updated_at
        FROM public.report WHERE report_id = $1`,
       [id]
     );
@@ -179,7 +179,7 @@ app.put('/:id', async (c) => {
 
     const result = await query(
       c.env,
-      `UPDATE public.report SET ${updates.join(', ')} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, enabled, created_at, updated_at`,
+      `UPDATE public.report SET ${updates.join(', ')} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, active, created_at, updated_at`,
       values
     );
 
@@ -209,20 +209,20 @@ app.delete('/:id', async (c) => {
   }
 });
 
-// PATCH /:id/toggle - Toggle the enabled status
+// PATCH /:id/toggle - Toggle the active status
 app.patch('/:id/toggle', async (c) => {
   try {
     const id = c.req.param('id');
     if (isNaN(Number(id))) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
-    const getResult = await query(c.env, 'SELECT report_id, name, enabled FROM public.report WHERE report_id = $1', [id]);
+    const getResult = await query(c.env, 'SELECT report_id, name, active FROM public.report WHERE report_id = $1', [id]);
     if (getResult.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
 
-    const newEnabled = !getResult.rows[0].enabled;
+    const newActive = !getResult.rows[0].active;
     const result = await query(
       c.env,
-      'UPDATE public.report SET enabled = $1, updated_at = $2 WHERE report_id = $3 RETURNING report_id, name, enabled, updated_at',
-      [newEnabled, new Date(), id]
+      'UPDATE public.report SET active = $1, updated_at = $2 WHERE report_id = $3 RETURNING report_id, name, active, updated_at',
+      [newActive, new Date(), id]
     );
 
     if (result.rows.length === 0) return c.json({ success: false, message: 'Failed to toggle report status' }, 500);
@@ -232,7 +232,7 @@ app.patch('/:id/toggle', async (c) => {
       data: {
         id: result.rows[0].report_id,
         name: result.rows[0].name,
-        enabled: result.rows[0].enabled,
+        active: result.rows[0].active,
         updated_at: result.rows[0].updated_at,
       },
     });

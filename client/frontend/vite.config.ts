@@ -59,6 +59,7 @@ export default defineConfig({
     dedupe: [
       'react',
       'react-dom',
+      'react-router-dom',
       'scheduler',
       '@emotion/react',
       '@emotion/styled',
