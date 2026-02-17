@@ -15,8 +15,6 @@ export interface DeviceRegister {
   id: number;
   device_id: number;
   register_id: number;
-  created_at: string;
-  updated_at: string;
   register?: Register;
 }
 

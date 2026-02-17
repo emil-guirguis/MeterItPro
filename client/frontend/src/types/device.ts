@@ -4,6 +4,4 @@ export interface Device {
   manufacturer: string;
   model_number: string;
   description?: string;
-  created_at?: string;
-  updated_at?: string;
 }

@@ -71,8 +71,6 @@ export const deviceExportConfig: ExportConfig<Device> = {
     device.model_number || '',
     device.description || '',
     device.active ? 'Yes' : 'No',
-    device.created_at ? new Date(device.created_at).toISOString() : '',
-    device.updated_at ? new Date(device.updated_at).toISOString() : '',
   ],
   includeInfo: 'Device export with full details including type, manufacturer, model, and metadata',
 };
