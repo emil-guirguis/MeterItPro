@@ -13,7 +13,9 @@ router.get('/', requirePermission('device:read'), async (req, res) => {
     const {
       page = 1,
       limit = 25,
-      search
+      search,
+      sortBy,
+      sortOrder = 'ASC'
     } = req.query;
 
     // Build where clause for Device using framework filter processing
@@ -30,6 +32,15 @@ router.get('/', requirePermission('device:read'), async (req, res) => {
       limit: parseInt(limit),
       offset: (parseInt(page) - 1) * parseInt(limit),
     };
+
+    // Add sorting if specified
+    if (sortBy) {
+      const validSortColumns = ['device_id', 'manufacturer', 'model_number', 'description', 'type'];
+      if (validSortColumns.includes(sortBy)) {
+        const order = (sortOrder && sortOrder.toUpperCase() === 'DESC') ? 'DESC' : 'ASC';
+        options.order = [[sortBy, order]];
+      }
+    }
 
     // Get devices
     const result = await Device.findAll(options);
