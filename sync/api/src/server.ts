@@ -10,6 +10,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import swaggerUi from 'swagger-ui-express';
 import {
   initializePools,
   closePools,
@@ -35,6 +36,56 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Swagger documentation
+const swaggerSpec = {
+  openapi: '3.0.0',
+  info: {
+    title: 'MeterIt Pro Sync API',
+    version: '1.0.0',
+    description: 'Backend API for MeterIt Pro Sync Service',
+  },
+  servers: [
+    { url: 'http://localhost:3002', description: 'Local development' },
+    { url: 'http://127.0.0.1:3002', description: 'Local development (127.0.0.1)' },
+  ],
+  paths: {
+    '/health': {
+      get: {
+        summary: 'Health check',
+        tags: ['Health'],
+        responses: { 200: { description: 'OK' } },
+      },
+    },
+    '/api/health/sync-db': {
+      get: {
+        summary: 'Sync database health',
+        tags: ['Health'],
+        responses: { 200: { description: 'OK' }, 503: { description: 'Unavailable' } },
+      },
+    },
+    '/api/local/tenant': {
+      get: {
+        summary: 'Get tenant information',
+        tags: ['Tenant'],
+        responses: { 200: { description: 'Tenant data' }, 404: { description: 'Not found' } },
+      },
+      post: {
+        summary: 'Save tenant information',
+        tags: ['Tenant'],
+        responses: { 200: { description: 'Saved' }, 400: { description: 'Bad request' } },
+      },
+    },
+  },
+};
+
+// Setup Swagger UI
+const swaggerSetup = swaggerUi.setup(swaggerSpec);
+app.use('/swagger', swaggerUi.serve, swaggerSetup);
+app.get('/swagger/spec.json', (_req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.json(swaggerSpec);
+});
+
 // Request logging
 app.use((req, _res, next) => {
   console.log(`\n🌐 [API] ${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -43,11 +94,46 @@ app.use((req, _res, next) => {
 
 // ==================== ROUTES ====================
 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Basic health check
+ *     tags:
+ *       - Health
+ *     responses:
+ *       200:
+ *         description: Server is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: ok
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ */
 // Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+/**
+ * @swagger
+ * /api/health/sync-db:
+ *   get:
+ *     summary: Check local sync database health
+ *     tags:
+ *       - Health
+ *     responses:
+ *       200:
+ *         description: Database is healthy
+ *       503:
+ *         description: Database is unavailable
+ */
 // Health check for sync database
 app.get('/api/health/sync-db', async (_req, res) => {
   try {
@@ -66,6 +152,19 @@ app.get('/api/health/sync-db', async (_req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/health/remote-db:
+ *   get:
+ *     summary: Check remote client database health
+ *     tags:
+ *       - Health
+ *     responses:
+ *       200:
+ *         description: Database is healthy
+ *       503:
+ *         description: Database is unavailable
+ */
 // Health check for remote database
 app.get('/api/health/remote-db', async (_req, res) => {
   try {
@@ -84,6 +183,19 @@ app.get('/api/health/remote-db', async (_req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/health/mcp:
+ *   get:
+ *     summary: Check MCP server health
+ *     tags:
+ *       - Health
+ *     responses:
+ *       200:
+ *         description: MCP server is healthy
+ *       503:
+ *         description: MCP server is unavailable
+ */
 // Health check for MCP server (checks for recent activity in sync_log)
 app.get('/api/health/mcp', async (_req, res) => {
   try {
@@ -202,6 +314,42 @@ app.get('/api/health/remote-api', async (_req, res) => {
 });
 
 // Get tenant information from local database
+/**
+ * @swagger
+ * /api/local/tenant:
+ *   get:
+ *     summary: Get tenant information
+ *     tags:
+ *       - Tenant
+ *     responses:
+ *       200:
+ *         description: Tenant information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Tenant'
+ *       404:
+ *         description: No tenant found
+ *       500:
+ *         description: Server error
+ *   post:
+ *     summary: Save or update tenant information
+ *     tags:
+ *       - Tenant
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Tenant'
+ *     responses:
+ *       200:
+ *         description: Tenant saved successfully
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Server error
+ */
 app.get('/api/local/tenant', async (_req, res) => {
   try {
     console.log('📥 [API] GET /api/local/tenant - Request received');

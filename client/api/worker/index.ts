@@ -104,6 +104,118 @@ app.get('/api/health', async (c) => {
   }
 });
 
+// --- API Documentation ---
+
+// Serve Swagger UI HTML
+app.get('/swagger', (c) => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>MeterIt Pro Client API Documentation</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css">
+        <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/favicon-16x16.png" sizes="16x16" />
+        <style>
+          html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+          }
+          *,
+          *:before,
+          *:after {
+            box-sizing: inherit;
+          }
+          body {
+            margin: 0;
+            background: #fafafa;
+          }
+        </style>
+      </head>
+      <body>
+        <div id="swagger-ui"></div>
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-bundle.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-standalone-preset.js"></script>
+        <script>
+          window.onload = function() {
+            window.ui = SwaggerUIBundle({
+              urls: [ { url: "/swagger/spec.json", name: "MeterIt Pro Client API" } ],
+              dom_id: '#swagger-ui',
+              deepLinking: true,
+              presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIStandalonePreset
+              ],
+              plugins: [
+                SwaggerUIBundle.plugins.DownloadUrl
+              ],
+              layout: "StandaloneLayout"
+            });
+          };
+        </script>
+      </body>
+    </html>
+  `;
+  return c.html(html);
+});
+
+// Serve OpenAPI spec
+app.get('/swagger/spec.json', (c) => {
+  const spec = {
+    openapi: '3.0.0',
+    info: {
+      title: 'MeterIt Pro Client API',
+      version: '1.0.0',
+      description: 'Cloudflare Workers-based API for MeterIt Pro',
+    },
+    servers: [
+      { url: 'https://meteritpro.com/api', description: 'Production' },
+      { url: 'http://localhost:8787/api', description: 'Local development' },
+    ],
+    paths: {
+      '/health': {
+        get: {
+          summary: 'Health check',
+          tags: ['Health'],
+          responses: { 200: { description: 'OK' } },
+        },
+      },
+      '/auth/login': {
+        post: {
+          summary: 'User login',
+          tags: ['Auth'],
+          responses: { 200: { description: 'Login successful' }, 401: { description: 'Invalid credentials' } },
+        },
+      },
+      '/users/me': {
+        get: {
+          summary: 'Get current user',
+          tags: ['Users'],
+          responses: { 200: { description: 'User data' }, 401: { description: 'Unauthorized' } },
+        },
+      },
+      '/meters': {
+        get: {
+          summary: 'List meters',
+          tags: ['Meters'],
+          responses: { 200: { description: 'List of meters' }, 401: { description: 'Unauthorized' } },
+        },
+      },
+      '/sync/connect': {
+        post: {
+          summary: 'Connect sync client',
+          tags: ['Sync'],
+          responses: { 200: { description: 'Connected' }, 401: { description: 'Invalid credentials' } },
+        },
+      },
+    },
+  };
+  return c.json(spec);
+});
+
 // --- Mount route sub-apps ---
 
 app.route('/api/auth', authRoutes);

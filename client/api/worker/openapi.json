@@ -1,0 +1,417 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "MeterIt Pro Client API",
+    "version": "1.0.0",
+    "description": "Cloudflare Workers-based API for MeterIt Pro - Main client system API",
+    "contact": {
+      "name": "MeterIt Pro Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://meteritpro.com/api",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:8787/api",
+      "description": "Local development server"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "users_id": {
+            "type": "integer",
+            "description": "Unique user identifier"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email address"
+          },
+          "name": {
+            "type": "string",
+            "description": "User full name"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether user is active"
+          },
+          "tenant_id": {
+            "type": "integer",
+            "description": "Associated tenant ID"
+          }
+        },
+        "required": ["users_id", "email", "name"]
+      },
+      "Tenant": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "type": "integer",
+            "description": "Unique tenant identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Company name"
+          },
+          "url": {
+            "type": "string",
+            "description": "Company website URL"
+          },
+          "street": {
+            "type": "string",
+            "description": "Street address"
+          },
+          "city": {
+            "type": "string",
+            "description": "City"
+          },
+          "state": {
+            "type": "string",
+            "description": "State/Province"
+          },
+          "zip": {
+            "type": "string",
+            "description": "Postal code"
+          },
+          "country": {
+            "type": "string",
+            "description": "Country"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether tenant is active"
+          }
+        },
+        "required": ["tenant_id", "name"]
+      },
+      "Meter": {
+        "type": "object",
+        "properties": {
+          "meter_id": {
+            "type": "integer",
+            "description": "Unique meter identifier"
+          },
+          "tenant_id": {
+            "type": "integer",
+            "description": "Associated tenant ID"
+          },
+          "device_id": {
+            "type": "integer",
+            "description": "Associated device ID"
+          },
+          "ip": {
+            "type": "string",
+            "description": "Meter IP address"
+          },
+          "port": {
+            "type": "integer",
+            "description": "Meter port"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether meter is active"
+          }
+        },
+        "required": ["meter_id", "tenant_id"]
+      },
+      "MeterReading": {
+        "type": "object",
+        "properties": {
+          "meter_reading_id": {
+            "type": "integer",
+            "description": "Unique reading identifier"
+          },
+          "meter_id": {
+            "type": "integer",
+            "description": "Associated meter ID"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Reading timestamp"
+          },
+          "active_energy": {
+            "type": "number",
+            "description": "Active energy reading"
+          },
+          "power": {
+            "type": "number",
+            "description": "Power reading"
+          },
+          "voltage_p_n": {
+            "type": "number",
+            "description": "Phase-to-neutral voltage"
+          }
+        },
+        "required": ["meter_reading_id", "meter_id"]
+      },
+      "HealthCheck": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["OK", "Error"],
+            "description": "Health status"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Check timestamp"
+          },
+          "database": {
+            "type": "string",
+            "description": "Database connection status"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token for authentication"
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key for server-to-server authentication"
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check endpoint",
+        "tags": ["Health"],
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheck"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "User login",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "summary": "Get current user information",
+        "tags": ["Users"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User information retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/meters": {
+      "get": {
+        "summary": "List all meters",
+        "tags": ["Meters"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of meters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Meter"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/meterreadings": {
+      "get": {
+        "summary": "Get meter readings",
+        "tags": ["Meter Readings"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meterId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Filter by meter ID"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 100
+            },
+            "description": "Maximum number of results"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of meter readings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeterReading"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/sync/connect": {
+      "post": {
+        "summary": "Connect sync client to remote API",
+        "tags": ["Sync"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "apiKey": {
+                    "type": "string"
+                  }
+                },
+                "required": ["email", "apiKey"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connection successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "tenant": {
+                          "$ref": "#/components/schemas/Tenant"
+                        },
+                        "user": {
+                          "$ref": "#/components/schemas/User"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    }
+  }
+}
