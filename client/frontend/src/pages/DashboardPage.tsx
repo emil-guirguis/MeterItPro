@@ -397,10 +397,14 @@ export const DashboardPage: React.FC = () => {
     );
   }, (prevProps, nextProps) => {
     // Only re-render if these props change
-    return prevProps.isOpen === nextProps.isOpen && 
+    return prevProps.isOpen === nextProps.isOpen &&
            prevProps.card === nextProps.card &&
            prevProps.onClose === nextProps.onClose &&
-           prevProps.onSuccess === nextProps.onSuccess;
+           prevProps.onSuccess === nextProps.onSuccess &&
+           prevProps.meterElements === nextProps.meterElements &&
+           prevProps.meters === nextProps.meters &&
+           prevProps.powerColumns === nextProps.powerColumns &&
+           prevProps.loading === nextProps.loading;
   });
 
   return (
