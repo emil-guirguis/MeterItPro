@@ -124,12 +124,10 @@ export const DashboardPage: React.FC = () => {
   // Fetch meter elements for the selected meter
   const fetchMeterElements = useCallback(async (meterId: number) => {
     try {
-      console.log('📋 [DashboardPage] Fetching meter elements for meter:', meterId);
       const elementsData = await dashboardService.getMeterElementsByMeter(meterId);
-      console.log('📋 [DashboardPage] Meter elements received:', elementsData);
       setMeterElements(elementsData);
     } catch (err) {
-      console.error('❌ [DashboardPage] Error fetching meter elements:', err);
+      console.error('Error fetching meter elements:', err);
       setMeterElements([]);
     }
   }, []);

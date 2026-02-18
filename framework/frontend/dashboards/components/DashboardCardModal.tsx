@@ -119,11 +119,6 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
     setErrors({});
   }, [isOpen, card]);
 
-  // Debug logging for meter elements
-  useEffect(() => {
-    console.log('📋 [DashboardCardModal] meterElements updated:', meterElements, 'selectedMeterId:', selectedMeterId);
-  }, [meterElements, selectedMeterId]);
-
   // Validate form data
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};

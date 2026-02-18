@@ -18137,7 +18137,7 @@ app13.get("/meters", requirePermission("dashboard:read"), async (c) => {
     return c.json({ success: false, message: "Failed to fetch meters" }, 500);
   }
 });
-app13.get("/meters/:meterId/elements", requirePermission("dashboard:read"), async (c) => {
+app13.get("/meters/:meterId/elements", authenticateToken, async (c) => {
   try {
     const tenantId = c.get("tenantId");
     if (!tenantId) return c.json({ success: false, message: "User must have a valid tenant_id" }, 400);
