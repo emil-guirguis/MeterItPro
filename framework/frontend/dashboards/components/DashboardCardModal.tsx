@@ -29,7 +29,7 @@ export interface DashboardCardModalProps {
   isOpen: boolean;
   card?: any | null;
   meters: Array<{ id: number; name: string }>;
-  meterElements: Array<{ id: number; name: string; element?: string }>;
+  meterElements: Array<{ meter_element_id: number; name: string; element?: string }>;
   powerColumns: Array<{ name: string; label: string; type?: string }>;
   loading?: boolean;
   error?: string | null;
@@ -136,7 +136,7 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
     } else if (selectedMeterId) {
       // Validate that selected element exists in the provided list
       const selectedElement = meterElements.find(
-        el => el.id.toString() === formData.meter_element_id
+        el => el.meter_element_id.toString() === formData.meter_element_id
       );
       if (!selectedElement) {
         newErrors.meter_element_id = 'Selected meter element is not available';
@@ -358,7 +358,7 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
                 <em>-- Select a meter element --</em>
               </MenuItem>
               {meterElements && meterElements.length > 0 && meterElements.map(element => (
-                <MenuItem key={element.id} value={element.id.toString()}>
+                <MenuItem key={element.meter_element_id} value={element.meter_element_id.toString()}>
                   {element.element ? `${element.element} - ${element.name}` : element.name}
                 </MenuItem>
               ))}

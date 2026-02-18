@@ -267,17 +267,11 @@ class DashboardService {
   }
 
   // Get all meter elements for a specific meter
-  async getMeterElementsByMeter(meterId: number): Promise<Array<{ id: number; element: string; name: string; meter_id: number }>> {
+  async getMeterElementsByMeter(meterId: number): Promise<Array<{ meter_element_id: number; element: string; name: string; meter_id: number }>> {
     try {
       const response: AxiosResponse<{ success: boolean; data: Array<{ meter_element_id: number; element: string; name: string; meter_id: number }> }> =
         await this.apiClient.get(`/dashboard/meters/${meterId}/elements`);
-      // Map meter_element_id to id for frontend consistency
-      return response.data.data.map(item => ({
-        id: item.meter_element_id,
-        element: item.element,
-        name: item.name,
-        meter_id: item.meter_id
-      }));
+      return response.data.data;
     } catch (error) {
       console.error(`Failed to fetch meter elements for meter ${meterId}:`, error);
       return [];
