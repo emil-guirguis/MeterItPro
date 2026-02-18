@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { DeviceList } from './DeviceList';
 import { DeviceForm } from './DeviceForm';
 import { FormModal } from '@framework/components/modal';
-import { AppLayoutWrapper } from '../../components/layout/AppLayoutWrapper';
 import type { Device } from './deviceConfig';
 
 export const DeviceManagementPage: React.FC = () => {
@@ -20,8 +19,7 @@ export const DeviceManagementPage: React.FC = () => {
   };
 
   return (
-    <AppLayoutWrapper title="Device Management">
-      <div className="entity-management-page">
+    <div className="entity-management-page">
         <DeviceList onDeviceView={handleDeviceView} />
 
         <FormModal
@@ -40,6 +38,5 @@ export const DeviceManagementPage: React.FC = () => {
           )}
         </FormModal>
       </div>
-    </AppLayoutWrapper>
   );
 };

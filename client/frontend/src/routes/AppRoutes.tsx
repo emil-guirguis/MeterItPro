@@ -1,7 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute, AuthGuard } from '../components/auth';
-import AppLayoutWrapper from '../components/layout/AppLayoutWrapper';
 import LoginPage from '../pages/LoginPage';
 import LandingPage from '../pages/LandingPage';
 import SignupPage from '../pages/SignupPage';
@@ -18,27 +17,18 @@ const MetersPage = lazy(() => import('../pages').then(m => ({ default: m.MetersP
 const ReportsPage = lazy(() => import('../pages').then(m => ({ default: m.ReportsPage })));
 import ManagementForm from '../components/management/ManagementForm';
 
-// Dashboard Page with Layout
-const DashboardPageWrapper = () => (
-  <AppLayoutWrapper title="Dashboard">
-    <DashboardPage />
-  </AppLayoutWrapper>
-);
-
-
+// Unauthorized page
 const UnauthorizedPage = () => (
-  <AppLayoutWrapper title="Unauthorized">
-    <div className="unauthorized-page">
-      <h2>Access Denied</h2>
-      <p>You don't have permission to access this page.</p>
-    </div>
-  </AppLayoutWrapper>
+  <div className="unauthorized-page">
+    <h2>Access Denied</h2>
+    <p>You don't have permission to access this page.</p>
+  </div>
 );
 
 const AppRoutes: React.FC = () => {
   return (
-      <Suspense fallback={<div>Loading...</div>}>
-        <Routes>
+    <Suspense fallback={<div>Loading...</div>}>
+      <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
@@ -52,7 +42,7 @@ const AppRoutes: React.FC = () => {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <DashboardPageWrapper />
+              <DashboardPage />
             </ProtectedRoute>
           }
         />
@@ -62,9 +52,7 @@ const AppRoutes: React.FC = () => {
           path="/security/2fa"
           element={
             <ProtectedRoute>
-              <AppLayoutWrapper title="Two-Factor Authentication">
-                <TwoFactorManagementPage />
-              </AppLayoutWrapper>
+              <TwoFactorManagementPage />
             </ProtectedRoute>
           }
         />
@@ -106,9 +94,7 @@ const AppRoutes: React.FC = () => {
           path="/meter-readings"
           element={
             <ProtectedRoute>
-              <AppLayoutWrapper title="Meter Readings">
-                <MeterReadingsPage />
-              </AppLayoutWrapper>
+              <MeterReadingsPage />
             </ProtectedRoute>
           }
         />
@@ -121,9 +107,7 @@ const AppRoutes: React.FC = () => {
               requiredPermissions={[Permission.SETTINGS_READ, Permission.SETTINGS_UPDATE]}
               requireAll={false}
             >
-              <AppLayoutWrapper title="Settings">
-                <SettingsPage />
-              </AppLayoutWrapper>
+              <SettingsPage />
             </AuthGuard>
           }
         />
@@ -143,9 +127,7 @@ const AppRoutes: React.FC = () => {
           path="/meters"
           element={
             <AuthGuard requiredPermissions={[Permission.METER_READ]}>
-              <AppLayoutWrapper title="Meters">
-                <MetersPage />
-              </AppLayoutWrapper>
+              <MetersPage />
             </AuthGuard>
           }
         />
@@ -155,42 +137,28 @@ const AppRoutes: React.FC = () => {
           path="/reports"
           element={
             <ProtectedRoute>
-              <AppLayoutWrapper title="Reports">
-                <ReportsPage />
-              </AppLayoutWrapper>
+              <ReportsPage />
             </ProtectedRoute>
           }
         />
-
-        {/* Email Templates Module Placeholder
-        <Route
-          path="/templates"
-          element={
-            <AuthGuard requiredPermissions={[Permission.TEMPLATE_READ]}>
-              <TemplatesPage />
-            </AuthGuard>
-          }
-        /> */}
 
         {/* Management Route */}
         <Route
           path="/management"
           element={
             <AuthGuard requiredPermissions={[Permission.TEMPLATE_READ]}>
-              <AppLayoutWrapper title="Management">
-                <ManagementForm />
-              </AppLayoutWrapper>
+              <ManagementForm />
             </AuthGuard>
           }
         />
 
         {/* Landing page */}
         <Route path="/" element={<LandingPage />} />
-        
+
         {/* Catch all - redirect to landing */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      </Suspense>
+    </Suspense>
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import type { SidebarMetersProps, Meter, Favorite, SelectedItem, FavoriteDisplay, MeterElement } from './types';
 import { MetersList } from './MetersList';
 import { FavoritesSection } from './FavoritesSection';
@@ -11,6 +11,16 @@ import './SidebarMetersSection.css';
  * Main container component that manages the sidebar section
  * Handles data loading, state management, and user interactions
  */
+/**
+ * Cache to persist sidebar data across component remounts
+ * This prevents unnecessary API calls when navigating between routes
+ */
+const sidebarDataCache = new Map<string, {
+  meters: Meter[];
+  favorites: Favorite[];
+  meterElements: { [meterId: string]: MeterElement[] };
+}>();
+
 export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
   tenantId,
   userId,
@@ -25,6 +35,10 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Cache key for this tenant/user combination
+  const cacheKey = `${tenantId}:${userId}`;
+
+
   /**
    * Load meters and favorites from API
    */
@@ -37,7 +51,7 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
 
       // Load meters with elements and favorite status in one call
       const metersData = await favoritesService.getMetersWithElements(parseInt(tenantId), parseInt(userId));
-      
+
       // Extract meters and elements from the response
       const meters = metersData.map(m => ({
         id: m.id,
@@ -60,6 +74,13 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
       setMeters(meters);
       setFavorites(allFavorites);
       setMeterElements(allElements);
+
+      // Cache the data
+      sidebarDataCache.set(cacheKey, {
+        meters,
+        favorites: allFavorites,
+        meterElements: allElements
+      });
     } catch (err) {
       const message = handleApiError(err);
       setError(message);
@@ -67,14 +88,27 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [tenantId, userId]);
+  }, [tenantId, userId, cacheKey]);
 
   /**
    * Load meters and favorites on component mount
+   * First try to restore from cache to avoid flickering
    */
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    // Try to restore from cache first
+    const cachedData = sidebarDataCache.get(cacheKey);
+    if (cachedData) {
+      setMeters(cachedData.meters);
+      setFavorites(cachedData.favorites);
+      setMeterElements(cachedData.meterElements);
+      setLoading(false);
+      // Still refresh in the background to get latest data
+      loadData();
+    } else {
+      // No cache, load from API
+      loadData();
+    }
+  }, [cacheKey, loadData]);
 
   /**
    * Handle meter expansion/collapse

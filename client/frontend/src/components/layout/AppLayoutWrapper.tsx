@@ -6,7 +6,7 @@
  * with client-specific hooks, state, and configuration.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@framework/layout';
 import type { LayoutProps, MenuItem, AppLayoutConfig } from '@framework/layout';
@@ -42,6 +42,21 @@ if (!iconsRegistered) {
   registerIconMappings(appIconMappings);
   iconsRegistered = true;
 }
+
+/**
+ * Memoized version of SidebarMetersSection to prevent remounting when parent route changes
+ * Only re-renders when its own props change
+ */
+const MemoizedSidebarMetersSection = React.memo(SidebarMetersSection, (prevProps, nextProps) => {
+  // Return true if props are equal (no re-render needed)
+  // Return false if props changed (re-render needed)
+  return (
+    prevProps.tenantId === nextProps.tenantId &&
+    prevProps.userId === nextProps.userId &&
+    prevProps.onMeterSelect === nextProps.onMeterSelect &&
+    prevProps.onMeterElementSelect === nextProps.onMeterElementSelect
+  );
+});
 
 // Client-specific menu configuration
 const menuItems: MenuItem[] = [
@@ -150,6 +165,45 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
   // Get UI state
   const uiState = useUI();
 
+  // Memoize meter selection callback to prevent sidebar remount on route change
+  const handleMeterSelect = useCallback(
+    (meterId, meterName) => {
+      console.log('[AppLayoutWrapper] Meter selected:', meterId, 'name:', meterName);
+      console.log('[AppLayoutWrapper] Setting selectedMeter in context with name:', meterName);
+      setSelectedMeter(meterId, meterName);
+      setSelectedElement(null);
+      console.log('[AppLayoutWrapper] Context updated');
+      console.log('[AppLayoutWrapper] Navigating to /meter-readings');
+      navigate('/meter-readings');
+    },
+    [setSelectedMeter, setSelectedElement, navigate]
+  );
+
+  // Memoize meter element selection callback to prevent sidebar remount on route change
+  const handleMeterElementSelect = useCallback(
+    (meterId, elementId, elementName, elementNumber, gridType) => {
+      console.log('[AppLayoutWrapper] ===== METER ELEMENT SELECT =====');
+      console.log('[AppLayoutWrapper] Meter element selected:', meterId, elementId, 'name:', elementName, 'number:', elementNumber);
+      console.log('[AppLayoutWrapper] gridType:', gridType);
+      console.log('[AppLayoutWrapper] meterId type:', typeof meterId, 'elementId type:', typeof elementId);
+      console.log('[AppLayoutWrapper] Setting selectedMeter and selectedElement in context');
+      setSelectedMeter(meterId);
+      setSelectedElement(elementId, elementName, elementNumber);
+      console.log('[AppLayoutWrapper] Context updated');
+      const params = new URLSearchParams();
+      params.set('meterId', meterId);
+      params.set('elementId', elementId);
+      if (elementName) params.set('elementName', elementName);
+      if (elementNumber) params.set('elementNumber', String(elementNumber));
+      if (gridType) params.set('gridType', gridType);
+      const url = `/meter-readings?${params.toString()}`;
+      console.log('[AppLayoutWrapper] Navigating to:', url);
+      navigate(url);
+      console.log('[AppLayoutWrapper] ===== METER ELEMENT SELECT COMPLETE =====');
+    },
+    [setSelectedMeter, setSelectedElement, navigate]
+  );
+
   // Build configuration
   const config: AppLayoutConfig = {
     menuItems,
@@ -167,38 +221,11 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
     responsive,
     uiState,
     sidebarContent: user ? (
-      <SidebarMetersSection
+      <MemoizedSidebarMetersSection
         tenantId={user.client || '1'}
         userId={user.users_id || '1'}
-        onMeterSelect={(meterId, meterName) => {
-          console.log('[AppLayoutWrapper] Meter selected:', meterId, 'name:', meterName);
-          console.log('[AppLayoutWrapper] Setting selectedMeter in context with name:', meterName);
-          setSelectedMeter(meterId, meterName);
-          setSelectedElement(null);
-          console.log('[AppLayoutWrapper] Context updated');
-          console.log('[AppLayoutWrapper] Navigating to /meter-readings');
-          navigate('/meter-readings');
-        }}
-        onMeterElementSelect={(meterId, elementId, elementName, elementNumber, gridType) => {
-          console.log('[AppLayoutWrapper] ===== METER ELEMENT SELECT =====');
-          console.log('[AppLayoutWrapper] Meter element selected:', meterId, elementId, 'name:', elementName, 'number:', elementNumber);
-          console.log('[AppLayoutWrapper] gridType:', gridType);
-          console.log('[AppLayoutWrapper] meterId type:', typeof meterId, 'elementId type:', typeof elementId);
-          console.log('[AppLayoutWrapper] Setting selectedMeter and selectedElement in context');
-          setSelectedMeter(meterId);
-          setSelectedElement(elementId, elementName, elementNumber);
-          console.log('[AppLayoutWrapper] Context updated');
-          const params = new URLSearchParams();
-          params.set('meterId', meterId);
-          params.set('elementId', elementId);
-          if (elementName) params.set('elementName', elementName);
-          if (elementNumber) params.set('elementNumber', String(elementNumber));
-          if (gridType) params.set('gridType', gridType);
-          const url = `/meter-readings?${params.toString()}`;
-          console.log('[AppLayoutWrapper] Navigating to:', url);
-          navigate(url);
-          console.log('[AppLayoutWrapper] ===== METER ELEMENT SELECT COMPLETE =====');
-        }}
+        onMeterSelect={handleMeterSelect}
+        onMeterElementSelect={handleMeterElementSelect}
       />
     ) : undefined,
   };

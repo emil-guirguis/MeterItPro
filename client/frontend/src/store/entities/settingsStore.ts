@@ -36,26 +36,34 @@ const settingsService = {
     return withTokenRefresh(async () => {
       const token = authService.getStoredToken();
       console.log('Fetching settings with token:', token ? 'Present' : 'Missing');
-      
+
       const response = await fetch('/api/settings/company', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       console.log('Settings response status:', response.status);
-      const result = await response.json();
-      console.log('Settings response:', result);
-      
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to fetch settings');
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        throw new Error(`Failed to fetch settings: ${response.status} ${response.statusText}`);
       }
-      
+
+      console.log('Settings response:', result);
+
+      if (!response.ok) {
+        throw new Error(result?.message || `Failed to fetch settings: ${response.status}`);
+      }
+
       if (!result.success) {
         throw new Error(result.message || 'Failed to fetch settings');
       }
-      
+
       return result.data;
     });
   },
@@ -71,17 +79,23 @@ const settingsService = {
         },
         body: JSON.stringify(updates)
       });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to update settings');
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        throw new Error(`Failed to update settings: ${response.status} ${response.statusText}`);
       }
-      
+
+      if (!response.ok) {
+        throw new Error(result?.message || `Failed to update settings: ${response.status}`);
+      }
+
       if (!result.success) {
         throw new Error(result.message || 'Failed to update settings');
       }
-      
+
       return result.data;
     });
   }

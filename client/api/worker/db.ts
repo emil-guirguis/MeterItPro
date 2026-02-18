@@ -8,15 +8,17 @@
 import { Client } from 'pg';
 
 export interface Env {
-  DATABASE_URL: string;
+  DATABASE_URL?: string;
   JWT_SECRET: string;
   JWT_EXPIRES_IN?: string;
   FRONTEND_URL?: string;
-  HYPERDRIVE: { connectionString: string };
+  HYPERDRIVE: any;
 }
 
 export async function query(env: Env, text: string, params: any[] = []) {
-  const client = new Client({ connectionString: env.HYPERDRIVE.connectionString });
+  // For local development, use DATABASE_URL if available; otherwise use HYPERDRIVE
+  const config = env.DATABASE_URL ? { connectionString: env.DATABASE_URL } : env.HYPERDRIVE;
+  const client = new Client(config);
   await client.connect();
   try {
     return await client.query(text, params);
@@ -26,7 +28,9 @@ export async function query(env: Env, text: string, params: any[] = []) {
 }
 
 export async function transaction<T>(env: Env, callback: (client: Client) => Promise<T>): Promise<T> {
-  const client = new Client({ connectionString: env.HYPERDRIVE.connectionString });
+  // For local development, use DATABASE_URL if available; otherwise use HYPERDRIVE
+  const config = env.DATABASE_URL ? { connectionString: env.DATABASE_URL } : env.HYPERDRIVE;
+  const client = new Client(config);
   await client.connect();
   try {
     await client.query('BEGIN');

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import AppRoutes from './routes/AppRoutes';
+import AppLayoutWrapper from './components/layout/AppLayoutWrapper';
 import { prefetchAppSchemas } from './utils/schemaPrefetch';
 import { invalidateExpiredCache } from '@framework/components/form/utils/schemaLoader';
 import { useAuth } from './hooks/useAuth';
@@ -42,7 +43,14 @@ function App() {
   return (
     <NotificationProvider>
       <MeterSelectionProvider>
-        <AppRoutes />
+        {/* Only show layout for authenticated routes */}
+        {isAuthenticated && !isLoading ? (
+          <AppLayoutWrapper>
+            <AppRoutes />
+          </AppLayoutWrapper>
+        ) : (
+          <AppRoutes />
+        )}
       </MeterSelectionProvider>
     </NotificationProvider>
   );
