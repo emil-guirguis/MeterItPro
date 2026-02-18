@@ -47,7 +47,10 @@
       "Bash(path=\"c:/Projects/MeterItPro/client/api/worker/routes/$file\")",
       "Bash(if grep -q \"import { logError }\" \"$path\")",
       "Bash(wrangler deploy:*)",
-      "Bash(wrangler dev:*)"
+      "Bash(wrangler dev:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git reset:*)"
     ]
   }
 }

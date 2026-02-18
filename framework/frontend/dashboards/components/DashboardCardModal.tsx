@@ -88,7 +88,7 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
   // Initialize form ONLY when modal first opens
   useEffect(() => {
     if (!isOpen) return;
-    
+
     if (card) {
       setFormData({
         card_name: card.card_name || '',
@@ -118,6 +118,11 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
     }
     setErrors({});
   }, [isOpen, card]);
+
+  // Debug logging for meter elements
+  useEffect(() => {
+    console.log('📋 [DashboardCardModal] meterElements updated:', meterElements, 'selectedMeterId:', selectedMeterId);
+  }, [meterElements, selectedMeterId]);
 
   // Validate form data
   const validateForm = (): boolean => {
