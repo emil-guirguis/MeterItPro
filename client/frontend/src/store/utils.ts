@@ -185,7 +185,7 @@ export const createListState = (): ListState => {
     total: 0,
     search: '',
     filters: {},
-    sortBy: 'createdAt',
+    sortBy: '',
     sortOrder: 'desc',
     loading: false,
     error: null

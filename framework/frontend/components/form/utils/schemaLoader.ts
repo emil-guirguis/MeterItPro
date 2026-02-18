@@ -67,6 +67,7 @@ export interface BackendSchema {
     }>;
   }>;
   formMaxWidth?: string | null;
+  defaultSort?: string;
   relationships: Record<string, any>;
   validation: Record<string, any>;
   version: string;
@@ -255,6 +256,7 @@ export interface ConvertedSchema {
   entityName: string;
   description: string;
   formMaxWidth?: string | null;
+  defaultSort?: string;
   relationships: Record<string, any>;
   /**
    * Primary key field name in backend schema (e.g., 'contact_id')
@@ -313,6 +315,7 @@ export function convertSchema(backendSchema: BackendSchema): ConvertedSchema {
     entityName: backendSchema.entityName,
     description: backendSchema.description,
     formMaxWidth: backendSchema.formMaxWidth || null,
+    defaultSort: backendSchema.defaultSort,
     relationships: backendSchema.relationships,
     idFieldName,
   };

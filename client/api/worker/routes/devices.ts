@@ -10,6 +10,7 @@ import { Hono } from 'hono';
 import { query, transaction, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
+import { deviceSchema } from './deviceSchema';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -22,17 +23,18 @@ app.use('*', authenticateToken);
 app.get('/', requirePermission('device:read'), async (c) => {
   try {
     const qs = c.req.query();
-    const tenantId = c.get('tenantId');
+
+    // Use defaultSort from schema if sortBy is not provided
+    const sortBy = qs.sortBy || deviceSchema.defaultSort;
 
     const result = await findAll(c.env, {
       table: 'device',
       primaryKey: 'device_id',
-      tenantId,
       page: parseInt(qs.page || '1', 10),
       limit: parseInt(qs.limit || '25', 10),
       search: qs.search || undefined,
       searchFields: ['description'],
-      sortBy: qs.sortBy,
+      sortBy,
       sortOrder: qs.sortOrder,
     });
 

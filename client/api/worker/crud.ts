@@ -8,7 +8,7 @@ import { query, transaction, Env } from './db';
 export interface FindAllOptions {
   table: string;
   primaryKey: string;
-  tenantId: number;
+  tenantId?: number;
   page?: number;
   limit?: number;
   search?: string;
@@ -64,9 +64,16 @@ export async function findAll(env: Env, opts: FindAllOptions): Promise<FindAllRe
     }
   }
 
-  const params: any[] = [tenantId];
-  let paramIdx = 2;
-  let whereClauses = [`${table}.tenant_id = $1`];
+  const params: any[] = [];
+  let paramIdx = 1;
+  let whereClauses: string[] = [];
+
+  // Add tenant filter if tenantId is provided
+  if (tenantId !== undefined) {
+    whereClauses.push(`${table}.tenant_id = $${paramIdx}`);
+    params.push(tenantId);
+    paramIdx++;
+  }
 
   // Search filter
   if (search && searchFields.length > 0) {
@@ -94,15 +101,21 @@ export async function findAll(env: Env, opts: FindAllOptions): Promise<FindAllRe
   const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
   // Count query
-  const countResult = await query(env, `SELECT COUNT(*) as total FROM ${table} ${joins} ${whereSQL}`, params);
+  const countSql = `SELECT COUNT(*) as total FROM ${table} ${joins} ${whereSQL}`;
+  console.log('[findAll] COUNT SQL:', countSql);
+  console.log('[findAll] COUNT params:', params);
+  const countResult = await query(env, countSql, params);
   const total = parseInt(countResult.rows[0].total, 10);
 
   // Data query
   const offset = (page - 1) * limit;
   const dataParams = [...params, limit, offset];
+  const dataSql = `SELECT ${selectFields} FROM ${table} ${joins} ${whereSQL} ORDER BY ${orderBy} LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
+  console.log('[findAll] DATA SQL:', dataSql);
+  console.log('[findAll] DATA params:', dataParams);
   const dataResult = await query(
     env,
-    `SELECT ${selectFields} FROM ${table} ${joins} ${whereSQL} ORDER BY ${orderBy} LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+    dataSql,
     dataParams
   );
 

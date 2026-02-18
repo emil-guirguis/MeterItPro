@@ -212,6 +212,7 @@ function tab(config) {
  * @param {Object} [definition.formFields] - Fields that appear in forms (user-editable) - OPTIONAL if formTabs is provided
  * @param {Array<Object>} [definition.formTabs] - Hierarchical tab/section/field organization with embedded field definitions
  * @param {string} [definition.formMaxWidth] - CSS max-width for the form element (e.g., '600px')
+ * @param {string} [definition.defaultSortBy] - Default field to sort by in list views (defaults to first visible list field)
  * @param {Object} [definition.entityFields] - Additional fields in entity (read-only, computed)
  * @param {Object} [definition.relationships] - Entity relationships
  * @param {Object} [definition.validation] - Entity-level validation rules
@@ -250,6 +251,28 @@ function defineSchema(definition) {
     formFields = { ...extractedFields, ...formFields };
   }
 
+  // Determine default sort by (use provided value, or first field with showOn: ['list'])
+  let defaultSortBy = definition.defaultSortBy || null;
+  if (!defaultSortBy && definition.formTabs && Array.isArray(definition.formTabs)) {
+    // Find first field that appears in list
+    for (const tab of definition.formTabs) {
+      if (tab.sections && Array.isArray(tab.sections)) {
+        for (const section of tab.sections) {
+          if (section.fields && Array.isArray(section.fields)) {
+            for (const fieldDef of section.fields) {
+              if (fieldDef.showOn && fieldDef.showOn.includes('list')) {
+                defaultSortBy = fieldDef.name;
+                break;
+              }
+            }
+            if (defaultSortBy) break;
+          }
+        }
+        if (defaultSortBy) break;
+      }
+    }
+  }
+
   const schema = {
     entityName: definition.entityName,
     tableName: definition.tableName,
@@ -257,6 +280,7 @@ function defineSchema(definition) {
     formFields: formFields,
     formTabs: definition.formTabs || null,
     formMaxWidth: definition.formMaxWidth || null,
+    defaultSortBy: defaultSortBy,
     entityFields: definition.entityFields || {},
     relationships: definition.relationships || {},
     validation: definition.validation || {},

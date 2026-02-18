@@ -254,7 +254,7 @@ export const createEntityStore = <T extends { id: string }>(
 
         try {
           // If params provided with real properties (not just _bypassCache), use them; otherwise use store state
-          const queryParams = hasRealParams ? params : {
+          let queryParams = hasRealParams ? params : {
             page: state.list.page,
             pageSize: state.list.pageSize,
             search: state.list.search,
@@ -262,6 +262,24 @@ export const createEntityStore = <T extends { id: string }>(
             sortBy: state.list.sortBy,
             sortOrder: state.list.sortOrder,
           };
+
+          // If sortBy is empty or invalid, try to load schema default
+          if (!queryParams.sortBy) {
+            try {
+              const schema = await loadSchema(options.name);
+              if (schema?.defaultSort) {
+                queryParams.sortBy = schema.defaultSort;
+                console.log('[fetchItems] Using default sortBy from schema:', queryParams.sortBy);
+              } else {
+                // If no sortBy and no default, don't send sortOrder either
+                queryParams.sortOrder = undefined;
+              }
+            } catch (e) {
+              console.warn('[fetchItems] Could not load schema for default sortBy:', e);
+              // If schema load failed, don't send sortOrder without sortBy
+              queryParams.sortOrder = undefined;
+            }
+          }
 
           console.log('[fetchItems] Calling service.getAll with queryParams:', queryParams);
           const response = await service.getAll(queryParams);
@@ -273,8 +291,8 @@ export const createEntityStore = <T extends { id: string }>(
             const idField = schema?.idFieldName;
             if (idField && Array.isArray(response.items)) {
               response.items = response.items.map((it: any) => {
-                if ((it.id === undefined || it.id === null) && it[idField] !== undefined) {
-                  return { ...it, id: it[idField] };
+                if ((it.id === undefined || it.id === null) && (it as any)[idField] !== undefined) {
+                  return { ...it, id: (it as any)[idField] };
                 }
                 return it;
               });
@@ -341,8 +359,8 @@ export const createEntityStore = <T extends { id: string }>(
           try {
             const schema = await loadSchema(options.name);
             const idField = schema?.idFieldName;
-            if (idField && item && (item.id === undefined || item.id === null) && item[idField] !== undefined) {
-              (item as any).id = item[idField];
+            if (idField && item && (item.id === undefined || item.id === null) && (item as any)[idField] !== undefined) {
+              (item as any).id = (item as any)[idField];
             }
           } catch (e) {
             console.warn('[fetchItem] Could not normalize id:', e);
@@ -392,8 +410,8 @@ export const createEntityStore = <T extends { id: string }>(
           try {
             const schema = await loadSchema(options.name);
             const idField = schema?.idFieldName;
-            if (idField && newItem && (newItem.id === undefined || newItem.id === null) && newItem[idField] !== undefined) {
-              (newItem as any).id = newItem[idField];
+            if (idField && newItem && (newItem.id === undefined || newItem.id === null) && (newItem as any)[idField] !== undefined) {
+              (newItem as any).id = (newItem as any)[idField];
             }
           } catch (e) {
             console.warn('[createItem] Could not normalize id:', e);
@@ -457,8 +475,8 @@ export const createEntityStore = <T extends { id: string }>(
           try {
             const schema = await loadSchema(options.name);
             const idField = schema?.idFieldName;
-            if (idField && updatedItem && (updatedItem.id === undefined || updatedItem.id === null) && updatedItem[idField] !== undefined) {
-              (updatedItem as any).id = updatedItem[idField];
+            if (idField && updatedItem && (updatedItem.id === undefined || updatedItem.id === null) && (updatedItem as any)[idField] !== undefined) {
+              (updatedItem as any).id = (updatedItem as any)[idField];
             }
           } catch (e) {
             console.warn('[updateItemById] Could not normalize id:', e);
