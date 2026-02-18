@@ -428,7 +428,7 @@ app.get('/cards/:id/readings/export', requirePermission('dashboard:read'), async
 });
 
 // GET /meters - Retrieve all meters for the tenant
-app.get('/meters', requirePermission('dashboard:read'), async (c) => {
+app.get('/meters', authenticateToken, async (c) => {
   try {
     const tenantId = c.get('tenantId');
     if (!tenantId) return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
