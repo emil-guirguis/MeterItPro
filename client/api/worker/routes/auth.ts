@@ -9,6 +9,7 @@ import bcrypt from 'bcryptjs';
 import speakeasy from 'speakeasy';
 import { query, transaction, Env } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
+import { logError } from '../errorHandler';
 
 const auth = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -113,7 +114,7 @@ async function logAuthEvent(
       ]
     );
   } catch (error) {
-    console.error('[AUTH] Failed to log auth event:', error);
+    logError('[AUTH] Failed to log auth event:', error);
   }
 }
 
@@ -139,7 +140,7 @@ async function checkLoginLockout(env: Env, userId: number): Promise<{ isLocked: 
 
     return { isLocked: false, lockedUntil: null };
   } catch (error) {
-    console.error('Error checking login lockout:', error);
+    logError('Error checking login lockout:', error);
     return { isLocked: false, lockedUntil: null };
   }
 }
@@ -169,7 +170,7 @@ async function incrementFailedLoginAttempts(
 
     return { attempts: newAttempts, isLocked: !!lockedUntil, lockedUntil };
   } catch (error) {
-    console.error('Error incrementing failed login attempts:', error);
+    logError('Error incrementing failed login attempts:', error);
     return { attempts: 0, isLocked: false, lockedUntil: null };
   }
 }
@@ -182,7 +183,7 @@ async function resetFailedLoginAttempts(env: Env, userId: number): Promise<void>
       [userId]
     );
   } catch (error) {
-    console.error('Error resetting failed login attempts:', error);
+    logError('Error resetting failed login attempts:', error);
   }
 }
 
@@ -196,7 +197,7 @@ async function get2FAMethods(env: Env, userId: number): Promise<string[]> {
     );
     return result.rows ? result.rows.map((row: any) => row.method_type) : [];
   } catch (error) {
-    console.error('Error getting 2FA methods:', error);
+    logError('Error getting 2FA methods:', error);
     return [];
   }
 }
@@ -220,7 +221,7 @@ async function checkPasswordResetRateLimit(
     const count = parseInt(result.rows[0].count, 10);
     return count < maxRequests;
   } catch (error) {
-    console.error('Error checking rate limit:', error);
+    logError('Error checking rate limit:', error);
     return true;
   }
 }
@@ -404,7 +405,7 @@ auth.post('/signup', async (c) => {
       return c.json({ success: false, message: 'Failed to create account' }, 500);
     }
   } catch (error: any) {
-    console.error('Signup error:', error);
+    logError('Signup error:', error);
     return c.json({ success: false, message: 'Signup failed' }, 500);
   }
 });
@@ -589,7 +590,7 @@ auth.post('/login', async (c) => {
     console.log('[DEBUG] Sending response - user.active:', user.active, '-> status:', responseData.data.user.status);
     return c.json(responseData);
   } catch (error: any) {
-    console.error('[LOGIN] Unhandled error:', error);
+    logError('[LOGIN] Unhandled error:', error);
     console.error('[LOGIN] Error type:', error?.constructor?.name);
     console.error('[LOGIN] Error message:', error?.message);
     console.error('[LOGIN] Error stack:', error?.stack);
@@ -760,7 +761,7 @@ auth.post('/verify-2fa', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('2FA verification error:', error);
+    logError('2FA verification error:', error);
     return c.json({ success: false, message: '2FA verification failed' }, 500);
   }
 });
@@ -821,8 +822,8 @@ auth.post('/forgot-password', async (c) => {
           status: 'success',
           details: { email },
         });
-      } catch (logError) {
-        console.error('[AUTH] Failed to log password reset request:', logError);
+      } catch (error: any) {
+        logError('[AUTH] Failed to log password reset request', error);
       }
     }
 
@@ -832,7 +833,7 @@ auth.post('/forgot-password', async (c) => {
       message: 'If an account exists with this email, you will receive a password reset link',
     });
   } catch (error: any) {
-    console.error('Forgot password error:', error);
+    logError('Forgot password error:', error);
     return c.json({ success: false, message: 'Failed to process password reset request' }, 500);
   }
 });
@@ -950,7 +951,7 @@ auth.post('/reset-password', async (c) => {
       message: 'Password reset successfully. Please log in with your new password.',
     });
   } catch (error: any) {
-    console.error('Reset password error:', error);
+    logError('Reset password error:', error);
     return c.json({ success: false, message: 'Failed to reset password' }, 500);
   }
 });
@@ -1075,7 +1076,7 @@ auth.post('/change-password', async (c) => {
       message: 'Password changed successfully. Please log in again.',
     });
   } catch (error: any) {
-    console.error('Change password error:', error);
+    logError('Change password error:', error);
     return c.json({ success: false, message: 'Failed to change password' }, 500);
   }
 });
@@ -1142,7 +1143,7 @@ auth.post('/2fa/setup', async (c) => {
       data: setupData,
     });
   } catch (error: any) {
-    console.error('2FA setup error:', error);
+    logError('2FA setup error:', error);
     return c.json({ success: false, message: 'Failed to setup 2FA' }, 500);
   }
 });
@@ -1248,7 +1249,7 @@ auth.post('/2fa/verify-setup', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('2FA verify setup error:', error);
+    logError('2FA verify setup error:', error);
     return c.json({ success: false, message: 'Failed to verify 2FA setup' }, 500);
   }
 });
@@ -1283,7 +1284,7 @@ auth.get('/2fa/methods', async (c) => {
       data: { methods },
     });
   } catch (error: any) {
-    console.error('Get 2FA methods error:', error);
+    logError('Get 2FA methods error:', error);
     return c.json({ success: false, message: 'Failed to get 2FA methods' }, 500);
   }
 });
@@ -1359,7 +1360,7 @@ auth.post('/2fa/disable', async (c) => {
       message: '2FA method disabled successfully',
     });
   } catch (error: any) {
-    console.error('Disable 2FA error:', error);
+    logError('Disable 2FA error:', error);
     return c.json({ success: false, message: 'Failed to disable 2FA' }, 500);
   }
 });
@@ -1425,7 +1426,7 @@ auth.post('/2fa/regenerate-backup-codes', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Regenerate backup codes error:', error);
+    logError('Regenerate backup codes error:', error);
     return c.json({ success: false, message: 'Failed to regenerate backup codes' }, 500);
   }
 });
@@ -1461,7 +1462,7 @@ auth.get('/verify', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Token verification error:', error);
+    logError('Token verification error:', error);
     return c.json({ success: false, message: 'Token verification failed' }, 500);
   }
 });
@@ -1538,7 +1539,7 @@ auth.post('/refresh', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Token refresh error:', error);
+    logError('Token refresh error:', error);
     return c.json({ success: false, message: 'Token refresh failed' }, 500);
   }
 });

@@ -36,7 +36,18 @@
       "Bash(__NEW_LINE_50f86a4471b973a4__ echo \"=== /location ===\")",
       "Bash(npm run build:worker:*)",
       "Bash(npm run:*)",
-      "Bash(.vars \")"
+      "Bash(.vars \")",
+      "Bash(for file in c:/Projects/MeterItPro/client/api/worker/routes/*.ts)",
+      "Bash(do)",
+      "Bash(if grep -q \"import { logError } from\" \"$file\")",
+      "Bash(then)",
+      "Bash(else)",
+      "Bash(fi:*)",
+      "Bash(for file in \"templates.ts\" \"locations.ts\" \"auth.ts\" \"users.ts\" \"emailLogs.ts\" \"emails.ts\" \"settings.ts\" \"favorites.ts\" \"sync.ts\" \"registers.ts\" \"deviceRegisters.ts\" \"meterReadings.ts\" \"reports.ts\" \"devices.ts\" \"meters.ts\" \"contacts.ts\")",
+      "Bash(path=\"c:/Projects/MeterItPro/client/api/worker/routes/$file\")",
+      "Bash(if grep -q \"import { logError }\" \"$path\")",
+      "Bash(wrangler deploy:*)",
+      "Bash(wrangler dev:*)"
     ]
   }
 }

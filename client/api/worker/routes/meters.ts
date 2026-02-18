@@ -6,6 +6,7 @@ import { Hono } from 'hono';
 import { query, transaction, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -65,7 +66,7 @@ app.get('/elements', requirePermission('meter:read'), async (c) => {
 
     return c.json({ success: true, data: validatedData });
   } catch (error: any) {
-    console.error('Error fetching meter elements:', error);
+    logError('Error fetching meter elements', error);
     return c.json({
       success: false,
       message: 'Failed to fetch meter elements',
@@ -127,7 +128,7 @@ app.get('/:meterId/virtual-config', requirePermission('meter:read'), async (c) =
 
     return c.json({ success: true, meterId, selectedMeters });
   } catch (error: any) {
-    console.error('Error fetching virtual meter config:', error);
+    logError('Error fetching virtual meter config', error);
     return c.json({
       success: false,
       message: 'Failed to fetch virtual meter configuration',
@@ -211,7 +212,7 @@ app.post('/:meterId/virtual-config', requirePermission('meter:update'), async (c
       },
     });
   } catch (error: any) {
-    console.error('Error saving virtual meter config:', error);
+    logError('Error saving virtual meter config', error);
     return c.json({
       success: false,
       message: 'Failed to save virtual meter configuration',
@@ -249,7 +250,7 @@ app.get('/', requirePermission('meter:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching meters:', error);
+    logError('Error fetching meters', error);
     return c.json({ success: false, message: 'Failed to fetch meters' }, 500);
   }
 });
@@ -282,7 +283,7 @@ app.post('/', requirePermission('meter:create'), async (c) => {
     const meter = await create(c.env, 'meter', meterData);
     return c.json({ success: true, data: meter }, 201);
   } catch (error: any) {
-    console.error('Error creating meter:', error);
+    logError('Error creating meter', error);
     return c.json({
       success: false,
       message: 'Failed to create meter',
@@ -304,7 +305,7 @@ app.get('/:id', requirePermission('meter:read'), async (c) => {
     }
     return c.json({ success: true, data: meter });
   } catch (error: any) {
-    console.error('Error fetching meter:', error);
+    logError('Error fetching meter', error);
     return c.json({ success: false, message: 'Failed to fetch meter' }, 500);
   }
 });
@@ -348,7 +349,7 @@ app.put('/:id', requirePermission('meter:update'), async (c) => {
     const updated = await update(c.env, 'meter', 'meter_id', id, updateData);
     return c.json({ success: true, data: updated });
   } catch (error: any) {
-    console.error('Error updating meter:', error);
+    logError('Error updating meter', error);
     return c.json({ success: false, message: 'Failed to update meter' }, 500);
   }
 });
@@ -367,7 +368,7 @@ app.delete('/:id', requirePermission('meter:delete'), async (c) => {
     await remove(c.env, 'meter', 'meter_id', id);
     return c.json({ success: true, message: 'Meter deleted successfully' });
   } catch (error: any) {
-    console.error('Error deleting meter:', error);
+    logError('Error deleting meter', error);
     return c.json({ success: false, message: 'Failed to delete meter' }, 500);
   }
 });

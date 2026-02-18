@@ -5,6 +5,7 @@
 import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -60,7 +61,7 @@ app.get('/', requirePermission('meter:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('[MeterReadings] Error:', error);
+    logError('[MeterReadings] Error:', error);
     return c.json({
       success: false,
       message: 'Failed to fetch meter readings',
@@ -116,7 +117,7 @@ app.get('/last', requirePermission('meter:read'), async (c) => {
 
     return c.json({ success: true, data: reading });
   } catch (error: any) {
-    console.error('[MeterReadings] Error fetching last reading:', error);
+    logError('[MeterReadings] Error fetching last reading:', error);
     return c.json({
       success: false,
       message: 'Failed to fetch last meter reading',

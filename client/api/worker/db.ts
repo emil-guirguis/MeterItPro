@@ -22,6 +22,11 @@ export async function query(env: Env, text: string, params: any[] = []) {
   await client.connect();
   try {
     return await client.query(text, params);
+  } catch (error: any) {
+    // Include SQL information in error for debugging
+    error.sql = text;
+    error.sqlParams = params;
+    throw error;
   } finally {
     await client.end();
   }
@@ -37,8 +42,9 @@ export async function transaction<T>(env: Env, callback: (client: Client) => Pro
     const result = await callback(client);
     await client.query('COMMIT');
     return result;
-  } catch (error) {
+  } catch (error: any) {
     await client.query('ROLLBACK');
+    // Re-throw error with transaction context
     throw error;
   } finally {
     await client.end();

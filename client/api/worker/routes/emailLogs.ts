@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 app.use('*', authenticateToken);
@@ -40,7 +41,7 @@ app.get('/search', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error searching email logs:', error);
+    logError('Error searching email logs:', error);
     return c.json({ success: false, message: 'Failed to search email logs' }, 500);
   }
 });
@@ -105,7 +106,7 @@ app.get('/export', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error exporting email logs:', error);
+    logError('Error exporting email logs:', error);
     return c.json({ success: false, message: 'Failed to export email logs' }, 500);
   }
 });

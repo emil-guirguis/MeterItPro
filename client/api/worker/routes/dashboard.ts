@@ -7,6 +7,7 @@ import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -45,8 +46,8 @@ app.get('/cards', requirePermission('dashboard:read'), async (c) => {
     }
 
     const result = await findAll(c.env, {
-      table: 'dashboard_card',
-      primaryKey: 'dashboard_card_id',
+      table: 'dashboard',
+      primaryKey: 'dashboard_id',
       tenantId,
       page,
       limit,
@@ -61,7 +62,7 @@ app.get('/cards', requirePermission('dashboard:read'), async (c) => {
       const cardIndex = (page - 1) * limit + index;
       return {
         ...card,
-        dashboard_id: card.dashboard_card_id || card.id,
+        dashboard_id: card.dashboard_id || card.id,
         grid_x: card.grid_x ?? 0,
         grid_y: card.grid_y ?? cardIndex * 520,
         grid_w: card.grid_w ?? 500,
@@ -80,7 +81,7 @@ app.get('/cards', requirePermission('dashboard:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching cards:', error);
+    logError('Error fetching cards', error);
     return c.json({ success: false, message: 'Failed to fetch dashboard cards' }, 500);
   }
 });
@@ -91,14 +92,14 @@ app.get('/cards/:id', requirePermission('dashboard:read'), async (c) => {
     const tenantId = c.get('tenantId');
     if (!tenantId) return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
 
-    const card = await findById(c.env, 'dashboard_card', 'dashboard_card_id', c.req.param('id'), tenantId);
+    const card = await findById(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), tenantId);
     if (!card) return c.json({ success: false, message: 'Dashboard card not found' }, 404);
 
     return c.json({
       success: true,
       data: {
         ...card,
-        dashboard_id: card.dashboard_card_id,
+        dashboard_id: card.dashboard_id,
         grid_x: card.grid_x ?? 0,
         grid_y: card.grid_y ?? 0,
         grid_w: card.grid_w ?? 500,
@@ -106,7 +107,7 @@ app.get('/cards/:id', requirePermission('dashboard:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching card:', error);
+    logError('Error fetching card', error);
     return c.json({ success: false, message: 'Failed to fetch dashboard card' }, 500);
   }
 });
@@ -117,12 +118,12 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
     const tenantId = c.get('tenantId');
     if (!tenantId) return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
 
-    const card = await findById(c.env, 'dashboard_card', 'dashboard_card_id', c.req.param('id'), tenantId);
+    const card = await findById(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), tenantId);
     if (!card) return c.json({ success: false, message: 'Dashboard card not found' }, 404);
 
     const selectedColumns: string[] = Array.isArray(card.selected_columns) ? card.selected_columns : [];
     if (selectedColumns.length === 0) {
-      return c.json({ success: true, data: { card_id: card.dashboard_card_id, aggregated_values: {}, grouped_data: [] } });
+      return c.json({ success: true, data: { card_id: card.dashboard_id, aggregated_values: {}, grouped_data: [] } });
     }
 
     // Calculate time frame (simplified)
@@ -146,7 +147,7 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
     return c.json({
       success: true,
       data: {
-        card_id: card.dashboard_card_id,
+        card_id: card.dashboard_id,
         card_name: card.card_name,
         meter_element_id: card.meter_element_id,
         time_frame: {
@@ -162,7 +163,7 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching aggregated data:', error);
+    logError('Error fetching aggregated data', error);
     return c.json({ success: false, message: 'Failed to fetch aggregated card data' }, 500);
   }
 });
@@ -203,8 +204,8 @@ app.post('/cards', requirePermission('dashboard:create'), async (c) => {
 
     // Determine grid position
     const existingCards = await findAll(c.env, {
-      table: 'dashboard_card',
-      primaryKey: 'dashboard_card_id',
+      table: 'dashboard',
+      primaryKey: 'dashboard_id',
       tenantId,
       limit: 1000,
     });
@@ -221,17 +222,17 @@ app.post('/cards', requirePermission('dashboard:create'), async (c) => {
       grid_h: body.grid_h !== undefined ? body.grid_h : 500,
     };
 
-    const card = await create(c.env, 'dashboard_card', cardData);
+    const card = await create(c.env, 'dashboard', cardData);
 
     return c.json({
       success: true,
       data: {
         ...card,
-        dashboard_id: card.dashboard_card_id,
+        dashboard_id: card.dashboard_id,
       },
     }, 201);
   } catch (error: any) {
-    console.error('Error creating card:', error);
+    logError('Error creating card', error);
     return c.json({ success: false, message: 'Failed to create dashboard card' }, 500);
   }
 });
@@ -242,7 +243,7 @@ app.put('/cards/:id', requirePermission('dashboard:update'), async (c) => {
     const tenantId = c.get('tenantId');
     if (!tenantId) return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
 
-    const card = await findById(c.env, 'dashboard_card', 'dashboard_card_id', c.req.param('id'), tenantId);
+    const card = await findById(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), tenantId);
     if (!card) return c.json({ success: false, message: 'Dashboard card not found' }, 404);
 
     const body = await c.req.json();
@@ -262,13 +263,13 @@ app.put('/cards/:id', requirePermission('dashboard:update'), async (c) => {
     delete body.tenant_id;
     delete body.created_by_users_id;
 
-    const updated = await update(c.env, 'dashboard_card', 'dashboard_card_id', c.req.param('id'), body);
+    const updated = await update(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), body);
 
     return c.json({
       success: true,
       data: {
         ...updated,
-        dashboard_id: updated.dashboard_card_id,
+        dashboard_id: updated.dashboard_id,
         grid_x: updated.grid_x ?? 0,
         grid_y: updated.grid_y ?? 0,
         grid_w: updated.grid_w ?? 500,
@@ -276,7 +277,7 @@ app.put('/cards/:id', requirePermission('dashboard:update'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error updating card:', error);
+    logError('Error updating card', error);
     return c.json({ success: false, message: 'Failed to update dashboard card' }, 500);
   }
 });
@@ -287,13 +288,13 @@ app.delete('/cards/:id', requirePermission('dashboard:delete'), async (c) => {
     const tenantId = c.get('tenantId');
     if (!tenantId) return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
 
-    const card = await findById(c.env, 'dashboard_card', 'dashboard_card_id', c.req.param('id'), tenantId);
+    const card = await findById(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), tenantId);
     if (!card) return c.json({ success: false, message: 'Dashboard card not found' }, 404);
 
-    await remove(c.env, 'dashboard_card', 'dashboard_card_id', c.req.param('id'));
+    await remove(c.env, 'dashboard', 'dashboard_id', c.req.param('id'));
     return c.json({ success: true, message: 'Dashboard card deleted successfully' });
   } catch (error: any) {
-    console.error('Error deleting card:', error);
+    logError('Error deleting card', error);
     return c.json({ success: false, message: 'Failed to delete dashboard card' }, 500);
   }
 });
@@ -310,7 +311,7 @@ app.get('/cards/:id/readings', requirePermission('dashboard:read'), async (c) =>
     const sortBy = qs.sortBy || 'created_at';
     const sortOrder = (qs.sortOrder || 'desc').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-    const card = await findById(c.env, 'dashboard_card', 'dashboard_card_id', c.req.param('id'), tenantId);
+    const card = await findById(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), tenantId);
     if (!card) return c.json({ success: false, message: 'Dashboard card not found' }, 404);
 
     // Time frame
@@ -343,7 +344,7 @@ app.get('/cards/:id/readings', requirePermission('dashboard:read'), async (c) =>
         items: result.rows,
         pagination: { page, pageSize, total, totalPages, hasMore: page < totalPages },
         metadata: {
-          card_id: card.dashboard_card_id,
+          card_id: card.dashboard_id,
           card_name: card.card_name,
           meter_element_id: card.meter_element_id,
           time_frame: { type: card.time_frame_type || 'last_30_days', start: startDate.toISOString(), end: endDate.toISOString() },
@@ -354,7 +355,7 @@ app.get('/cards/:id/readings', requirePermission('dashboard:read'), async (c) =>
       },
     });
   } catch (error: any) {
-    console.error('Error fetching meter readings:', error);
+    logError('Error fetching meter readings', error);
     return c.json({ success: false, message: 'Failed to fetch meter readings' }, 500);
   }
 });
@@ -369,7 +370,7 @@ app.get('/cards/:id/readings/export', requirePermission('dashboard:read'), async
     const sortBy = qs.sortBy || 'created_at';
     const sortOrder = (qs.sortOrder || 'desc').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-    const card = await findById(c.env, 'dashboard_card', 'dashboard_card_id', c.req.param('id'), tenantId);
+    const card = await findById(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), tenantId);
     if (!card) return c.json({ success: false, message: 'Dashboard card not found' }, 404);
 
     const now = new Date();
@@ -421,7 +422,7 @@ app.get('/cards/:id/readings/export', requirePermission('dashboard:read'), async
       },
     });
   } catch (error: any) {
-    console.error('Error exporting meter readings:', error);
+    logError('Error exporting meter readings', error);
     return c.json({ success: false, message: 'Failed to export meter readings' }, 500);
   }
 });
@@ -440,7 +441,7 @@ app.get('/meters', requirePermission('dashboard:read'), async (c) => {
 
     return c.json({ success: true, data: result.rows });
   } catch (error: any) {
-    console.error('Error fetching meters:', error);
+    logError('Error fetching meters', error);
     return c.json({ success: false, message: 'Failed to fetch meters' }, 500);
   }
 });
@@ -467,7 +468,7 @@ app.get('/meters/:meterId/elements', requirePermission('dashboard:read'), async 
 
     return c.json({ success: true, data: result.rows });
   } catch (error: any) {
-    console.error('Error fetching meter elements:', error);
+    logError('Error fetching meter elements', error);
     return c.json({ success: false, message: 'Failed to fetch meter elements' }, 500);
   }
 });
@@ -503,7 +504,7 @@ app.get('/power-columns', requirePermission('dashboard:read'), async (c) => {
       meta: { count: columns.length },
     });
   } catch (error: any) {
-    console.error('Error discovering power columns:', error);
+    logError('Error discovering power columns', error);
     return c.json({ success: false, message: 'Failed to discover power columns' }, 500);
   }
 });

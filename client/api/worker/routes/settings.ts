@@ -5,6 +5,7 @@
 import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -28,7 +29,7 @@ app.get('/company', requirePermission('settings:read'), async (c) => {
 
     return c.json({ success: true, data: settings });
   } catch (error: any) {
-    console.error('Error fetching company settings:', error);
+    logError('Error fetching company settings:', error);
     return c.json({
       success: false,
       message: 'Failed to fetch company settings',
@@ -96,7 +97,7 @@ app.put('/company', requirePermission('settings:update'), async (c) => {
       message: 'Company settings updated successfully',
     });
   } catch (error: any) {
-    console.error('Error updating company settings:', error);
+    logError('Error updating company settings:', error);
     return c.json({
       success: false,
       message: 'Failed to update company settings',
@@ -123,7 +124,7 @@ app.get('/', requirePermission('settings:read'), async (c) => {
 
     return c.json({ success: true, data: { company: settings } });
   } catch (error: any) {
-    console.error('Error fetching settings:', error);
+    logError('Error fetching settings:', error);
     return c.json({
       success: false,
       message: 'Failed to fetch settings',

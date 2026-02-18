@@ -6,6 +6,7 @@ import { Hono } from 'hono';
 import { query, transaction, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -52,10 +53,7 @@ app.get('/', requirePermission('location:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('[LOCATION] Error fetching locations:', error);
-    console.error('[LOCATION] Error type:', error?.constructor?.name);
-    console.error('[LOCATION] Error message:', error?.message);
-    console.error('[LOCATION] Error stack:', error?.stack);
+    logError('Error fetching locations', error);
     return c.json({ 
       success: false, 
       message: 'Failed to fetch locations',
@@ -75,7 +73,7 @@ app.get('/:id', requirePermission('location:read'), async (c) => {
     }
     return c.json({ success: true, data: location });
   } catch (error: any) {
-    console.error('Error fetching location:', error);
+    logError('Error fetching location:', error);
     return c.json({ success: false, message: 'Failed to fetch location' }, 500);
   }
 });
@@ -100,7 +98,7 @@ app.post('/', requirePermission('location:create'), async (c) => {
     const location = await create(c.env, 'location', locationData);
     return c.json({ success: true, data: location }, 201);
   } catch (error: any) {
-    console.error('Error creating location:', error);
+    logError('Error creating location:', error);
     return c.json({
       success: false,
       message: 'Failed to create location',
@@ -141,7 +139,7 @@ app.put('/:id', requirePermission('location:update'), async (c) => {
     const updated = await update(c.env, 'location', 'location_id', id, updateData);
     return c.json({ success: true, data: updated });
   } catch (error: any) {
-    console.error('Error updating location:', error);
+    logError('Error updating location:', error);
     return c.json({ success: false, message: 'Failed to update location' }, 500);
   }
 });
@@ -176,7 +174,7 @@ app.delete('/:id', requirePermission('location:delete'), async (c) => {
     await remove(c.env, 'location', 'location_id', id);
     return c.json({ success: true, message: 'Location deleted successfully' });
   } catch (error: any) {
-    console.error('Error deleting location:', error);
+    logError('Error deleting location:', error);
     return c.json({ success: false, message: 'Failed to delete location' }, 500);
   }
 });

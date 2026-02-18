@@ -7,6 +7,7 @@
 import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -47,7 +48,7 @@ app.get('/delivery-stats', requirePermission('email:read'), async (c) => {
 
     return c.json({ success: true, data: result.rows });
   } catch (error: any) {
-    console.error('Error fetching delivery stats:', error);
+    logError('Error fetching delivery stats:', error);
     return c.json({ success: false, message: 'Failed to fetch delivery statistics' }, 500);
   }
 });
@@ -129,7 +130,7 @@ app.get('/logs', requirePermission('email:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching email logs:', error);
+    logError('Error fetching email logs:', error);
     return c.json({ success: false, message: 'Failed to fetch email logs' }, 500);
   }
 });
@@ -147,7 +148,7 @@ app.get('/track/open/:trackingId', async (c) => {
       [trackingId]
     );
   } catch (error) {
-    console.error('Error tracking email open:', error);
+    logError('Error tracking email open:', error);
   }
 
   // Return 1x1 transparent pixel
@@ -252,7 +253,7 @@ app.get('/notifications/logs', requirePermission('notification:read'), async (c)
       },
     });
   } catch (error: any) {
-    console.error('Error fetching notification logs:', error);
+    logError('Error fetching notification logs:', error);
     return c.json({ success: false, message: 'Failed to fetch notification logs' }, 500);
   }
 });

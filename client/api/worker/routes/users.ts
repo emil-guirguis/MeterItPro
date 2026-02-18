@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { query, transaction, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -117,7 +118,7 @@ app.get('/', requirePermission('user:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching users:', error);
+    logError('Error fetching users:', error);
     return c.json({ success: false, message: 'Failed to fetch users' }, 500);
   }
 });
@@ -133,7 +134,7 @@ app.get('/:id', requirePermission('user:read'), async (c) => {
     }
     return c.json({ success: true, data: user });
   } catch (error: any) {
-    console.error('Error fetching user:', error);
+    logError('Error fetching user:', error);
     return c.json({ success: false, message: 'Failed to fetch user' }, 500);
   }
 });
@@ -186,7 +187,7 @@ app.post('/', requirePermission('user:create'), async (c) => {
     const user = await create(c.env, 'users', userData);
     return c.json({ success: true, data: user }, 201);
   } catch (error: any) {
-    console.error('Error creating user:', error);
+    logError('Error creating user:', error);
     return c.json({
       success: false,
       message: 'Failed to create user',
@@ -281,7 +282,7 @@ app.put('/:id', requirePermission('user:update'), async (c) => {
     const updated = await update(c.env, 'users', 'users_id', id, updateData);
     return c.json({ success: true, data: updated });
   } catch (error: any) {
-    console.error('Error updating user:', error);
+    logError('Error updating user:', error);
     return c.json({ success: false, message: 'Failed to update user' }, 500);
   }
 });
@@ -319,7 +320,7 @@ app.put('/:id/password', requirePermission('user:update'), async (c) => {
 
     return c.json({ success: true, message: 'Password updated successfully' });
   } catch (error: any) {
-    console.error('Error changing password:', error);
+    logError('Error changing password:', error);
     return c.json({ success: false, message: 'Failed to change password' }, 500);
   }
 });
@@ -360,8 +361,8 @@ app.post('/:id/reset-password', requirePermission('user:update'), async (c) => {
         'INSERT INTO auth_logs (user_id, event_type, status, details, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)',
         [userId, 'password_reset_admin', 'success', JSON.stringify({ admin_id: adminId, email: targetUser.email })]
       );
-    } catch (logError) {
-      console.error('[AUTH] Failed to log admin password reset:', logError);
+    } catch (error: any) {
+      logError('[AUTH] Failed to log admin password reset', error);
     }
 
     return c.json({
@@ -369,7 +370,7 @@ app.post('/:id/reset-password', requirePermission('user:update'), async (c) => {
       message: 'Password reset token has been generated for the user',
     });
   } catch (error: any) {
-    console.error('Admin reset password error:', error);
+    logError('Admin reset password error:', error);
     return c.json({
       success: false,
       message: 'Failed to process admin password reset',
@@ -391,7 +392,7 @@ app.delete('/:id', requirePermission('user:delete'), async (c) => {
     await remove(c.env, 'users', 'users_id', id);
     return c.json({ success: true, message: 'User deleted successfully' });
   } catch (error: any) {
-    console.error('Error deleting user:', error);
+    logError('Error deleting user:', error);
     return c.json({ success: false, message: 'Failed to delete user' }, 500);
   }
 });

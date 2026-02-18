@@ -6,6 +6,7 @@
 import { Hono } from 'hono';
 import { query, transaction, Env } from '../db';
 import { authenticateSyncServer, AuthVariables } from '../middleware';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -152,7 +153,7 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
       errors: result.insertErrors,
     });
   } catch (error: any) {
-    console.error('[Sync] Batch upload error:', error);
+    logError('[Sync] Batch upload error:', error);
     return c.json({
       success: false,
       recordsProcessed: 0,
@@ -201,7 +202,7 @@ app.get('/getmeters', authenticateSyncServer, async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Meter download error:', error);
+    logError('Meter download error:', error);
     return c.json({ success: false, message: 'Meter download error', error: error.message }, 500);
   }
 });
@@ -247,7 +248,7 @@ app.get('/getmregisters', authenticateSyncServer, async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Register download error:', error);
+    logError('Register download error:', error);
     return c.json({ success: false, message: 'Register download error', error: error.message }, 500);
   }
 });
@@ -321,7 +322,7 @@ app.post('/connect', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('[Sync Connect] Error:', error);
+    logError('[Sync Connect] Error:', error);
     return c.json({ success: false, message: 'Connection failed' }, 500);
   }
 });

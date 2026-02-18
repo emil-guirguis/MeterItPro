@@ -118,13 +118,16 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
     return Array.isArray(bulkActionConfigs) ? bulkActionConfigs : [];
   }, [bulkActionConfigs]);
 
-  // Create debounced search handler - memoized to prevent recreation
+  // Create debounced search handler - routes through filter pipeline for unified handling
   const debouncedSetSearch = useMemo(
     () => debounceSearch((query: string) => {
       console.log('[useBaseList] Debounced search called with query:', query);
-      if (store.setSearch) {
-        store.setSearch(query);
-      }
+      // Route search through filter pipeline so it triggers fetchItems like other filters
+      setFiltersState(prev => {
+        const updated = { ...prev, search: query };
+        console.log('[useBaseList] Search routed to filters:', updated);
+        return updated;
+      });
     }, 300),
     []
   );
@@ -234,15 +237,16 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
     console.log('[useBaseList] clearFilters called');
     setFiltersState({});
     setSearchQueryState('');
-    
-    // Clear store filters and search, then fetch all data
+
+    // Clear store filters - search is now part of filters, so this clears both
     if (store.setFilters) {
       store.setFilters({});
     }
+    // Keep store.setSearch for backward compatibility (no harm in calling it)
     if (store.setSearch) {
       store.setSearch('');
     }
-    
+
     // Trigger new API request to fetch all data
     if (store.fetchItems) {
       store.fetchItems();
@@ -446,13 +450,14 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
     return (
       <>
         {allowSearch && (
-          <div className="list__filter-item">
+          <div className="list__filter-item list__filter-item--search">
             <input
               type="text"
               className="form-control"
-              placeholder={`Search ${entityNamePlural}...`}
+              placeholder={`Search...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label={`Search ${entityNamePlural}`}
             />
           </div>
         )}

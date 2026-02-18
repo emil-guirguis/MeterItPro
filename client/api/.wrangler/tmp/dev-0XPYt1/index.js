@@ -15002,6 +15002,13 @@ app4.get("/", requirePermission("contact:read"), async (c) => {
   try {
     const qs = c.req.query();
     const tenantId = c.get("tenantId");
+    const where = {};
+    if (qs.active !== void 0 && qs.active !== "") {
+      where.active = qs.active === "true";
+    }
+    if (qs.role) {
+      where.role = qs.role;
+    }
     const result = await findAll(c.env, {
       table: "contact",
       primaryKey: "contact_id",
@@ -15011,7 +15018,8 @@ app4.get("/", requirePermission("contact:read"), async (c) => {
       search: qs.search || void 0,
       searchFields: ["name", "email", "company"],
       sortBy: qs.sortBy,
-      sortOrder: qs.sortOrder
+      sortOrder: qs.sortOrder,
+      where
     });
     return c.json({
       success: true,

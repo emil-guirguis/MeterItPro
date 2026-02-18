@@ -11,6 +11,7 @@ import { query, transaction, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { deviceSchema } from './deviceSchema';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -49,7 +50,7 @@ app.get('/', requirePermission('device:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching devices:', error);
+    logError('Error fetching devices:', error);
     return c.json({ success: false, message: 'Failed to fetch devices' }, 500);
   }
 });
@@ -65,7 +66,7 @@ app.get('/:id', requirePermission('device:read'), async (c) => {
     }
     return c.json({ success: true, data: device });
   } catch (error: any) {
-    console.error('Error fetching device:', error);
+    logError('Error fetching device:', error);
     return c.json({ success: false, message: 'Failed to fetch device' }, 500);
   }
 });

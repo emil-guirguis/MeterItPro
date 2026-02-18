@@ -16,6 +16,13 @@
 .base-list__filters .list__filter-item {
   flex: 0 0 auto;
   min-width: 200px;
+  position: relative;
+}
+
+/* AI Search field - smart multi-field search as first filter */
+.base-list__filters .list__filter-item--search {
+  flex: 0 0 200px;
+  order: -1;  /* Always first */
 }
 
 .base-list__filters .list__filter-item .form-control {

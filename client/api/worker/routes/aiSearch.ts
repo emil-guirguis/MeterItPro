@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 app.use('*', authenticateToken);

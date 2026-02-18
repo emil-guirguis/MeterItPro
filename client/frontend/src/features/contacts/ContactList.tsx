@@ -40,7 +40,10 @@ export const ContactList: React.FC<ContactListProps> = ({
 
   const filters = useMemo(() => {
     if (!schema) return [];
-    return generateFiltersFromSchema(schema.formFields);
+    // Generate filters from schema, but exclude 'name' and 'company' since they're
+    // already covered by the AI search field (which searches name, email, company)
+    return generateFiltersFromSchema(schema.formFields)
+      .filter(f => !['name', 'company'].includes(f.key));
   }, [schema]);
 
   const handleContactDelete = (contact: Contact) => {

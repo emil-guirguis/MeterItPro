@@ -7,6 +7,7 @@ import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -54,7 +55,7 @@ app.get('/', requirePermission('template:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching templates:', error);
+    logError('Error fetching templates:', error);
     return c.json({ success: false, message: 'Failed to fetch templates' }, 500);
   }
 });
@@ -75,7 +76,7 @@ app.get('/stats', requirePermission('template:read'), async (c) => {
     );
     return c.json({ success: true, data: result.rows[0] });
   } catch (error: any) {
-    console.error('Error fetching template stats:', error);
+    logError('Error fetching template stats:', error);
     return c.json({ success: false, message: 'Failed to fetch template statistics' }, 500);
   }
 });
@@ -130,7 +131,7 @@ app.get('/search', requirePermission('template:read'), async (c) => {
     const result = await query(c.env, sql, params);
     return c.json({ success: true, data: result.rows });
   } catch (error: any) {
-    console.error('Error searching templates:', error);
+    logError('Error searching templates:', error);
     return c.json({ success: false, message: 'Failed to search templates' }, 500);
   }
 });
@@ -183,7 +184,7 @@ app.get('/export', requirePermission('template:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error exporting templates:', error);
+    logError('Error exporting templates:', error);
     return c.json({ success: false, message: 'Failed to export templates' }, 500);
   }
 });
@@ -201,7 +202,7 @@ app.get('/usage-analytics', requirePermission('template:read'), async (c) => {
     );
     return c.json({ success: true, data: result.rows });
   } catch (error: any) {
-    console.error('Error fetching usage analytics:', error);
+    logError('Error fetching usage analytics:', error);
     return c.json({ success: false, message: 'Failed to fetch usage analytics' }, 500);
   }
 });
@@ -222,7 +223,7 @@ app.get('/category/:category', requirePermission('template:read'), async (c) => 
     );
     return c.json({ success: true, data: result.rows });
   } catch (error: any) {
-    console.error('Error fetching templates by category:', error);
+    logError('Error fetching templates by category:', error);
     return c.json({ success: false, message: 'Failed to fetch templates by category' }, 500);
   }
 });
@@ -247,7 +248,7 @@ app.get('/:id/variables', requirePermission('template:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching template variables:', error);
+    logError('Error fetching template variables:', error);
     return c.json({ success: false, message: 'Failed to fetch template variables' }, 500);
   }
 });
@@ -265,7 +266,7 @@ app.get('/:id', requirePermission('template:read'), async (c) => {
 
     return c.json({ success: true, data: template });
   } catch (error: any) {
-    console.error('Error fetching template:', error);
+    logError('Error fetching template:', error);
     return c.json({ success: false, message: 'Failed to fetch template' }, 500);
   }
 });
@@ -339,7 +340,7 @@ app.post('/import', requirePermission('template:create'), async (c) => {
       message: `Import completed: ${created} created, ${updated} updated, ${failed} failed`,
     });
   } catch (error: any) {
-    console.error('Error importing templates:', error);
+    logError('Error importing templates', error);
     return c.json({ success: false, message: 'Failed to import templates' }, 500);
   }
 });
@@ -388,7 +389,7 @@ app.post('/bulk', requirePermission('template:update'), async (c) => {
       message: `Bulk ${action} completed: ${updatedCount} updated, ${failedCount} failed`,
     });
   } catch (error: any) {
-    console.error('Error performing bulk operation:', error);
+    logError('Error performing bulk operation:', error);
     return c.json({ success: false, message: 'Failed to perform bulk operation' }, 500);
   }
 });
@@ -421,7 +422,7 @@ app.post('/', requirePermission('template:create'), async (c) => {
 
     return c.json({ success: true, data: template }, 201);
   } catch (error: any) {
-    console.error('Error creating template:', error);
+    logError('Error creating template:', error);
     return c.json({ success: false, message: 'Failed to create template' }, 500);
   }
 });
@@ -458,7 +459,7 @@ app.post('/:id/duplicate', requirePermission('template:create'), async (c) => {
 
     return c.json({ success: true, data: duplicate, message: 'Template duplicated successfully' }, 201);
   } catch (error: any) {
-    console.error('Error duplicating template:', error);
+    logError('Error duplicating template:', error);
     return c.json({ success: false, message: 'Failed to duplicate template' }, 500);
   }
 });
@@ -498,7 +499,7 @@ app.post('/:id/usage', requirePermission('template:read'), async (c) => {
 
     return c.json({ success: true, data: result.rows[0], message: 'Template usage recorded' });
   } catch (error: any) {
-    console.error('Error recording template usage:', error);
+    logError('Error recording template usage:', error);
     return c.json({ success: false, message: 'Failed to record template usage' }, 500);
   }
 });
@@ -522,7 +523,7 @@ app.put('/:id', requirePermission('template:update'), async (c) => {
     const updated = await update(c.env, 'email_template', 'email_template_id', id, body);
     return c.json({ success: true, data: updated });
   } catch (error: any) {
-    console.error('Error updating template:', error);
+    logError('Error updating template:', error);
     return c.json({ success: false, message: 'Failed to update template' }, 500);
   }
 });
@@ -541,7 +542,7 @@ app.delete('/:id', requirePermission('template:delete'), async (c) => {
     await remove(c.env, 'email_template', 'email_template_id', id);
     return c.json({ success: true, message: 'Template deleted successfully' });
   } catch (error: any) {
-    console.error('Error deleting template:', error);
+    logError('Error deleting template:', error);
     return c.json({ success: false, message: 'Failed to delete template' }, 500);
   }
 });

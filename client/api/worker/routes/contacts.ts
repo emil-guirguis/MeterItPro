@@ -6,6 +6,7 @@ import { Hono } from 'hono';
 import { query, transaction, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -68,7 +69,7 @@ app.get('/stats/overview', requirePermission('contact:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching contact stats:', error);
+    logError('Error fetching contact stats', error);
     return c.json({ success: false, message: 'Failed to fetch contact statistics' }, 500);
   }
 });
@@ -78,6 +79,15 @@ app.get('/', requirePermission('contact:read'), async (c) => {
   try {
     const qs = c.req.query();
     const tenantId = c.get('tenantId');
+
+    // Build where conditions from filter params
+    const where: Record<string, any> = {};
+    if (qs.active !== undefined && qs.active !== '') {
+      where.active = qs.active === 'true';
+    }
+    if (qs.role) {
+      where.role = qs.role;
+    }
 
     const result = await findAll(c.env, {
       table: 'contact',
@@ -89,6 +99,7 @@ app.get('/', requirePermission('contact:read'), async (c) => {
       searchFields: ['name', 'email', 'company'],
       sortBy: qs.sortBy,
       sortOrder: qs.sortOrder,
+      where,
     });
 
     return c.json({
@@ -102,7 +113,7 @@ app.get('/', requirePermission('contact:read'), async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching contacts:', error);
+    logError('Error fetching contacts', error);
     return c.json({ success: false, message: 'Failed to fetch contacts' }, 500);
   }
 });
@@ -118,7 +129,7 @@ app.get('/:id', requirePermission('contact:read'), async (c) => {
     }
     return c.json({ success: true, data: contact });
   } catch (error: any) {
-    console.error('Error fetching contact:', error);
+    logError('Error fetching contact', error);
     return c.json({ success: false, message: 'Failed to fetch contact' }, 500);
   }
 });
@@ -143,7 +154,7 @@ app.post('/', requirePermission('contact:create'), async (c) => {
     const contact = await create(c.env, 'contact', contactData);
     return c.json({ success: true, data: contact }, 201);
   } catch (error: any) {
-    console.error('Error creating contact:', error);
+    logError('Error creating contact', error);
     return c.json({
       success: false,
       message: 'Failed to create contact',
@@ -183,7 +194,7 @@ app.put('/:id', requirePermission('contact:update'), async (c) => {
     const updated = await update(c.env, 'contact', 'contact_id', id, updateData);
     return c.json({ success: true, data: updated });
   } catch (error: any) {
-    console.error('Error updating contact:', error);
+    logError('Error updating contact', error);
     return c.json({ success: false, message: 'Failed to update contact' }, 500);
   }
 });
@@ -202,7 +213,7 @@ app.delete('/:id', requirePermission('contact:delete'), async (c) => {
     await remove(c.env, 'contact', 'contact_id', id);
     return c.json({ success: true, message: 'Contact deleted successfully' });
   } catch (error: any) {
-    console.error('Error deleting contact:', error);
+    logError('Error deleting contact', error);
     return c.json({ success: false, message: 'Failed to delete contact' }, 500);
   }
 });

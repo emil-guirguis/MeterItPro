@@ -6,6 +6,7 @@
 import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -65,7 +66,7 @@ app.post('/', async (c) => {
   } catch (error: any) {
     if (error.code === '23505') return c.json({ success: false, message: 'Report name already exists' }, 409);
     if (error.code === '23502') return c.json({ success: false, message: 'Missing required fields' }, 400);
-    console.error('Error creating report:', error);
+    logError('Error creating report:', error);
     return c.json({ success: false, message: 'Failed to create report' }, 500);
   }
 });
@@ -101,7 +102,7 @@ app.get('/', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error retrieving reports:', error);
+    logError('Error retrieving reports:', error);
     return c.json({ success: false, message: 'Failed to retrieve reports' }, 500);
   }
 });
@@ -122,7 +123,7 @@ app.get('/:id', async (c) => {
     if (result.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
     return c.json({ success: true, data: result.rows[0] });
   } catch (error: any) {
-    console.error('Error retrieving report:', error);
+    logError('Error retrieving report:', error);
     return c.json({ success: false, message: 'Failed to retrieve report' }, 500);
   }
 });
@@ -187,7 +188,7 @@ app.put('/:id', async (c) => {
     return c.json({ success: true, data: result.rows[0] });
   } catch (error: any) {
     if (error.code === '23505') return c.json({ success: false, message: 'Report name already exists' }, 409);
-    console.error('Error updating report:', error);
+    logError('Error updating report:', error);
     return c.json({ success: false, message: 'Failed to update report' }, 500);
   }
 });
@@ -204,7 +205,7 @@ app.delete('/:id', async (c) => {
     await query(c.env, 'DELETE FROM public.report WHERE report_id = $1', [id]);
     return c.json({ success: true, message: 'Report deleted successfully' });
   } catch (error: any) {
-    console.error('Error deleting report:', error);
+    logError('Error deleting report:', error);
     return c.json({ success: false, message: 'Failed to delete report' }, 500);
   }
 });
@@ -237,7 +238,7 @@ app.patch('/:id/toggle', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error toggling report status:', error);
+    logError('Error toggling report status:', error);
     return c.json({ success: false, message: 'Failed to toggle report status' }, 500);
   }
 });
@@ -299,7 +300,7 @@ app.get('/:id/history', async (c) => {
       },
     });
   } catch (error: any) {
-    console.error('Error retrieving report history:', error);
+    logError('Error retrieving report history:', error);
     return c.json({ success: false, message: 'Failed to retrieve report history' }, 500);
   }
 });
@@ -329,7 +330,7 @@ app.get('/:id/history/:historyId/emails', async (c) => {
 
     return c.json({ success: true, data: { emails: result.rows } });
   } catch (error: any) {
-    console.error('Error retrieving email logs:', error);
+    logError('Error retrieving email logs:', error);
     return c.json({ success: false, message: 'Failed to retrieve email logs' }, 500);
   }
 });

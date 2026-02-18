@@ -6,6 +6,7 @@
 import { Hono } from 'hono';
 import { query, transaction, Env } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -83,7 +84,7 @@ app.get('/meters', async (c) => {
 
     return c.json({ success: true, data: meters });
   } catch (error: any) {
-    console.error('Error fetching meters with elements:', error);
+    logError('Error fetching meters with elements:', error);
     return c.json({ success: false, message: 'Failed to fetch meters with elements', error: error.message }, 500);
   }
 });
@@ -134,7 +135,7 @@ app.get('/', async (c) => {
     const result = await query(c.env, sql, params);
     return c.json({ success: true, data: result.rows });
   } catch (error: any) {
-    console.error('Error fetching favorites:', error);
+    logError('Error fetching favorites:', error);
     return c.json({ success: false, message: 'Failed to fetch favorites', error: error.message }, 500);
   }
 });
@@ -159,7 +160,7 @@ app.put('/order', async (c) => {
 
     return c.json({ success: true, message: 'Favorite order updated successfully' });
   } catch (error: any) {
-    console.error('Error updating favorite order:', error);
+    logError('Error updating favorite order:', error);
     return c.json({ success: false, message: 'Failed to update favorite order', error: error.message }, 500);
   }
 });
@@ -204,7 +205,7 @@ app.post('/', async (c) => {
 
     return c.json({ success: true, message: 'Favorite created successfully', data: result.rows[0] }, 201);
   } catch (error: any) {
-    console.error('Error creating favorite:', error);
+    logError('Error creating favorite:', error);
     return c.json({ success: false, message: 'Failed to create favorite', error: error.message }, 500);
   }
 });
@@ -231,7 +232,7 @@ app.delete('/:favoriteId', async (c) => {
 
     return c.json({ success: true, message: 'Favorite deleted successfully', data: result.rows[0] });
   } catch (error: any) {
-    console.error('Error deleting favorite:', error);
+    logError('Error deleting favorite:', error);
     return c.json({ success: false, message: 'Failed to delete favorite', error: error.message }, 500);
   }
 });

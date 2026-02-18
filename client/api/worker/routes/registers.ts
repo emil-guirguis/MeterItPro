@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
+import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 app.use('*', authenticateToken);
@@ -12,7 +13,7 @@ app.get('/', async (c) => {
     );
     return c.json({ success: true, data: result.rows });
   } catch (error: any) {
-    console.error('Error fetching registers:', error);
+    logError('Error fetching registers:', error);
     return c.json({ success: false, message: 'Failed to fetch registers' }, 500);
   }
 });
