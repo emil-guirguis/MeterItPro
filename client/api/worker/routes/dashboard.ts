@@ -447,7 +447,7 @@ app.get('/meters', requirePermission('dashboard:read'), async (c) => {
 });
 
 // GET /meters/:meterId/elements - Retrieve meter elements
-app.get('/meters/:meterId/elements', requirePermission('dashboard:read'), async (c) => {
+app.get('/meters/:meterId/elements', authenticateToken, async (c) => {
   try {
     const tenantId = c.get('tenantId');
     if (!tenantId) return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
