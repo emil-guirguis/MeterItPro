@@ -39,7 +39,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 dotenv.config({ path: join(__dirname, '../../../.env') }); // Root .env
-dotenv.config({ path: join(__dirname, '../.env') }); // Local .env to override if needed
+dotenv.config({ path: join(__dirname, '../.env'), override: true }); // Local .env overrides root
 
 // Configure logger
 const logger = winston.createLogger({

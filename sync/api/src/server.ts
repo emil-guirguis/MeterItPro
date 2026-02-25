@@ -796,6 +796,14 @@ app.get('/api/sync/meter-reading-upload/log', async (_req, res) => {
   }
 });
 
+// Trigger meter reading upload (upload is managed by MCP process on its own schedule)
+app.post('/api/sync/meter-reading-upload/trigger', (_req, res) => {
+  res.json({
+    success: true,
+    message: 'Upload is managed by the MCP process on its own schedule. Check upload status for results.',
+  });
+});
+
 // Get meter sync status (mirrors the old MCP API endpoint)
 app.get('/api/local/meter-sync-status', async (_req, res) => {
   try {
