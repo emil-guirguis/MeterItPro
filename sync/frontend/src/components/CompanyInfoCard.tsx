@@ -359,15 +359,11 @@ export default function CompanyInfoCard() {
       const newTenant = response.data.tenant;
       console.log('✅ [Auth] Remote login successful, tenant:', newTenant.name);
 
-      // IMPORTANT: Save the new tenant data to the LOCAL database BEFORE clearing the logout flag
       // Otherwise auto-login will fetch the OLD tenant from the local database
       console.log('💾 [Auth] Saving new tenant to local database...');
       await tenantApi.syncTenantToLocal(newTenant);
       console.log('✅ [Auth] Tenant saved to local database');
 
-      // NOW clear the logout flag so auto-login will work on page reload
-      sessionStorage.removeItem('user_logged_out');
-      console.log('✅ [Auth] Logout flag cleared - auto-login enabled');
 
       // Use tenant data from response
       setTenantInfo(newTenant);
@@ -382,47 +378,6 @@ export default function CompanyInfoCard() {
       console.error('❌ [Auth] Connection error:', err);
     } finally {
       setIsLoggingIn(false);
-    }
-  };
-
-  // Handle logout
-  const handleLogout = async () => {
-    try {
-      console.log('🔐 [Auth] Logout button clicked');
-
-      // Set logout flag FIRST
-      sessionStorage.setItem('user_logged_out', 'true');
-      console.log('🔐 [Auth] Logout flag set');
-
-      // Clear local state
-      setTenantInfo(null);
-      setLoginData({ email: '', apiKey: '' });
-      setError(null);
-      console.log('🔐 [Auth] Local state cleared');
-
-      // Try to delete from backend using fetch directly
-      try {
-        console.log('🔐 [Auth] Attempting DELETE /api/local/tenant...');
-        const response = await fetch('http://localhost:3002/api/local/tenant', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        console.log('✅ [Auth] DELETE response:', response.status);
-      } catch (err) {
-        console.error('❌ [Auth] DELETE failed:', err);
-        // Continue anyway - the logout flag is already set
-      }
-
-      // Reload page with logout flag set in sessionStorage
-      console.log('🔐 [Auth] Reloading page...');
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
-    } catch (err) {
-      console.error('❌ [Auth] Logout error:', err);
-      setTenantInfo(null);
-      sessionStorage.setItem('user_logged_out', 'true');
-      setTimeout(() => window.location.reload(), 100);
     }
   };
 
