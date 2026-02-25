@@ -1125,6 +1125,10 @@ async function startServer() {
         PRIMARY KEY (device_id, register_id)
       )
     `);
+    await syncPool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS device_register_device_id_register_id_key
+      ON device_register (device_id, register_id)
+    `);
     console.log('✅ [Sync API] Required tables verified');
 
     // Start listening (bind to localhost only for security)

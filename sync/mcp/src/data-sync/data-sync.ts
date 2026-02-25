@@ -1233,10 +1233,8 @@ export class SyncDatabase {
       const sql = `
          INSERT INTO device_register (device_register_id, device_id, register_id)
          VALUES ($1, $2, $3)
-         ON CONFLICT (device_register_id, device_id, register_id)) DO UPDATE SET
-           		 device_register_id=EXCLUDED.device_register_id,
-               device_id = EXCLUDED.device_id,
-               register_id = EXCLUDED.register_id
+         ON CONFLICT (device_id, register_id) DO UPDATE SET
+           device_register_id = EXCLUDED.device_register_id
          RETURNING *`;
 
       console.log(`[SYNC SQL] ${sql}`);
