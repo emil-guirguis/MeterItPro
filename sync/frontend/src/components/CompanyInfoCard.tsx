@@ -18,7 +18,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import BusinessIcon from '@mui/icons-material/Business';
 import LoginIcon from '@mui/icons-material/Login';
-import LogoutIcon from '@mui/icons-material/Logout';
 import WarningIcon from '@mui/icons-material/Warning';
 import axios, { AxiosError } from 'axios';
 import { useAppStore } from '../stores/useAppStore';
@@ -305,26 +304,6 @@ export default function CompanyInfoCard() {
         setIsLoading(true);
         setError(null);
 
-        // CHECK LOGOUT FLAG FIRST - HIGHEST PRIORITY
-        const logoutFlag = sessionStorage.getItem('user_logged_out');
-        console.log('🔐 [Auth] ========== COMPONENT MOUNT ==========');
-        console.log('🔐 [Auth] Checking sessionStorage for logout flag...');
-        console.log('🔐 [Auth] Logout flag value:', JSON.stringify(logoutFlag));
-        console.log('🔐 [Auth] All sessionStorage keys:', Object.keys(sessionStorage));
-
-        if (logoutFlag === 'true') {
-          console.info('⛔ [Auth] LOGOUT FLAG IS SET - ABSOLUTELY NO AUTO-LOGIN WILL HAPPEN');
-          console.info('⛔ [Auth] User must manually log in again');
-          setTenantInfo(null);
-          setError(null);
-          setIsLoading(false);
-          return; // EXIT EARLY - DO NOT FETCH
-        }
-
-        // Only proceed with auto-login if NO logout flag
-        console.log('🔍 [Auth] No logout flag found - proceeding with auto-login attempt');
-        console.log('🔍 [Auth] Fetching tenant from /api/local/tenant...');
-
         const data = await tenantApi.getTenantInfo();
 
         if (data !== null && !isValidTenantInfo(data)) {
@@ -578,17 +557,6 @@ export default function CompanyInfoCard() {
         <ConnectionStatusDisplay />
         <TenantInfoDisplay tenantInfo={tenantInfo} />
 
-        <Box mt={3}>
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<LogoutIcon />}
-            onClick={handleLogout}
-            fullWidth
-          >
-            Log Out
-          </Button>
-        </Box>
       </CardContent>
     </Card>
   );
