@@ -13,7 +13,7 @@ const __dirname = dirname(__filename);
 
 // Load environment variables
 dotenv.config({ path: join(__dirname, '../../.env') });
-dotenv.config({ path: join(__dirname, '.env') });
+dotenv.config({ path: join(__dirname, '../../.env.production'), override: true });
 
 async function checkTenantSchema() {
   // Check both local and remote databases

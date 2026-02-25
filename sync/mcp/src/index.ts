@@ -38,8 +38,8 @@ import { cacheManager } from './cache/cache-manager.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-dotenv.config({ path: join(__dirname, '../../../.env') }); // Root .env
-dotenv.config({ path: join(__dirname, '../.env'), override: true }); // Local .env overrides root
+dotenv.config({ path: join(__dirname, '../../../.env') });                              // dev defaults
+dotenv.config({ path: join(__dirname, '../../../.env.production'), override: true }); // prod overrides
 
 // Configure logger
 const logger = winston.createLogger({

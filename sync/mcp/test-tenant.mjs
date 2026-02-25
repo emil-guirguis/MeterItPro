@@ -11,6 +11,7 @@ const __dirname = dirname(__filename);
 
 // Load environment variables
 dotenv.config({ path: join(__dirname, '../../.env') });
+dotenv.config({ path: join(__dirname, '../../.env.production'), override: true });
 
 const config = {
   host: process.env.POSTGRES_SYNC_HOST || process.env.POSTGRES_CLIENT_HOST || 'localhost',

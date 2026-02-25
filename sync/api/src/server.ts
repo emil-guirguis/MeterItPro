@@ -23,8 +23,8 @@ import {
 // Load environment variables from root .env file first, then local .env
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-dotenv.config({ path: join(__dirname, '../../../.env') }); // Root .env
-dotenv.config({ path: join(__dirname, '../.env') }); // Local .env to override if needed
+dotenv.config({ path: join(__dirname, '../../../.env') });                              // dev defaults
+dotenv.config({ path: join(__dirname, '../../../.env.production'), override: true }); // prod overrides
 
 const app = express();
 const PORT = parseInt(process.env.SYNC_API_PORT || '3002', 10);

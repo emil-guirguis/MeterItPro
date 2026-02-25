@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(netstat -ano)",
+      "Bash(git checkout HEAD -- .env)",
+      "Bash(taskkill /PID 14296 /F)",
+      "Bash(cmd /c \"taskkill /PID 14296 /F\")"
     ]
   }
 }
