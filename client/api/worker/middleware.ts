@@ -39,6 +39,8 @@ export async function authenticateToken(c: Context<{ Bindings: Env; Variables: A
     return c.json({ success: false, message: 'Invalid token - missing user ID' }, 401);
   }
 
+  console.log('[AUTH] Token decoded with userId:', decoded.userId);
+
   // Look up user
   let user: any;
   try {
@@ -52,6 +54,7 @@ export async function authenticateToken(c: Context<{ Bindings: Env; Variables: A
       return c.json({ success: false, message: 'Invalid token - user not found' }, 401);
     }
     user = result.rows[0];
+    console.log('[AUTH] User loaded:', { userId: user.users_id, email: user.email, tenantId: user.tenant_id, role: user.role });
   } catch (e) {
     console.error('[AUTH] User lookup error:', e);
     return c.json({ success: false, message: 'Failed to verify user' }, 500);
@@ -67,6 +70,7 @@ export async function authenticateToken(c: Context<{ Bindings: Env; Variables: A
 
   c.set('user', user);
   c.set('tenantId', user.tenant_id);
+  console.log('[AUTH] Context set - tenantId:', user.tenant_id);
   await next();
 }
 

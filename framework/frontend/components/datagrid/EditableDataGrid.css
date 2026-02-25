@@ -1,19 +1,31 @@
 .editable-data-grid {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px;
+  gap: 20px;
+  padding: 20px;
+  background: transparent;
 }
 
 .editable-data-grid__header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .editable-data-grid__add-button {
   min-width: 120px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.editable-data-grid__add-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .editable-data-grid__loading {
@@ -21,35 +33,73 @@
 }
 
 .editable-data-grid__error {
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  border-radius: 8px;
+  border-left: 4px solid #ef5350;
+  background: #fff5f5;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .editable-data-grid__table {
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  background: #ffffff;
+  transition: box-shadow 0.3s ease;
+}
+
+.editable-data-grid__table:hover {
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12);
 }
 
 .editable-data-grid__header-cell {
-  font-weight: 600;
-  background-color: #f5f5f5;
-  border-bottom: 2px solid #e0e0e0;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-bottom: 2px solid #e8eef7;
+  color: #2d3748;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 16px 12px !important;
 }
 
 .editable-data-grid__row {
-  transition: background-color 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: visible;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.editable-data-grid__row:last-child {
+  border-bottom: none;
+}
+
+.editable-data-grid__row:nth-child(even) {
+  background-color: #fafbfc;
 }
 
 .editable-data-grid__row:hover {
-  background-color: #fafafa;
+  background-color: #f8f9fc;
 }
 
 .editable-data-grid__cell {
-  padding: 12px;
+  padding: 14px 12px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: visible;
+  font-size: 14px;
+  color: #4a5568;
 }
 
 .editable-data-grid__cell-content {
@@ -57,25 +107,50 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  gap: 8px;
 }
 
 .editable-data-grid__cell-dropdown-icon {
-  font-size: 12px;
-  color: #999;
+  font-size: 11px;
+  color: #cbd5e0;
   margin-left: 8px;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
 }
 
 .editable-data-grid__cell--editable {
-  cursor: pointer;
+  cursor: text;
+  position: relative;
+}
+
+.editable-data-grid__cell--editable::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .editable-data-grid__cell--editable:hover {
-  background-color: #f0f0f0;
+  background-color: #f0f4ff;
+}
+
+.editable-data-grid__cell--editable:hover::after {
+  opacity: 0.3;
+}
+
+.editable-data-grid__cell--editable:hover .editable-data-grid__cell-dropdown-icon {
+  color: #667eea;
 }
 
 .editable-data-grid__cell--editing {
-  background-color: #fff3e0;
-  padding: 4px;
+  background-color: #f8f9ff;
+  padding: 6px;
+  border-radius: 6px;
 }
 
 .editable-data-grid__cell--editing-select {
@@ -88,11 +163,13 @@
 
 .editable-data-grid__input .MuiOutlinedInput-root {
   font-size: 14px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 }
 
 .editable-data-grid__input .MuiOutlinedInput-root.Mui-focused {
-  border-color: var(--form-focus-color, #0066cc);
-  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
 }
 
 .editable-data-grid__select {
@@ -102,30 +179,32 @@
 .editable-data-grid__select .MuiOutlinedInput-root {
   font-size: 14px;
   background-color: #ffffff !important;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 }
 
 .editable-data-grid__select .MuiOutlinedInput-input {
-  color: #000000 !important;
-  padding: 8px 12px;
+  color: #2d3748 !important;
+  padding: 10px 12px;
 }
 
 .editable-data-grid__select .MuiOutlinedInput-root.Mui-focused {
   background-color: #ffffff !important;
-  border-color: var(--form-focus-color, #0066cc);
-  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
 }
 
 .editable-data-grid__select .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-input {
-  color: #000000 !important;
+  color: #2d3748 !important;
 }
 
 .editable-data-grid__select .MuiSvgIcon-root {
-  color: #666666 !important;
+  color: #667eea !important;
 }
 
 /* Additional specificity for Material-UI Select */
 .editable-data-grid__cell--editing .editable-data-grid__select .MuiSelect-select {
-  color: #000000 !important;
+  color: #2d3748 !important;
   background-color: #ffffff !important;
 }
 
@@ -134,48 +213,57 @@
 }
 
 .editable-data-grid__cell--editing .editable-data-grid__select .MuiOutlinedInput-input {
-  color: #000000 !important;
+  color: #2d3748 !important;
 }
 
 .editable-data-grid__actions-cell {
-  padding: 8px;
+  padding: 12px;
   text-align: center;
+  vertical-align: middle;
 }
 
 .editable-data-grid__delete-button {
-  color: #d32f2f;
-  transition: background-color 0.2s ease;
+  color: #ef5350;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .editable-data-grid__delete-button:hover {
-  background-color: rgba(211, 47, 47, 0.1);
+  background-color: rgba(239, 83, 80, 0.08);
+  transform: scale(1.1);
 }
 
 .editable-data-grid__save-button {
-  color: #4caf50;
-  transition: background-color 0.2s ease;
+  color: #66bb6a;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .editable-data-grid__save-button:hover {
-  background-color: rgba(76, 175, 80, 0.1);
+  background-color: rgba(102, 187, 106, 0.08);
+  transform: scale(1.1);
 }
 
 .editable-data-grid__empty {
-  padding: 32px 16px;
-  color: #999;
+  padding: 48px 16px;
+  color: #a0aec0;
   font-style: italic;
+  font-size: 15px;
+  text-align: center;
+  background: #fafbfc;
+  border-radius: 8px;
+  margin: 12px 0;
 }
-
 
 /* Unsaved row styling */
 .editable-data-grid__row._unsaved {
-  background-color: #fffbf0;
+  background: linear-gradient(90deg, #fffbf0 0%, #ffffff 100%);
+  position: relative;
 }
 
 .editable-data-grid__row._unsaved:hover {
-  background-color: #fff9e6;
+  background: linear-gradient(90deg, #fff9e6 0%, #ffffff 100%);
 }
 
 .editable-data-grid__row._unsaved .editable-data-grid__cell {
-  border-left: 3px solid #ffc107;
+  border-left: 4px solid #ffc107;
+  padding-left: 10px;
 }

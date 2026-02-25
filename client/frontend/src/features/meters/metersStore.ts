@@ -122,10 +122,16 @@ const metersService = {
       const createToken = tokenStorage.getToken();
       if (createToken) createHeaders['Authorization'] = `Bearer ${createToken}`;
 
+      // Add timestamps if not provided
+      const dataWithTimestamps = {
+        ...meterData,
+        created_at: meterData.created_at || new Date().toISOString(),
+      };
+
       const response = await fetch(`${API_BASE_URL}/meters`, {
         method: 'POST',
         headers: createHeaders,
-        body: JSON.stringify(meterData)
+        body: JSON.stringify(dataWithTimestamps)
       });
 
       if (!response.ok) {

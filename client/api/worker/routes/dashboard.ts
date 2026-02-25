@@ -13,20 +13,6 @@ const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
 app.use('*', authenticateToken);
 
-// --- Known power columns (static list in lieu of PowerColumnDiscoveryService) ---
-const POWER_COLUMNS = [
-  'active_energy', 'active_energy_export', 'apparent_energy', 'apparent_energy_export',
-  'apparent_power', 'apparent_power_phase_a', 'apparent_power_phase_b', 'apparent_power_phase_c',
-  'current', 'current_line_a', 'current_line_b', 'current_line_c',
-  'frequency', 'maximum_demand_real', 'power', 'power_factor',
-  'power_factor_phase_a', 'power_factor_phase_b', 'power_factor_phase_c',
-  'power_phase_a', 'power_phase_b', 'power_phase_c',
-  'reactive_energy', 'reactive_energy_export', 'reactive_power',
-  'reactive_power_phase_a', 'reactive_power_phase_b', 'reactive_power_phase_c',
-  'voltage_a_b', 'voltage_a_n', 'voltage_b_c', 'voltage_b_n',
-  'voltage_c_a', 'voltage_c_n', 'voltage_p_n', 'voltage_p_p',
-  'voltage_thd', 'voltage_thd_phase_a', 'voltage_thd_phase_b', 'voltage_thd_phase_c',
-];
 
 // GET /cards - Retrieve all dashboard cards for the tenant
 app.get('/cards', requirePermission('dashboard:read'), async (c) => {
@@ -197,11 +183,6 @@ app.post('/cards', requirePermission('dashboard:create'), async (c) => {
       return c.json({ success: false, message: 'Validation failed', errors: [{ field: 'selected_columns', message: 'At least one power column must be selected' }] }, 400);
     }
 
-    const invalidCols = (body.selected_columns || []).filter((col: string) => !POWER_COLUMNS.includes(col));
-    if (invalidCols.length > 0) {
-      return c.json({ success: false, message: 'Validation failed', errors: [{ field: 'selected_columns', message: `Invalid columns: ${invalidCols.join(', ')}` }] }, 400);
-    }
-
     // Determine grid position
     const existingCards = await findAll(c.env, {
       table: 'dashboard',
@@ -252,10 +233,6 @@ app.put('/cards/:id', requirePermission('dashboard:update'), async (c) => {
     if (body.selected_columns !== undefined) {
       if (!Array.isArray(body.selected_columns) || body.selected_columns.length === 0) {
         return c.json({ success: false, message: 'Validation failed', errors: [{ field: 'selected_columns', message: 'At least one power column must be selected' }] }, 400);
-      }
-      const invalidCols = body.selected_columns.filter((col: string) => !POWER_COLUMNS.includes(col));
-      if (invalidCols.length > 0) {
-        return c.json({ success: false, message: 'Validation failed', errors: [{ field: 'selected_columns', message: `Invalid columns: ${invalidCols.join(', ')}` }] }, 400);
       }
     }
 
@@ -455,10 +432,15 @@ app.get('/meters/:meterId/elements', authenticateToken, async (c) => {
     const meterId = parseInt(c.req.param('meterId'));
     if (isNaN(meterId)) return c.json({ success: false, message: 'Invalid meter ID' }, 400);
 
+    console.log('[DASHBOARD] GET /meters/:meterId/elements - meterId:', meterId, 'tenantId from context:', tenantId, 'type:', typeof tenantId);
+
     // Verify meter belongs to tenant
     const meterResult = await query(c.env, 'SELECT meter_id, tenant_id FROM meter WHERE meter_id = $1', [meterId]);
     if (meterResult.rows.length === 0) return c.json({ success: false, message: 'Meter not found' }, 404);
-    if (meterResult.rows[0].tenant_id !== tenantId) return c.json({ success: false, message: 'You do not have permission to access this meter' }, 403);
+
+    console.log('[DASHBOARD] Meter found - meterResult.tenant_id:', meterResult.rows[0].tenant_id, 'type:', typeof meterResult.rows[0].tenant_id, 'user tenantId:', tenantId, 'type:', typeof tenantId);
+
+    if (Number(meterResult.rows[0].tenant_id) !== Number(tenantId)) return c.json({ success: false, message: 'You do not have permission to access this meter' }, 403);
 
     const result = await query(
       c.env,
@@ -473,37 +455,78 @@ app.get('/meters/:meterId/elements', authenticateToken, async (c) => {
   }
 });
 
-// GET /power-columns - Discover available power columns
+// Mapping of display names or register names to actual meter_reading column names
+const columnNameMapping: Record<string, string> = {
+  // Ensure register names map to actual meter_reading column names
+  // The key is the register name, the value is the actual column name in meter_reading table
+  'kvarh': 'kvarh',
+  'kvah': 'kvah',
+  'active_energy': 'active_energy',
+  'phase_a_current': 'phase_a_current',
+  'phase_a_voltage': 'phase_a_voltage',
+  'phase_b_current': 'phase_b_current',
+  'phase_b_voltage': 'phase_b_voltage',
+  'phase_c_current': 'phase_c_current',
+  'phase_c_voltage': 'phase_c_voltage',
+  'phase_a_power': 'phase_a_power',
+  'phase_b_power': 'phase_b_power',
+  'phase_c_power': 'phase_c_power',
+  'total_active_power': 'total_active_power',
+  'total_reactive_power': 'total_reactive_power',
+  'total_apparent_power': 'total_apparent_power',
+  // Add more mappings as needed for registers that have display names
+};
+
+// GET /power-columns - Discover available power columns for a device
 app.get('/power-columns', requirePermission('dashboard:read'), async (c) => {
   try {
-    // Try to discover columns dynamically from information_schema
-    const result = await query(
-      c.env,
-      `SELECT column_name FROM information_schema.columns
-       WHERE table_name = 'meter_reading'
-         AND data_type IN ('numeric', 'double precision', 'real', 'integer', 'bigint')
-         AND column_name NOT IN ('meter_reading_id', 'tenant_id', 'meter_id', 'meter_element_id')
-       ORDER BY ordinal_position`
-    );
+    const deviceId = c.req.query('deviceId');
+    if (!deviceId) {
+      return c.json({ success: false, message: 'deviceId parameter is required' }, 400);
+    }
 
-    const columns = result.rows.length > 0
-      ? result.rows.map((r: any) => ({
-          name: r.column_name,
-          label: r.column_name.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-          type: 'numeric',
-        }))
-      : POWER_COLUMNS.map((col) => ({
-          name: col,
-          label: col.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-          type: 'numeric',
-        }));
+    // Query device_register table to get power columns with human-readable names
+    const sql = `SELECT DISTINCT r.name, r.name as label, 'numeric' as type
+                FROM   register r
+                 JOIN device_register dr ON r.register_id = dr.register_id
+                 JOIN meter m ON m.device_id = dr.device_id
+                 WHERE m.meter_id = $1
+                 ORDER BY r.name ASC`;
+    console.log('[DASHBOARD] Executing power columns query with deviceId:', deviceId);
+    let columns: Array<{ name: string; label: string; type: string }> = [];
 
+    try {
+      const result = await query(c.env, sql, [deviceId]);
+      console.log('[DASHBOARD] Power columns query result rows:', result.rows.length);
+      console.log('[DASHBOARD] Power columns result:', JSON.stringify(result.rows, null, 2));
+
+      if (result.rows.length > 0) {
+        columns = result.rows.map((r: any) => {
+          // Use the mapping to get the actual column name, fallback to the register name
+          const actualColumnName = columnNameMapping[r.name.toLowerCase()] || r.name.toLowerCase();
+          // Format label from actual column name (ensure it's properly formatted from db column names)
+          const label = actualColumnName.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+          return {
+            name: actualColumnName,
+            label: label,
+            type: 'numeric',
+          };
+        });
+      }
+    } catch (queryError: any) {
+      console.error('[DASHBOARD] Device register table query failed:', queryError.message);
+      logError('Error querying device_register table', queryError);
+    }
+
+    console.log('[DASHBOARD] Returning power columns:', JSON.stringify(columns, null, 2));
     return c.json({
       success: true,
       data: columns,
       meta: { count: columns.length },
     });
   } catch (error: any) {
+    console.error('[DASHBOARD] Error discovering power columns:', error);
     logError('Error discovering power columns', error);
     return c.json({ success: false, message: 'Failed to discover power columns' }, 500);
   }

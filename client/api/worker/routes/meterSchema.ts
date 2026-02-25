@@ -58,7 +58,7 @@ export const meterSchema = defineSchema({
               dbField: 'device_id',
               min: 1,
               maxLength: 200,
-              showOn: ['form'],
+              showOn: ['list', 'form'],
               validate: true,
               validationFields: ['manufacturer', 'model_number'],
               visibleFor: ['physical'],
@@ -248,11 +248,12 @@ export const meterSchema = defineSchema({
         section({
           name: 'Audit',
           order: 2,
+          minWidth: '250px',
           fields: [
             field({
               name: 'created_at',
               order: 1,
-              type: FieldTypes.DATE,
+              type: FieldTypes.DATETIME,
               default: null,
               readOnly: true,
               label: 'Created At',
@@ -261,7 +262,7 @@ export const meterSchema = defineSchema({
             field({
               name: 'updated_at',
               order: 2,
-              type: FieldTypes.DATE,
+              type: FieldTypes.DATETIME,
               default: null,
               readOnly: true,
               label: 'Updated At',
@@ -281,14 +282,6 @@ export const meterSchema = defineSchema({
       label: 'Elements',
       dbField: null,
       showOn: ['form'],
-    }),
-    device: field({
-      type: FieldTypes.STRING,
-      default: '',
-      readOnly: true,
-      label: 'Device',
-      dbField: null,
-      showOn: ['list'],
     }),
   },
 

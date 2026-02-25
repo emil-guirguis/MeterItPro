@@ -23,10 +23,11 @@ app.get('/schema', (c) => {
           maxLength: 255,
         },
         element: {
-          type: 'text',
+          type: 'select',
           label: 'Element',
           required: true,
           maxLength: 50,
+          enumValues: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'],
         },
       },
       entityFields: {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { EditableDataGrid, type GridColumn } from '@framework/components/datagrid/';
 import apiClient from '../../services/apiClient';
 import './ElementsGrid.css';
@@ -69,30 +69,57 @@ export const ElementsGrid: React.FC<ElementsGridProps> = ({
   const [toastMessage, setToastMessage] = useState<string>('');
   const [toastSeverity, setToastSeverity] = useState<'success' | 'error'>('success');
 
-  // Build columns from schema
+  // Refs so getAvailableOptions always reads current values, even from a stale closure
+  const elementsRef = useRef<MeterElement[]>(elements);
+  elementsRef.current = elements;
+  const unsavedRowRef = useRef<UnsavedMeterElement | null>(unsavedRow);
+  unsavedRowRef.current = unsavedRow;
+
+  // Debug: Log ref updates
+  console.log('🔄 [ElementsGrid] Refs updated:', {
+    elementsCount: elements.length,
+    elements: elements.map(e => e.element),
+    unsavedElement: unsavedRow?.element,
+  });
+
+  // Build columns from schema. getAvailableOptions reads refs, so it is always fresh.
+  // columns needs to re-derive when schema changes OR when elements/unsavedRow change
+  // so that the available options are always up-to-date
   const columns: GridColumn[] = useMemo(() => {
     if (!schema) return [];
-    
-    const elementOptions = schema.element?.enumValues || [];
-    
-    const cols: GridColumn[] = [
-      { 
-        key: 'element', 
-        label: schema.element?.label || 'Element', 
+
+    const allElementOptions = schema.element?.enumValues || [];
+
+    const getAvailableOptions = (_rowId: number): string[] => {
+      const usedLetters = new Set<string>(elementsRef.current.map(el => el.element.trim().toUpperCase()));
+      if (unsavedRowRef.current?.element) usedLetters.add(unsavedRowRef.current.element.trim().toUpperCase());
+      const available = allElementOptions.filter(opt => !usedLetters.has(opt.toUpperCase()));
+      console.log('📊 [ElementsGrid] getAvailableOptions called:', {
+        usedLetters: Array.from(usedLetters),
+        available,
+        elementsCount: elementsRef.current.length,
+        elements: elementsRef.current.map(e => `"${e.element}"`),
+        unsavedElement: `"${unsavedRowRef.current?.element}"`,
+      });
+      return available;
+    };
+
+    return [
+      {
+        key: 'element',
+        label: schema.element?.label || 'Element',
         editable: !schema.element?.readOnly,
-        type: elementOptions.length > 0 ? 'select' : 'text',
-        options: elementOptions.length > 0 ? elementOptions : undefined,
+        type: allElementOptions.length > 0 ? 'select' : 'text',
+        options: allElementOptions.length > 0 ? getAvailableOptions : undefined,
       },
-      { 
-        key: 'name', 
-        label: schema.name?.label || 'Name', 
+      {
+        key: 'name',
+        label: schema.name?.label || 'Name',
         editable: !schema.name?.readOnly,
         type: 'text',
       },
     ];
-    
-    return cols;
-  }, [schema]);
+  }, [schema, elements, unsavedRow]);
 
   // Load schema from backend
   const loadSchema = useCallback(async () => {
@@ -278,8 +305,8 @@ export const ElementsGrid: React.FC<ElementsGridProps> = ({
 
       // Validate element uniqueness BEFORE updating
       if (column === 'element' && value) {
-        const trimmedValue = value.trim();
-        const isDuplicate = elements.some((el) => el.meter_element_id !== element.meter_element_id && el.element.trim() === trimmedValue);
+        const trimmedValue = value.trim().toUpperCase();
+        const isDuplicate = elements.some((el) => el.meter_element_id !== element.meter_element_id && el.element.trim().toUpperCase() === trimmedValue);
         if (isDuplicate) {
           const errorMsg = `Element "${trimmedValue}" is already assigned to this meter`;
           console.log('❌ [ElementsGrid] Duplicate element detected:', errorMsg);
@@ -389,8 +416,8 @@ export const ElementsGrid: React.FC<ElementsGridProps> = ({
           }
 
           if (unsavedRow && rowId === 0) {
-            const trimmedValue = value.trim();
-            const isDuplicate = elements.some((el) => el.element.trim() === trimmedValue);
+            const trimmedValue = value.trim().toUpperCase();
+            const isDuplicate = elements.some((el) => el.element.trim().toUpperCase() === trimmedValue);
             if (isDuplicate) {
               const errorMsg = `Element "${trimmedValue}" is already assigned to this meter`;
               setToastMessage(errorMsg);
@@ -401,10 +428,10 @@ export const ElementsGrid: React.FC<ElementsGridProps> = ({
           } else {
             const actualRowId = unsavedRow ? rowId - 1 : rowId;
             const element = elements[actualRowId];
-            const trimmedValue = value.trim();
-            
+            const trimmedValue = value.trim().toUpperCase();
+
             if (element) {
-              const isDuplicate = elements.some((el) => el.meter_element_id !== element.meter_element_id && el.element.trim() === trimmedValue);
+              const isDuplicate = elements.some((el) => el.meter_element_id !== element.meter_element_id && el.element.trim().toUpperCase() === trimmedValue);
               if (isDuplicate) {
                 const errorMsg = `Element "${trimmedValue}" is already assigned to this meter`;
                 setToastMessage(errorMsg);
@@ -412,8 +439,8 @@ export const ElementsGrid: React.FC<ElementsGridProps> = ({
                 setToastOpen(true);
                 return false;
               }
-              
-              if (unsavedRow && unsavedRow.element.trim() === trimmedValue) {
+
+              if (unsavedRow && unsavedRow.element.trim().toUpperCase() === trimmedValue) {
                 const errorMsg = `Element "${trimmedValue}" is already assigned to this meter`;
                 setToastMessage(errorMsg);
                 setToastSeverity('error');

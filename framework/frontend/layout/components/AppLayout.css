@@ -39,7 +39,7 @@
   height: calc(100vh - var(--header-height));
 }
 
-.app-layout.sidebar-collapsed .sidebar {
+.app-layout.sidebar-collapsed aside.sidebar {
   width: var(--sidebar-collapsed-width, 64px);
   flex-basis: var(--sidebar-collapsed-width, 64px);
 }

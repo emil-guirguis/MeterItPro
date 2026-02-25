@@ -130,30 +130,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         dispatch({ type: 'SET_LOADING', payload: true });
 
-                
-        // Dev auto-login (local only)
-        const autoLoginEnabled = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
-        const devEmail = import.meta.env.VITE_DEV_EMAIL as string | undefined;
-        const devPassword = import.meta.env.VITE_DEV_PASSWORD as string | undefined;
-
-        if (autoLoginEnabled && !authService.getStoredToken() && devEmail && devPassword) {
-          addLog('⚙️ Dev auto-login enabled, attempting login...');
-          try {
-            await login({ email: devEmail, password: devPassword, rememberMe: true });
-            addLog('✅ Dev auto-login succeeded');
-            return;
-          } catch (autoLoginError) {
-            addLog('❌ Dev auto-login failed: ' + (autoLoginError instanceof Error ? autoLoginError.message : String(autoLoginError)));
-            dispatch({ type: 'SET_LOADING', payload: false });
-            return;
-          }
-        }
-
-        
-        // Check if user explicitly logged out - FIRST priority
+        // Check logout flag FIRST - if set, prevent any auto-login
         if (authService.hasLogoutFlag()) {
-          addLog('🚪 User explicitly logged out, clearing any remaining tokens and skipping auto-login');
-          // Ensure tokens are cleared even if logout didn't complete properly
+          addLog('🚪 User explicitly logged out, preventing auto-login');
           authService.clearStoredToken();
           dispatch({ type: 'SET_LOADING', payload: false });
           return;
@@ -163,7 +142,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const token = authService.getStoredToken();
         addLog('🔑 Stored token exists: ' + !!token);
         addLog('🔑 Token value: ' + (token ? token.substring(0, 50) + '...' : 'null'));
-        
+
+        // If NO token exists, try dev auto-login
+        if (!token) {
+          const autoLoginEnabled = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
+          const devEmail = import.meta.env.VITE_DEV_EMAIL as string | undefined;
+          const devPassword = import.meta.env.VITE_DEV_PASSWORD as string | undefined;
+
+          if (autoLoginEnabled && devEmail && devPassword) {
+            addLog('⚙️ Dev auto-login enabled (no token found), attempting login...');
+            try {
+              await login({ email: devEmail, password: devPassword, rememberMe: true });
+              addLog('✅ Dev auto-login succeeded');
+              return;
+            } catch (autoLoginError) {
+              addLog('❌ Dev auto-login failed: ' + (autoLoginError instanceof Error ? autoLoginError.message : String(autoLoginError)));
+              dispatch({ type: 'SET_LOADING', payload: false });
+              return;
+            }
+          }
+
+          // No token and no dev auto-login
+          addLog('ℹ️ No stored token and dev auto-login not enabled, user not authenticated');
+          dispatch({ type: 'SET_LOADING', payload: false });
+          return;
+        }
+
+        // Token exists and no logout flag, proceed with verification
         if (token) {
           addLog('✅ Token found in storage, verifying with backend...');
           try {
@@ -303,6 +308,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           locations: locations
         }
       });
+
+      // Clear logout flag since user successfully logged in
+      authService.clearLogoutFlag();
       console.log('✅ Login completed successfully in AuthContext');
       return authResponse;
     } catch (error) {

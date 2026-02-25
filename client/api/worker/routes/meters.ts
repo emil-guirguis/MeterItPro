@@ -237,6 +237,8 @@ app.get('/', requirePermission('meter:read'), async (c) => {
       searchFields: ['name', 'serial_number'],
       sortBy: qs.sortBy,
       sortOrder: qs.sortOrder,
+      joins: 'LEFT JOIN device d ON meter.device_id = d.device_id',
+      selectFields: 'meter.*, d.manufacturer as device_manufacturer, d.model_number as device_model_number',
     });
 
     return c.json({

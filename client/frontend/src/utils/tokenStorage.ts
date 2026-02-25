@@ -139,11 +139,11 @@ class TokenStorage {
   }
 
   /**
-   * Set logout flag to prevent auto-login after explicit logout
+   * Set logout flag to prevent auto-login after explicit logout (uses sessionStorage - cleared on browser close)
    */
   setLogoutFlag(): void {
-    console.log('🚩 Setting logout flag');
-    localStorage.setItem(this.LOGOUT_FLAG_KEY, 'true');
+    console.log('🚩 Setting logout flag in sessionStorage');
+    sessionStorage.setItem(this.LOGOUT_FLAG_KEY, 'true');
   }
 
   /**
@@ -151,14 +151,14 @@ class TokenStorage {
    */
   clearLogoutFlag(): void {
     console.log('🏳️ Clearing logout flag');
-    localStorage.removeItem(this.LOGOUT_FLAG_KEY);
+    sessionStorage.removeItem(this.LOGOUT_FLAG_KEY);
   }
 
   /**
    * Check if user explicitly logged out
    */
   hasLogoutFlag(): boolean {
-    const hasFlag = localStorage.getItem(this.LOGOUT_FLAG_KEY) === 'true';
+    const hasFlag = sessionStorage.getItem(this.LOGOUT_FLAG_KEY) === 'true';
     console.log('🔍 Checking logout flag:', hasFlag);
     return hasFlag;
   }

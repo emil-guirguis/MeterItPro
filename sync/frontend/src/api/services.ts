@@ -329,7 +329,7 @@ export const tenantApi = {
       console.log('💾 [Tenant] Syncing tenant data to local database...');
       console.log('💾 [Tenant] Tenant data:', tenantData);
       console.log('💾 [Tenant] API base URL:', apiClient.defaults.baseURL);
-      
+
       // Call the local API to upsert tenant data
       const payload = {
         name: tenantData.name,
@@ -343,7 +343,7 @@ export const tenantApi = {
         active: tenantData.active,
         api_key: tenantData.api_key,
       };
-      
+
       console.log('💾 [Tenant] Sending payload:', payload);
       const response = await apiClient.post<TenantInfo>('/api/local/tenant', payload);
 
@@ -365,6 +365,27 @@ export const tenantApi = {
         });
       } else {
         console.error('❌ [Tenant] Unexpected error:', error);
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Delete tenant data from local database (logout)
+   */
+  logout: async (): Promise<void> => {
+    try {
+      console.log('🔐 [Tenant] Logging out - deleting tenant data...');
+      await apiClient.delete('/api/local/tenant');
+      console.log('✅ [Tenant] Successfully logged out');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('❌ [Tenant] Failed to logout:', {
+          status: error.response?.status,
+          message: error.message,
+        });
+      } else {
+        console.error('❌ [Tenant] Unexpected error during logout:', error);
       }
       throw error;
     }

@@ -364,14 +364,28 @@ export const BaseForm: React.FC<BaseFormProps> = ({
           
           const formSchema = createFormSchema(fieldsForDefaults);
           const defaults = formSchema.getDefaults();
-          
+
           // Also include entityFields defaults
           Object.entries(schema.entityFields || {}).forEach(([fieldName, fieldDef]) => {
             if (fieldDef.showOn?.includes('form') && fieldDef.dbField !== null) {
               defaults[fieldName] = fieldDef.default;
             }
           });
-          
+
+          // Set audit field defaults for insert mode (new records)
+          const now = new Date().toISOString(); // Full ISO timestamp
+          if (fieldsForDefaults['created_at'] && (defaults['created_at'] === null || defaults['created_at'] === undefined)) {
+            defaults['created_at'] = now;
+          }
+          if (fieldsForDefaults['updated_at'] && (defaults['updated_at'] === null || defaults['updated_at'] === undefined)) {
+            defaults['updated_at'] = now;
+          }
+
+          // Ensure active field defaults to true in insert mode
+          if (fieldsForDefaults['active'] && (defaults['active'] === null || defaults['active'] === undefined || defaults['active'] === false)) {
+            defaults['active'] = true;
+          }
+
           return defaults;
         },
         formDataToEntity: (formData) => {
@@ -766,7 +780,19 @@ export const BaseForm: React.FC<BaseFormProps> = ({
         ? (value || false)
         : fieldType === 'date' && value
           ? String(value).slice(0, 10)
-          : (value || ''),
+          : fieldType === 'datetime' && value
+            ? (() => {
+              // Convert UTC ISO datetime to local time for display
+              const utcDate = new Date(String(value));
+              // Get local time components
+              const year = utcDate.getFullYear();
+              const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+              const day = String(utcDate.getDate()).padStart(2, '0');
+              const hours = String(utcDate.getHours()).padStart(2, '0');
+              const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+              return `${year}-${month}-${day}T${hours}:${minutes}`;
+            })()
+            : (value || ''),
       error,
       touched: !!error,
       help: fieldDef.description,

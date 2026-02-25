@@ -50,7 +50,9 @@
       "Bash(wrangler dev:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(lsof:*)",
+      "Bash(sort -t: -k3 -rn)"
     ]
   }
 }

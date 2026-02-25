@@ -108,7 +108,6 @@ export const DashboardPage: React.FC = () => {
     console.log('📊 [DashboardPage] useEffect: Loading cards on mount');
     fetchCards();
     fetchMeters();
-    fetchPowerColumns();
   }, [fetchCards]);
 
   // Fetch meters for the modal
@@ -121,26 +120,28 @@ export const DashboardPage: React.FC = () => {
     }
   }, []);
 
-  // Fetch meter elements for the selected meter
-  const fetchMeterElements = useCallback(async (meterId: number) => {
-    try {
-      const elementsData = await dashboardService.getMeterElementsByMeter(meterId);
-      setMeterElements(elementsData);
-    } catch (err) {
-      console.error('Error fetching meter elements:', err);
-      setMeterElements([]);
-    }
-  }, []);
-
   // Fetch power columns for the modal
-  const fetchPowerColumns = useCallback(async () => {
+  const fetchPowerColumns = useCallback(async (deviceId: number) => {
     try {
-      const columnsData = await dashboardService.getPowerColumns();
+      const columnsData = await dashboardService.getPowerColumns(deviceId);
       setPowerColumns(columnsData);
     } catch (err) {
       console.error('Error fetching power columns:', err);
     }
   }, []);
+
+  // Fetch meter elements for the selected meter
+  const fetchMeterElements = useCallback(async (meterId: number) => {
+    try {
+      const elementsData = await dashboardService.getMeterElementsByMeter(meterId);
+      setMeterElements(elementsData);
+      // Also fetch power columns for the selected meter/device
+      await fetchPowerColumns(meterId);
+    } catch (err) {
+      console.error('Error fetching meter elements:', err);
+      setMeterElements([]);
+    }
+  }, [fetchPowerColumns]);
 
   // Handle global refresh
   const handleGlobalRefresh = async (e: React.MouseEvent) => {

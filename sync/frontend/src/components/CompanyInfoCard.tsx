@@ -18,6 +18,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import BusinessIcon from '@mui/icons-material/Business';
 import LoginIcon from '@mui/icons-material/Login';
+import LogoutIcon from '@mui/icons-material/Logout';
 import WarningIcon from '@mui/icons-material/Warning';
 import axios, { AxiosError } from 'axios';
 import { useAppStore } from '../stores/useAppStore';
@@ -304,6 +305,26 @@ export default function CompanyInfoCard() {
         setIsLoading(true);
         setError(null);
 
+        // CHECK LOGOUT FLAG FIRST - HIGHEST PRIORITY
+        const logoutFlag = sessionStorage.getItem('user_logged_out');
+        console.log('🔐 [Auth] ========== COMPONENT MOUNT ==========');
+        console.log('🔐 [Auth] Checking sessionStorage for logout flag...');
+        console.log('🔐 [Auth] Logout flag value:', JSON.stringify(logoutFlag));
+        console.log('🔐 [Auth] All sessionStorage keys:', Object.keys(sessionStorage));
+
+        if (logoutFlag === 'true') {
+          console.info('⛔ [Auth] LOGOUT FLAG IS SET - ABSOLUTELY NO AUTO-LOGIN WILL HAPPEN');
+          console.info('⛔ [Auth] User must manually log in again');
+          setTenantInfo(null);
+          setError(null);
+          setIsLoading(false);
+          return; // EXIT EARLY - DO NOT FETCH
+        }
+
+        // Only proceed with auto-login if NO logout flag
+        console.log('🔍 [Auth] No logout flag found - proceeding with auto-login attempt');
+        console.log('🔍 [Auth] Fetching tenant from /api/local/tenant...');
+
         const data = await tenantApi.getTenantInfo();
 
         if (data !== null && !isValidTenantInfo(data)) {
@@ -312,11 +333,18 @@ export default function CompanyInfoCard() {
           return;
         }
 
+        if (data) {
+          console.log('✅ [Auth] Auto-login successful - tenant found:', data.name);
+          console.log('✅ [Auth] User is now logged in');
+        } else {
+          console.log('ℹ️  [Auth] No tenant found in database');
+        }
+
         setTenantInfo(data);
       } catch (err) {
         // 404 and 503 are expected when no tenant is configured or service is initializing
         if (axios.isAxiosError(err) && (err.response?.status === 404 || err.response?.status === 503)) {
-          console.info('No tenant configured yet or service initializing - awaiting account connection');
+          console.info('ℹ️  [Auth] No tenant configured - user needs to login');
           setTenantInfo(null);
           setError(null);
         } else {
@@ -326,6 +354,7 @@ export default function CompanyInfoCard() {
         }
       } finally {
         setIsLoading(false);
+        console.log('🔐 [Auth] ========== MOUNT COMPLETE ==========');
       }
     };
 
@@ -338,6 +367,8 @@ export default function CompanyInfoCard() {
       setIsLoggingIn(true);
       setLoginError(null);
 
+      console.log('🔐 [Auth] Login started for:', loginData.email);
+
       // Call the remote /sync/connect endpoint with email, password, and API key
       const response = await authApi.login(loginData);
 
@@ -346,18 +377,73 @@ export default function CompanyInfoCard() {
         return;
       }
 
+      const newTenant = response.data.tenant;
+      console.log('✅ [Auth] Remote login successful, tenant:', newTenant.name);
+
+      // IMPORTANT: Save the new tenant data to the LOCAL database BEFORE clearing the logout flag
+      // Otherwise auto-login will fetch the OLD tenant from the local database
+      console.log('💾 [Auth] Saving new tenant to local database...');
+      await tenantApi.syncTenantToLocal(newTenant);
+      console.log('✅ [Auth] Tenant saved to local database');
+
+      // NOW clear the logout flag so auto-login will work on page reload
+      sessionStorage.removeItem('user_logged_out');
+      console.log('✅ [Auth] Logout flag cleared - auto-login enabled');
+
       // Use tenant data from response
-      setTenantInfo(response.data.tenant);
+      setTenantInfo(newTenant);
       setShowLoginModal(false);
       setLoginData({ email: '', apiKey: '' });
 
+      console.log('✅ [Auth] Local state updated, reloading page...');
       // Refresh the page to load all components with new tenant data
       setTimeout(() => window.location.reload(), 500);
     } catch (err) {
       setLoginError(getErrorMessage(err));
-      console.error('Connection error:', err);
+      console.error('❌ [Auth] Connection error:', err);
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      console.log('🔐 [Auth] Logout button clicked');
+
+      // Set logout flag FIRST
+      sessionStorage.setItem('user_logged_out', 'true');
+      console.log('🔐 [Auth] Logout flag set');
+
+      // Clear local state
+      setTenantInfo(null);
+      setLoginData({ email: '', apiKey: '' });
+      setError(null);
+      console.log('🔐 [Auth] Local state cleared');
+
+      // Try to delete from backend using fetch directly
+      try {
+        console.log('🔐 [Auth] Attempting DELETE /api/local/tenant...');
+        const response = await fetch('http://localhost:3002/api/local/tenant', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        console.log('✅ [Auth] DELETE response:', response.status);
+      } catch (err) {
+        console.error('❌ [Auth] DELETE failed:', err);
+        // Continue anyway - the logout flag is already set
+      }
+
+      // Reload page with logout flag set in sessionStorage
+      console.log('🔐 [Auth] Reloading page...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    } catch (err) {
+      console.error('❌ [Auth] Logout error:', err);
+      setTenantInfo(null);
+      sessionStorage.setItem('user_logged_out', 'true');
+      setTimeout(() => window.location.reload(), 100);
     }
   };
 
@@ -491,6 +577,18 @@ export default function CompanyInfoCard() {
 
         <ConnectionStatusDisplay />
         <TenantInfoDisplay tenantInfo={tenantInfo} />
+
+        <Box mt={3}>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<LogoutIcon />}
+            onClick={handleLogout}
+            fullWidth
+          >
+            Log Out
+          </Button>
+        </Box>
       </CardContent>
     </Card>
   );

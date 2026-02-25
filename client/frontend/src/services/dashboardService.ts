@@ -200,11 +200,11 @@ class DashboardService {
     }
   }
 
-  // Get available power columns
-  async getPowerColumns(): Promise<Array<{ name: string; type: string; label: string }>> {
+  // Get available power columns for a device
+  async getPowerColumns(deviceId: number): Promise<Array<{ name: string; type: string; label: string }>> {
     try {
-      const response: AxiosResponse<{ success: boolean; data: Array<{ name: string; type: string; label: string }> }> = 
-        await this.apiClient.get('/dashboard/power-columns');
+      const response: AxiosResponse<{ success: boolean; data: Array<{ name: string; type: string; label: string }> }> =
+        await this.apiClient.get('/dashboard/power-columns', { params: { deviceId } });
       return response.data.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {

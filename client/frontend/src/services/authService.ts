@@ -266,6 +266,11 @@ class AuthService {
     return tokenStorage.hasLogoutFlag();
   }
 
+  // Clear logout flag (called after successful login)
+  clearLogoutFlag(): void {
+    tokenStorage.clearLogoutFlag();
+  }
+
   // Check if user is authenticated (has valid token)
   isAuthenticated(): boolean {
     return tokenStorage.isTokenValid();

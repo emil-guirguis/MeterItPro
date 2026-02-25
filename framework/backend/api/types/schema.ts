@@ -13,6 +13,7 @@ export const FieldTypes = {
   NUMBER: 'number',
   BOOLEAN: 'boolean',
   DATE: 'date',
+  DATETIME: 'datetime',
   EMAIL: 'email',
   PHONE: 'phone',
   COUNTRY: 'country',

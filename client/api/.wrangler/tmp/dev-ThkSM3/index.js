@@ -9734,13 +9734,13 @@ ${assignments}
   }
 });
 
-// .wrangler/tmp/bundle-muBlyW/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-VkBATp/middleware-loader.entry.ts
 init_modules_watch_stub();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
 
-// .wrangler/tmp/bundle-muBlyW/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-VkBATp/middleware-insertion-facade.js
 init_modules_watch_stub();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
@@ -12793,6 +12793,7 @@ async function authenticateToken(c, next) {
   if (!decoded.userId) {
     return c.json({ success: false, message: "Invalid token - missing user ID" }, 401);
   }
+  console.log("[AUTH] Token decoded with userId:", decoded.userId);
   let user;
   try {
     const result = await query(
@@ -12805,6 +12806,7 @@ async function authenticateToken(c, next) {
       return c.json({ success: false, message: "Invalid token - user not found" }, 401);
     }
     user = result.rows[0];
+    console.log("[AUTH] User loaded:", { userId: user.users_id, email: user.email, tenantId: user.tenant_id, role: user.role });
   } catch (e) {
     console.error("[AUTH] User lookup error:", e);
     return c.json({ success: false, message: "Failed to verify user" }, 500);
@@ -12817,6 +12819,7 @@ async function authenticateToken(c, next) {
   }
   c.set("user", user);
   c.set("tenantId", user.tenant_id);
+  console.log("[AUTH] Context set - tenantId:", user.tenant_id);
   await next();
 }
 __name(authenticateToken, "authenticateToken");
@@ -17003,11 +17006,12 @@ var meterSchema = (0, import_SchemaDefinition2.defineSchema)({
         (0, import_SchemaDefinition2.section)({
           name: "Audit",
           order: 2,
+          minWidth: "250px",
           fields: [
             (0, import_SchemaDefinition2.field)({
               name: "created_at",
               order: 1,
-              type: import_SchemaDefinition2.FieldTypes.DATE,
+              type: import_SchemaDefinition2.FieldTypes.DATETIME,
               default: null,
               readOnly: true,
               label: "Created At",
@@ -17016,7 +17020,7 @@ var meterSchema = (0, import_SchemaDefinition2.defineSchema)({
             (0, import_SchemaDefinition2.field)({
               name: "updated_at",
               order: 2,
-              type: import_SchemaDefinition2.FieldTypes.DATE,
+              type: import_SchemaDefinition2.FieldTypes.DATETIME,
               default: null,
               readOnly: true,
               label: "Updated At",
@@ -17758,48 +17762,6 @@ init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
 var app13 = new Hono2();
 app13.use("*", authenticateToken);
-var POWER_COLUMNS = [
-  "active_energy",
-  "active_energy_export",
-  "apparent_energy",
-  "apparent_energy_export",
-  "apparent_power",
-  "apparent_power_phase_a",
-  "apparent_power_phase_b",
-  "apparent_power_phase_c",
-  "current",
-  "current_line_a",
-  "current_line_b",
-  "current_line_c",
-  "frequency",
-  "maximum_demand_real",
-  "power",
-  "power_factor",
-  "power_factor_phase_a",
-  "power_factor_phase_b",
-  "power_factor_phase_c",
-  "power_phase_a",
-  "power_phase_b",
-  "power_phase_c",
-  "reactive_energy",
-  "reactive_energy_export",
-  "reactive_power",
-  "reactive_power_phase_a",
-  "reactive_power_phase_b",
-  "reactive_power_phase_c",
-  "voltage_a_b",
-  "voltage_a_n",
-  "voltage_b_c",
-  "voltage_b_n",
-  "voltage_c_a",
-  "voltage_c_n",
-  "voltage_p_n",
-  "voltage_p_p",
-  "voltage_thd",
-  "voltage_thd_phase_a",
-  "voltage_thd_phase_b",
-  "voltage_thd_phase_c"
-];
 app13.get("/cards", requirePermission("dashboard:read"), async (c) => {
   try {
     const qs = c.req.query();
@@ -17937,10 +17899,6 @@ app13.post("/cards", requirePermission("dashboard:create"), async (c) => {
     if (!body.selected_columns || Array.isArray(body.selected_columns) && body.selected_columns.length === 0) {
       return c.json({ success: false, message: "Validation failed", errors: [{ field: "selected_columns", message: "At least one power column must be selected" }] }, 400);
     }
-    const invalidCols = (body.selected_columns || []).filter((col) => !POWER_COLUMNS.includes(col));
-    if (invalidCols.length > 0) {
-      return c.json({ success: false, message: "Validation failed", errors: [{ field: "selected_columns", message: `Invalid columns: ${invalidCols.join(", ")}` }] }, 400);
-    }
     const existingCards = await findAll(c.env, {
       table: "dashboard",
       primaryKey: "dashboard_id",
@@ -17980,10 +17938,6 @@ app13.put("/cards/:id", requirePermission("dashboard:update"), async (c) => {
     if (body.selected_columns !== void 0) {
       if (!Array.isArray(body.selected_columns) || body.selected_columns.length === 0) {
         return c.json({ success: false, message: "Validation failed", errors: [{ field: "selected_columns", message: "At least one power column must be selected" }] }, 400);
-      }
-      const invalidCols = body.selected_columns.filter((col) => !POWER_COLUMNS.includes(col));
-      if (invalidCols.length > 0) {
-        return c.json({ success: false, message: "Validation failed", errors: [{ field: "selected_columns", message: `Invalid columns: ${invalidCols.join(", ")}` }] }, 400);
       }
     }
     delete body.tenant_id;
@@ -18122,7 +18076,7 @@ app13.get("/cards/:id/readings/export", requirePermission("dashboard:read"), asy
     return c.json({ success: false, message: "Failed to export meter readings" }, 500);
   }
 });
-app13.get("/meters", requirePermission("dashboard:read"), async (c) => {
+app13.get("/meters", authenticateToken, async (c) => {
   try {
     const tenantId = c.get("tenantId");
     if (!tenantId) return c.json({ success: false, message: "User must have a valid tenant_id" }, 400);
@@ -18143,9 +18097,11 @@ app13.get("/meters/:meterId/elements", authenticateToken, async (c) => {
     if (!tenantId) return c.json({ success: false, message: "User must have a valid tenant_id" }, 400);
     const meterId = parseInt(c.req.param("meterId"));
     if (isNaN(meterId)) return c.json({ success: false, message: "Invalid meter ID" }, 400);
+    console.log("[DASHBOARD] GET /meters/:meterId/elements - meterId:", meterId, "tenantId from context:", tenantId, "type:", typeof tenantId);
     const meterResult = await query(c.env, "SELECT meter_id, tenant_id FROM meter WHERE meter_id = $1", [meterId]);
     if (meterResult.rows.length === 0) return c.json({ success: false, message: "Meter not found" }, 404);
-    if (meterResult.rows[0].tenant_id !== tenantId) return c.json({ success: false, message: "You do not have permission to access this meter" }, 403);
+    console.log("[DASHBOARD] Meter found - meterResult.tenant_id:", meterResult.rows[0].tenant_id, "type:", typeof meterResult.rows[0].tenant_id, "user tenantId:", tenantId, "type:", typeof tenantId);
+    if (Number(meterResult.rows[0].tenant_id) !== Number(tenantId)) return c.json({ success: false, message: "You do not have permission to access this meter" }, 403);
     const result = await query(
       c.env,
       "SELECT meter_element_id, meter_id, element, name FROM meter_element WHERE meter_id = $1 AND tenant_id = $2 ORDER BY element ASC",
@@ -18157,31 +18113,67 @@ app13.get("/meters/:meterId/elements", authenticateToken, async (c) => {
     return c.json({ success: false, message: "Failed to fetch meter elements" }, 500);
   }
 });
+var columnNameMapping = {
+  // Ensure register names map to actual meter_reading column names
+  // The key is the register name, the value is the actual column name in meter_reading table
+  "kvarh": "kvarh",
+  "kvah": "kvah",
+  "active_energy": "active_energy",
+  "phase_a_current": "phase_a_current",
+  "phase_a_voltage": "phase_a_voltage",
+  "phase_b_current": "phase_b_current",
+  "phase_b_voltage": "phase_b_voltage",
+  "phase_c_current": "phase_c_current",
+  "phase_c_voltage": "phase_c_voltage",
+  "phase_a_power": "phase_a_power",
+  "phase_b_power": "phase_b_power",
+  "phase_c_power": "phase_c_power",
+  "total_active_power": "total_active_power",
+  "total_reactive_power": "total_reactive_power",
+  "total_apparent_power": "total_apparent_power"
+  // Add more mappings as needed for registers that have display names
+};
 app13.get("/power-columns", requirePermission("dashboard:read"), async (c) => {
   try {
-    const result = await query(
-      c.env,
-      `SELECT column_name FROM information_schema.columns
-       WHERE table_name = 'meter_reading'
-         AND data_type IN ('numeric', 'double precision', 'real', 'integer', 'bigint')
-         AND column_name NOT IN ('meter_reading_id', 'tenant_id', 'meter_id', 'meter_element_id')
-       ORDER BY ordinal_position`
-    );
-    const columns = result.rows.length > 0 ? result.rows.map((r) => ({
-      name: r.column_name,
-      label: r.column_name.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-      type: "numeric"
-    })) : POWER_COLUMNS.map((col) => ({
-      name: col,
-      label: col.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-      type: "numeric"
-    }));
+    const deviceId = c.req.query("deviceId");
+    if (!deviceId) {
+      return c.json({ success: false, message: "deviceId parameter is required" }, 400);
+    }
+    const sql = `SELECT DISTINCT r.name, r.name as label, 'numeric' as type
+                FROM   register r
+                 JOIN device_register dr ON r.register_id = dr.register_id
+                 JOIN meter m ON m.device_id = dr.device_id
+                 WHERE m.meter_id = $1
+                 ORDER BY r.name ASC`;
+    console.log("[DASHBOARD] Executing power columns query with deviceId:", deviceId);
+    let columns = [];
+    try {
+      const result = await query(c.env, sql, [deviceId]);
+      console.log("[DASHBOARD] Power columns query result rows:", result.rows.length);
+      console.log("[DASHBOARD] Power columns result:", JSON.stringify(result.rows, null, 2));
+      if (result.rows.length > 0) {
+        columns = result.rows.map((r) => {
+          const actualColumnName = columnNameMapping[r.name.toLowerCase()] || r.name.toLowerCase();
+          const label = actualColumnName.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          return {
+            name: actualColumnName,
+            label,
+            type: "numeric"
+          };
+        });
+      }
+    } catch (queryError) {
+      console.error("[DASHBOARD] Device register table query failed:", queryError.message);
+      logError("Error querying device_register table", queryError);
+    }
+    console.log("[DASHBOARD] Returning power columns:", JSON.stringify(columns, null, 2));
     return c.json({
       success: true,
       data: columns,
       meta: { count: columns.length }
     });
   } catch (error3) {
+    console.error("[DASHBOARD] Error discovering power columns:", error3);
     logError("Error discovering power columns", error3);
     return c.json({ success: false, message: "Failed to discover power columns" }, 500);
   }
@@ -19188,7 +19180,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env3, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-muBlyW/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-VkBATp/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -19224,7 +19216,7 @@ function __facade_invoke__(request, env3, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-muBlyW/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-VkBATp/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

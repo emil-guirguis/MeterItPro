@@ -117,6 +117,7 @@
   display: flex;
   gap: 0.5rem;
   overflow: visible;
+  min-width: 0;
 }
 
 .list__content {

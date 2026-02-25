@@ -377,9 +377,9 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
               </Typography>
             ) : (
               <FormGroup sx={{ p: 1.5, backgroundColor: theme.palette.mode === 'light' ? '#f5f5f5' : '#fafafa', borderRadius: 1 }}>
-                {powerColumns && powerColumns.map(column => (
+                {powerColumns && powerColumns.map((column, index) => (
                   <FormControlLabel
-                    key={column.name}
+                    key={`${column.name}-${index}`}
                     control={
                       <Checkbox
                         name="selected_columns"

@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useMemo } from 'react';
 import {
   TextField,
   Select,
@@ -24,7 +24,7 @@ export interface FormFieldOption {
 export interface FormFieldProps {
   name: string;
   label?: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'textarea' | 'select' | 'checkbox' | 'radio' | 'date' | 'time' | 'url' | 'tel' | 'search' | 'file' | 'country';
+  type?: 'text' | 'email' | 'password' | 'number' | 'textarea' | 'select' | 'checkbox' | 'radio' | 'date' | 'time' | 'datetime' | 'url' | 'tel' | 'search' | 'file' | 'country';
   value?: any;
   error?: string;
   touched?: boolean;
@@ -364,13 +364,40 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
 
         case 'date':
         case 'time':
+        case 'datetime': {
+          // Format datetime/date values - use useMemo to ensure proper formatting
+          const displayValue = useMemo(() => {
+            if (!value) return '';
+            const strValue = String(value);
+
+            if (type === 'datetime') {
+              // Always parse and format datetime as "YYYY-MM-DD HH:mm"
+              try {
+                const date = new Date(strValue);
+                if (isNaN(date.getTime())) return strValue; // Invalid date
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day} ${hours}:${minutes}`;
+              } catch (e) {
+                return strValue; // Return original if parse fails
+              }
+            } else if (type === 'date') {
+              // For date fields, keep first 10 characters (YYYY-MM-DD)
+              return strValue.slice(0, 10);
+            }
+            return strValue;
+          }, [value, type]);
+
           return (
             <TextField
               id={fieldId}
               name={name}
               label={label}
-              type={type}
-              value={value ?? ''}
+              type={type === 'datetime' ? 'text' : type}
+              value={displayValue}
               onChange={onChange}
               onBlur={onBlur}
               required={required}
@@ -387,6 +414,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               aria-describedby={showError ? errorId : undefined}
             />
           );
+        }
 
         default: {
           const isNumberField = type === 'number';

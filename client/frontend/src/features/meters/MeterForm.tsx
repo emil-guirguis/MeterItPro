@@ -59,9 +59,10 @@ export const MeterForm: React.FC<MeterFormProps> = ({
   const meterId = meter?.meter_id || meter?.id;
   // Default installation date to today for create flow
   const todayIsoDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const nowIsoDate = new Date().toISOString(); // Full ISO timestamp
   const initialEntity = meter
     ? { ...meter, is_virtual: (meter.is_virtual === true || meter.is_virtual === 'virtual') ? 'virtual' : 'physical' }
-    : { installation_date: todayIsoDate, is_virtual: selectedType || 'physical' };
+    : { installation_date: todayIsoDate, created_at: nowIsoDate, updated_at: nowIsoDate, is_virtual: selectedType || 'physical' };
 
   return (
     <FormContainer>

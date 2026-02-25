@@ -28,7 +28,7 @@ export interface GridColumn {
   editable?: boolean;
   type?: 'text' | 'number' | 'select';
   width?: string;
-  options?: string[];
+  options?: string[] | ((rowId: number) => string[]);
 }
 
 export interface EditableDataGridProps {
@@ -94,6 +94,15 @@ export const EditableDataGrid: React.FC<EditableDataGridProps> = ({
   const [selectPosition, setSelectPosition] = useState<{ top: number; left: number } | null>(null);
   const [deleteConfirmRowId, setDeleteConfirmRowId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Resolve options inline every render so ref-backed functions always return current values
+  const floatingSelectOptions = (() => {
+    if (!editingCell) return null;
+    const editingColumn = columns.find(c => c.key === editingCell.column);
+    const raw = editingColumn?.options;
+    if (!raw) return null;
+    return typeof raw === 'function' ? raw(editingCell.rowId) : raw;
+  })();
 
   const handleCellClick = useCallback(
     (rowId: number, column: GridColumn) => {
@@ -350,7 +359,7 @@ export const EditableDataGrid: React.FC<EditableDataGridProps> = ({
       </TableContainer>
 
       {/* Floating Select Dropdown */}
-      {selectPosition && editingCell && (
+      {selectPosition && editingCell && floatingSelectOptions && (
         <select
           ref={selectRef}
           autoFocus
@@ -423,11 +432,11 @@ export const EditableDataGrid: React.FC<EditableDataGridProps> = ({
             zIndex: 9999,
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
           }}
-          size={Math.min(10, (columns.find(c => c.key === editingCell.column)?.options?.length || 0) + 1)}
+          size={Math.min(10, floatingSelectOptions.length + 1)}
           title="Select element"
         >
           <option value="">Select...</option>
-          {columns.find(c => c.key === editingCell.column)?.options?.map((option) => (
+          {floatingSelectOptions.map((option: string) => (
             <option key={option} value={option}>
               {option}
             </option>

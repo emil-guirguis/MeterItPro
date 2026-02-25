@@ -32,7 +32,7 @@ const PORT = parseInt(process.env.SYNC_API_PORT || '3002', 10);
 // Middleware
 app.use(cors({
   origin: '*', // Allow all origins on local network
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'DELETE'],
 }));
 app.use(express.json());
 
@@ -73,6 +73,11 @@ const swaggerSpec = {
         summary: 'Save tenant information',
         tags: ['Tenant'],
         responses: { 200: { description: 'Saved' }, 400: { description: 'Bad request' } },
+      },
+      delete: {
+        summary: 'Delete all tenant information',
+        tags: ['Tenant'],
+        responses: { 200: { description: 'Deleted' }, 500: { description: 'Error' } },
       },
     },
   },
@@ -447,6 +452,40 @@ app.post('/api/local/tenant', async (req, res) => {
     res.json(response);
   } catch (error) {
     console.error('❌ [API] POST /api/local/tenant - Error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// Delete tenant information - logs out the user
+/**
+ * @swagger
+ * /api/local/tenant:
+ *   delete:
+ *     summary: Delete all tenant information (logout)
+ *     tags:
+ *       - Tenant
+ *     responses:
+ *       200:
+ *         description: Tenant deleted successfully
+ *       500:
+ *         description: Server error
+ */
+app.delete('/api/local/tenant', async (_req, res) => {
+  try {
+    console.log('📥 [API] DELETE /api/local/tenant - Request received');
+
+    const deleteQuery = `DELETE FROM tenant`;
+    await syncPool.query(deleteQuery);
+
+    console.log('✅ [API] Tenant deleted successfully');
+    res.json({
+      success: true,
+      message: 'Tenant information deleted successfully'
+    });
+  } catch (error) {
+    console.error('❌ [API] DELETE /api/local/tenant - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });

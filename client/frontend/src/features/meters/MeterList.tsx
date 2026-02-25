@@ -86,14 +86,12 @@ export const MeterList: React.FC<MeterListProps> = ({
           },
         };
       }
-      // Show device manufacturer + model from the joined device relationship
-      if (col.key === 'device') {
+      // Show device manufacturer + model from the joined device columns
+      if (col.key === 'device_id') {
         return {
           ...col,
           render: (_value: any, meter: Meter) => {
-            const device = (meter as any).device;
-            if (!device) return '';
-            const parts = [device.manufacturer, device.model_number].filter(Boolean);
+            const parts = [(meter as any).device_manufacturer, (meter as any).device_model_number].filter(Boolean);
             return parts.join(' - ') || '';
           },
         };
