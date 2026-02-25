@@ -58,6 +58,7 @@ export default function MeterSyncCard() {
       const errorMessage = err instanceof Error ? err.message : 'Failed to trigger meter sync';
       setMessage(`Error: ${errorMessage}`);
       console.error('Error triggering meter sync:', err);
+      fetchStatus();
     } finally {
       setIsSyncing(false);
     }

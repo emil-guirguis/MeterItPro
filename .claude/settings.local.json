@@ -53,7 +53,8 @@
       "Bash(git reset:*)",
       "Bash(lsof:*)",
       "Bash(sort -t: -k3 -rn)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(tree:*)"
     ]
   }
 }

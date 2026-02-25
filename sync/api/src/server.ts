@@ -1106,6 +1106,27 @@ async function startServer() {
     // Initialize database pools
     await initializePools();
 
+    // Ensure required tables exist (sync/api doesn't rely on MCP having run first)
+    await syncPool.query(`
+      CREATE TABLE IF NOT EXISTS sync_log (
+        id SERIAL PRIMARY KEY,
+        operation_type VARCHAR(50),
+        batch_size INTEGER,
+        success BOOLEAN,
+        error_message TEXT,
+        synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await syncPool.query(`
+      CREATE TABLE IF NOT EXISTS device_register (
+        device_register_id INTEGER,
+        device_id INTEGER NOT NULL,
+        register_id INTEGER NOT NULL,
+        PRIMARY KEY (device_id, register_id)
+      )
+    `);
+    console.log('✅ [Sync API] Required tables verified');
+
     // Start listening (bind to localhost only for security)
     const server = app.listen(PORT, '127.0.0.1', () => {
       console.log(`\n✅ [Sync API] Server listening on http://127.0.0.1:${PORT}`);

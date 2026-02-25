@@ -71,6 +71,7 @@ export const meterSyncApi = {
       console.error('❌ [Meter Sync] Failed to trigger meter sync:', error);
       if (axios.isAxiosError(error)) {
         throw new Error(
+          error.response?.data?.message ||
           error.response?.data?.error ||
           error.message ||
           'Failed to trigger meter sync'
