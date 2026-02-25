@@ -52,7 +52,8 @@
       "Bash(git commit:*)",
       "Bash(git reset:*)",
       "Bash(lsof:*)",
-      "Bash(sort -t: -k3 -rn)"
+      "Bash(sort -t: -k3 -rn)",
+      "Bash(test:*)"
     ]
   }
 }

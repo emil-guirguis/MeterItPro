@@ -64,6 +64,7 @@ export default defineConfig({
       '@emotion/react',
       '@emotion/styled',
       '@mui/material',
+      '@mui/icons-material',
       '@mui/system',
       'recharts',
       'zustand',
