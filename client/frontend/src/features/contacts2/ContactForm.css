@@ -1,0 +1,87 @@
+/* Contact Form Component Styles */
+
+/* Contact form inherits all base-form styles from framework */
+/* Only contact-specific overrides should be added here */
+
+.contact-form {
+  /* Inherits from .base-form in framework */
+}
+
+/* Contact-specific: Tags input (not in base framework) */
+.contact-form__tags-container {
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  padding: 0.5rem;
+  background: var(--color-surface, #ffffff);
+  min-height: 2.5rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.contact-form__tags-container:focus-within {
+  border-color: var(--color-primary, #1976d2);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+}
+
+.contact-form__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.contact-form__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--color-primary, #1976d2);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.contact-form__tag-remove {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.contact-form__tag-remove:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.contact-form__tag-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.contact-form__tags-input {
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  padding: 0.25rem;
+  background: transparent;
+  flex: 1;
+  min-width: 200px;
+}
+
+.contact-form__tags-input::placeholder {
+  color: var(--color-text-secondary, #6b7280);
+}
+
+@media (max-width: 480px) {
+  .contact-form__tags-input {
+    min-width: 150px;
+  }
+}

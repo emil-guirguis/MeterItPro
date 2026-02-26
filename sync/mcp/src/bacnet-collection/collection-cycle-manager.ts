@@ -368,6 +368,28 @@ async executeCycle(
 
       this.logger.info(`Meter ${meter.meter_id} (${meter.element}) is ONLINE → proceeding`);
 
+      // ── Circuit breaker check ──────────────────────────────────────────
+      if (this.batchSizeManager.isCircuitOpen(meter.meter_id)) {
+        const state = this.batchSizeManager.getMeterState(meter.meter_id);
+        const openedAt = state?.circuitOpenedAt;
+        const elapsedMin = openedAt
+          ? Math.round((Date.now() - openedAt.getTime()) / 60000)
+          : 0;
+        this.logger.warn(
+          `🔌 Circuit breaker OPEN for meter ${meter.meter_id} (${meter.element}) — ` +
+          `skipping register reads (open for ${elapsedMin} min, ` +
+          `${state?.consecutiveCycleFailures} consecutive failed cycles)`
+        );
+        errors.push({
+          meterId: String(meter.meter_id),
+          operation: 'read',
+          error: `Circuit breaker open: ${state?.consecutiveCycleFailures} consecutive failed cycles`,
+          timestamp: new Date(),
+        });
+        return readings;
+      }
+      // ──────────────────────────────────────────────────────────────────
+
       // Load registers for this device
       const deviceRegisters = cacheManager.getDeviceRegisterCache().getDeviceRegisters(Number(meter.device_id));
 
@@ -564,6 +586,14 @@ async executeCycle(
         timestamp: new Date(),
       });
     }
+
+    // ── Circuit breaker: record cycle outcome ──────────────────────────
+    if (readings.length > 0) {
+      this.batchSizeManager.recordMeterCycleSuccess(meter.meter_id);
+    } else {
+      this.batchSizeManager.recordMeterCycleFailure(meter.meter_id);
+    }
+    // ──────────────────────────────────────────────────────────────────
 
     return readings;
   }

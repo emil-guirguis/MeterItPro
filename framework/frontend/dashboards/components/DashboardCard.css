@@ -14,7 +14,30 @@
   cursor: grabbing;
 }
 
-/* Ensure proper flex layout for card content */
-.dashboard-card .MuiCardContent-root {
-  overflow: auto;
+/* Icon-only action button */
+.dashboard-card__icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  color: #94a3b8;
+  transition: background 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.dashboard-card__icon-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.dashboard-card__icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dashboard-card__icon-btn--danger:hover {
+  background: #fef2f2;
+  color: #ef4444;
 }

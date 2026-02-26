@@ -9,6 +9,7 @@ import { Permission } from '../../types/auth';
 import type { ColumnDefinition } from '@framework/components/list/types';
 import './MeterList.css';
 import { tokenStorage } from '../../utils/tokenStorage';
+import { meterStats } from './config';
 
 interface MeterListProps {
   onMeterSelect?: (meter: Meter) => void;
@@ -126,7 +127,7 @@ export const MeterList: React.FC<MeterListProps> = ({
       allowImport: false,
       allowSearch: true,
       allowFilters: true,
-      allowStats: false,
+      allowStats: true,
     },
     permissions: {
       create: Permission.METER_CREATE,
@@ -135,6 +136,7 @@ export const MeterList: React.FC<MeterListProps> = ({
     },
     columns: customColumns,
     filters: meterFilters,
+    stats: meterStats,
     onEdit: onMeterEdit,
     onCreate: onMeterCreate,
     authContext: auth,
@@ -146,6 +148,7 @@ export const MeterList: React.FC<MeterListProps> = ({
         title="Meters"
         filters={baseList.renderFilters()}
         headerActions={baseList.renderHeaderActions()}
+        stats={baseList.renderStats()}
         data={baseList.data}
         columns={baseList.columns}
         loading={baseList.loading}

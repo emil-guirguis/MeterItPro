@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { db } from '../database/client.js';
 import { logger } from '../utils/logger.js';
 import { ReportExecutor } from './report-executor.js';
+import { checkMeterHealth } from '../tools/check-meter-health.js';
 
 export interface Report {
   id: string;
@@ -33,17 +34,85 @@ export class SchedulerService {
     try {
       const reports = await this.loadActiveReports();
       logger.info(`Loaded ${reports.length} active reports from database`);
-      
+
       for (const report of reports) {
         await this.createJob(report);
       }
-      
+
+      await this.initializeHealthCheck();
+
       logger.info(`SchedulerService initialized with ${this.jobs.size} active jobs`);
     } catch (error) {
       logger.error('Failed to initialize SchedulerService', {
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
+    }
+  }
+
+  /**
+   * Initialize the health check cron job.
+   * Runs immediately on startup, then every 60 minutes.
+   */
+  private async initializeHealthCheck(): Promise<void> {
+    const HEALTH_CHECK_KEY = 'health_check';
+    const DEFAULT_CRON = '0 * * * *'; // every 60 minutes
+
+    const runHealthCheck = async () => {
+      logger.info('Running meter health check');
+      try {
+        const result = await checkMeterHealth({});
+        const text = result.content[0]?.text;
+        if (text) {
+          const parsed = JSON.parse(text);
+          logger.info('Health check completed', { summary: parsed.summary });
+        }
+      } catch (error) {
+        logger.error('Health check failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    };
+
+    try {
+      // Stop existing health check job if present
+      if (this.jobs.has(HEALTH_CHECK_KEY)) {
+        const existing = this.jobs.get(HEALTH_CHECK_KEY);
+        if (existing) existing.stop();
+        this.jobs.delete(HEALTH_CHECK_KEY);
+      }
+
+      // Load cron expression from notification_settings
+      let cronExpression = DEFAULT_CRON;
+      try {
+        const result = await db.query(
+          `SELECT health_check_cron FROM notification_settings WHERE enabled = true LIMIT 1`
+        );
+        if (result.rows.length > 0 && result.rows[0].health_check_cron) {
+          cronExpression = result.rows[0].health_check_cron;
+        }
+      } catch (dbError) {
+        logger.warn('Could not load notification_settings, using default cron for health check', {
+          error: dbError instanceof Error ? dbError.message : String(dbError),
+        });
+      }
+
+      if (!this.isValidCronExpression(cronExpression)) {
+        logger.warn(`Invalid health check cron expression: ${cronExpression}, using default`);
+        cronExpression = DEFAULT_CRON;
+      }
+
+      // Run immediately at startup
+      await runHealthCheck();
+
+      // Then schedule recurring runs
+      const task = cron.schedule(cronExpression, runHealthCheck);
+      this.jobs.set(HEALTH_CHECK_KEY, task);
+      logger.info(`Health check job scheduled with cron: ${cronExpression}`);
+    } catch (error) {
+      logger.error('Failed to initialize health check job', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

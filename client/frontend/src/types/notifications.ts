@@ -2,24 +2,30 @@
  * Notification types for the frontend
  */
 
-export type NotificationType = 'failing' | 'stale';
+export type NotificationType = 'stale' | 'all_zero' | 'error_status';
+export type NotificationSeverity = 'info' | 'warning' | 'error';
 
 export interface Notification {
-  id: string;
-  meter_id: string;
-  element_id: string;
+  id: string;                        // maps from notification_id
+  tenant_id: string;
+  users_id: string | null;
+  meter_id: string | null;
+  meter_element_id: string | null;
   notification_type: NotificationType;
+  severity: NotificationSeverity;
+  title: string;
+  description: string | null;
   created_at: string;
-  cleared: boolean;
 }
 
 export interface NotificationSettings {
-  id: string;
+  id: string | null;
   health_check_cron: string;
   daily_email_cron: string;
   email_template_id: string | null;
   enabled: boolean;
-  updated_at: string;
+  stale_threshold_hours: number;
+  updated_at: string | null;
 }
 
 export interface UpdateNotificationSettingsRequest {
@@ -27,6 +33,7 @@ export interface UpdateNotificationSettingsRequest {
   daily_email_cron?: string;
   email_template_id?: string | null;
   enabled?: boolean;
+  stale_threshold_hours?: number;
 }
 
 export interface NotificationListResponse {

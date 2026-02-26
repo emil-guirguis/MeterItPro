@@ -30,6 +30,7 @@ export interface HeaderProps {
     avatar?: string;
   };
   notifications?: Notification[];
+  notificationComponent?: ReactNode;
   onLogout: () => void;
   onToggleSidebar: () => void;
   isMobile: boolean;

@@ -19,12 +19,22 @@ interface SimpleMeterReadingGridProps {
   data: MeterReading[];
   loading?: boolean;
   error?: string;
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
   data,
   loading = false,
   error,
+  page = 1,
+  pageSize = 20,
+  total = 0,
+  totalPages = 1,
+  onPageChange,
 }) => {
   if (error) {
     return (
@@ -108,11 +118,16 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
       return '-';
     }
     if (typeof value === 'number') {
-      return value.toFixed(2);
+      return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-    if (typeof value === 'string' && value.includes('T')) {
-      // Format ISO date
-      return new Date(value).toLocaleString();
+    if (typeof value === 'string') {
+      if (value.includes('T') || value.match(/^\d{4}-\d{2}-\d{2}/)) {
+        return new Date(value).toLocaleString();
+      }
+      const num = parseFloat(value);
+      if (!isNaN(num) && String(num) === value) {
+        return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
     }
     return String(value);
   };
@@ -153,8 +168,43 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
           ))}
         </tbody>
       </table>
-      <div className="simple-grid-info">
-        Showing {data.length} records
+      <div className="simple-grid-pager">
+        <span className="simple-grid-pager__info">
+          {total > 0
+            ? `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total} records`
+            : `Showing ${data.length} records`}
+        </span>
+        {totalPages > 1 && onPageChange && (
+          <div className="simple-grid-pager__controls">
+            <button
+              className="simple-grid-pager__btn"
+              onClick={() => onPageChange(1)}
+              disabled={page <= 1}
+              title="First page"
+            >«</button>
+            <button
+              className="simple-grid-pager__btn"
+              onClick={() => onPageChange(page - 1)}
+              disabled={page <= 1}
+              title="Previous page"
+            >‹</button>
+            <span className="simple-grid-pager__pages">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              className="simple-grid-pager__btn"
+              onClick={() => onPageChange(page + 1)}
+              disabled={page >= totalPages}
+              title="Next page"
+            >›</button>
+            <button
+              className="simple-grid-pager__btn"
+              onClick={() => onPageChange(totalPages)}
+              disabled={page >= totalPages}
+              title="Last page"
+            >»</button>
+          </div>
+        )}
       </div>
     </div>
   );

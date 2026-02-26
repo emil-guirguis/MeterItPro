@@ -29,7 +29,7 @@ function validateEmailList(emails: string[]): { isValid: boolean; invalidEmails:
 // POST / - Create a new report
 app.post('/', async (c) => {
   try {
-    const { name, type, schedule, recipients, config } = await c.req.json();
+    const { name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format } = await c.req.json();
     const errors: string[] = [];
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) errors.push('Report name is required');
@@ -52,10 +52,20 @@ app.post('/', async (c) => {
     const now = new Date();
     const result = await query(
       c.env,
-      `INSERT INTO public.report (name, type, schedule, recipients, config, active, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING report_id, name, type, schedule, recipients, config, active , created_at, updated_at`,
-      [name.trim(), type.trim(), schedule.trim(), JSON.stringify(recipients), JSON.stringify(config || {}), true, now, now]
+      `INSERT INTO public.report (name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING report_id, name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at`,
+      [
+        name.trim(), type.trim(), schedule.trim(),
+        recipients,
+        config || {},
+        active !== false,
+        meter_ids || [],
+        element_ids || [],
+        register_ids || [],
+        html_format || false,
+        now, now,
+      ]
     );
 
     if (result.rows.length === 0) {
@@ -137,7 +147,7 @@ app.put('/:id', async (c) => {
     const existing = await query(c.env, 'SELECT report_id FROM public.report WHERE report_id = $1', [id]);
     if (existing.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
 
-    const { name, type, schedule, recipients, config } = await c.req.json();
+    const { name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format } = await c.req.json();
     const updates: string[] = [];
     const values: any[] = [];
     let paramCount = 1;
@@ -162,12 +172,32 @@ app.put('/:id', async (c) => {
       if (!Array.isArray(recipients) || recipients.length === 0) return c.json({ success: false, message: 'Validation failed', errors: ['Recipients must be a non-empty array'] }, 400);
       const emailValidation = validateEmailList(recipients);
       if (!emailValidation.isValid) return c.json({ success: false, message: 'Validation failed', errors: [`Invalid emails: ${emailValidation.invalidEmails.join(', ')}`] }, 400);
-      updates.push(`recipients = $${paramCount}`); values.push(JSON.stringify(recipients)); paramCount++;
+      updates.push(`recipients = $${paramCount}`); values.push(recipients); paramCount++;
     }
 
     if (config !== undefined) {
       if (typeof config !== 'object' || config === null) return c.json({ success: false, message: 'Validation failed', errors: ['Config must be an object'] }, 400);
-      updates.push(`config = $${paramCount}`); values.push(JSON.stringify(config)); paramCount++;
+      updates.push(`config = $${paramCount}`); values.push(config); paramCount++;
+    }
+
+    if (active !== undefined) {
+      updates.push(`active = $${paramCount}`); values.push(active); paramCount++;
+    }
+
+    if (meter_ids !== undefined) {
+      updates.push(`meter_ids = $${paramCount}`); values.push(meter_ids); paramCount++;
+    }
+
+    if (element_ids !== undefined) {
+      updates.push(`element_ids = $${paramCount}`); values.push(element_ids); paramCount++;
+    }
+
+    if (register_ids !== undefined) {
+      updates.push(`register_ids = $${paramCount}`); values.push(register_ids); paramCount++;
+    }
+
+    if (html_format !== undefined) {
+      updates.push(`html_format = $${paramCount}`); values.push(html_format); paramCount++;
     }
 
     if (updates.length === 0) {
@@ -180,7 +210,7 @@ app.put('/:id', async (c) => {
 
     const result = await query(
       c.env,
-      `UPDATE public.report SET ${updates.join(', ')} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, active, created_at, updated_at`,
+      `UPDATE public.report SET ${updates.join(', ')} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at`,
       values
     );
 

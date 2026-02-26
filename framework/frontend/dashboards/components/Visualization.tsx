@@ -228,7 +228,7 @@ const LineVisualization: React.FC<VisualizationProps> = ({
   return (
     <div className="visualization-container">
       <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={lineData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+        <LineChart data={lineData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis 
             dataKey="name" 
@@ -237,7 +237,7 @@ const LineVisualization: React.FC<VisualizationProps> = ({
             height={80}
             interval={Math.max(0, Math.floor(lineData.length / 10))}
           />
-          <YAxis />
+          <YAxis width={70} tickFormatter={(v) => Number(v).toLocaleString()} />
           <Tooltip formatter={formatValue} />
           <Legend />
           {columns.map((column, index) => (
@@ -335,7 +335,7 @@ const BarVisualization: React.FC<VisualizationProps> = ({
   return (
     <div className="visualization-container">
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={barData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+        <BarChart data={barData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis 
             dataKey="name"
@@ -344,7 +344,7 @@ const BarVisualization: React.FC<VisualizationProps> = ({
             height={80}
             interval={Math.max(0, Math.floor(barData.length / 10))}
           />
-          <YAxis />
+          <YAxis width={70} tickFormatter={(v) => Number(v).toLocaleString()} />
           <Tooltip formatter={formatValue} />
           <Legend />
           {columns.map((column, index) => (
@@ -371,6 +371,12 @@ const AreaVisualization: React.FC<VisualizationProps> = ({
   columns,
   height = 300,
 }) => {
+  const recharts = useRecharts();
+  if (!recharts) {
+    return <div style={{ height }} className="visualization-empty">Loading chart...</div>;
+  }
+  const { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend } = recharts;
+
   // Handle empty data
   if (!data || columns.length === 0) {
     return (
@@ -435,7 +441,7 @@ const AreaVisualization: React.FC<VisualizationProps> = ({
   return (
     <div className="visualization-container">
       <ResponsiveContainer width="100%" height={height}>
-        <AreaChart data={areaData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+        <AreaChart data={areaData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
           <defs>
             {columns.map((column, index) => (
               <linearGradient key={`gradient-${column}`} id={`color-${column}`} x1="0" y1="0" x2="0" y2="1">
@@ -452,7 +458,7 @@ const AreaVisualization: React.FC<VisualizationProps> = ({
             height={80}
             interval={Math.max(0, Math.floor(areaData.length / 10))}
           />
-          <YAxis />
+          <YAxis width={70} tickFormatter={(v) => Number(v).toLocaleString()} />
           <Tooltip formatter={formatValue} />
           <Legend />
           {columns.map((column, index) => (

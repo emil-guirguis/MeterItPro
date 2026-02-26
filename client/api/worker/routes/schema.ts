@@ -21,6 +21,8 @@ import { reportSchema } from './reportSchema';
 import { dashboardSchema } from './dashboardSchema';
 import { authLogsSchema } from './authLogsSchema';
 import { emailTemplatesSchema } from './emailTemplatesSchema';
+import { notificationSchema } from './notificationSchema';
+import { notificationSettingsSchema } from './notificationSettingsSchema';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -55,6 +57,8 @@ const schemas: Record<string, any> = {
   dashboard: dashboardSchema,
   authLogs: authLogsSchema,
   emailTemplates: emailTemplatesSchema,
+  notification: notificationSchema,
+  notification_settings: notificationSettingsSchema,
 };
 
 // ---------------------------------------------------------------------------

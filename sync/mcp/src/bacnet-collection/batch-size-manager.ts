@@ -13,6 +13,8 @@ export interface BatchSizeConfig {
   initialBatchSize?: number | 'all'; // Starting batch size (default: 'all')
   minBatchSize?: number;              // Minimum batch size before sequential (default: 1)
   reductionFactor?: number;           // Factor to reduce batch size on timeout (default: 0.5)
+  circuitBreakerThreshold?: number;   // Consecutive failed cycles before opening circuit (default: 5)
+  circuitCooldownMs?: number;         // Cooldown period in ms before retrying (default: 15 minutes)
 }
 
 export interface MeterBatchState {
@@ -22,6 +24,9 @@ export interface MeterBatchState {
   lastSuccessfulBatchSize?: number;
   consecutiveTimeouts: number;
   consecutiveSuccesses: number;
+  consecutiveCycleFailures: number;
+  circuitOpen: boolean;
+  circuitOpenedAt?: Date;
   lastUpdated: Date;
 }
 
@@ -30,12 +35,16 @@ export class BatchSizeManager {
   private readonly initialBatchSize: number | 'all';
   private readonly minBatchSize: number;
   private readonly reductionFactor: number;
+  private readonly circuitBreakerThreshold: number;
+  private readonly circuitCooldownMs: number;
   private logger: any;
 
   constructor(config: BatchSizeConfig = {}, logger?: any) {
     this.initialBatchSize = config.initialBatchSize ?? 'all';
     this.minBatchSize = config.minBatchSize ?? 1;
     this.reductionFactor = config.reductionFactor ?? 0.5;
+    this.circuitBreakerThreshold = config.circuitBreakerThreshold ?? 5;
+    this.circuitCooldownMs = config.circuitCooldownMs ?? 15 * 60 * 1000;
     this.logger = logger || console;
 
     // Validate configuration
@@ -66,6 +75,8 @@ export class BatchSizeManager {
         totalRegisters,
         consecutiveTimeouts: 0,
         consecutiveSuccesses: 0,
+        consecutiveCycleFailures: 0,
+        circuitOpen: false,
         lastUpdated: new Date(),
       };
 
@@ -179,6 +190,82 @@ export class BatchSizeManager {
     return Array.from(this.meterStates.values())
       .filter((state) => state.currentBatchSize === this.minBatchSize)
       .map((state) => state.meterId);
+  }
+
+  /**
+   * Check if the circuit breaker is open for a meter.
+   * If the cooldown period has elapsed, the circuit is automatically closed to allow a retry.
+   */
+  isCircuitOpen(meterId: number): boolean {
+    const state = this.meterStates.get(meterId);
+    if (!state || !state.circuitOpen) return false;
+
+    // Check if cooldown has elapsed — if so, allow one retry
+    if (state.circuitOpenedAt) {
+      const elapsed = Date.now() - state.circuitOpenedAt.getTime();
+      if (elapsed >= this.circuitCooldownMs) {
+        state.circuitOpen = false;
+        state.circuitOpenedAt = undefined;
+        const cooldownMinutes = Math.round(this.circuitCooldownMs / 60000);
+        this.logger.info(
+          `🔌 Circuit breaker for meter ${meterId} cooldown (${cooldownMinutes} min) elapsed — allowing retry`
+        );
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Record that a full collection cycle produced at least one reading for a meter.
+   * Resets consecutive failure counter and closes the circuit.
+   */
+  recordMeterCycleSuccess(meterId: number): void {
+    const state = this.meterStates.get(meterId);
+    if (!state) return;
+
+    if (state.consecutiveCycleFailures > 0 || state.circuitOpen) {
+      this.logger.info(
+        `✅ Meter ${meterId} produced readings — resetting circuit breaker ` +
+        `(was at ${state.consecutiveCycleFailures} consecutive failed cycles)`
+      );
+    }
+
+    state.consecutiveCycleFailures = 0;
+    state.circuitOpen = false;
+    state.circuitOpenedAt = undefined;
+    state.lastUpdated = new Date();
+  }
+
+  /**
+   * Record that a full collection cycle produced zero readings for a meter.
+   * Opens the circuit breaker after the configured threshold is reached.
+   */
+  recordMeterCycleFailure(meterId: number): void {
+    const state = this.meterStates.get(meterId);
+    if (!state) return;
+
+    state.consecutiveCycleFailures++;
+    state.lastUpdated = new Date();
+
+    if (state.consecutiveCycleFailures >= this.circuitBreakerThreshold) {
+      if (!state.circuitOpen) {
+        state.circuitOpen = true;
+        state.circuitOpenedAt = new Date();
+        const cooldownMinutes = Math.round(this.circuitCooldownMs / 60000);
+        this.logger.warn(
+          `🔌 Circuit breaker OPENED for meter ${meterId} after ` +
+          `${state.consecutiveCycleFailures} consecutive failed cycles. ` +
+          `Skipping for ${cooldownMinutes} minutes.`
+        );
+      }
+    } else {
+      this.logger.warn(
+        `⚠️  Meter ${meterId} cycle produced no readings ` +
+        `(${state.consecutiveCycleFailures}/${this.circuitBreakerThreshold} before circuit opens)`
+      );
+    }
   }
 
   /**

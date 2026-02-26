@@ -280,7 +280,8 @@
 }
 
 .data-table__sort-indicator {
-  font-size: 12px;
+  font-size: 16px;
+  font-weight: bold;
   color: var(--color-primary, #3b82f6);
 }
 

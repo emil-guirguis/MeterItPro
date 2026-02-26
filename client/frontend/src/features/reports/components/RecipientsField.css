@@ -10,14 +10,9 @@
   align-items: flex-start;
 }
 
-.recipients-input-group .form-input {
+.recipients-input-group__field {
   flex: 1;
   min-width: 0;
-}
-
-.recipients-input-group .btn {
-  flex-shrink: 0;
-  white-space: nowrap;
 }
 
 .recipients-list {

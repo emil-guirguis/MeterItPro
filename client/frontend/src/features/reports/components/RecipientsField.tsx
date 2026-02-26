@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Button } from '@mui/material';
+import { FormField } from '@framework/components/formfield/FormField';
 import './RecipientsField.css';
 
 interface RecipientsFieldProps {
@@ -64,28 +66,32 @@ export const RecipientsField: React.FC<RecipientsFieldProps> = ({
   return (
     <div className="recipients-field">
       <div className="recipients-input-group">
-        <input
-          type="email"
-          className={`form-input ${inputError ? 'form-input--error' : ''}`}
-          value={recipientInput}
-          onChange={(e) => {
-            setRecipientInput(e.target.value);
-            if (inputError) setInputError('');
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder="Enter email address"
-          disabled={isDisabled}
-        />
-        <button
+        <div className="recipients-input-group__field">
+          <FormField
+            name="recipient-input"
+            type="email"
+            value={recipientInput}
+            error={inputError}
+            touched={!!inputError}
+            placeholder="Enter email address"
+            disabled={isDisabled}
+            onChange={(e) => {
+              setRecipientInput(e.target.value);
+              if (inputError) setInputError('');
+            }}
+            onKeyDown={handleKeyDown}
+          />
+        </div>
+        <Button
           type="button"
-          className="btn btn--secondary"
+          variant="outlined"
           onClick={handleAddRecipient}
           disabled={isDisabled || !recipientInput.trim()}
+          sx={{ flexShrink: 0, whiteSpace: 'nowrap', height: '56px' }}
         >
           Add
-        </button>
+        </Button>
       </div>
-      {inputError && <span className="form-error">{inputError}</span>}
 
       {value.length > 0 && (
         <div className="recipients-list">

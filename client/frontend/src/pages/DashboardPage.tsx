@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext, createContext, useRef, useMemo } from 'react';
 import type { Layout } from 'react-grid-layout';
 import { DashboardPage as FrameworkDashboardPage } from '@framework/dashboards/components/DashboardPage';
 import { DashboardCard as FrameworkDashboardCard } from '@framework/dashboards/components/DashboardCard';
@@ -9,14 +9,80 @@ import type { DashboardCard as FrameworkDashboardCardType } from '@framework/das
 import { dashboardService, type DashboardCard as DashboardCardType, type AggregatedData } from '../services/dashboardService';
 import './DashboardPage.css';
 
+// Context for passing card data and handlers to ClientDashboardCard.
+// This allows ClientDashboardCard to live outside DashboardPage (stable component identity)
+// while still accessing up-to-date state.
+interface DashboardContextType {
+  cardDataMap: Record<number, AggregatedData | null>;
+  cardLoadingMap: Record<number, boolean>;
+  cardErrorMap: Record<number, string | null>;
+  onVisualizationChange: (cardId: number | string, newType: string) => void;
+  onGroupingChange: (cardId: number | string, newGrouping: string) => void;
+  onTimeFrameChange: (cardId: number | string, newTimeFrame: string) => void;
+  onAggregationChange: (cardId: number | string, aggregationType: string) => void;
+}
+
+const DashboardContext = createContext<DashboardContextType>({
+  cardDataMap: {},
+  cardLoadingMap: {},
+  cardErrorMap: {},
+  onVisualizationChange: () => {},
+  onGroupingChange: () => {},
+  onTimeFrameChange: () => {},
+  onAggregationChange: () => {},
+});
+
+/**
+ * Stable top-level component for rendering a dashboard card.
+ * Defined outside DashboardPage so React never sees a new component type on re-renders,
+ * which would cause all cards to unmount/remount and lose chart state.
+ */
+const ClientDashboardCard: React.FC<any> = ({ card, ...props }) => {
+  const ctx = useContext(DashboardContext);
+
+  const cardData = ctx.cardDataMap[card.dashboard_id] || null;
+  const cardLoading = ctx.cardLoadingMap[card.dashboard_id] || false;
+  const cardError = ctx.cardErrorMap[card.dashboard_id] || null;
+
+  const frameworkCard: FrameworkDashboardCardType = {
+    id: card.dashboard_id,
+    title: card.card_name,
+    description: card.card_description,
+    visualization_type: card.visualization_type,
+    grid_x: card.grid_x,
+    grid_y: card.grid_y,
+    grid_w: card.grid_w,
+    grid_h: card.grid_h,
+    ...card,
+  };
+
+  return (
+    <FrameworkDashboardCard
+      card={frameworkCard}
+      data={cardData}
+      loading={cardLoading}
+      error={cardError}
+      VisualizationComponent={Visualization}
+      onVisualizationChange={ctx.onVisualizationChange}
+      onGroupingChange={ctx.onGroupingChange}
+      onTimeFrameChange={ctx.onTimeFrameChange}
+      onAggregationChange={ctx.onAggregationChange}
+      onEdit={props.onEdit}
+      onDelete={props.onDelete}
+      onRefresh={props.onRefresh}
+      onExpand={props.onExpand}
+    />
+  );
+};
+
 /**
  * Client-specific DashboardPage wrapper
- * 
+ *
  * This component wraps the framework DashboardPage and provides:
  * - API communication through dashboardService
  * - Client-specific data fetching and state management
  * - Callbacks for card operations
- * 
+ *
  * The framework DashboardPage handles all UI rendering and layout management.
  */
 export const DashboardPage: React.FC = () => {
@@ -38,54 +104,11 @@ export const DashboardPage: React.FC = () => {
   const [modalLoading, setModalLoading] = useState(false);
   const isInitialLoadRef = React.useRef(true);
 
-  // Fetch all dashboard cards
-  const fetchCards = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('📊 [DashboardPage] Fetching dashboard cards...');
-      const response = await dashboardService.getDashboardCards({
-        page: 1,
-        limit: 100
-      });
-      console.log('📊 [DashboardPage] API Response:', response);
-      console.log('📊 [DashboardPage] Cards received:', response.items.length);
-      setCards(response.items);
-      
-      // Initialize layout from card positions - use pixel values from API
-      const newLayout: Layout[] = response.items.map((card, index) => ({
-        i: card.dashboard_id.toString(),
-        x: card.grid_x ?? 0,
-        y: card.grid_y ?? (index * 520),
-        w: card.grid_w ?? 300,
-        h: card.grid_h ?? 500,
-        static: false,
-      }));
-      setLayout(newLayout);
-      console.log('📊 [DashboardPage] Layout initialized:', newLayout);
-      console.log('📊 [DashboardPage] Cards with grid properties:', response.items.map(c => ({
-        id: c.dashboard_id,
-        grid_x: c.grid_x,
-        grid_y: c.grid_y,
-        grid_w: c.grid_w,
-        grid_h: c.grid_h
-      })));
-
-      // Fetch data for each card
-      response.items.forEach((card) => {
-        fetchCardData(card.dashboard_id);
-      });
-      
-      // Mark initial load as complete - now we can save layout changes
-      isInitialLoadRef.current = false;
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch dashboard cards';
-      setError(errorMsg);
-      console.error('❌ [DashboardPage] Error fetching dashboard cards:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Keep a ref to cards so handlers can read current state without stale closures
+  const cardsRef = useRef<DashboardCardType[]>([]);
+  useEffect(() => {
+    cardsRef.current = cards;
+  }, [cards]);
 
   // Fetch data for a specific card
   const fetchCardData = useCallback(async (cardId: number) => {
@@ -103,9 +126,45 @@ export const DashboardPage: React.FC = () => {
     }
   }, []);
 
+  // Fetch all dashboard cards
+  const fetchCards = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('📊 [DashboardPage] Fetching dashboard cards...');
+      const response = await dashboardService.getDashboardCards({
+        page: 1,
+        limit: 100
+      });
+      console.log('📊 [DashboardPage] Cards received:', response.items.length);
+      setCards(response.items);
+
+      const newLayout: Layout[] = response.items.map((card, index) => ({
+        i: card.dashboard_id.toString(),
+        x: card.grid_x ?? 0,
+        y: card.grid_y ?? (index * 520),
+        w: card.grid_w ?? 300,
+        h: card.grid_h ?? 500,
+        static: false,
+      }));
+      setLayout(newLayout);
+
+      response.items.forEach((card) => {
+        fetchCardData(card.dashboard_id);
+      });
+
+      isInitialLoadRef.current = false;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch dashboard cards';
+      setError(errorMsg);
+      console.error('❌ [DashboardPage] Error fetching dashboard cards:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchCardData]);
+
   // Load cards on mount
   useEffect(() => {
-    console.log('📊 [DashboardPage] useEffect: Loading cards on mount');
     fetchCards();
     fetchMeters();
   }, [fetchCards]);
@@ -135,7 +194,6 @@ export const DashboardPage: React.FC = () => {
     try {
       const elementsData = await dashboardService.getMeterElementsByMeter(meterId);
       setMeterElements(elementsData);
-      // Also fetch power columns for the selected meter/device
       await fetchPowerColumns(meterId);
     } catch (err) {
       console.error('Error fetching meter elements:', err);
@@ -165,7 +223,6 @@ export const DashboardPage: React.FC = () => {
   const handleEditCard = async (card: DashboardCardType) => {
     setEditingCard(card);
     if (card.meter_id) {
-      // Fetch meter elements before opening modal to avoid flash
       await fetchMeterElements(card.meter_id);
     }
     setShowModal(true);
@@ -180,28 +237,20 @@ export const DashboardPage: React.FC = () => {
   // Handle modal success
   const handleModalSuccess = (card: DashboardCardType) => {
     if (editingCard) {
-      // Update existing card in list
-      setCards(cards.map(c => c.dashboard_id === card.dashboard_id ? card : c));
+      setCards(prev => prev.map(c => c.dashboard_id === card.dashboard_id ? card : c));
     } else {
-      // Add new card to list
-      setCards([...cards, card]);
-      // Fetch data for the new card
+      setCards(prev => [...prev, card]);
       fetchCardData(card.dashboard_id);
     }
     handleModalClose();
   };
 
-  // Handle layout change - DISABLED - do not save layout changes
+  // Handle layout change - do not save to database
   const handleLayoutChange = async (newLayout: Layout[]) => {
-    // Skip layout changes during initial load - react-grid-layout fires this on mount
     if (isInitialLoadRef.current) {
-      console.log('📊 [DashboardPage] Layout change during initial load - IGNORING');
       return;
     }
-    
-    // DO NOT SAVE - just update local state
     setLayout(newLayout);
-    console.log('📊 [DashboardPage] Layout changed but NOT saving to database');
   };
 
   // Handle delete card
@@ -209,7 +258,7 @@ export const DashboardPage: React.FC = () => {
     const numCardId = typeof cardId === 'string' ? parseInt(cardId) : cardId;
     try {
       await dashboardService.deleteDashboardCard(numCardId);
-      setCards(cards.filter(c => c.dashboard_id !== numCardId));
+      setCards(prev => prev.filter(c => c.dashboard_id !== numCardId));
       setCardDataMap(prev => {
         const newMap = { ...prev };
         delete newMap[numCardId];
@@ -224,7 +273,6 @@ export const DashboardPage: React.FC = () => {
 
   // Handle drill-down
   const handleDrillDown = (cardId: number | string) => {
-    // TODO: Navigate to detailed readings view
     console.log('Drill down for card:', cardId);
   };
 
@@ -257,187 +305,146 @@ export const DashboardPage: React.FC = () => {
     setError(null);
   };
 
-  // Handle visualization change
-  const handleVisualizationChange = async (cardId: number | string, newType: string) => {
-    const numCardId = typeof cardId === 'string' ? parseInt(cardId) : cardId;
+  // Handle visualization change - stable via useCallback + cardsRef
+  const handleVisualizationChange = useCallback(async (cardId: number | string, newType: string) => {
+    const numCardId = typeof cardId === 'string' ? parseInt(cardId) : Number(cardId);
+    console.log('[Dashboard] handleVisualizationChange - cardId:', cardId, 'numCardId:', numCardId, 'newType:', newType, 'cardsRef len:', cardsRef.current.length);
+    const original = cardsRef.current.find(c => Number(c.dashboard_id) === numCardId);
+    console.log('[Dashboard] found original?', !!original);
+    if (!original) return;
+    setCards(prev => prev.map(c => Number(c.dashboard_id) === numCardId ? { ...c, visualization_type: newType as any } : c));
     try {
-      const card = cards.find(c => c.dashboard_id === numCardId);
-      if (card) {
-        await dashboardService.updateDashboardCard(numCardId, {
-          visualization_type: newType as any
-        });
-        setCards(cards.map(c => 
-          c.dashboard_id === numCardId 
-            ? { ...c, visualization_type: newType as any }
-            : c
-        ));
-      }
+      await dashboardService.updateDashboardCard(numCardId, { visualization_type: newType as any });
+      console.log('[Dashboard] visualization saved OK');
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to update visualization';
-      setError(errorMsg);
-      console.error('Error updating visualization:', err);
+      console.error('[Dashboard] visualization save failed:', err);
+      setCards(prev => prev.map(c => Number(c.dashboard_id) === numCardId ? { ...c, visualization_type: original.visualization_type } : c));
+      setError(err instanceof Error ? err.message : 'Failed to update visualization');
     }
-  };
+  }, []);
 
-  // Handle grouping change
-  const handleGroupingChange = async (cardId: number | string, newGrouping: string) => {
-    const numCardId = typeof cardId === 'string' ? parseInt(cardId) : cardId;
+  // Handle grouping change - stable via useCallback + cardsRef
+  const handleGroupingChange = useCallback(async (cardId: number | string, newGrouping: string) => {
+    const numCardId = typeof cardId === 'string' ? parseInt(cardId) : Number(cardId);
+    console.log('[Dashboard] handleGroupingChange - cardId:', cardId, 'numCardId:', numCardId, 'newGrouping:', newGrouping, 'cardsRef len:', cardsRef.current.length);
+    const original = cardsRef.current.find(c => Number(c.dashboard_id) === numCardId);
+    console.log('[Dashboard] found original?', !!original);
+    if (!original) return;
+    setCards(prev => prev.map(c => Number(c.dashboard_id) === numCardId ? { ...c, grouping_type: newGrouping as any } : c));
     try {
-      const card = cards.find(c => c.dashboard_id === numCardId);
-      if (card) {
-        await dashboardService.updateDashboardCard(numCardId, {
-          grouping_type: newGrouping as any
-        });
-        setCards(cards.map(c => 
-          c.dashboard_id === numCardId 
-            ? { ...c, grouping_type: newGrouping as any }
-            : c
-        ));
-        // Refresh card data with new grouping
-        fetchCardData(numCardId);
-      }
+      await dashboardService.updateDashboardCard(numCardId, { grouping_type: newGrouping as any });
+      console.log('[Dashboard] grouping saved OK');
+      fetchCardData(numCardId);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to update grouping';
-      setError(errorMsg);
-      console.error('Error updating grouping:', err);
+      console.error('[Dashboard] grouping save failed:', err);
+      setCards(prev => prev.map(c => Number(c.dashboard_id) === numCardId ? { ...c, grouping_type: original.grouping_type } : c));
+      setError(err instanceof Error ? err.message : 'Failed to update grouping');
     }
-  };
+  }, [fetchCardData]);
 
-  // Handle time frame change
-  const handleTimeFrameChange = async (cardId: number | string, newTimeFrame: string) => {
-    const numCardId = typeof cardId === 'string' ? parseInt(cardId) : cardId;
+  // Handle time frame change - stable via useCallback + cardsRef
+  const handleTimeFrameChange = useCallback(async (cardId: number | string, newTimeFrame: string) => {
+    const numCardId = typeof cardId === 'string' ? parseInt(cardId) : Number(cardId);
+    console.log('[Dashboard] handleTimeFrameChange - cardId:', cardId, 'numCardId:', numCardId, 'newTimeFrame:', newTimeFrame, 'cardsRef len:', cardsRef.current.length);
+    const original = cardsRef.current.find(c => Number(c.dashboard_id) === numCardId);
+    console.log('[Dashboard] found original?', !!original);
+    if (!original) return;
+    setCards(prev => prev.map(c => Number(c.dashboard_id) === numCardId ? { ...c, time_frame_type: newTimeFrame as any } : c));
     try {
-      const card = cards.find(c => c.dashboard_id === numCardId);
-      if (card) {
-        await dashboardService.updateDashboardCard(numCardId, {
-          time_frame_type: newTimeFrame as any
-        });
-        setCards(cards.map(c => 
-          c.dashboard_id === numCardId 
-            ? { ...c, time_frame_type: newTimeFrame as any }
-            : c
-        ));
-        // Refresh card data with new time frame
-        fetchCardData(numCardId);
-      }
+      await dashboardService.updateDashboardCard(numCardId, { time_frame_type: newTimeFrame as any });
+      console.log('[Dashboard] time frame saved OK');
+      fetchCardData(numCardId);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to update time frame';
-      setError(errorMsg);
-      console.error('Error updating time frame:', err);
+      console.error('[Dashboard] time frame save failed:', err);
+      setCards(prev => prev.map(c => Number(c.dashboard_id) === numCardId ? { ...c, time_frame_type: original.time_frame_type } : c));
+      setError(err instanceof Error ? err.message : 'Failed to update time frame');
     }
-  };
+  }, [fetchCardData]);
 
-  // Create a wrapper component for the framework DashboardCard that provides data
-  const ClientDashboardCard: React.FC<any> = ({ card, ...props }) => {
-    const cardData = cardDataMap[card.dashboard_id] || null;
-    const cardLoading = cardLoadingMap[card.dashboard_id] || false;
-    const cardError = cardErrorMap[card.dashboard_id] || null;
+  // Handle aggregation change - stable via useCallback + cardsRef
+  const handleAggregationChange = useCallback(async (cardId: number | string, aggregationType: string) => {
+    const numCardId = typeof cardId === 'string' ? parseInt(cardId) : Number(cardId);
+    console.log('[Dashboard] handleAggregationChange - cardId:', cardId, 'numCardId:', numCardId, 'aggregationType:', aggregationType);
+    const original = cardsRef.current.find(c => Number(c.dashboard_id) === numCardId);
+    if (!original) return;
+    setCards(prev => prev.map(c => Number(c.dashboard_id) === numCardId ? { ...c, aggregation_type: aggregationType as any } : c));
+    try {
+      await dashboardService.updateDashboardCard(numCardId, { aggregation_type: aggregationType as any });
+      console.log('[Dashboard] aggregation saved OK');
+      fetchCardData(numCardId);
+    } catch (err) {
+      console.error('[Dashboard] aggregation save failed:', err);
+      setCards(prev => prev.map(c => Number(c.dashboard_id) === numCardId ? { ...c, aggregation_type: (original as any).aggregation_type } : c));
+      setError(err instanceof Error ? err.message : 'Failed to update aggregation');
+    }
+  }, [fetchCardData]);
 
-    // Convert client card to framework card format
-    const frameworkCard: FrameworkDashboardCardType = {
-      id: card.dashboard_id,
-      title: card.card_name,
-      description: card.card_description,
-      visualization_type: card.visualization_type,
-      grid_x: card.grid_x,
-      grid_y: card.grid_y,
-      grid_w: card.grid_w,
-      grid_h: card.grid_h,
-      // Include client-specific properties for callbacks
-      ...card,
-    };
+  // Handle modal form submission
+  const handleDirectSubmit = useCallback(async (data: any) => {
+    try {
+      setModalLoading(true);
+      let result;
+      if (editingCard) {
+        result = await dashboardService.updateDashboardCard(editingCard.dashboard_id, data);
+      } else {
+        result = await dashboardService.createDashboardCard(data);
+      }
+      handleModalSuccess(result as any);
+    } catch (err) {
+      console.error('Error saving card:', err);
+    } finally {
+      setModalLoading(false);
+    }
+  }, [editingCard]);
 
-    return (
-      <FrameworkDashboardCard
-        card={frameworkCard}
-        data={cardData}
-        loading={cardLoading}
-        error={cardError}
-        VisualizationComponent={Visualization}
-        onVisualizationChange={handleVisualizationChange}
-        onGroupingChange={handleGroupingChange}
-        onTimeFrameChange={handleTimeFrameChange}
-        onEdit={props.onEdit}
-        onDelete={props.onDelete}
-        onRefresh={props.onRefresh}
-        onExpand={props.onExpand}
+  // Memoized context value - only changes when card data or stable handlers change
+  const dashboardContextValue = useMemo<DashboardContextType>(() => ({
+    cardDataMap,
+    cardLoadingMap,
+    cardErrorMap,
+    onVisualizationChange: handleVisualizationChange,
+    onGroupingChange: handleGroupingChange,
+    onTimeFrameChange: handleTimeFrameChange,
+    onAggregationChange: handleAggregationChange,
+  }), [cardDataMap, cardLoadingMap, cardErrorMap, handleVisualizationChange, handleGroupingChange, handleTimeFrameChange, handleAggregationChange]);
+
+  return (
+    <DashboardContext.Provider value={dashboardContextValue}>
+      <FrameworkDashboardPage
+        cards={cards.map(card => ({
+          ...card,
+          id: card.dashboard_id
+        })) as any}
+        loading={loading}
+        error={error}
+        layout={layout}
+        onLayoutChange={handleLayoutChange}
+        onCreateCard={handleCreateCard}
+        onRefresh={handleGlobalRefresh}
+        onEditCard={handleEditCard as any}
+        onDeleteCard={handleDeleteCard as any}
+        onExpandCard={handleExpandCard as any}
+        onCardRefresh={handleCardRefresh}
+        onDrillDown={handleDrillDown}
+        onErrorClose={handleErrorClose}
+        refreshing={refreshing}
+        CardComponent={ClientDashboardCard}
+        ExpandedModalComponent={FrameworkExpandedCardModal}
+        expandedCardData={expandedCardData}
+        expandedCard={expandedCard as any}
+        onCloseExpandedCard={handleCloseExpandedCard}
       />
-    );
-  };
-
-  // Create a wrapper component for the modal that provides meters, elements, and power columns
-  const ClientDashboardCardModal = React.memo(({ isOpen, card, onClose, onSuccess }: any) => {
-    const handleSubmit = useCallback(async (data: any) => {
-      try {
-        setModalLoading(true);
-        let result;
-        if (card) {
-          result = await dashboardService.updateDashboardCard(card.dashboard_id, data);
-        } else {
-          result = await dashboardService.createDashboardCard(data);
-        }
-        onSuccess?.(result);
-      } catch (err) {
-        console.error('Error saving card:', err);
-      } finally {
-        setModalLoading(false);
-      }
-    }, [card, onSuccess]);
-
-    return (
       <FrameworkDashboardCardModal
-        isOpen={isOpen}
-        card={card}
+        isOpen={showModal}
+        card={editingCard}
         meters={meters}
         meterElements={meterElements}
         powerColumns={powerColumns}
         loading={modalLoading}
-        onClose={onClose}
-        onSubmit={handleSubmit}
+        onClose={handleModalClose}
+        onSubmit={handleDirectSubmit}
         onMeterSelect={fetchMeterElements}
       />
-    );
-  }, (prevProps, nextProps) => {
-    // Only re-render if these props change
-    return prevProps.isOpen === nextProps.isOpen &&
-           prevProps.card === nextProps.card &&
-           prevProps.onClose === nextProps.onClose &&
-           prevProps.onSuccess === nextProps.onSuccess &&
-           prevProps.meterElements === nextProps.meterElements &&
-           prevProps.meters === nextProps.meters &&
-           prevProps.powerColumns === nextProps.powerColumns &&
-           prevProps.loading === nextProps.loading;
-  });
-
-  return (
-    <FrameworkDashboardPage
-      cards={cards.map(card => ({
-        ...card,
-        id: card.dashboard_id
-      })) as any}
-      loading={loading}
-      error={error}
-      layout={layout}
-      onLayoutChange={handleLayoutChange}
-      onCreateCard={handleCreateCard}
-      onRefresh={handleGlobalRefresh}
-      onEditCard={handleEditCard as any}
-      onDeleteCard={handleDeleteCard as any}
-      onExpandCard={handleExpandCard as any}
-      onCardRefresh={handleCardRefresh}
-      onDrillDown={handleDrillDown}
-      onErrorClose={handleErrorClose}
-      refreshing={refreshing}
-      CardComponent={ClientDashboardCard}
-      ModalComponent={ClientDashboardCardModal}
-      ExpandedModalComponent={FrameworkExpandedCardModal}
-      showModal={showModal}
-      editingCard={editingCard as any}
-      expandedCardData={expandedCardData}
-      expandedCard={expandedCard as any}
-      onModalClose={handleModalClose}
-      onModalSuccess={handleModalSuccess as any}
-      onCloseExpandedCard={handleCloseExpandedCard}
-    />
+    </DashboardContext.Provider>
   );
 };

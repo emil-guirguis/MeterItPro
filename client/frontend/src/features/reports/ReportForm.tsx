@@ -1,7 +1,7 @@
 import React from 'react';
 import { BaseForm, FormContainer } from '@framework/components/form';
 import { useReportsEnhanced } from './reportsStore';
-import { RecipientsField, ScheduleField, MeterElementSelector, RegisterSelector } from './components';
+import { RecipientsField, MeterElementSelector, RegisterSelector } from './components';
 import type { Report } from './types';
 import './ReportForm.css';
 
@@ -46,18 +46,6 @@ export const ReportForm: React.FC<ReportFormProps> = ({
               return (
                 <RecipientsField
                   value={value || []}
-                  error={error}
-                  isDisabled={isDisabled}
-                  onChange={onChange}
-                />
-              );
-            }
-
-            // Custom rendering for schedule field
-            if (fieldName === 'schedule') {
-              return (
-                <ScheduleField
-                  value={value || ''}
                   error={error}
                   isDisabled={isDisabled}
                   onChange={onChange}

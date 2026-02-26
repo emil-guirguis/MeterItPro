@@ -77,6 +77,7 @@ interface DetailedMeterReadingViewProps {
   reading: MeterReadingData;
   loading?: boolean;
   error?: string | null;
+  onViewAllReadings?: () => void;
 }
 
 type TimePeriod = 'today' | 'weekly' | 'monthly' | 'yearly';
@@ -87,6 +88,7 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
   reading,
   loading = false,
   error = null,
+  onViewAllReadings,
 }) => {
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('today');
   const [selectedGraphType, setSelectedGraphType] = useState<GraphType>('consumption');
@@ -144,6 +146,14 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
             </div>
           </div>
 
+          {/* View All Readings Button */}
+          {onViewAllReadings && (
+            <div className="meter-info-card-actions">
+              <button className="view-all-readings-btn" onClick={onViewAllReadings}>
+                View All Readings
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right: Total Consumption and Generation */}

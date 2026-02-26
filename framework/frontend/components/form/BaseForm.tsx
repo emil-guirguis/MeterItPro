@@ -577,7 +577,9 @@ export const BaseForm: React.FC<BaseFormProps> = ({
         if (backendFieldDef.enumValues) {
           const enumValues = backendFieldDef.enumValues;
           if (!enumValues.includes(value)) {
-            newErrors[fieldName] = `${backendFieldDef.label} must be one of: ${enumValues.join(', ')}`;
+            const enumLabels = backendFieldDef.enumLabels;
+            const readableValues = enumValues.map((v: string) => enumLabels?.[v] ?? v);
+            newErrors[fieldName] = `${backendFieldDef.label} must be one of: ${readableValues.join(', ')}`;
           }
         }
       }
@@ -757,7 +759,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       fieldType = 'select';
       fieldOptions = fieldDef.enumValues.map((val: string) => ({
         value: val,
-        label: val.charAt(0).toUpperCase() + val.slice(1),
+        label: fieldDef.enumLabels?.[val] ?? (val.charAt(0).toUpperCase() + val.slice(1)),
       }));
     }
 

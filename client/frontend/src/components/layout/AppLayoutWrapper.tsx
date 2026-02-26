@@ -17,6 +17,7 @@ import { useUI } from '../../store/slices/uiSlice';
 import { Permission } from '../../types/auth';
 import { SidebarMetersSection } from '../sidebar-meters';
 import { useMeterSelection } from '../../contexts/MeterSelectionContext';
+import { NotificationBell } from '../notifications';
 
 // Application-specific icon mappings
 const appIconMappings = {
@@ -31,9 +32,8 @@ const appIconMappings = {
   'users': 'people',
   'devices': 'devices',
   'location': 'location_on',
-  // Menu-specific mappings (kebab-case IDs)
-  'management-devices': 'devices',
-  'management-locations': 'location_on',
+  'locations': 'location_on',
+  'notifications': 'notifications',
 };
 
 // Register icon mappings once
@@ -74,18 +74,20 @@ const menuItems: MenuItem[] = [
     requiredPermission: Permission.CONTACT_READ
   },
   {
+    id: 'contacts2',
+    label: 'Contacts2',
+    icon: 'contacts',
+    path: '/contacts2',
+    requiredPermission: Permission.CONTACT_READ
+  },
+  {
     id: 'meters',
     label: 'Meters',
     icon: 'meter',
     path: '/meters',
     requiredPermission: Permission.METER_READ
   },
-  {
-    id: 'reports',
-    label: 'Reports',
-    icon: 'assessment',
-    path: '/reports'
-  },
+
   {
     id: 'management',
     label: 'Management',
@@ -94,12 +96,13 @@ const menuItems: MenuItem[] = [
     requiredPermission: Permission.TEMPLATE_READ,
     children: [
       {
-        id: 'management-devices',
+        id: 'devices',
         label: 'Devices',
         icon: 'meter',
         path: '/devices',
         requiredPermission: Permission.DEVICE_READ
       },
+
       {
         id: 'templates',
         label: 'Email Templates',
@@ -108,11 +111,23 @@ const menuItems: MenuItem[] = [
         requiredPermission: Permission.TEMPLATE_READ
       },
       {
-        id: 'management-locations',
+        id: 'locations',
         label: 'Locations',
         icon: 'building',
         path: '/location',
         requiredPermission: Permission.LOCATION_READ
+      },
+      {
+        id: 'notifications',
+        label: 'Notifications',
+        icon: 'notifications',
+        path: '/notifications',
+      },
+      {
+        id: 'reports',
+        label: 'Reports',
+        icon: 'assessment',
+        path: '/reports'
       },
       {
         id: 'users',
@@ -120,7 +135,8 @@ const menuItems: MenuItem[] = [
         icon: 'users',
         path: '/users',
         requiredPermission: Permission.USER_READ
-      }
+      },
+
     ]
   },
   {
@@ -141,19 +157,19 @@ const menuItems: MenuItem[] = [
 export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
   // Use real authentication data
   const { user, logout: authLogout, checkPermission } = useAuth();
-  
+
   // Use meter selection context
   const { setSelectedMeter, setSelectedElement } = useMeterSelection();
-  
+
   // Use React Router navigation
   const navigate = useNavigate();
-  
+
   const logout = () => {
     console.log('🚪 Logout button clicked');
-    
+
     // Call logout which clears tokens and sets logout flag
     authLogout();
-    
+
     // Redirect to login page
     console.log('🔄 Redirecting to login page');
     window.location.href = '/login';
@@ -167,10 +183,10 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
 
   // Memoize meter selection callback to prevent sidebar remount on route change
   const handleMeterSelect = useCallback(
-    (meterId, meterName) => {
+    (meterId: string, meterName?: string) => {
       console.log('[AppLayoutWrapper] Meter selected:', meterId, 'name:', meterName);
       console.log('[AppLayoutWrapper] Setting selectedMeter in context with name:', meterName);
-      setSelectedMeter(meterId, meterName);
+      setSelectedMeter(String(meterId), meterName);
       setSelectedElement(null);
       console.log('[AppLayoutWrapper] Context updated');
       console.log('[AppLayoutWrapper] Navigating to /meter-readings');
@@ -181,18 +197,18 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
 
   // Memoize meter element selection callback to prevent sidebar remount on route change
   const handleMeterElementSelect = useCallback(
-    (meterId, elementId, elementName, elementNumber, gridType) => {
+    (meterId: string, elementId: string, elementName?: string, elementNumber?: number, gridType?: 'simple' | 'baselist') => {
       console.log('[AppLayoutWrapper] ===== METER ELEMENT SELECT =====');
       console.log('[AppLayoutWrapper] Meter element selected:', meterId, elementId, 'name:', elementName, 'number:', elementNumber);
       console.log('[AppLayoutWrapper] gridType:', gridType);
       console.log('[AppLayoutWrapper] meterId type:', typeof meterId, 'elementId type:', typeof elementId);
       console.log('[AppLayoutWrapper] Setting selectedMeter and selectedElement in context');
-      setSelectedMeter(meterId);
-      setSelectedElement(elementId, elementName, elementNumber);
+      setSelectedMeter(String(meterId));
+      setSelectedElement(String(elementId), elementName, elementNumber ? Number(elementNumber) : undefined);
       console.log('[AppLayoutWrapper] Context updated');
       const params = new URLSearchParams();
-      params.set('meterId', meterId);
-      params.set('elementId', elementId);
+      params.set('meterId', String(meterId));
+      params.set('elementId', String(elementId));
       if (elementName) params.set('elementName', elementName);
       if (elementNumber) params.set('elementNumber', String(elementNumber));
       if (gridType) params.set('gridType', gridType);
@@ -215,7 +231,7 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
       name: user.name,
       email: user.email
     } : undefined,
-    notifications: [], // TODO: Implement notifications
+    notificationComponent: user ? <NotificationBell /> : undefined,
     onLogout: logout,
     checkPermission: (permission?: string) => permission ? checkPermission(permission) : true,
     responsive,

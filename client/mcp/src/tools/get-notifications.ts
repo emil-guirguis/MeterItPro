@@ -18,25 +18,27 @@ export async function getNotifications(args: GetNotificationsArgs) {
 
     logger.info('Fetching notifications', { tenant_id, notification_type, limit, offset });
 
-    let query = `SELECT * FROM notification WHERE tenant_id = $1`;
+    let selectQuery = `
+      SELECT notification_id, tenant_id, users_id, meter_id, meter_element_id,
+             notification_type, severity, title, description, created_at
+      FROM notification
+      WHERE tenant_id = $1`;
     const params: any[] = [tenant_id];
     let paramIndex = 2;
 
     if (notification_type) {
-      query += ` AND notification_type = $${paramIndex}`;
+      selectQuery += ` AND notification_type = $${paramIndex}`;
       params.push(notification_type);
       paramIndex++;
     }
 
-    query += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    selectQuery += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(limit, offset);
 
-    const result = await db.query(query, params);
+    const result = await db.query(selectQuery, params);
 
-    // Get total count
     let countQuery = `SELECT COUNT(*) as count FROM notification WHERE tenant_id = $1`;
     const countParams: any[] = [tenant_id];
-
     if (notification_type) {
       countQuery += ` AND notification_type = $2`;
       countParams.push(notification_type);
@@ -45,10 +47,10 @@ export async function getNotifications(args: GetNotificationsArgs) {
     const countResult = await db.query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].count, 10);
 
-    logger.info('Notifications fetched successfully', { 
+    logger.info('Notifications fetched successfully', {
       tenant_id,
       count: result.rows.length,
-      total 
+      total,
     });
 
     return {
@@ -57,19 +59,14 @@ export async function getNotifications(args: GetNotificationsArgs) {
           type: 'text',
           text: JSON.stringify({
             success: true,
-            data: {
-              notifications: result.rows,
-              total,
-              limit,
-              offset,
-            },
+            data: { notifications: result.rows, total, limit, offset },
           }),
         },
       ],
     };
   } catch (error) {
-    logger.error('Error fetching notifications', { 
-      error: error instanceof Error ? error.message : String(error) 
+    logger.error('Error fetching notifications', {
+      error: error instanceof Error ? error.message : String(error),
     });
     throw error;
   }

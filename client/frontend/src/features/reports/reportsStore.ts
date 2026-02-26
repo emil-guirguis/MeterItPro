@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import * as reportingService from '../../services/reportingService';
-import { useNotification } from '../../hooks/useNotification';
 import type { Report } from './types';
 import type { EnhancedStore } from '@framework/components/list/types/list';
 
@@ -181,13 +180,11 @@ export const useReportsStore = create<ReportsStore>()(
             items: [newReport, ...state.items],
             list: { ...state.list, loading: false },
           });
-          useNotification().showSuccess('Report created successfully');
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to create report';
           set(s => ({
             list: { ...s.list, error: message, loading: false }
           }));
-          useNotification().showError(message);
           console.error('[reportsStore] Error creating report:', error);
           throw error;
         }
@@ -204,13 +201,11 @@ export const useReportsStore = create<ReportsStore>()(
             items: state.items.map(r => r.report_id === id ? updatedReport : r),
             list: { ...state.list, loading: false },
           });
-          useNotification().showSuccess('Report updated successfully');
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to update report';
           set(s => ({
             list: { ...s.list, error: message, loading: false }
           }));
-          useNotification().showError(message);
           console.error('[reportsStore] Error updating report:', error);
           throw error;
         }
@@ -227,13 +222,11 @@ export const useReportsStore = create<ReportsStore>()(
             items: state.items.filter(r => r.report_id !== id),
             list: { ...state.list, loading: false },
           });
-          useNotification().showSuccess('Report deleted successfully');
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to delete report';
           set(s => ({
             list: { ...s.list, error: message, loading: false }
           }));
-          useNotification().showError(message);
           console.error('[reportsStore] Error deleting report:', error);
           throw error;
         }
@@ -252,13 +245,11 @@ export const useReportsStore = create<ReportsStore>()(
             ),
             list: { ...state.list, loading: false },
           });
-          useNotification().showSuccess(`Report ${result.enabled ? 'enabled' : 'disabled'} successfully`);
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to toggle report status';
           set(s => ({
             list: { ...s.list, error: message, loading: false }
           }));
-          useNotification().showError(message);
           console.error('[reportsStore] Error toggling report status:', error);
           throw error;
         }

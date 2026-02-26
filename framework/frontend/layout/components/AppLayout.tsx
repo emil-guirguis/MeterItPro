@@ -12,6 +12,7 @@ export interface AppLayoutConfig {
   sidebarBrand: { icon: string; text: string };
   user?: { name: string; email: string; avatar?: string };
   notifications?: any[];
+  notificationComponent?: React.ReactNode;
   onLogout: () => void;
   checkPermission: (permission?: string) => boolean;
   responsive: {
@@ -48,6 +49,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     sidebarBrand,
     user,
     notifications = [],
+    notificationComponent,
     onLogout,
     checkPermission,
     responsive,
@@ -94,6 +96,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         title={pageTitle}
         user={user}
         notifications={notifications}
+        notificationComponent={notificationComponent}
         onLogout={onLogout}
         onToggleSidebar={toggleSidebar}
         isMobile={isMobile}

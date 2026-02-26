@@ -13,11 +13,12 @@ export interface DashboardCard {
   card_name: string;
   card_description?: string;
   selected_columns: string[];
-  time_frame_type: 'custom' | 'last_month' | 'this_month_to_date' | 'since_installation';
+  time_frame_type: 'today' | 'custom' | 'last_month' | 'this_month_to_date' | 'yearly' | 'since_installation';
   custom_start_date?: string;
   custom_end_date?: string;
   visualization_type: 'pie' | 'line' | 'candlestick' | 'bar' | 'area';
   grouping_type?: 'total' | 'hourly' | 'daily' | 'weekly' | 'monthly';
+  aggregation_type?: 'avg' | 'min' | 'max';
   grid_x?: number;
   grid_y?: number;
   grid_w?: number;

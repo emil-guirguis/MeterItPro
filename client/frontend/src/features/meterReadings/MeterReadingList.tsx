@@ -115,41 +115,6 @@ export const MeterReadingList: React.FC<MeterReadingListProps> = ({
     onGridTypeChange?.(type);
   };
 
-  // If gridType is 'baselist', render the old BaseList component
-  if (gridType === 'baselist') {
-    return (
-      <div className="meter-reading-list">
-        <div className="meter-reading-list__header">
-          <h2>{title}</h2>
-          <div className="meter-reading-list__header-controls">
-            <MeterReadingExportButtons
-              filteredData={filteredData as any}
-              selectedMeterName={selectedMeterName || undefined}
-              selectedElementName={selectedElementName || undefined}
-              loading={meterReadings.loading}
-            />
-            <button onClick={() => handleGridTypeChange('simple')} className="meter-reading-list__switch-btn" type="button">
-              Switch to Simple Grid
-            </button>
-          </div>
-        </div>
-        {displayError && (
-          <div className="meter-reading-list__error">
-            <p>{displayError}</p>
-            <button onClick={handleRetry} className="meter-reading-list__retry-btn" type="button">
-              Retry
-            </button>
-          </div>
-        )}
-        {!displayError && (
-          <div className="meter-reading-list__baselist-placeholder">
-            Old BaseList Grid (to be implemented)
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="meter-reading-list">
       <div className="meter-reading-list__header">
@@ -176,6 +141,11 @@ export const MeterReadingList: React.FC<MeterReadingListProps> = ({
           data={filteredData as any}
           loading={meterReadings.loading}
           error={undefined}
+          page={meterReadings.page}
+          pageSize={meterReadings.pageSize}
+          total={meterReadings.total}
+          totalPages={meterReadings.totalPages}
+          onPageChange={meterReadings.goToPage}
         />
       )}
     </div>

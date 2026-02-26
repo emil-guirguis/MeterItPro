@@ -48,6 +48,7 @@ declare global {
 export const Header: React.FC<HeaderProps> = ({
   user,
   notifications = [],
+  notificationComponent,
   onLogout,
   isMobile,
   showSidebarElements = false,
@@ -346,63 +347,67 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Notifications */}
         <div className="app-header__notifications" ref={notificationsRef}>
-          <button
-            className={`notification-button ${unreadNotifications > 0 ? 'has-notifications' : ''}`}
-            onClick={() => setNotificationsOpen(!notificationsOpen)}
-            aria-label={`Notifications ${unreadNotifications > 0 ? `(${unreadNotifications} unread)` : ''}`}
-            {...(notificationsOpen ? { 'aria-expanded': 'true' } : { 'aria-expanded': 'false' })}
-            aria-controls="notifications-dropdown"
-            aria-haspopup="menu"
-            type="button"
-          >
-            {getIconElement('notifications', 'icon notification-icon')}
-            {unreadNotifications > 0 && (
-              <span className="notification-badge" aria-hidden="true">{unreadNotifications}</span>
-            )}
-          </button>
-
-          {notificationsOpen && (
-            <div
-              className="notifications-dropdown"
-              id="notifications-dropdown"
-              role="region"
-              aria-label="Notifications menu"
-            >
-              <div className="notifications-header">
-                <h3>Notifications</h3>
+          {notificationComponent ?? (
+            <>
+              <button
+                className={`notification-button ${unreadNotifications > 0 ? 'has-notifications' : ''}`}
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                aria-label={`Notifications ${unreadNotifications > 0 ? `(${unreadNotifications} unread)` : ''}`}
+                {...(notificationsOpen ? { 'aria-expanded': 'true' } : { 'aria-expanded': 'false' })}
+                aria-controls="notifications-dropdown"
+                aria-haspopup="menu"
+                type="button"
+              >
+                {getIconElement('notifications', 'icon notification-icon')}
                 {unreadNotifications > 0 && (
-                  <span className="unread-count">{unreadNotifications} unread</span>
+                  <span className="notification-badge" aria-hidden="true">{unreadNotifications}</span>
                 )}
-              </div>
-              <div className="notifications-list">
-                {notifications.length > 0 ? (
-                  notifications.slice(0, 5).map((notification) => (
-                    <div key={notification.id} className="notification-item">
-                      <div className={`notification-type ${notification.type}`}>
-                        {notification.type === 'success' && getIconElement('check_circle', 'notification-icon')}
-                        {notification.type === 'error' && getIconElement('error', 'notification-icon')}
-                        {notification.type === 'warning' && getIconElement('warning', 'notification-icon')}
-                        {notification.type === 'info' && getIconElement('info', 'notification-icon')}
-                      </div>
-                      <div className="notification-content">
-                        <div className="notification-title">{notification.title}</div>
-                        {notification.message && (
-                          <div className="notification-message">{notification.message}</div>
-                        )}
-                        <div className="notification-time">
-                          {notification.createdAt.toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="no-notifications">
-                    {getIconElement('notifications', 'icon')}
-                    <p>No notifications</p>
+              </button>
+
+              {notificationsOpen && (
+                <div
+                  className="notifications-dropdown"
+                  id="notifications-dropdown"
+                  role="region"
+                  aria-label="Notifications menu"
+                >
+                  <div className="notifications-header">
+                    <h3>Notifications</h3>
+                    {unreadNotifications > 0 && (
+                      <span className="unread-count">{unreadNotifications} unread</span>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                  <div className="notifications-list">
+                    {notifications.length > 0 ? (
+                      notifications.slice(0, 5).map((notification) => (
+                        <div key={notification.id} className="notification-item">
+                          <div className={`notification-type ${notification.type}`}>
+                            {notification.type === 'success' && getIconElement('check_circle', 'notification-icon')}
+                            {notification.type === 'error' && getIconElement('error', 'notification-icon')}
+                            {notification.type === 'warning' && getIconElement('warning', 'notification-icon')}
+                            {notification.type === 'info' && getIconElement('info', 'notification-icon')}
+                          </div>
+                          <div className="notification-content">
+                            <div className="notification-title">{notification.title}</div>
+                            {notification.message && (
+                              <div className="notification-message">{notification.message}</div>
+                            )}
+                            <div className="notification-time">
+                              {notification.createdAt.toLocaleTimeString()}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="no-notifications">
+                        {getIconElement('notifications', 'icon')}
+                        <p>No notifications</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 

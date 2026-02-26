@@ -398,6 +398,7 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
               favorites={favoriteDisplays}
               meters={meters}
               meterElements={meterElements}
+              selectedItem={selectedItem}
               onItemClick={handleFavoritesItemClick}
               onStarClick={handleFavoritesStarClick}
               onReorder={handleFavoritesReorder}

@@ -15,11 +15,19 @@ interface MeterReadingsState {
   items: MeterReading[];
   loading: boolean;
   error: string | null;
-  
+
+  // Pagination
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  lastFetchParams: any;
+
   // Fetch operations
   fetchItems: (params?: any) => Promise<void>;
+  goToPage: (page: number) => Promise<void>;
   fetchByMeterId: (meterId: string) => Promise<void>;
-  
+
   // Utility
   clearError: () => void;
 }
@@ -34,6 +42,11 @@ export const useMeterReadings = create<MeterReadingsState>((set) => {
   items: [],
   loading: false,
   error: null,
+  page: 1,
+  pageSize: 20,
+  total: 0,
+  totalPages: 1,
+  lastFetchParams: null,
 
   fetchItems: async (params?: any) => {
     console.log('[MeterReadingsStore] ===== FETCH ITEMS CALLED =====');
@@ -52,6 +65,7 @@ export const useMeterReadings = create<MeterReadingsState>((set) => {
       queryParams.append('tenantId', tenantId);
       
       if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
       if (params?.limit) queryParams.append('limit', params.limit.toString());
       if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
       if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
@@ -108,17 +122,23 @@ export const useMeterReadings = create<MeterReadingsState>((set) => {
         // Extract items from the response
         // The API returns { items: [...], total, page, pageSize, totalPages, hasMore }
         const items = Array.isArray(result.data) ? result.data : (result.data.items || []);
-        
+        const pagination = Array.isArray(result.data) ? {} : result.data;
+
         // Log validation for debugging
         console.log(`[MeterReadingsStore] Fetched ${items.length} readings`);
         if (items.length > 0) {
           console.log(`[MeterReadingsStore] First item:`, items[0]);
           console.log(`[MeterReadingsStore] First item keys:`, Object.keys(items[0]));
         }
-        
-        set({ 
-          items: items,
-          loading: false 
+
+        set({
+          items,
+          loading: false,
+          page: pagination.page || params?.page || 1,
+          pageSize: pagination.pageSize || params?.pageSize || 20,
+          total: pagination.total || items.length,
+          totalPages: pagination.totalPages || 1,
+          lastFetchParams: params,
         });
       } else {
         throw new Error(result.message || 'Failed to fetch meter readings');
@@ -128,6 +148,11 @@ export const useMeterReadings = create<MeterReadingsState>((set) => {
       console.error('[MeterReadingsStore] Error:', message);
       set({ error: message, loading: false });
     }
+  },
+
+  goToPage: async (page: number) => {
+    const { lastFetchParams, fetchItems } = (useMeterReadings as any).getState();
+    await fetchItems({ ...lastFetchParams, page });
   },
 
   fetchByMeterId: async (meterId: string) => {

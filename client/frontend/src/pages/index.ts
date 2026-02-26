@@ -6,6 +6,7 @@ export { UserManagementPage } from '../features/users';
 export { LocationManagementPage } from '../features/locations';
 export { ContactManagementPage } from '../features/contacts';
 export { DeviceManagementPage } from '../features/devices';
+export { NotificationManagementPage } from '../features/notifications';
 export { MeterManagementPage } from '../features/meters';
 
 // Other pages

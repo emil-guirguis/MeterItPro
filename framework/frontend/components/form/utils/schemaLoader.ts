@@ -25,6 +25,7 @@ export interface BackendFieldDefinition {
   placeholder: string;
   dbField: string | null;
   enumValues: string[] | null;
+  enumLabels: Record<string, string> | null;
   minLength: number | null;
   maxLength: number | null;
   min: number | null;
@@ -213,6 +214,7 @@ function convertFieldDefinition(backendField: BackendFieldDefinition & { validat
     ...(backendField.max != null && { max: backendField.max }),
     ...(backendField.pattern && { pattern: backendField.pattern }),
     ...(backendField.enumValues && { enumValues: backendField.enumValues }),
+    ...(backendField.enumLabels && { enumLabels: backendField.enumLabels }),
     // Preserve validation field properties for dropdown rendering
     ...(backendField.validate != null && { validate: backendField.validate }),
     ...(backendField.validationFields && { validationFields: backendField.validationFields }),

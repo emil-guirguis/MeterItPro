@@ -44,7 +44,7 @@ interface FormData {
   meter_id: string;
   meter_element_id: string;
   selected_columns: string[];
-  time_frame_type: 'custom' | 'last_month' | 'this_month_to_date' | 'since_installation';
+  time_frame_type: 'today' | 'custom' | 'last_month' | 'this_month_to_date' | 'yearly' | 'since_installation';
   custom_start_date: string;
   custom_end_date: string;
   visualization_type: 'pie' | 'line' | 'candlestick' | 'bar' | 'area';
@@ -238,7 +238,7 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
     <Dialog
       open={isOpen}
       onClose={onClose}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
       fullScreen={isMobile}
       PaperProps={{
@@ -369,14 +369,20 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
           {/* Power Columns Multi-Select */}
           <FormControl fullWidth error={!!errors.selected_columns} disabled={submitting || loading}>
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-              Power Columns *
+              Registers
             </Typography>
             {!powerColumns || powerColumns.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
                 No power columns available
               </Typography>
             ) : (
-              <FormGroup sx={{ p: 1.5, backgroundColor: theme.palette.mode === 'light' ? '#f5f5f5' : '#fafafa', borderRadius: 1 }}>
+              <Box sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                p: 1.5,
+                backgroundColor: theme.palette.mode === 'light' ? '#f5f5f5' : '#fafafa',
+                borderRadius: 1,
+              }}>
                 {powerColumns && powerColumns.map((column, index) => (
                   <FormControlLabel
                     key={`${column.name}-${index}`}
@@ -387,12 +393,14 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
                         checked={formData.selected_columns.includes(column.name)}
                         onChange={handleFieldChange}
                         disabled={submitting || loading}
+                        size="small"
                       />
                     }
-                    label={column.label || column.name}
+                    label={<Typography variant="body2">{column.label || column.name}</Typography>}
+                    sx={{ m: 0 }}
                   />
                 ))}
-              </FormGroup>
+              </Box>
             )}
             {errors.selected_columns && <FormHelperText error>{errors.selected_columns}</FormHelperText>}
           </FormControl>
@@ -406,8 +414,10 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
               value={formData.time_frame_type}
               onChange={handleFieldChange}
             >
+              <MenuItem value="today">Today</MenuItem>
               <MenuItem value="last_month">Last Month</MenuItem>
               <MenuItem value="this_month_to_date">This Month to Date</MenuItem>
+              <MenuItem value="yearly">Yearly</MenuItem>
               <MenuItem value="since_installation">Since Installation</MenuItem>
               <MenuItem value="custom">Custom Date Range</MenuItem>
             </Select>

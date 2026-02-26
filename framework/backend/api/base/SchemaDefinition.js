@@ -84,6 +84,7 @@ function field(definition) {
     placeholder: definition.placeholder || '',
     dbField: definition.dbField || null,
     enumValues: definition.enumValues || null,
+    enumLabels: definition.enumLabels || null,
     minLength: definition.minLength !== undefined ? definition.minLength : null,
     maxLength: definition.maxLength !== undefined ? definition.maxLength : null,
     min: definition.min !== undefined ? definition.min : null,

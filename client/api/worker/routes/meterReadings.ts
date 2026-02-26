@@ -46,6 +46,9 @@ app.get('/', requirePermission('meter:read'), async (c) => {
     params.push(pageSize);
     params.push(skip);
 
+    console.log('[MeterReadings] SQL:', sql);
+    console.log('[MeterReadings] Params:', params);
+
     const result = await query(c.env, sql, params);
     const items = result.rows || [];
 

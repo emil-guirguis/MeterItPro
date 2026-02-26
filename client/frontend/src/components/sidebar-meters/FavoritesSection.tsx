@@ -9,6 +9,7 @@ import './FavoritesSection.css';
 
 export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
   favorites,
+  selectedItem,
   onItemClick,
   onStarClick,
   onReorder,
@@ -147,7 +148,7 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
             return (
               <div
                 key={key}
-                className={`favorite-item${dragIndex === index ? ' dragging' : ''}${dragOverIndex === index ? ' drag-over' : ''}`}
+                className={`favorite-item${dragIndex === index ? ' dragging' : ''}${dragOverIndex === index ? ' drag-over' : ''}${selectedItem?.type === 'element' && selectedItem.meterId === String(favorite.id1) && selectedItem.elementId === String(favorite.id2) ? ' selected' : ''}`}
                 draggable
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={(e) => handleDragOver(e, index)}

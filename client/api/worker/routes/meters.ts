@@ -324,14 +324,6 @@ app.put('/:id', requirePermission('meter:update'), async (c) => {
       return c.json({ success: false, message: 'Meter not found' }, 404);
     }
 
-    // Validate tenant ownership
-    if (meter.tenant_id !== tenantId) {
-      return c.json({
-        success: false,
-        message: 'You do not have permission to update this meter',
-      }, 403);
-    }
-
     const body = await c.req.json();
     const updateData: Record<string, any> = { ...body };
 

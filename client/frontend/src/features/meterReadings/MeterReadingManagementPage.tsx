@@ -159,6 +159,7 @@ export const MeterReadingManagementPage: React.FC = () => {
                 reading={detailedReading.reading}
                 loading={detailedViewLoading}
                 error={detailedViewError}
+                onViewAllReadings={handleNavigateToList}
               />
             </>
           ) : (

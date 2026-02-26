@@ -1,6 +1,6 @@
 /**
  * NotificationList Component
- * 
+ *
  * Renders a list of notifications with details and clear actions
  */
 
@@ -17,7 +17,7 @@ import {
   Divider
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import type { Notification } from '../../types/notifications';
+import type { Notification, NotificationSeverity, NotificationType } from '../../types/notifications';
 import { formatDistanceToNow } from 'date-fns';
 
 interface NotificationListProps {
@@ -26,12 +26,16 @@ interface NotificationListProps {
   onClearAll?: () => void;
 }
 
-const getNotificationTypeColor = (type: 'failing' | 'stale'): 'error' | 'warning' => {
-  return type === 'failing' ? 'error' : 'warning';
+const getSeverityColor = (severity: NotificationSeverity): 'error' | 'warning' | 'info' => {
+  if (severity === 'error') return 'error';
+  if (severity === 'warning') return 'warning';
+  return 'info';
 };
 
-const getNotificationTypeLabel = (type: 'failing' | 'stale'): string => {
-  return type === 'failing' ? 'Failing' : 'Stale';
+const getTypeLabel = (type: NotificationType): string => {
+  if (type === 'stale') return 'No Readings';
+  if (type === 'all_zero') return 'Zero Readings';
+  return 'Error';
 };
 
 export const NotificationList: React.FC<NotificationListProps> = ({
@@ -40,8 +44,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
 }) => {
   const formatTimestamp = (timestamp: string): string => {
     try {
-      const date = new Date(timestamp);
-      return formatDistanceToNow(date, { addSuffix: true });
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
     } catch {
       return timestamp;
     }
@@ -55,30 +58,37 @@ export const NotificationList: React.FC<NotificationListProps> = ({
             data-testid={`notification-item-${notification.id}`}
             sx={{
               py: 1.5,
-              '&:hover': {
-                backgroundColor: 'action.hover'
-              }
+              '&:hover': { backgroundColor: 'action.hover' }
             }}
           >
             <ListItemText
               primary={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    {notification.meter_id}
+                    {notification.title}
                   </Typography>
                   <Chip
-                    label={getNotificationTypeLabel(notification.notification_type)}
+                    label={getTypeLabel(notification.notification_type)}
                     size="small"
-                    color={getNotificationTypeColor(notification.notification_type)}
+                    color={getSeverityColor(notification.severity)}
                     variant="outlined"
                   />
                 </Box>
               }
               secondary={
                 <Box sx={{ mt: 0.5 }}>
-                  <Typography variant="caption" display="block" color="textSecondary">
-                    Element: {notification.element_id}
-                  </Typography>
+                  {notification.description && (
+                    <Typography variant="caption" display="block" color="textSecondary">
+                      {notification.description}
+                    </Typography>
+                  )}
+                  {(notification.meter_id || notification.meter_element_id) && (
+                    <Typography variant="caption" display="block" color="textSecondary">
+                      {notification.meter_id && `Meter: ${notification.meter_id}`}
+                      {notification.meter_id && notification.meter_element_id && ' · '}
+                      {notification.meter_element_id && `Element: ${notification.meter_element_id}`}
+                    </Typography>
+                  )}
                   <Typography variant="caption" display="block" color="textSecondary">
                     {formatTimestamp(notification.created_at)}
                   </Typography>

@@ -99,6 +99,7 @@ export interface FavoritesSectionProps {
   favorites: FavoriteDisplay[];
   meters: Meter[];
   meterElements: { [meterId: string]: MeterElement[] };
+  selectedItem?: SelectedItem | null;
   onItemClick: (meterId: string, elementId: string, favoriteName?: string, gridType?: 'simple' | 'baselist') => void;
   onStarClick: (favoriteId: number, meterId: string, elementId: string) => Promise<void>;
   onReorder?: (reorderedFavorites: FavoriteDisplay[]) => void;

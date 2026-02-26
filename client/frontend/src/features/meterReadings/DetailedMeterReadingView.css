@@ -21,7 +21,7 @@
 
 .loading-message {
   font-size: 18px;
-  color: #666;
+  color: #333;
 }
 
 .error-message {
@@ -54,6 +54,29 @@
   gap: 12px;
 }
 
+.meter-info-card-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.view-all-readings-btn {
+  padding: 8px 20px;
+  background-color: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.view-all-readings-btn:hover {
+  background-color: #1565c0;
+}
+
 .info-row {
   display: flex;
   gap: 8px;
@@ -67,7 +90,7 @@
 }
 
 .info-value {
-  color: #666;
+  color: #333;
 }
 
 .energy-totals-card {
@@ -96,12 +119,12 @@
 }
 
 .energy-label {
-  color: #666;
+  color: #333;
   text-align: left;
 }
 
 .energy-colon {
-  color: #666;
+  color: #333;
   text-align: center;
 }
 
@@ -114,7 +137,7 @@
 }
 
 .energy-unit {
-  color: #666;
+  color: #333;
   font-size: 13px;
   text-align: left;
 }
@@ -168,20 +191,16 @@
   border-bottom: none;
 }
 
-.data-row--primary {
-  background-color: #b8d8e5;
+.phase-data-table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
 }
 
-.data-row {
-  background-color: #e8e8e8;
+.phase-data-table tbody tr:nth-child(even) {
+  background-color: #f0f4ff;
 }
 
-.data-row:hover {
-  background-color: #f0f0f0;
-}
-
-.data-row--primary:hover {
-  background-color: #c8e8f5;
+.phase-data-table tbody tr:hover {
+  background-color: #d9e8f5;
 }
 
 .phase-data-table td {
@@ -193,17 +212,17 @@
   text-align: left !important;
   padding-left: 20px !important;
   font-weight: 500;
-  color: #333;
+  color: #111;
 }
 
 .value {
   font-family: 'Courier New', monospace;
   font-weight: 500;
-  color: #333;
+  color: #111;
 }
 
 .unit {
-  color: #666;
+  color: #333;
   font-weight: 500;
 }
 
@@ -225,7 +244,7 @@
 }
 
 .frequency-colon {
-  color: #666;
+  color: #333;
 }
 
 .frequency-value {
@@ -262,7 +281,7 @@
 .graph-subtitle {
   font-size: 16px;
   font-weight: 500;
-  color: #666;
+  color: #333;
   margin: 0 0 16px 0;
   text-align: center;
 }
@@ -283,7 +302,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: #999;
+  color: #555;
 }
 
 .graph-note {

@@ -12,14 +12,12 @@ import type {
   UpdateNotificationSettingsRequest
 } from '../types/notifications';
 
-const API_BASE = '/api';
-
 export const notificationService = {
   /**
    * Get all non-cleared notifications
    */
   async listNotifications(limit = 100, offset = 0): Promise<NotificationListResponse> {
-    const response = await apiClient.get(`${API_BASE}/notifications`, {
+    const response = await apiClient.get('/notifications', {
       params: { limit, offset }
     });
     return response.data.data;
@@ -29,23 +27,23 @@ export const notificationService = {
    * Get count of non-cleared notifications
    */
   async getNotificationCount(): Promise<number> {
-    const response = await apiClient.get(`${API_BASE}/notifications/count`);
+    const response = await apiClient.get('/notifications/count');
     return response.data.data.count;
   },
 
   /**
    * Create a new notification
    */
-  async createNotification(
-    meterId: string,
-    elementId: string,
-    notificationType: 'failing' | 'stale'
-  ): Promise<Notification> {
-    const response = await apiClient.post(`${API_BASE}/notifications`, {
-      meter_id: meterId,
-      element_id: elementId,
-      notification_type: notificationType
-    });
+  async createNotification(params: {
+    notification_type: string;
+    title: string;
+    severity?: string;
+    description?: string;
+    meter_id?: string | null;
+    meter_element_id?: string | null;
+    user_id?: string | null;
+  }): Promise<Notification> {
+    const response = await apiClient.post('/notifications', params);
     return response.data.data.notification;
   },
 
@@ -53,14 +51,14 @@ export const notificationService = {
    * Clear (delete) a specific notification
    */
   async clearNotification(notificationId: string): Promise<void> {
-    await apiClient.delete(`${API_BASE}/notifications/${notificationId}`);
+    await apiClient.delete(`/notifications/${notificationId}`);
   },
 
   /**
    * Clear (delete) all notifications
    */
   async clearAllNotifications(): Promise<number> {
-    const response = await apiClient.delete(`${API_BASE}/notifications`);
+    const response = await apiClient.delete('/notifications');
     return response.data.data.deleted_count;
   },
 
@@ -68,7 +66,7 @@ export const notificationService = {
    * Get notification settings
    */
   async getSettings(): Promise<NotificationSettings> {
-    const response = await apiClient.get(`${API_BASE}/settings/notifications`);
+    const response = await apiClient.get('/settings/notifications');
     return response.data.data.settings;
   },
 
@@ -76,7 +74,7 @@ export const notificationService = {
    * Update notification settings
    */
   async updateSettings(updates: UpdateNotificationSettingsRequest): Promise<NotificationSettings> {
-    const response = await apiClient.put(`${API_BASE}/settings/notifications`, updates);
+    const response = await apiClient.put('/settings/notifications', updates);
     return response.data.data.settings;
   }
 };
