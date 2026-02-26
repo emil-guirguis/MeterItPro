@@ -83,7 +83,7 @@ export const ENTITY_METADATA: Record<string, EntityMetadata> = {
   device_register: {
     tableName: 'device_register',
     primaryKey: ['device_id', 'register_id'],
-    columns: ['device_register_id','device_id', 'register_id'],
+    columns: ['device_id', 'register_id'],
     compositeKey: ['device_id', 'register_id'],
     tenantFiltered: false,
   },

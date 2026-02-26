@@ -952,7 +952,7 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
 
     // Sync device_register from remote to local
     const remoteDeviceRegistersQuery = `
-      SELECT device_register_id, device_id, register_id
+      SELECT device_id, register_id
       FROM device_register
     `;
     const remoteDeviceRegisters = await remotePool.query(remoteDeviceRegistersQuery);
@@ -962,14 +962,13 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
 
     for (const dr of remoteDeviceRegisters.rows) {
       const upsertDrQuery = `
-        INSERT INTO device_register (device_register_id, device_id, register_id)
-        VALUES ($1, $2, $3)
+        INSERT INTO device_register (device_id, register_id)
+        VALUES ($1, $2)
         ON CONFLICT (device_id, register_id) DO UPDATE SET
-          device_register_id = EXCLUDED.device_register_id
+          device_id = EXCLUDED.device_id
         RETURNING (xmax = 0) as is_insert
       `;
       const drResult = await syncPool.query(upsertDrQuery, [
-        dr.device_register_id,
         dr.device_id,
         dr.register_id,
       ]);
@@ -1127,7 +1126,6 @@ async function startServer() {
     `);
     await syncPool.query(`
       CREATE TABLE IF NOT EXISTS device_register (
-        device_register_id INTEGER,
         device_id INTEGER NOT NULL,
         register_id INTEGER NOT NULL,
         PRIMARY KEY (device_id, register_id)

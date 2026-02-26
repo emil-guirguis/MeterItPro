@@ -208,7 +208,6 @@ export class SyncDatabase {
       // Create device_register table
       await execQuery(this.pool,
         `CREATE TABLE IF NOT EXISTS device_register (
-          device_register_id INTEGER,
           device_id INTEGER NOT NULL,
           register_id INTEGER NOT NULL,
           PRIMARY KEY (device_id, register_id)
@@ -536,7 +535,7 @@ export class SyncDatabase {
    */
   async getTenantBatchConfig(tenantId: number): Promise<{ downloadBatchSize: number; uploadBatchSize: number }> {
     try {
-      const query = `SELECT download_batch_size, upload_batch_size FROM tenant`;
+      const query = `SELECT download_batch_size, upload_batch_size FROM tenant WHERE tenant_id = $1`;
       const result = await execQuery(this.pool, query, [tenantId], 'data-sync.ts>getTenantBatchConfig');
 
       if (result.rows.length === 0) {
@@ -1231,15 +1230,14 @@ export class SyncDatabase {
       }
 
       const sql = `
-         INSERT INTO device_register (device_register_id, device_id, register_id)
-         VALUES ($1, $2, $3)
+         INSERT INTO device_register (device_id, register_id)
+         VALUES ($1, $2)
          ON CONFLICT (device_id, register_id) DO UPDATE SET
-           device_register_id = EXCLUDED.device_register_id
+           device_id = EXCLUDED.device_id
          RETURNING *`;
 
       console.log(`[SYNC SQL] ${sql}`);
       const params = [
-        deviceRegister.device_register_id,
         deviceRegister.device_id,
         deviceRegister.register_id,
       ];
