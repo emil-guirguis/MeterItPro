@@ -26,41 +26,53 @@ app.get('/', requirePermission('meter:read'), async (c) => {
     const meterId = qs.meterId;
     const meterElementId = qs.meterElementId;
 
-    let sql = 'SELECT * FROM meter_reading WHERE tenant_id = $1';
+    // Build WHERE clause
+    let whereClause = 'WHERE tenant_id = $1';
     const params: any[] = [tenantId];
     let paramCount = 2;
 
     if (meterId !== undefined && meterId !== '') {
-      sql += ` AND meter_id = $${paramCount}`;
+      whereClause += ` AND meter_id = $${paramCount}`;
       params.push(parseInt(meterId));
       paramCount++;
     }
 
     if (meterElementId !== undefined && meterElementId !== '') {
-      sql += ` AND meter_element_id = $${paramCount}`;
+      whereClause += ` AND meter_element_id = $${paramCount}`;
       params.push(parseInt(meterElementId));
       paramCount++;
     }
 
-    sql += ` ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-    params.push(pageSize);
-    params.push(skip);
+    // Get total count
+    const countSql = `SELECT COUNT(*) as count FROM meter_reading ${whereClause}`;
+    console.log('[MeterReadings] Count SQL:', countSql);
+    console.log('[MeterReadings] Count Params:', params);
 
-    console.log('[MeterReadings] SQL:', sql);
-    console.log('[MeterReadings] Params:', params);
+    const countResult = await query(c.env, countSql, params.slice(0, paramCount - 1));
+    const total = parseInt(countResult.rows?.[0]?.count || '0');
 
-    const result = await query(c.env, sql, params);
+    // Get paginated data
+    const dataSql = `SELECT * FROM meter_reading ${whereClause} ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+    const dataParams = [...params, pageSize, skip];
+
+    console.log('[MeterReadings] Data SQL:', dataSql);
+    console.log('[MeterReadings] Data Params:', dataParams);
+
+    const result = await query(c.env, dataSql, dataParams);
     const items = result.rows || [];
+
+    const totalPages = Math.ceil(total / pageSize) || 1;
+    const hasMore = page < totalPages;
 
     return c.json({
       success: true,
       data: {
         items,
-        total: items.length,
+        total,
         page,
         pageSize,
-        totalPages: Math.ceil(items.length / pageSize) || 1,
-        hasMore: false,
+        totalPages,
+        hasMore,
       },
     });
   } catch (error: any) {
