@@ -37,6 +37,17 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
   onPageChange,
 }) => {
   const [selectedRowIdx, setSelectedRowIdx] = React.useState<number | null>(null);
+  const [selectedColIdx, setSelectedColIdx] = React.useState<number | null>(null);
+
+  const handleCellClick = (rowIdx: number, colIdx: number) => {
+    if (selectedRowIdx === rowIdx && selectedColIdx === colIdx) {
+      setSelectedRowIdx(null);
+      setSelectedColIdx(null);
+    } else {
+      setSelectedRowIdx(rowIdx);
+      setSelectedColIdx(colIdx);
+    }
+  };
   if (error) {
     return (
       <div className="simple-grid-error">
@@ -154,9 +165,20 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
       <table className="simple-grid">
         <thead>
           <tr>
-            {columns.map((col, colIdx) => (
-              <th key={col} className={colIdx === 0 ? 'simple-grid__first-column' : ''}>{formatColumnName(col)}</th>
-            ))}
+            {columns.map((col, colIdx) => {
+              let thClassName = '';
+              if (colIdx === 0) thClassName += 'simple-grid__first-column';
+              if (selectedColIdx === colIdx) thClassName += (thClassName ? ' ' : '') + 'simple-grid__col--selected';
+              return (
+                <th
+                  key={col}
+                  className={thClassName}
+                  onClick={() => handleCellClick(-1, colIdx)}
+                >
+                  {formatColumnName(col)}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -164,11 +186,21 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
             <tr
               key={idx}
               className={selectedRowIdx === idx ? 'simple-grid__row--selected' : ''}
-              onClick={() => setSelectedRowIdx(selectedRowIdx === idx ? null : idx)}
             >
-              {columns.map((col, colIdx) => (
-                <td key={`${idx}-${col}`} className={colIdx === 0 ? 'simple-grid__first-column' : ''}>{formatValue(row[col])}</td>
-              ))}
+              {columns.map((col, colIdx) => {
+                let tdClassName = '';
+                if (colIdx === 0) tdClassName += 'simple-grid__first-column';
+                if (selectedColIdx === colIdx) tdClassName += (tdClassName ? ' ' : '') + 'simple-grid__col--selected';
+                return (
+                  <td
+                    key={`${idx}-${col}`}
+                    className={tdClassName}
+                    onClick={() => handleCellClick(idx, colIdx)}
+                  >
+                    {formatValue(row[col])}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

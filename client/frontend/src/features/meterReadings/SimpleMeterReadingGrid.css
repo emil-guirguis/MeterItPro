@@ -59,6 +59,22 @@
   background-color: #bbdefb;
 }
 
+.simple-grid__col--selected {
+  background-color: #f0f4c3 !important;
+}
+
+.simple-grid tbody tr.simple-grid__row--selected .simple-grid__col--selected {
+  background-color: #c5e1a5 !important;
+}
+
+.simple-grid tbody tr:hover .simple-grid__col--selected {
+  background-color: #dcedc8 !important;
+}
+
+.simple-grid tbody tr.simple-grid__row--selected:hover .simple-grid__col--selected {
+  background-color: #aed581 !important;
+}
+
 .simple-grid td {
   padding: 12px;
   color: #666;
