@@ -12,9 +12,11 @@ export class ReadingBatcher {
   private logger: any;
   private insertionMetrics: BatchInsertionResult | null = null;
   private tenantId: number | null = null;
+  private cycleTimestamp: Date;
 
-  constructor(logger?: any) {
+  constructor(logger?: any, cycleTimestamp?: Date) {
     this.logger = logger || console;
+    this.cycleTimestamp = cycleTimestamp || new Date();
     const tenantCache = cacheManager.getTenantCache().getTenant();
     this.tenantId = tenantCache?.tenant_id || null;
   }
@@ -229,22 +231,23 @@ export class ReadingBatcher {
           // Build batch INSERT statements by pivoting readings
           // Group readings by meter_id + meter_element_id
           // Each field_name becomes a column with its value
-          
+          // Use unified cycle timestamp for all readings in this collection cycle
+
           const groupedReadings = new Map<string, any>();
           const allFieldNames = new Set<string>();
-          
+
           batch.forEach((reading) => {
             // Create a unique key for the meter
             const key = `${reading.meter_id}-${reading.meter_element_id}`;
-            
+
             if (!groupedReadings.has(key)) {
               groupedReadings.set(key, {
                 meter_id: reading.meter_id,
                 meter_element_id: reading.meter_element_id,
-                created_at: reading.created_at,
+                created_at: this.cycleTimestamp,
               });
             }
-            
+
             // Add the specific field value to this unique object
             const entry = groupedReadings.get(key);
             entry[reading.field_name] = reading.value;

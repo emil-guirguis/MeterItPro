@@ -188,15 +188,16 @@ async executeCycle(
       // Process each meter
       for (const meter of meters) {
         try {
-          // Create a batcher for this meter's readings
-          const batcher = new ReadingBatcher(this.logger);
+          // Create a batcher for this meter's readings with unified cycle timestamp
+          const batcher = new ReadingBatcher(this.logger, startTime);
 
           // Attempt to read all data points from this meter
           const meterReadings = await this.readMeterDataPoints(
             meter,
             bacnetClient,
             readTimeoutMs,
-            errors
+            errors,
+            startTime
           );
 
           // Add readings to batcher
@@ -328,7 +329,8 @@ async executeCycle(
     meter: any,
     bacnetClient: BACnetClient,
     readTimeoutMs: number,
-    errors: CollectionError[]
+    errors: CollectionError[],
+    cycleStartTime?: Date
   ): Promise<PendingReading[]> {
     const readings: PendingReading[] = [];
 
@@ -555,7 +557,7 @@ async executeCycle(
               value: numericValue,
               register: register.register,
               element: meter.element,
-              created_at: new Date(),
+              created_at: cycleStartTime || new Date(),
             });
 
             this.logger.info(
