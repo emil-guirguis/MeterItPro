@@ -36,6 +36,7 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
   totalPages = 1,
   onPageChange,
 }) => {
+  const [selectedRowIdx, setSelectedRowIdx] = React.useState<number | null>(null);
   if (error) {
     return (
       <div className="simple-grid-error">
@@ -160,7 +161,11 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
         </thead>
         <tbody>
           {data.map((row, idx) => (
-            <tr key={idx}>
+            <tr
+              key={idx}
+              className={selectedRowIdx === idx ? 'simple-grid__row--selected' : ''}
+              onClick={() => setSelectedRowIdx(selectedRowIdx === idx ? null : idx)}
+            >
               {columns.map((col, colIdx) => (
                 <td key={`${idx}-${col}`} className={colIdx === 0 ? 'simple-grid__first-column' : ''}>{formatValue(row[col])}</td>
               ))}
