@@ -153,16 +153,16 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
       <table className="simple-grid">
         <thead>
           <tr>
-            {columns.map(col => (
-              <th key={col}>{formatColumnName(col)}</th>
+            {columns.map((col, colIdx) => (
+              <th key={col} className={colIdx === 0 ? 'simple-grid__first-column' : ''}>{formatColumnName(col)}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {data.map((row, idx) => (
             <tr key={idx}>
-              {columns.map(col => (
-                <td key={`${idx}-${col}`}>{formatValue(row[col])}</td>
+              {columns.map((col, colIdx) => (
+                <td key={`${idx}-${col}`} className={colIdx === 0 ? 'simple-grid__first-column' : ''}>{formatValue(row[col])}</td>
               ))}
             </tr>
           ))}
