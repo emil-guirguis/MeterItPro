@@ -55,7 +55,8 @@
       "Bash(sort -t: -k3 -rn)",
       "Bash(test:*)",
       "Bash(tree:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(tasklist:*)"
     ]
   }
 }

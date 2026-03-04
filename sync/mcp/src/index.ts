@@ -24,7 +24,6 @@ import { ClientSystemApiClient } from './api/client-system-api.js';
 import { RemoteToLocalSyncAgent } from './remote_to_local-sync/sync-agent.js';
 import { BACnetMeterReadingAgent } from './bacnet-collection/bacnet-reading-agent.js';
 import { MeterReadingCleanupAgent } from './bacnet-collection/meter-reading-cleanup-agent.js';
-import { SyncManager } from './remote_to_local-sync/sync-manager.js';
 import { SyncDatabase } from './data-sync/data-sync.js';
 import {
   getBACnetCollectionIntervalSeconds,
@@ -77,7 +76,6 @@ class SyncMcpServer {
   private remoteToLocalSyncAgent?: RemoteToLocalSyncAgent;
   private bacnetMeterReadingAgent?: BACnetMeterReadingAgent;
   private meterReadingCleanupAgent?: MeterReadingCleanupAgent;
-  private syncManager?: SyncManager;
   private isInitialized: boolean = false;
   private isDatabaseReady: boolean = false;
   private tenantCheckInterval?: ReturnType<typeof setInterval>;
@@ -246,21 +244,6 @@ class SyncMcpServer {
       await this.meterReadingCleanupAgent.start();
       console.log('✅ [Services] Meter Reading Cleanup Agent started');
 
-      // Step 10: Initialize Sync Manager
-      console.log('🔄 [Services] Initializing Sync Manager...');
-      this.syncManager = new SyncManager({
-        database: this.syncDatabase,
-        apiClient: apiClient,
-        syncIntervalMinutes: parseInt(process.env.METER_SYNC_INTERVAL_MINUTES || '60', 10),
-        batchSize: parseInt(process.env.BATCH_SIZE || '1000', 10),
-        maxRetries: parseInt(process.env.MAX_RETRIES || '5', 10),
-        enableAutoSync: process.env.METER_SYNC_AUTO_START !== 'false',
-      });
-      console.log('✅ [Services] Sync Manager initialized');
-
-      console.log('▶️  [Services] Starting Sync Manager...');
-      await this.syncManager.start();
-      console.log('✅ [Services] Sync Manager started');
 
       this.isInitialized = true;
       console.log('✅ [Services] All agents initialized and started successfully\n');
@@ -750,10 +733,6 @@ class SyncMcpServer {
     if (this.tenantCheckInterval) {
       clearInterval(this.tenantCheckInterval);
       this.tenantCheckInterval = undefined;
-    }
-
-    if (this.syncManager) {
-      await this.syncManager.stop();
     }
 
     if (this.meterReadingCleanupAgent) {

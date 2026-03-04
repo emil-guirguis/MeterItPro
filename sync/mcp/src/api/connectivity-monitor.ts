@@ -22,7 +22,8 @@ export class ConnectivityMonitor extends EventEmitter {
   private apiClient: ClientSystemApiClient;
   private checkIntervalMs: number;
   private intervalId?: NodeJS.Timeout;
-  
+  private isInitialCheck: boolean = true;
+
   private status: ConnectivityStatus;
   private lastStateChangeTime: Date;
 
@@ -30,7 +31,7 @@ export class ConnectivityMonitor extends EventEmitter {
     super();
     this.apiClient = apiClient;
     this.checkIntervalMs = checkIntervalMs;
-    
+
     this.status = {
       isConnected: false,
       lastCheckTime: new Date(),
@@ -38,7 +39,7 @@ export class ConnectivityMonitor extends EventEmitter {
       uptime: 0,
       downtime: 0,
     };
-    
+
     this.lastStateChangeTime = new Date();
   }
 
@@ -92,8 +93,9 @@ export class ConnectivityMonitor extends EventEmitter {
         this.status.lastSuccessfulConnection = new Date();
         this.status.consecutiveFailures = 0;
 
-        // State changed from offline to online
-        if (!previousState) {
+        // State changed from offline to online — skip 'connected' event on initial check
+        // to avoid triggering a redundant upload alongside the explicit startup upload
+        if (!previousState && !this.isInitialCheck) {
           console.log('✓ Client System connectivity restored');
           this.handleStateChange(true);
           this.emit('connected');
@@ -122,6 +124,8 @@ export class ConnectivityMonitor extends EventEmitter {
         this.handleStateChange(false);
         this.emit('disconnected');
       }
+    } finally {
+      this.isInitialCheck = false;
     }
 
     // Update uptime/downtime
