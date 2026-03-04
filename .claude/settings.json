@@ -7,6 +7,9 @@
       "Bash(git checkout HEAD -- .env)",
       "Bash(taskkill /PID 14296 /F)",
       "Bash(cmd /c \"taskkill /PID 14296 /F\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Projects\\MeterItPro"
     ]
   }
 }

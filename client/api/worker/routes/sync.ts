@@ -65,12 +65,13 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
               $41, $42, $43, $44,
               $45
             )
+            ON CONFLICT (tenant_id, meter_id, meter_element_id, created_at) DO NOTHING
             RETURNING meter_reading_id
           `;
           const readingParams = [
             tenantId,
             parseInt(reading.meter_id, 10),
-            new Date(),
+            reading.created_at ? new Date(reading.created_at) : new Date(),
             'pending',
             reading.active_energy ?? null,
             reading.active_energy_export ?? null,

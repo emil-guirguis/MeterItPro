@@ -1,0 +1,84 @@
+#!/bin/bash
+# post-merge: auto-build sync components after git pull
+# Runs automatically when `git pull` merges new commits.
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+echo ""
+echo "================================================="
+echo "  MeterItPro: Auto-build after git pull"
+echo "================================================="
+
+# ── Helper: check if any package.json changed in a path ──────────────────────
+changed_files() {
+  git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD 2>/dev/null || true
+}
+
+CHANGED="$(changed_files)"
+
+# ── npm install where package.json changed ────────────────────────────────────
+if echo "$CHANGED" | grep -q "^sync/api/package"; then
+  echo "[install] sync/api dependencies changed, running npm install..."
+  (cd "$REPO_ROOT/sync/api" && npm install --silent)
+fi
+
+if echo "$CHANGED" | grep -q "^sync/mcp/package"; then
+  echo "[install] sync/mcp dependencies changed, running npm install..."
+  (cd "$REPO_ROOT/sync/mcp" && npm install --silent)
+fi
+
+if echo "$CHANGED" | grep -q "^sync/frontend/package"; then
+  echo "[install] sync/frontend dependencies changed, running npm install..."
+  (cd "$REPO_ROOT/sync/frontend" && npm install --silent)
+fi
+
+# ── Build sync/api ─────────────────────────────────────────────────────────────
+echo ""
+echo "[1/3] Building sync/api (TypeScript)..."
+if (cd "$REPO_ROOT/sync/api" && npm run build); then
+  echo "      sync/api built OK"
+else
+  echo "      ERROR: sync/api build failed" >&2
+  exit 1
+fi
+
+# ── Build sync/mcp ─────────────────────────────────────────────────────────────
+echo ""
+echo "[2/3] Building sync/mcp (TypeScript)..."
+if (cd "$REPO_ROOT/sync/mcp" && npm run build); then
+  echo "      sync/mcp built OK"
+else
+  echo "      ERROR: sync/mcp build failed" >&2
+  exit 1
+fi
+
+# ── Build sync/frontend ───────────────────────────────────────────────────────
+echo ""
+echo "[3/3] Building sync/frontend (Vite)..."
+if (cd "$REPO_ROOT/sync/frontend" && npm run build); then
+  echo "      sync/frontend built OK"
+else
+  echo "      ERROR: sync/frontend build failed" >&2
+  exit 1
+fi
+
+# ── Restart Windows services ──────────────────────────────────────────────────
+echo ""
+echo "[restart] Restarting Windows services (requires Administrator terminal)..."
+
+SCRIPT_PATH="$(cygpath -w "$REPO_ROOT/scripts/restart-services.js" 2>/dev/null || echo "$REPO_ROOT/scripts/restart-services.js")"
+
+# Try direct restart (works if terminal is already elevated)
+if node "$REPO_ROOT/scripts/restart-services.js" 2>/dev/null; then
+  echo "         Services restarted OK"
+else
+  echo "         NOTE: Run 'npm run services:restart' from an Administrator terminal to restart services"
+fi
+
+echo ""
+echo "================================================="
+echo "  Build complete!"
+echo "  Sync API:      http://localhost:3002"
+echo "  Sync Frontend: http://localhost:3003"
+echo "================================================="
+echo ""

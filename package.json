@@ -16,11 +16,20 @@
     "build:client": "cd framework/frontend && npm install && cd ../../client/frontend && npm install && npm run build",
     "build:sync": "cd sync/frontend && npm install && npm run build",
     "build": "npm run build:client && npm run build:sync",
-    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./stop-dev.ps1"
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./stop-dev.ps1",
+    "services:install": "node ./scripts/install-services.js",
+    "services:stop": "node ./scripts/stop-services.js",
+    "services:restart": "node ./scripts/restart-services.js",
+    "services:uninstall": "node ./scripts/uninstall-services.js",
+    "build:sync:all": "npm run build:sync:api && npm run build:sync:mcp && npm run build:sync:frontend",
+    "build:sync:api": "cd sync/api && npm run build",
+    "build:sync:mcp": "cd sync/mcp && npm run build",
+    "build:sync:frontend": "cd sync/frontend && npm run build"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^8.2.2",
+    "node-windows": "1.0.0-beta.8",
     "vite": "^5.4.0",
     "vitest": "^4.0.16"
   },

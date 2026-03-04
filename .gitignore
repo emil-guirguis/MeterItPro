@@ -8,6 +8,9 @@ dist/
 build/
 *.log
 
+# node-windows service wrappers (generated per machine)
+daemon/
+
 # Dependencies
 node_modules/
 
