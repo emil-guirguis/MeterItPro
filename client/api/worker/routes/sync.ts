@@ -65,7 +65,7 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
               $41, $42, $43, $44,
               $45
             )
-            ON CONFLICT (tenant_id, meter_id, meter_element_id, created_at) DO NOTHING
+            ON CONFLICT (tenant_id, meter_id, meter_element_id, created_at) WHERE meter_element_id IS NOT NULL DO NOTHING
             RETURNING meter_reading_id
           `;
           const readingParams = [
@@ -145,14 +145,17 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
       return { insertedCount, skippedCount, insertErrors };
     });
 
+    const hasErrors = result.insertErrors.length > 0;
     return c.json({
-      success: true,
+      success: !hasErrors,
       recordsProcessed: result.insertedCount,
-      message: `Batch upload completed: ${result.insertedCount} inserted, ${result.skippedCount} skipped`,
+      message: hasErrors
+        ? `Batch upload failed: ${result.insertErrors.length} errors, ${result.insertedCount} inserted, ${result.skippedCount} skipped`
+        : `Batch upload completed: ${result.insertedCount} inserted, ${result.skippedCount} skipped`,
       inserted: result.insertedCount,
       skipped: result.skippedCount,
       errors: result.insertErrors,
-    });
+    }, hasErrors ? 500 : 200);
   } catch (error: any) {
     logError('[Sync] Batch upload error:', error);
     return c.json({
