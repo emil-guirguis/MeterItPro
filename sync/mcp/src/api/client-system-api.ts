@@ -124,6 +124,7 @@ export class ClientSystemApiClient {
       readings: readings.map((r) => ({
         meter_id: r.meter_id,
         meter_element_id: r.meter_element_id ?? null,
+        created_at: r.created_at,
         active_energy: r.active_energy ?? null,
         active_energy_export: r.active_energy_export ?? null,
         apparent_energy: r.apparent_energy ?? null,
