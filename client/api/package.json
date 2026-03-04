@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Backend API for MeterIt Pro",
   "scripts": {
+    "start": "wrangler dev",
     "db:migrate": "node migrations/run-migrations.js",
     "worker:dev": "wrangler dev",
     "worker:deploy": "wrangler deploy"
