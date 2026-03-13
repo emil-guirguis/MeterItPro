@@ -95,7 +95,7 @@ app.get('/:id', async (c) => {
     // Get meters
     const metersResult = await query(
       c.env,
-      `SELECT notification_rule_meter_id, meter_id
+      `SELECT notification_rule_meter_id, meter_id, meter_element_id
        FROM public.notification_rule_meter
        WHERE notification_rule_id = $1`,
       [id]
@@ -132,7 +132,7 @@ app.post('/', async (c) => {
       threshold_hours,
       schedule_cron = '0 * * * *',
       recipients = [],
-      meter_ids = [],
+      meter_elements = [],
     } = body;
 
     if (!name) {
@@ -163,14 +163,14 @@ app.post('/', async (c) => {
       );
     }
 
-    // Add meters
-    for (const meterId of meter_ids) {
+    // Add (meter_id, meter_element_id) pairs — meter_element_id may be null to mean "all elements"
+    for (const me of meter_elements) {
       await query(
         c.env,
         `INSERT INTO public.notification_rule_meter
-         (notification_rule_id, meter_id)
-         VALUES ($1, $2)`,
-        [ruleId, meterId]
+         (notification_rule_id, meter_id, meter_element_id)
+         VALUES ($1, $2, $3)`,
+        [ruleId, me.meter_id, me.meter_element_id || null]
       );
     }
 
@@ -182,7 +182,7 @@ app.post('/', async (c) => {
             ...rule,
             id: String(rule.notification_rule_id),
             recipients,
-            meters: meter_ids.map((id) => ({ meter_id: id })),
+            meters: meter_elements,
           },
         },
       },
@@ -207,7 +207,7 @@ app.put('/:id', async (c) => {
       threshold_hours,
       schedule_cron,
       recipients = [],
-      meter_ids = [],
+      meter_elements = [],
     } = body;
 
     if (isNaN(Number(id))) {
@@ -245,15 +245,15 @@ app.put('/:id', async (c) => {
       );
     }
 
-    // Update meters
+    // Update (meter_id, meter_element_id) pairs
     await query(c.env, 'DELETE FROM public.notification_rule_meter WHERE notification_rule_id = $1', [id]);
-    for (const meterId of meter_ids) {
+    for (const me of meter_elements) {
       await query(
         c.env,
         `INSERT INTO public.notification_rule_meter
-         (notification_rule_id, meter_id)
-         VALUES ($1, $2)`,
-        [id, meterId]
+         (notification_rule_id, meter_id, meter_element_id)
+         VALUES ($1, $2, $3)`,
+        [id, me.meter_id, me.meter_element_id || null]
       );
     }
 

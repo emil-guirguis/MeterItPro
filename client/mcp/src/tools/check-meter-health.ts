@@ -38,7 +38,7 @@ export async function checkMeterHealth(_args: CheckMeterHealthArgs) {
     const healthQuery = `
       WITH latest_readings AS (
         SELECT DISTINCT ON (meter_id, meter_element_id)
-          meter_id, meter_element_id, kwh, kw, created_at
+          meter_id, meter_element_id, active_energy, power, created_at
         FROM meter_reading
         ORDER BY meter_id, meter_element_id, created_at DESC
       )
@@ -46,7 +46,7 @@ export async function checkMeterHealth(_args: CheckMeterHealthArgs) {
         m.meter_id, m.name as meter_name, m.tenant_id,
         me.meter_element_id, me.name as element_name,
         lr.created_at as last_reading_at,
-        lr.kwh as latest_kwh, lr.kw as latest_kw
+        lr.active_energy as latest_kwh, lr.power as latest_kw
       FROM meter m
       INNER JOIN meter_element me ON me.meter_id = m.meter_id
       LEFT JOIN latest_readings lr ON lr.meter_id = m.meter_id AND lr.meter_element_id = me.meter_element_id

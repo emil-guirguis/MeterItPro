@@ -125,6 +125,30 @@ export default defineConfig({
         console.warn('\n⚠️  Build Warning:', warning.message);
         warn(warning);
       },
+      output: {
+        manualChunks(id) {
+          // React core
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
+            return 'vendor-react';
+          }
+          // MUI (largest single vendor)
+          if (id.includes('node_modules/@mui/') || id.includes('node_modules/@emotion/')) {
+            return 'vendor-mui';
+          }
+          // Recharts (already large on its own — keep isolated)
+          if (id.includes('node_modules/recharts/') || id.includes('node_modules/d3') || id.includes('node_modules/victory-vendor/')) {
+            return 'vendor-recharts';
+          }
+          // Grid layout
+          if (id.includes('node_modules/react-grid-layout/') || id.includes('node_modules/react-resizable/')) {
+            return 'vendor-grid';
+          }
+          // Remaining node_modules → shared vendor chunk
+          if (id.includes('node_modules/')) {
+            return 'vendor-misc';
+          }
+        },
+      },
     },
     chunkSizeWarningLimit: 600,
   },

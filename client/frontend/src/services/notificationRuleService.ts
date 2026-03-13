@@ -28,6 +28,7 @@ export interface NotificationRuleRecipient {
 export interface NotificationRuleMeter {
   notification_rule_meter_id: string;
   meter_id: string;
+  meter_element_id: string | null;
 }
 
 export interface NotificationRuleDetail extends NotificationRule {
@@ -46,7 +47,7 @@ export interface CreateNotificationRuleRequest {
     receive_email: boolean;
     email_address?: string;
   }>;
-  meter_ids: string[];
+  meter_elements: Array<{ meter_id: string; meter_element_id: string }>;
 }
 
 export const notificationRuleService = {

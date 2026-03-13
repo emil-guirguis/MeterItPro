@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Chip } from '@mui/material';
 import { BaseList } from '@framework/components/list/BaseList';
 import { useBaseList } from '@framework/components/list/hooks';
@@ -9,6 +9,7 @@ import type { Notification, NotificationSeverity, NotificationType } from '../..
 import { useNotificationsEnhanced } from './notificationsStore';
 import { useAuth } from '../../hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
+import { NotificationReadingChart } from './NotificationReadingChart';
 
 const SEVERITY_COLOR: Record<NotificationSeverity, 'error' | 'warning' | 'info'> = {
   error: 'error',
@@ -20,11 +21,14 @@ const TYPE_LABEL: Record<NotificationType, string> = {
   stale: 'No Readings',
   all_zero: 'Zero Readings',
   error_status: 'Error',
+  meter_no_reading: 'No Reading (Rule)',
+  meter_zero_reading: 'Zero Reading (Rule)',
 };
 
 export const NotificationListPanel: React.FC = () => {
   const auth = useAuth();
   const { schema } = useSchema('notification');
+  const [chartNotification, setChartNotification] = useState<Notification | null>(null);
 
   const columns = useMemo((): ColumnDefinition<Notification>[] => {
     if (!schema?.formFields) return [];
@@ -100,6 +104,12 @@ export const NotificationListPanel: React.FC = () => {
     authContext: auth,
   });
 
+  const handleView = (notification: Notification) => {
+    if (notification.notification_type === 'meter_no_reading') {
+      setChartNotification(notification);
+    }
+  };
+
   return (
     <div className="notification-list-panel">
       <BaseList
@@ -111,10 +121,17 @@ export const NotificationListPanel: React.FC = () => {
         loading={baseList.loading}
         error={baseList.error}
         emptyMessage="No notifications — all meters are healthy."
+        onView={handleView}
         onDelete={baseList.handleDelete}
         pagination={baseList.pagination}
       />
       {baseList.renderDeleteConfirmation()}
+      {chartNotification && (
+        <NotificationReadingChart
+          notification={chartNotification}
+          onClose={() => setChartNotification(null)}
+        />
+      )}
     </div>
   );
 };

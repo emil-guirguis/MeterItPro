@@ -3,6 +3,7 @@ import { db } from '../database/client.js';
 import { logger } from '../utils/logger.js';
 import { ReportExecutor } from './report-executor.js';
 import { checkMeterHealth } from '../tools/check-meter-health.js';
+import { NotificationRuleAgent } from './notification-rule-agent.js';
 
 export interface Report {
   id: string;
@@ -11,7 +12,7 @@ export interface Report {
   schedule: string;
   recipients: string[];
   config: Record<string, any>;
-  active: boolean;
+  enabled: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -19,9 +20,11 @@ export interface Report {
 export class SchedulerService {
   private jobs: Map<string, cron.ScheduledTask> = new Map();
   private reportExecutor: ReportExecutor;
+  private notificationRuleAgent: NotificationRuleAgent;
 
   constructor() {
     this.reportExecutor = new ReportExecutor();
+    this.notificationRuleAgent = new NotificationRuleAgent();
   }
 
   /**
@@ -40,6 +43,7 @@ export class SchedulerService {
       }
 
       await this.initializeHealthCheck();
+      await this.initializeNotificationRules();
 
       logger.info(`SchedulerService initialized with ${this.jobs.size} active jobs`);
     } catch (error) {
@@ -82,14 +86,19 @@ export class SchedulerService {
         this.jobs.delete(HEALTH_CHECK_KEY);
       }
 
-      // Load cron expression from notification_settings
+      // Load cron expression from notification_settings for this tenant
       let cronExpression = DEFAULT_CRON;
       try {
-        const result = await db.query(
-          `SELECT health_check_cron FROM notification_settings WHERE enabled = true LIMIT 1`
-        );
-        if (result.rows.length > 0 && result.rows[0].health_check_cron) {
-          cronExpression = result.rows[0].health_check_cron;
+        const tenantResult = await db.query(`SELECT tenant_id FROM tenant LIMIT 1`);
+        if (tenantResult.rows.length > 0) {
+          const tenantId = tenantResult.rows[0].tenant_id;
+          const result = await db.query(
+            `SELECT health_check_cron FROM notification_settings WHERE tenant_id = $1 LIMIT 1`,
+            [tenantId]
+          );
+          if (result.rows.length > 0 && result.rows[0].health_check_cron) {
+            cronExpression = result.rows[0].health_check_cron;
+          }
         }
       } catch (dbError) {
         logger.warn('Could not load notification_settings, using default cron for health check', {
@@ -111,6 +120,44 @@ export class SchedulerService {
       logger.info(`Health check job scheduled with cron: ${cronExpression}`);
     } catch (error) {
       logger.error('Failed to initialize health check job', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Load all active notification rules and create a cron job for each one.
+   * Each job calls NotificationRuleAgent.executeRule(rule) on its schedule.
+   */
+  private async initializeNotificationRules(): Promise<void> {
+    try {
+      const rules = await this.notificationRuleAgent.loadActiveRules();
+      logger.info(`Loaded ${rules.length} active notification rules`);
+
+      for (const rule of rules) {
+        const jobKey = `notification_rule_${rule.notification_rule_id}`;
+
+        if (this.jobs.has(jobKey)) continue;
+
+        const cronExpr = this.isValidCronExpression(rule.schedule_cron)
+          ? rule.schedule_cron
+          : '0 * * * *';
+
+        try {
+          const task = cron.schedule(cronExpr, async () => {
+            logger.info(`Executing notification rule: ${rule.name} (${rule.notification_rule_id})`);
+            await this.notificationRuleAgent.executeRule(rule);
+          });
+          this.jobs.set(jobKey, task);
+          logger.info(`Scheduled notification rule "${rule.name}" with cron: ${cronExpr}`);
+        } catch (err) {
+          logger.warn(`Failed to schedule notification rule ${rule.notification_rule_id}`, {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to initialize notification rules', {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -200,8 +247,8 @@ export class SchedulerService {
         logger.info(`Stopped and removed old job for report ${report.id}`);
       }
 
-      // Create new job if report is active
-      if (report.active) {
+      // Create new job if report is enabled
+      if (report.enabled) {
         await this.createJob(report);
       } else {
         logger.info(`Report ${report.id} is disabled, not creating new job`);
@@ -256,6 +303,28 @@ export class SchedulerService {
       status.set(reportId, true);
     }
     return status;
+  }
+
+  /**
+   * Immediately run all active notification rules (used by the debug endpoint).
+   */
+  async runAllNotificationRules(): Promise<{ rules_executed: number }> {
+    const rules = await this.notificationRuleAgent.loadActiveRules();
+    for (const rule of rules) {
+      await this.notificationRuleAgent.executeRule(rule);
+    }
+    return { rules_executed: rules.length };
+  }
+
+  /**
+   * Immediately run a single notification rule by ID (used by the per-rule debug endpoint).
+   */
+  async runNotificationRule(ruleId: string): Promise<{ found: boolean }> {
+    const rules = await this.notificationRuleAgent.loadActiveRules();
+    const rule = rules.find(r => String(r.notification_rule_id) === String(ruleId));
+    if (!rule) return { found: false };
+    await this.notificationRuleAgent.executeRule(rule);
+    return { found: true };
   }
 
   /**

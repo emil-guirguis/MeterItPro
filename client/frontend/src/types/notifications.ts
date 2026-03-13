@@ -2,7 +2,7 @@
  * Notification types for the frontend
  */
 
-export type NotificationType = 'stale' | 'all_zero' | 'error_status';
+export type NotificationType = 'stale' | 'all_zero' | 'error_status' | 'meter_no_reading' | 'meter_zero_reading';
 export type NotificationSeverity = 'info' | 'warning' | 'error';
 
 export interface Notification {

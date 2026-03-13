@@ -153,14 +153,14 @@ export const notificationRuleSchema = defineSchema({
           flex: 1,
           fields: [
             field({
-              name: 'meter_ids',
+              name: 'meter_elements',
               order: 1,
               type: 'custom',
               default: [],
               required: false,
-              label: 'Select Meters to Monitor',
-              dbField: 'meter_ids',
-              helpText: 'Choose which meters this rule applies to',
+              label: 'Select Meter Elements to Monitor',
+              dbField: 'meter_elements',
+              helpText: 'Choose which meter elements this rule applies to. Leave empty to monitor all.',
               showOn: ['form'],
               customField: true,
             }),

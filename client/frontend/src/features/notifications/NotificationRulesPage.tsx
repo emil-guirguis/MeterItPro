@@ -10,7 +10,6 @@ export const NotificationRulesPage: React.FC = () => {
   const [selectedRule, setSelectedRule] = useState<NotificationRule | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const handleCreate = () => {
     setSelectedRule(null);
     setShowForm(true);

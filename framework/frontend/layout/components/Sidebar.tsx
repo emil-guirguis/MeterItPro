@@ -116,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <div className="sidebar-link__content">
             <span className="sidebar-icon">
-              {getIconElement(item.id)}
+              {getIconElement(item.icon || item.id)}
             </span>
             {(!isCollapsed || isMobile) && (
               <>

@@ -6,6 +6,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import http from 'http';
 import { db } from './database/client.js';
 import { logger } from './utils/logger.js';
 import { queryMeters } from './tools/query-meters.js';
@@ -272,6 +273,74 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
+/**
+ * Lightweight debug HTTP server — only started when NODE_ENV !== 'production'.
+ * Exposes POST /debug/run-notification-rules to manually trigger the agent.
+ */
+function startDebugServer(scheduler: SchedulerService): void {
+  const port = parseInt(process.env.MCP_DEBUG_PORT || '3005', 10);
+
+  const server = http.createServer((req, res) => {
+    // CORS headers so the local frontend can call this
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/debug/run-notification-rules') {
+      logger.info('[debug] Manually triggering all notification rules via debug endpoint');
+      scheduler
+        .runAllNotificationRules()
+        .then(result => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, ...result }));
+        })
+        .catch(err => {
+          logger.error('[debug] Error running notification rules', { error: err.message });
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        });
+      return;
+    }
+
+    // POST /debug/run-notification-rule/:id — run a single rule by ID
+    const singleMatch = req.url?.match(/^\/debug\/run-notification-rule\/(\d+)$/);
+    if (req.method === 'POST' && singleMatch) {
+      const ruleId = singleMatch[1];
+      logger.info(`[debug] Manually triggering notification rule ${ruleId}`);
+      scheduler
+        .runNotificationRule(ruleId)
+        .then(result => {
+          if (!result.found) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: `Rule ${ruleId} not found or inactive` }));
+          } else {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, rule_id: ruleId }));
+          }
+        })
+        .catch(err => {
+          logger.error(`[debug] Error running rule ${ruleId}`, { error: err.message });
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        });
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
+  });
+
+  server.listen(port, () => {
+    logger.info(`[debug] MCP debug server listening on http://localhost:${port}`);
+  });
+}
+
 // Start server
 async function main() {
   logger.info('Starting Client MCP Server...');
@@ -294,6 +363,9 @@ async function main() {
     });
     // Continue even if scheduler fails to initialize
   }
+
+  // Start debug HTTP server for manual rule triggering
+  startDebugServer(scheduler);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
