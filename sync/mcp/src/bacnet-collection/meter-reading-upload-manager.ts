@@ -157,75 +157,67 @@ export class MeterReadingUploadManager {
 
     try {
       await this.checkClientConnectivity();
-      // Use configured upload batch size for fetching readings
-      const readings = await this.database.getUnsynchronizedReadings(this.uploadBatchSize);
 
-      // Update queue size based on readings retrieved
-      this.status.queueSize = readings.length;
-
-      if (readings.length === 0) {
-        console.log('No readings to upload');
-        // Still update status to indicate upload was attempted
-        this.status.lastUploadTime = new Date();
-        this.status.lastUploadSuccess = true;
-        this.status.lastUploadError = undefined;
-        return;
-      }
-
-      console.log(`Validating ${readings.length} readings...`);
-      
-      // Validate readings before upload
-      const { validReadings, invalidReadings, report } = 
-        await this.validationMiddleware.validateReadingsBeforeUpload(readings);
-
-      if (invalidReadings.length > 0) {
-        console.warn(`⚠️  [UploadManager] Skipping ${invalidReadings.length} invalid readings`);
-        console.warn(`   Valid: ${validReadings.length}, Invalid: ${invalidReadings.length}`);
-        console.warn(`   Real data: ${report.realDataReadings}, Mock data: ${report.mockDataDetected}`);
-      }
-
-      // Only upload valid readings
-      if (validReadings.length === 0) {
-        console.log('No valid readings to upload after validation');
-        this.status.lastUploadTime = new Date();
-        this.status.lastUploadSuccess = true;
-        this.status.lastUploadError = undefined;
-        return;
-      }
-
-      console.log(`Uploading ${validReadings.length} valid readings in batches of ${this.uploadBatchSize}...`);
-
-      // Split readings into batches and upload each batch
       let totalUploaded = 0;
       let totalFailed = 0;
-      
-      for (let i = 0; i < validReadings.length; i += this.uploadBatchSize) {
-        const batch = validReadings.slice(i, i + this.uploadBatchSize);
-        console.log(`📦 [UploadManager] Processing batch ${Math.floor(i / this.uploadBatchSize) + 1} with ${batch.length} readings`);
-        
-        const result = await this.uploadBatchWithRetry(batch);
+      let batchNumber = 0;
+      let hasAnyReadings = false;
+
+      // Keep uploading until there are no more unsynchronized readings
+      while (true) {
+        const readings = await this.database.getUnsynchronizedReadings(this.uploadBatchSize);
+
+        if (readings.length === 0) {
+          if (!hasAnyReadings) {
+            console.log('No readings to upload');
+          }
+          break;
+        }
+
+        hasAnyReadings = true;
+        batchNumber++;
+        this.status.queueSize = readings.length;
+
+        console.log(`Validating batch ${batchNumber} (${readings.length} readings)...`);
+
+        const { validReadings, invalidReadings, report } =
+          await this.validationMiddleware.validateReadingsBeforeUpload(readings);
+
+        if (invalidReadings.length > 0) {
+          console.warn(`⚠️  [UploadManager] Skipping ${invalidReadings.length} invalid readings`);
+          console.warn(`   Valid: ${validReadings.length}, Invalid: ${invalidReadings.length}`);
+          console.warn(`   Real data: ${report.realDataReadings}, Mock data: ${report.mockDataDetected}`);
+        }
+
+        if (validReadings.length === 0) {
+          console.log('No valid readings in this batch after validation');
+          // Invalid readings won't be re-fetched (they still have is_synchronized=false)
+          // but if ALL readings are invalid we'd loop forever — break to avoid that
+          break;
+        }
+
+        console.log(`📦 [UploadManager] Uploading batch ${batchNumber} with ${validReadings.length} readings...`);
+
+        const result = await this.uploadBatchWithRetry(validReadings);
 
         if (result.success) {
-          const readingIds = batch.map((r: MeterReadingEntity) => r.meter_reading_id).filter((id): id is string => id !== undefined);
-          
-          // Mark readings as synchronized (successfully inserted into remote database)
-          await this.database.markReadingsAsSynchronized(readingIds, this.tenantId);
-          console.log(`✅ Marked ${readingIds.length} readings as synchronized`);
+          const readingIds = validReadings.map((r: MeterReadingEntity) => r.meter_reading_id).filter((id): id is string => id !== undefined);
 
-          totalUploaded += batch.length;
+          await this.database.markReadingsAsSynchronized(readingIds, this.tenantId);
+          console.log(`✅ Marked ${readingIds.length} reading(s) as synchronized`);
+
+          totalUploaded += validReadings.length;
         } else {
-          totalFailed += batch.length;
-          console.error(`❌ Batch upload failed: ${result.error}`);
+          totalFailed += validReadings.length;
+          console.error(`❌ Batch ${batchNumber} upload failed: ${result.error}`);
+          // Stop looping on failure to avoid hammering a broken endpoint
+          break;
         }
       }
 
       // Log overall operation result
       if (totalFailed === 0) {
-        await this.database.logSyncOperation(
-          'upload',
-          validReadings.length,
-          true
-        );
+        await this.database.logSyncOperation('upload', totalUploaded, true);
 
         this.status.lastUploadTime = new Date();
         this.status.lastUploadSuccess = true;
@@ -234,7 +226,7 @@ export class MeterReadingUploadManager {
       } else {
         await this.database.logSyncOperation(
           'upload',
-          validReadings.length,
+          totalUploaded + totalFailed,
           false,
           `${totalFailed} readings failed to upload`
         );
@@ -244,7 +236,7 @@ export class MeterReadingUploadManager {
         this.status.lastUploadError = `${totalFailed} readings failed to upload`;
         this.status.totalFailed += totalFailed;
 
-        console.error(`Upload partially failed: ${totalFailed}/${validReadings.length} readings failed`);
+        console.error(`Upload partially failed: ${totalFailed} readings failed`);
       }
 
     } catch (error) {
