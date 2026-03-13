@@ -23,6 +23,7 @@ import { authLogsSchema } from './authLogsSchema';
 import { emailTemplatesSchema } from './emailTemplatesSchema';
 import { notificationSchema } from './notificationSchema';
 import { notificationSettingsSchema } from './notificationSettingsSchema';
+import { notificationRuleSchema } from './notificationRuleSchema';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -59,6 +60,7 @@ const schemas: Record<string, any> = {
   emailTemplates: emailTemplatesSchema,
   notification: notificationSchema,
   notification_settings: notificationSettingsSchema,
+  notification_rule: notificationRuleSchema,
 };
 
 // ---------------------------------------------------------------------------

@@ -6,7 +6,6 @@
  */
 
 import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
 import { syncPool } from '../data-sync/data-sync.js';
 import { RemoteToLocalSyncAgent } from '../remote_to_local-sync/sync-agent.js';
 import { BACnetMeterReadingAgent } from '../bacnet-collection/bacnet-reading-agent.js';
@@ -56,10 +55,13 @@ export class LocalApiServer {
    */
   private setupMiddleware(): void {
     // Enable CORS for local network access
-    this.app.use(cors({
-      origin: '*', // Allow all origins on local network
-      methods: ['GET', 'POST'],
-    }));
+    this.app.use((_req, res, next) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      if (_req.method === 'OPTIONS') { res.sendStatus(200); return; }
+      next();
+    });
 
     // Parse JSON bodies
     this.app.use(express.json());

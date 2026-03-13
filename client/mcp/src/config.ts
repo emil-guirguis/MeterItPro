@@ -1,7 +1,3 @@
-import dotenv from 'dotenv';
-
-dotenv.config();
-
 export const config = {
   database: {
     host: process.env.POSTGRES_CLIENT_HOST || process.env.POSTGRES_HOST || 'localhost',

@@ -54,7 +54,13 @@ export const Permission = {
   REPORT_CREATE: 'report:create',
   REPORT_READ: 'report:read',
   REPORT_UPDATE: 'report:update',
-  REPORT_DELETE: 'report:delete'
+  REPORT_DELETE: 'report:delete',
+
+  // Notification Rule Management
+  NOTIFICATION_RULE_CREATE: 'notification_rule:create',
+  NOTIFICATION_RULE_READ: 'notification_rule:read',
+  NOTIFICATION_RULE_UPDATE: 'notification_rule:update',
+  NOTIFICATION_RULE_DELETE: 'notification_rule:delete'
 } as const;
 
 export type Permission = typeof Permission[keyof typeof Permission];
@@ -116,87 +122,99 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.MANAGER]: [
     // Dashboard access
     Permission.DASHBOARD_READ,
-    
+
     // User management (limited)
     Permission.USER_CREATE,
     Permission.USER_READ,
     Permission.USER_UPDATE,
-    
+
     // Full location management
     Permission.LOCATION_CREATE,
     Permission.LOCATION_READ,
     Permission.LOCATION_UPDATE,
     Permission.LOCATION_DELETE,
-    
+
     // Full contact management
     Permission.CONTACT_CREATE,
     Permission.CONTACT_READ,
     Permission.CONTACT_UPDATE,
     Permission.CONTACT_DELETE,
-    
+
     // Full meter management
     Permission.METER_CREATE,
     Permission.METER_READ,
     Permission.METER_UPDATE,
     Permission.METER_DELETE,
-    
+
     // Full device management
     Permission.DEVICE_READ,
-    
+
     // Settings read/update
     Permission.SETTINGS_READ,
     Permission.SETTINGS_UPDATE,
-    
+
     // Full template management
     Permission.TEMPLATE_CREATE,
     Permission.TEMPLATE_READ,
     Permission.TEMPLATE_UPDATE,
     Permission.TEMPLATE_DELETE,
-    
+
     // Full report management
     Permission.REPORT_CREATE,
     Permission.REPORT_READ,
     Permission.REPORT_UPDATE,
-    Permission.REPORT_DELETE
+    Permission.REPORT_DELETE,
+
+    // Full notification rule management
+    Permission.NOTIFICATION_RULE_CREATE,
+    Permission.NOTIFICATION_RULE_READ,
+    Permission.NOTIFICATION_RULE_UPDATE,
+    Permission.NOTIFICATION_RULE_DELETE
   ],
   [UserRole.TECHNICIAN]: [
     // Dashboard access
     Permission.DASHBOARD_READ,
-    
+
     // Read-only user access
     Permission.USER_READ,
-    
+
     // Read-only location access
     Permission.LOCATION_READ,
-    
+
     // Read-only contact access
     Permission.CONTACT_READ,
-    
+
     // Full meter management
     Permission.METER_CREATE,
     Permission.METER_READ,
     Permission.METER_UPDATE,
     Permission.METER_DELETE,
-    
+
     // Full device management
     Permission.DEVICE_READ,
-    
+
     // Read-only settings
     Permission.SETTINGS_READ,
-    
+
     // Read-only template access
     Permission.TEMPLATE_READ,
-    
+
     // Full report management
     Permission.REPORT_CREATE,
     Permission.REPORT_READ,
     Permission.REPORT_UPDATE,
-    Permission.REPORT_DELETE
+    Permission.REPORT_DELETE,
+
+    // Full notification rule management
+    Permission.NOTIFICATION_RULE_CREATE,
+    Permission.NOTIFICATION_RULE_READ,
+    Permission.NOTIFICATION_RULE_UPDATE,
+    Permission.NOTIFICATION_RULE_DELETE
   ],
   [UserRole.VIEWER]: [
     // Dashboard access
     Permission.DASHBOARD_READ,
-    
+
     // Read-only access to most entities
     Permission.USER_READ,
     Permission.LOCATION_READ,
@@ -205,11 +223,25 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.DEVICE_READ,
     Permission.SETTINGS_READ,
     Permission.TEMPLATE_READ,
-    
+
     // Read-only report access
-    Permission.REPORT_READ
+    Permission.REPORT_READ,
+
+    // Read-only notification rule access
+    Permission.NOTIFICATION_RULE_READ
   ]
 };
+
+// Export all available permissions for UI components
+export const AVAILABLE_PERMISSIONS = Object.entries(Permission).map(([key, value]) => ({
+  key,
+  value,
+  label: key
+    .replace(/_/g, ' ')
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, str => str.toUpperCase())
+    .trim()
+}));
 
 // Validation types
 export interface ValidationError {

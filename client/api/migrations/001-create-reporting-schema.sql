@@ -3,7 +3,7 @@
 -- Uses bigint IDENTITY for primary keys and follows naming convention: {tablename}_id
 
 -- Table: public.report
-DROP TABLE IF EXISTS public.report;
+DROP TABLE IF EXISTS public.report CASCADE;
 CREATE TABLE IF NOT EXISTS public.report (
   report_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
   name character varying(255) COLLATE pg_catalog."default" NOT NULL,
@@ -25,7 +25,7 @@ GRANT ALL ON TABLE public.report TO postgres;
 GRANT ALL ON TABLE public.report TO service_role;
 
 -- Table: public.report_history
-DROP TABLE IF EXISTS public.report_history;
+DROP TABLE IF EXISTS public.report_history CASCADE;
 CREATE TABLE IF NOT EXISTS public.report_history (
   report_history_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
   report_id bigint NOT NULL REFERENCES public.report(report_id) ON DELETE CASCADE,
@@ -43,7 +43,7 @@ GRANT ALL ON TABLE public.report_history TO postgres;
 GRANT ALL ON TABLE public.report_history TO service_role;
 
 -- Table: public.report_email_logs
-DROP TABLE IF EXISTS public.report_email_logs;
+DROP TABLE IF EXISTS public.report_email_logs CASCADE;
 CREATE TABLE IF NOT EXISTS public.report_email_logs (
   report_email_logs_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
   report_id bigint NOT NULL REFERENCES public.report(report_id) ON DELETE CASCADE,

@@ -14,7 +14,6 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import dotenv from 'dotenv';
 import winston from 'winston';
 import { Pool } from 'pg';
 import { initializePools, remotePool as globalRemotePool } from './data-sync/data-sync.js';
@@ -30,15 +29,7 @@ import {
   getBACnetUploadCronExpression,
 } from './config/scheduling-constants.js';
 
-// Load environment variables from root .env file first, then local .env
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import { cacheManager } from './cache/cache-manager.js';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-dotenv.config({ path: join(__dirname, '../../../.env') });                              // dev defaults
-dotenv.config({ path: join(__dirname, '../../../.env.production'), override: true }); // prod overrides
 
 // Configure logger
 const logger = winston.createLogger({

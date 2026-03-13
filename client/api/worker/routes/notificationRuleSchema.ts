@@ -1,0 +1,238 @@
+// ===== NOTIFICATION RULE =====
+import { defineSchema, field, tab, section, FieldTypes } from '../../../../framework/backend/api/base/SchemaDefinition';
+
+export const notificationRuleSchema = defineSchema({
+  entityName: 'NotificationRule',
+  tableName: 'notification_rule',
+  description: 'Custom notification rules for meter monitoring and alerting',
+  formMaxWidth: '700px',
+
+  formTabs: [
+    tab({
+      name: 'General',
+      order: 1,
+      sections: [
+        section({
+          name: 'Rule Details',
+          order: 1,
+          flex: 1,
+          fields: [
+            field({
+              name: 'name',
+              order: 1,
+              type: FieldTypes.STRING,
+              default: '',
+              required: true,
+              label: 'Rule Name',
+              dbField: 'name',
+              minLength: 1,
+              maxLength: 255,
+              placeholder: 'No readings for 24 hours',
+              filterable: ['main'],
+              showOn: ['list', 'form'],
+            }),
+            field({
+              name: 'description',
+              order: 2,
+              type: FieldTypes.STRING,
+              default: '',
+              required: false,
+              label: 'Description',
+              dbField: 'description',
+              maxLength: 500,
+              placeholder: 'Alert when meter has no readings in the specified period',
+              showOn: ['form'],
+            }),
+            field({
+              name: 'rule_type',
+              order: 3,
+              type: FieldTypes.SELECT,
+              default: 'custom',
+              required: true,
+              label: 'Rule Type',
+              dbField: 'rule_type',
+              enumValues: ['custom', 'meter_no_reading', 'meter_zero_reading'],
+              enumLabels: {
+                'custom': 'Custom',
+                'meter_no_reading': 'No Reading in Period',
+                'meter_zero_reading': 'Zero Readings',
+              },
+              filterable: ['true'],
+              showOn: ['list', 'form'],
+            }),
+          ],
+        }),
+        section({
+          name: 'Status',
+          order: 2,
+          maxWidth: '150px',
+          fields: [
+            field({
+              name: 'active',
+              order: 1,
+              type: FieldTypes.BOOLEAN,
+              default: true,
+              required: false,
+              label: 'Active',
+              dbField: 'active',
+              filterable: ['true'],
+              showOn: ['list', 'form'],
+            }),
+          ],
+        }),
+      ],
+    }),
+    tab({
+      name: 'Schedule',
+      order: 2,
+      sections: [
+        section({
+          name: 'Execution Schedule',
+          order: 1,
+          flex: 1,
+          fields: [
+            field({
+              name: 'schedule_cron',
+              order: 1,
+              type: 'custom',
+              default: '0 8 * * *',
+              required: true,
+              label: 'Schedule',
+              dbField: 'schedule_cron',
+              helpText: 'When this rule should run',
+              showOn: ['form'],
+              customField: true,
+            }),
+            field({
+              name: 'threshold_hours',
+              order: 2,
+              type: FieldTypes.NUMBER,
+              default: 24,
+              required: false,
+              label: 'Threshold Hours',
+              dbField: 'threshold_hours',
+              helpText: 'For "no reading" rules: hours without readings before alert',
+              showOn: ['form'],
+            }),
+          ],
+        }),
+      ],
+    }),
+    tab({
+      name: 'Recipients',
+      order: 3,
+      sections: [
+        section({
+          name: 'Email Recipients',
+          order: 1,
+          flex: 1,
+          fields: [
+            field({
+              name: 'recipients',
+              order: 1,
+              type: 'custom',
+              default: [],
+              required: false,
+              label: 'Notification Recipients',
+              dbField: 'recipients',
+              helpText: 'Select users and their email preferences',
+              showOn: ['form'],
+              customField: true,
+            }),
+          ],
+        }),
+      ],
+    }),
+    tab({
+      name: 'Meters',
+      order: 4,
+      sections: [
+        section({
+          name: 'Monitored Meters',
+          order: 1,
+          flex: 1,
+          fields: [
+            field({
+              name: 'meter_ids',
+              order: 1,
+              type: 'custom',
+              default: [],
+              required: false,
+              label: 'Select Meters to Monitor',
+              dbField: 'meter_ids',
+              helpText: 'Choose which meters this rule applies to',
+              showOn: ['form'],
+              customField: true,
+            }),
+          ],
+        }),
+      ],
+    }),
+  ],
+
+  listColumns: [
+    field({
+      name: 'name',
+      order: 1,
+      type: FieldTypes.STRING,
+      label: 'Rule Name',
+      dbField: 'name',
+      showOn: ['list'],
+      width: '25%',
+    }),
+    field({
+      name: 'rule_type',
+      order: 2,
+      type: FieldTypes.SELECT,
+      label: 'Type',
+      dbField: 'rule_type',
+      enumValues: ['custom', 'meter_no_reading', 'meter_zero_reading'],
+      enumLabels: {
+        'custom': 'Custom',
+        'meter_no_reading': 'No Reading',
+        'meter_zero_reading': 'Zero Reading',
+      },
+      showOn: ['list'],
+      width: '15%',
+    }),
+    field({
+      name: 'schedule_cron',
+      order: 3,
+      type: FieldTypes.STRING,
+      label: 'Schedule',
+      dbField: 'schedule_cron',
+      showOn: ['list'],
+      width: '20%',
+    }),
+    field({
+      name: 'active',
+      order: 4,
+      type: FieldTypes.BOOLEAN,
+      label: 'Active',
+      dbField: 'active',
+      showOn: ['list'],
+      width: '10%',
+    }),
+  ],
+
+  filters: [
+    field({
+      name: 'rule_type',
+      type: FieldTypes.SELECT,
+      label: 'Type',
+      dbField: 'rule_type',
+      enumValues: ['custom', 'meter_no_reading', 'meter_zero_reading'],
+      enumLabels: {
+        'custom': 'Custom',
+        'meter_no_reading': 'No Reading Alert',
+        'meter_zero_reading': 'Zero Reading Alert',
+      },
+    }),
+    field({
+      name: 'active',
+      type: FieldTypes.BOOLEAN,
+      label: 'Status',
+      dbField: 'active',
+    }),
+  ],
+});

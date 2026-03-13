@@ -2,7 +2,6 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
 import type { UIStoreSlice, Notification, HeaderLayout, SidebarHeaderConfig } from '../types';
 import { generateId } from '../utils';
 
@@ -56,43 +55,26 @@ const initialState = {
 
 export const useUIStore = create<UIStoreSlice>()(
   persist(
-    immer((set, get) => ({
+    (set, get) => ({
       ...initialState,
-
-
 
       // Sidebar actions
       toggleSidebar: () => {
         set((state) => {
-          state.sidebarCollapsed = !state.sidebarCollapsed;
-          try {
-            // Use error-level logging to bypass common console filtering
-            console.error('[uiSlice] toggleSidebar ->', state.sidebarCollapsed);
-            console.trace();
-          } catch (e) {
-            // ignore in non-browser envs
-          }
+          console.error('[uiSlice] toggleSidebar ->', !state.sidebarCollapsed);
+          console.trace();
+          return { sidebarCollapsed: !state.sidebarCollapsed };
         });
       },
 
       setSidebarCollapsed: (collapsed) => {
-        set((state) => {
-          state.sidebarCollapsed = collapsed;
-          try {
-            console.error('[uiSlice] setSidebarCollapsed ->', collapsed);
-            console.trace();
-          } catch (e) {
-            // ignore
-          }
-        });
+        console.error('[uiSlice] setSidebarCollapsed ->', collapsed);
+        console.trace();
+        set({ sidebarCollapsed: collapsed });
       },
 
       // Mobile navigation actions
-      setMobileNavOpen: (open) => {
-        set((state) => {
-          state.mobileNavOpen = open;
-        });
-      },
+      setMobileNavOpen: (open) => set({ mobileNavOpen: open }),
 
       // Notification actions
       addNotification: (notification) => {
@@ -104,174 +86,131 @@ export const useUIStore = create<UIStoreSlice>()(
           read: false,
         };
 
-        set((state) => {
-          state.notifications.unshift(newNotification);
-          
-          // Limit to 50 notifications
-          if (state.notifications.length > 50) {
-            state.notifications = state.notifications.slice(0, 50);
-          }
-        });
+        set((state) => ({
+          notifications: [newNotification, ...state.notifications].slice(0, 50),
+        }));
 
-        // Auto-remove notification after duration
         if (notification.duration && notification.duration > 0) {
-          setTimeout(() => {
-            get().removeNotification(id);
-          }, notification.duration);
+          setTimeout(() => { get().removeNotification(id); }, notification.duration);
         }
 
         return id;
       },
 
       removeNotification: (id) => {
-        set((state) => {
-          state.notifications = state.notifications.filter(n => n.id !== id);
-        });
+        set((state) => ({ notifications: state.notifications.filter(n => n.id !== id) }));
       },
 
       markNotificationRead: (id) => {
-        set((state) => {
-          const notification = state.notifications.find(n => n.id === id);
-          if (notification) {
-            notification.read = true;
-          }
-        });
+        set((state) => ({
+          notifications: state.notifications.map(n => n.id === id ? { ...n, read: true } : n),
+        }));
       },
 
-      clearNotifications: () => {
-        set((state) => {
-          state.notifications = [];
-        });
-      },
+      clearNotifications: () => set({ notifications: [] }),
 
       // Modal actions
       openModal: (modalId, data) => {
-        set((state) => {
-          state.modals[modalId] = {
-            isOpen: true,
-            data,
-            loading: false,
-            error: null,
-          };
-        });
+        set((state) => ({
+          modals: { ...state.modals, [modalId]: { isOpen: true, data, loading: false, error: null } },
+        }));
       },
 
       closeModal: (modalId) => {
         set((state) => {
-          if (state.modals[modalId]) {
-            state.modals[modalId].isOpen = false;
-            state.modals[modalId].data = undefined;
-            state.modals[modalId].error = null;
-          }
+          if (!state.modals[modalId]) return {};
+          return {
+            modals: { ...state.modals, [modalId]: { ...state.modals[modalId], isOpen: false, data: undefined, error: null } },
+          };
         });
       },
 
       setModalLoading: (modalId, loading) => {
         set((state) => {
-          if (state.modals[modalId]) {
-            state.modals[modalId].loading = loading;
-          }
+          if (!state.modals[modalId]) return {};
+          return { modals: { ...state.modals, [modalId]: { ...state.modals[modalId], loading } } };
         });
       },
 
       setModalError: (modalId, error) => {
         set((state) => {
-          if (state.modals[modalId]) {
-            state.modals[modalId].error = error;
-            state.modals[modalId].loading = false;
-          }
+          if (!state.modals[modalId]) return {};
+          return { modals: { ...state.modals, [modalId]: { ...state.modals[modalId], error, loading: false } } };
         });
       },
 
       // Global loading actions
       setGlobalLoading: (key, loading) => {
         set((state) => {
-          if (loading) {
-            state.loading[key] = true;
-          } else {
-            delete state.loading[key];
-          }
+          const next = { ...state.loading };
+          if (loading) { next[key] = true; } else { delete next[key]; }
+          return { loading: next };
         });
       },
 
       // Screen size actions
       setScreenSize: (isMobile, isTablet, isDesktop) => {
-        set((state) => {
-          state.isMobile = isMobile;
-          state.isTablet = isTablet;
-          state.isDesktop = isDesktop;
-          
-          // Auto-collapse sidebar on mobile
-          if (isMobile && !state.sidebarCollapsed) {
-            state.sidebarCollapsed = true;
-          }
-        });
+        set((state) => ({
+          isMobile,
+          isTablet,
+          isDesktop,
+          sidebarCollapsed: isMobile && !state.sidebarCollapsed ? true : state.sidebarCollapsed,
+        }));
       },
 
       // Responsive header actions
-      setHeaderLayout: (layout) => {
-        set((state) => {
-          state.headerLayout = layout;
-        });
-      },
+      setHeaderLayout: (layout) => set({ headerLayout: layout }),
 
       setShowSidebarInHeader: (show) => {
-        set((state) => {
-          state.showSidebarInHeader = show;
-          
-          // Update header layout based on sidebar visibility
-          if (show) {
-            state.headerLayout.left.visible = true;
-            state.headerLayout.left.elements = ['menu-toggle', 'brand'];
-          } else {
-            state.headerLayout.left.visible = false;
-            state.headerLayout.left.elements = [];
-          }
-        });
+        set((state) => ({
+          showSidebarInHeader: show,
+          headerLayout: {
+            ...state.headerLayout,
+            left: { ...state.headerLayout.left, visible: show, elements: show ? ['menu-toggle', 'brand'] : [] },
+          },
+        }));
       },
 
-      setTransitioning: (transitioning) => {
-        set((state) => {
-          state.isTransitioning = transitioning;
-        });
-      },
+      setTransitioning: (transitioning) => set({ isTransitioning: transitioning }),
 
       updateBreakpoint: (breakpoint) => {
         set((state) => {
-          state.lastBreakpoint = breakpoint;
-          
-          // Update header layout based on breakpoint
           const shouldShowInHeader = breakpoint !== 'desktop';
-          if (shouldShowInHeader !== state.showSidebarInHeader) {
-            state.showSidebarInHeader = shouldShowInHeader;
-            
-            if (shouldShowInHeader) {
-              state.headerLayout.left.visible = true;
-              state.headerLayout.left.elements = ['menu-toggle', 'brand'];
-              state.headerLayout.center.visible = true;
-              state.headerLayout.center.content = 'title';
-            } else {
-              state.headerLayout.left.visible = false;
-              state.headerLayout.left.elements = [];
-              state.headerLayout.center.visible = true;
-              state.headerLayout.center.content = null;
-            }
+          if (shouldShowInHeader === state.showSidebarInHeader) {
+            return { lastBreakpoint: breakpoint };
           }
+          return {
+            lastBreakpoint: breakpoint,
+            showSidebarInHeader: shouldShowInHeader,
+            headerLayout: {
+              ...state.headerLayout,
+              left: {
+                ...state.headerLayout.left,
+                visible: shouldShowInHeader,
+                elements: shouldShowInHeader ? ['menu-toggle', 'brand'] : [],
+              },
+              center: {
+                ...state.headerLayout.center,
+                visible: true,
+                content: shouldShowInHeader ? 'title' : null,
+              },
+            },
+          };
         });
       },
 
       setSidebarHeaderConfig: (config) => {
-        set((state) => {
-          state.sidebarHeaderConfig = {
+        set((state) => ({
+          sidebarHeaderConfig: {
             ...state.sidebarHeaderConfig,
             ...config,
             brand: config.brand ? { ...state.sidebarHeaderConfig.brand, ...config.brand } : state.sidebarHeaderConfig.brand,
             toggle: config.toggle ? { ...state.sidebarHeaderConfig.toggle, ...config.toggle } : state.sidebarHeaderConfig.toggle,
             responsive: config.responsive ? { ...state.sidebarHeaderConfig.responsive, ...config.responsive } : state.sidebarHeaderConfig.responsive,
-          };
-        });
+          },
+        }));
       },
-    })),
+    }),
     {
       name: 'ui-store',
       storage: createJSONStorage(() => localStorage),

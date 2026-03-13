@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { NumberSpinner } from './NumberSpinner';
 import { URLLink } from './URLLink';
+import { CronField } from './CronField';
 
 export interface FormFieldOption {
   value: string | number;
@@ -24,7 +25,7 @@ export interface FormFieldOption {
 export interface FormFieldProps {
   name: string;
   label?: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'textarea' | 'select' | 'checkbox' | 'radio' | 'date' | 'time' | 'datetime' | 'url' | 'tel' | 'search' | 'file' | 'country';
+  type?: 'text' | 'email' | 'password' | 'number' | 'textarea' | 'select' | 'checkbox' | 'radio' | 'date' | 'time' | 'datetime' | 'url' | 'tel' | 'search' | 'file' | 'country' | 'cron';
   value?: any;
   error?: string;
   touched?: boolean;
@@ -415,6 +416,22 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
             />
           );
         }
+
+        case 'cron':
+          return (
+            <CronField
+              name={name}
+              label={label}
+              value={value ?? ''}
+              onChange={onChange}
+              onBlur={onBlur}
+              disabled={disabled}
+              error={error}
+              touched={touched}
+              help={help}
+              required={required}
+            />
+          );
 
         default: {
           const isNumberField = type === 'number';

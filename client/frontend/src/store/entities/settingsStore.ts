@@ -3,7 +3,6 @@
 import type { CompanySettings } from '../../types/entities';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
 import { withApiCall, withTokenRefresh } from '../middleware/apiMiddleware';
 
 // Settings store state interface
@@ -114,41 +113,27 @@ const initialState: SettingsStoreState = {
 // Create settings store
 export const useSettingsStore = create<SettingsStore>()(
   persist(
-    immer((set, get) => ({
+    (set, get) => ({
       ...initialState,
 
       // Actions
       fetchSettings: async () => {
         const state = get();
-        
+
         // Check cache freshness (5 minutes)
         const cacheAge = state.lastFetch ? Date.now() - state.lastFetch : Infinity;
         if (cacheAge < 5 * 60 * 1000 && state.settings) {
           return; // Use cached data
         }
 
-        set((state) => {
-          state.loading = true;
-          state.error = null;
-        });
+        set({ loading: true, error: null });
 
         try {
           const settings = await settingsService.getSettings();
-
-          set((state) => {
-            state.settings = settings as any;
-            state.loading = false;
-            state.error = null;
-            state.lastFetch = Date.now();
-          });
+          set({ settings: settings as any, loading: false, error: null, lastFetch: Date.now() });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Failed to fetch settings';
-          
-          set((state) => {
-            state.loading = false;
-            state.error = errorMessage;
-          });
-
+          set({ loading: false, error: errorMessage });
           throw error;
         }
       },
@@ -159,40 +144,21 @@ export const useSettingsStore = create<SettingsStore>()(
 
         // Optimistic update
         if (originalSettings) {
-          set((state) => {
-            state.settings = { ...originalSettings, ...updates } as any;
-          });
+          set({ settings: { ...originalSettings, ...updates } as any });
         }
 
-        set((state) => {
-          state.loading = true;
-          state.error = null;
-        });
+        set({ loading: true, error: null });
 
         try {
           const updatedSettings = await settingsService.updateSettings(updates);
-
-          set((state) => {
-            state.settings = updatedSettings as any;
-            state.loading = false;
-            state.error = null;
-            state.lastFetch = Date.now();
-          });
+          set({ settings: updatedSettings as any, loading: false, error: null, lastFetch: Date.now() });
         } catch (error) {
           // Rollback optimistic update
           if (originalSettings) {
-            set((state) => {
-              state.settings = originalSettings as any;
-            });
+            set({ settings: originalSettings as any });
           }
-
           const errorMessage = error instanceof Error ? error.message : 'Failed to update settings';
-          
-          set((state) => {
-            state.loading = false;
-            state.error = errorMessage;
-          });
-
+          set({ loading: false, error: errorMessage });
           throw error;
         }
       },
@@ -202,32 +168,16 @@ export const useSettingsStore = create<SettingsStore>()(
         if (!state.settings) {
           throw new Error('Settings not loaded');
         }
-
         const updates = {
           systemConfig: { ...state.settings.systemConfig, ...config },
         };
-
         return get().updateSettings(updates);
       },
 
-      setLoading: (loading) => {
-        set((state) => {
-          state.loading = loading;
-        });
-      },
-
-      setError: (error) => {
-        set((state) => {
-          state.error = error;
-        });
-      },
-
-      reset: () => {
-        set((state) => {
-          Object.assign(state, initialState);
-        });
-      },
-    })),
+      setLoading: (loading) => set({ loading }),
+      setError: (error) => set({ error }),
+      reset: () => set({ ...initialState }),
+    }),
     {
       name: 'settings-store',
       storage: createJSONStorage(() => localStorage),

@@ -3,34 +3,45 @@ import {
   Box,
   Button,
   CircularProgress,
-  Tab,
-  Tabs,
-  Typography,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import { FormModal } from '@framework/components/modal';
 import NotificationListPanel from './NotificationListPanel';
-import NotificationSettingsForm from './NotificationSettingsForm';
+import NotificationForm from './NotificationForm';
 import { useNotificationsEnhanced } from './notificationsStore';
 
-interface TabPanelProps {
-  children: React.ReactNode;
-  value: number;
-  index: number;
-}
-
-function TabPanel({ children, value, index }: TabPanelProps) {
-  return value === index ? <Box sx={{ pt: 3 }}>{children}</Box> : null;
-}
-
 export const NotificationManagementPage: React.FC = () => {
-  const [tab, setTab] = useState(0);
-  const { clearAll, list } = useNotificationsEnhanced();
+  const notifications = useNotificationsEnhanced();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [clearing, setClearing] = useState(false);
+
+  const handleCreateNotification = () => {
+    setShowCreateForm(true);
+  };
+
+  const handleFormSubmit = async (data: any) => {
+    setIsSubmitting(true);
+    try {
+      await notifications.createItem(data);
+      setShowCreateForm(false);
+      await notifications.fetchItems();
+    } catch (error) {
+      console.error('Notification form submission error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFormCancel = () => {
+    setShowCreateForm(false);
+  };
 
   const handleClearAll = async () => {
     setClearing(true);
     try {
-      await clearAll();
+      await notifications.clearAll();
     } finally {
       setClearing(false);
     }
@@ -38,17 +49,15 @@ export const NotificationManagementPage: React.FC = () => {
 
   return (
     <div className="page-content">
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          mb: 1,
-        }}
-      >
-        <Typography variant="h5">Notifications</Typography>
-
-        {tab === 0 && list.total > 0 && (
+      <Box sx={{ mb: 2, display: 'flex', gap: 1 }}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleCreateNotification}
+        >
+          Create Notification
+        </Button>
+        {notifications.list.total > 0 && (
           <Button
             variant="outlined"
             color="error"
@@ -62,24 +71,25 @@ export const NotificationManagementPage: React.FC = () => {
         )}
       </Box>
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs
-          value={tab}
-          onChange={(_, newValue) => setTab(newValue)}
-          aria-label="notification management tabs"
+      <NotificationListPanel />
+
+      {/* Create Modal */}
+      {showCreateForm && (
+        <FormModal
+          isOpen={true}
+          title="Create Notification"
+          onClose={handleFormCancel}
+          onSubmit={() => {}}
+          size="md"
+          showSaveButton={false}
         >
-          <Tab label={list.total > 0 ? `Active (${list.total})` : 'Active'} />
-          <Tab label="Settings" />
-        </Tabs>
-      </Box>
-
-      <TabPanel value={tab} index={0}>
-        <NotificationListPanel />
-      </TabPanel>
-
-      <TabPanel value={tab} index={1}>
-        <NotificationSettingsForm />
-      </TabPanel>
+          <NotificationForm
+            onSubmit={handleFormSubmit}
+            onCancel={handleFormCancel}
+            loading={isSubmitting}
+          />
+        </FormModal>
+      )}
     </div>
   );
 };

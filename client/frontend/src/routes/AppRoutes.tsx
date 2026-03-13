@@ -10,9 +10,9 @@ const MeterReadingsPage = lazy(() => import('../pages/MeterReadingsPage').then(m
 const UserManagementPage = lazy(() => import('../features/users').then(m => ({ default: m.UserManagementPage })));
 const LocationManagementPage = lazy(() => import('../features/locations').then(m => ({ default: m.LocationManagementPage })));
 const ContactManagementPage = lazy(() => import('../features/contacts').then(m => ({ default: m.ContactManagementPage })));
-const ContactManagementPage2 = lazy(() => import('../features/contacts2').then(m => ({ default: m.ContactManagementPage })));
 const DeviceManagementPage = lazy(() => import('../features/devices').then(m => ({ default: m.DeviceManagementPage })));
 const NotificationManagementPage = lazy(() => import('../features/notifications').then(m => ({ default: m.NotificationManagementPage })));
+const NotificationRulesPage = lazy(() => import('../features/notifications').then(m => ({ default: m.NotificationRulesPage })));
 import { Permission } from '../types/auth';
 const SettingsPage = lazy(() => import('../pages').then(m => ({ default: m.SettingsPage })));
 const MetersPage = lazy(() => import('../pages').then(m => ({ default: m.MetersPage })));
@@ -124,17 +124,7 @@ const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Contact Management Route - Redesigned */}
-        <Route
-          path="/contacts2"
-          element={
-            <AuthGuard requiredPermissions={[Permission.CONTACT_READ]}>
-              <ContactManagementPage2 />
-            </AuthGuard>
-          }
-        />
-
-        {/* Meters Module Placeholder */}
+       {/* Meters Module Placeholder */}
         <Route
           path="/meters"
           element={
@@ -161,6 +151,16 @@ const AppRoutes: React.FC = () => {
             <ProtectedRoute>
               <NotificationManagementPage />
             </ProtectedRoute>
+          }
+        />
+
+        {/* Notification Rules Route */}
+        <Route
+          path="/notification-rules"
+          element={
+            <AuthGuard requiredPermissions={[Permission.NOTIFICATION_RULE_READ]}>
+              <NotificationRulesPage />
+            </AuthGuard>
           }
         />
 

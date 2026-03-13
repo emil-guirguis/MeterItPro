@@ -107,8 +107,8 @@ export const ContactList: React.FC<ContactListProps> = ({
       <BaseList
         title="Contacts"
         filters={baseList.renderFilters()}
-        headerActions={baseList.renderHeaderActions()}
-        stats={baseList.renderStats()}
+        onCreateClick={baseList.canCreate ? baseList.handleCreate : undefined}
+        onExportClick={baseList.canExport ? () => baseList.handleExport(safeData) : undefined}
         data={safeData}
         columns={baseList.columns}
         loading={baseList.loading}

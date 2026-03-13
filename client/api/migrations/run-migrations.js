@@ -1,52 +1,46 @@
 /**
- * Database Migration Runner
- * Executes SQL migration files in order
+ * Database Migration Runner for Cloudflare Worker
+ * Executes SQL migration files in order against Supabase
  */
 
 const fs = require('fs');
 const path = require('path');
+const { Client } = require('pg');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
-const db = require('../src/config/database');
 
 async function runMigrations() {
-  let wasAlreadyConnected = false;
-  
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres.uueumbslimaecposqsdf:ZfyUDh!_x4bSYXm@aws-1-us-west-1.pooler.supabase.com:6543/postgres'
+  });
+
   try {
     console.log('🔄 Starting database migrations...');
-    
-    // Check if database is already connected (called from server.js)
-    wasAlreadyConnected = db.isConnected;
-    
-    // Only connect if not already connected
-    if (!wasAlreadyConnected) {
-      console.log('🔄 Connecting to database...');
-      await db.connect();
-    } else {
-      console.log('✅ Using existing database connection');
-    }
-    
+    console.log('🔄 Connecting to database...');
+    await client.connect();
+    console.log('✅ Connected to database');
+
     // Get all migration files
     const migrationsDir = __dirname;
     const files = fs.readdirSync(migrationsDir)
       .filter(file => file.endsWith('.sql'))
       .sort();
-    
+
     if (files.length === 0) {
       console.log('⚠️  No migration files found');
       return;
     }
-    
+
     console.log(`📁 Found ${files.length} migration file(s)`);
-    
+
     // Execute each migration
     for (const file of files) {
       console.log(`\n📄 Running migration: ${file}`);
-      
+
       const filePath = path.join(migrationsDir, file);
       const sql = fs.readFileSync(filePath, 'utf8');
-      
+
       try {
-        await db.query(sql);
+        await client.query(sql);
         console.log(`✅ Migration completed: ${file}`);
       } catch (error) {
         console.error(`❌ Migration failed: ${file}`);
@@ -54,19 +48,14 @@ async function runMigrations() {
         throw error;
       }
     }
-    
+
     console.log('\n✅ All migrations completed successfully');
   } catch (error) {
     console.error('\n❌ Migration process failed:', error.message);
     process.exit(1);
   } finally {
-    // Only disconnect if we connected in this function
-    if (!wasAlreadyConnected && db.isConnected) {
-      console.log('🔄 Disconnecting from database...');
-      await db.disconnect();
-    } else if (wasAlreadyConnected) {
-      console.log('✅ Keeping database connection open (called from server.js)');
-    }
+    console.log('🔄 Disconnecting from database...');
+    await client.end();
   }
 }
 

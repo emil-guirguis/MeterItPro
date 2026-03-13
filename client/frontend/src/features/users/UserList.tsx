@@ -95,8 +95,8 @@ export const UserList: React.FC<UserListProps> = ({
       <BaseList
         title="Users"
         filters={baseList.renderFilters()}
-        headerActions={baseList.renderHeaderActions()}
-        stats={baseList.renderStats()}
+        onCreateClick={baseList.canCreate ? baseList.handleCreate : undefined}
+        onExportClick={baseList.canExport ? () => baseList.handleExport(baseList.data) : undefined}
         data={baseList.data}
         columns={baseList.columns}
         loading={baseList.loading}

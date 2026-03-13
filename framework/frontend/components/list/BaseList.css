@@ -1,4 +1,192 @@
-/* Base List Filters Component Styles */
+/* ── Toolbar ─────────────────────────────────────────── */
+.base-list {
+  background: var(--color-surface, #ffffff);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.base-list__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  background: var(--color-surface, #ffffff);
+}
+
+.base-list__toolbar-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #111827);
+  margin-right: auto;
+}
+
+.base-list__toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.875rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-primary, #111827);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.base-list__toolbar-btn .material-symbols-outlined {
+  font-size: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.base-list__toolbar-btn:hover {
+  background: var(--color-background-hover, #e5e7eb);
+}
+
+.base-list__toolbar-btn--filter.base-list__toolbar-btn--active {
+  background: var(--color-background-hover, #e5e7eb);
+}
+
+/* Export: icon-only, slightly narrower */
+.base-list__toolbar-btn--export {
+  padding: 0.5rem 0.65rem;
+}
+
+/* New: blue filled */
+.base-list__toolbar-btn--new {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+}
+
+.base-list__toolbar-btn--new:hover {
+  background: #1d4ed8;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.base-list__toolbar-btn--new:active {
+  transform: translateY(1px);
+}
+
+/* ── Collapsible filter panel ────────────────────────── */
+.base-list__filters-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: var(--color-surface, #ffffff);
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  animation: base-list-fadein 0.15s ease;
+}
+
+@keyframes base-list-fadein {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.base-list__filters-panel .list__filter-item {
+  flex: 0 0 auto;
+  min-width: 200px;
+  position: relative;
+}
+
+.base-list__filters-panel .list__filter-item--search {
+  flex: 0 0 200px;
+  order: -1;
+}
+
+.base-list__filters-panel .list__filter-item .form-control {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  background-color: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #333333);
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.base-list__filters-panel .list__filter-item .form-control:focus {
+  outline: none;
+  border-color: var(--color-primary, #007bff);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.base-list__filters-panel .list__filter-item .form-control::placeholder {
+  color: var(--color-text-disabled, #999999);
+}
+
+.base-list__filters-panel .list__filter-item select.form-control {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 12px;
+  padding-right: 2.5rem;
+}
+
+.base-list__filters-panel .btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  background-color: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #333333);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.base-list__filters-panel .btn:hover {
+  background-color: var(--color-hover, rgba(0, 0, 0, 0.05));
+  border-color: var(--color-primary, #007bff);
+}
+
+.base-list__filters-panel .btn-secondary {
+  background-color: var(--color-background, #f5f5f5);
+  color: var(--color-text-secondary, #666666);
+}
+
+.base-list__filters-panel .btn-secondary:hover {
+  background-color: var(--color-border, #e0e0e0);
+  color: var(--color-text-primary, #333333);
+}
+
+@media (max-width: 768px) {
+  .base-list__toolbar {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .base-list__filters-panel {
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .base-list__filters-panel .list__filter-item {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .base-list__filters-panel .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ── Legacy filter styles (kept for backward compat) ─── */
 .base-list__filters {
   display: flex;
   flex-wrap: wrap;

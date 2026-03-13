@@ -38,20 +38,8 @@ export const reportSchema = defineSchema({
       sections: [
         section({ name: 'Execution Schedule', order: 1, flex: 1, fields: [
           field({
-            name: 'schedule', order: 1, type: FieldTypes.SELECT, default: '0 9 * * *', required: true, label: 'Schedule', dbField: 'schedule', showOn: ['form'],
-            enumValues: ['0 9 * * *', '0 6 * * *', '0 12 * * *', '0 17 * * *', '0 0 * * *', '0 9 * * 1', '0 9 * * 3', '0 9 * * 5', '0 9 1 * *', '0 9 15 * *'],
-            enumLabels: {
-              '0 9 * * *':  'Daily at 9 AM',
-              '0 6 * * *':  'Daily at 6 AM',
-              '0 12 * * *': 'Daily at Noon',
-              '0 17 * * *': 'Daily at 5 PM',
-              '0 0 * * *':  'Daily at Midnight',
-            '0 9 * * 1':  'Weekly — Monday at 9 AM',
-              '0 9 * * 3':  'Weekly — Wednesday at 9 AM',
-              '0 9 * * 5':  'Weekly — Friday at 9 AM',
-              '0 9 1 * *':  'Monthly — 1st at 9 AM',
-              '0 9 15 * *': 'Monthly — 15th at 9 AM',
-            },
+            name: 'schedule', order: 1, type: 'custom', default: '0 9 * * *', required: true, label: 'Schedule', dbField: 'schedule', showOn: ['form'], customField: true,
+            helpText: 'When this report should be sent',
           }),
         ] }),
       ],

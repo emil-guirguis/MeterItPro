@@ -74,13 +74,6 @@ const menuItems: MenuItem[] = [
     requiredPermission: Permission.CONTACT_READ
   },
   {
-    id: 'contacts2',
-    label: 'Contacts2',
-    icon: 'contacts',
-    path: '/contacts2',
-    requiredPermission: Permission.CONTACT_READ
-  },
-  {
     id: 'meters',
     label: 'Meters',
     icon: 'meter',
@@ -122,6 +115,14 @@ const menuItems: MenuItem[] = [
         label: 'Notifications',
         icon: 'notifications',
         path: '/notifications',
+        requiredPermission: Permission.NOTIFICATION_RULE_READ
+      },
+      {
+        id: 'notification-rules',
+        label: 'Notification Rules',
+        icon: 'notifications',
+        path: '/notification-rules',
+        requiredPermission: Permission.NOTIFICATION_RULE_READ
       },
       {
         id: 'reports',

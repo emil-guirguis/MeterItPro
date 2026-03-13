@@ -1,0 +1,53 @@
+.cron-field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cron-field__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: -4px;
+}
+
+.cron-field__time-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.cron-field__time-hour {
+  flex: 3;
+}
+
+.cron-field__time-minute {
+  flex: 1;
+}
+
+.cron-field__summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 6px;
+  border-left: 3px solid var(--md-sys-color-primary, #1976d2);
+}
+
+.cron-field__summary-text {
+  flex: 1;
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.cron-field__preview {
+  color: rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+
+.cron-field__preview code {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+}

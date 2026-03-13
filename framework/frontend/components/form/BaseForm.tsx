@@ -129,6 +129,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   const formClassName = className ? `base-form ${className}` : 'base-form';
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<string>('');
+  const prevSchemaRef = React.useRef<any>(null);
 
   // Clear schema cache when form mounts to ensure fresh schema
   React.useEffect(() => {
@@ -498,6 +499,17 @@ export const BaseForm: React.FC<BaseFormProps> = ({
         },
       })
     : null;
+
+  // Re-initialize form defaults when schema loads in create mode.
+  // getDefaultFormData closes over `schema`, but useEntityForm's useEffect only
+  // watches `entity` — so when schema loads while entity stays undefined, defaults
+  // are never applied. This effect detects the first schema load and resets.
+  React.useEffect(() => {
+    if (schema && !prevSchemaRef.current && !entity && isDynamicForm && form) {
+      form.resetForm();
+    }
+    prevSchemaRef.current = schema;
+  }, [schema]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validateForm = (): { isValid: boolean; newErrors: Record<string, string> } => {
     if (!isDynamicForm || !schema) return { isValid: true, newErrors: {} };

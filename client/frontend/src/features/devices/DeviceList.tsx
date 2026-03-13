@@ -75,8 +75,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({
       <BaseList
         title="Devices (Read-Only)"
         filters={baseList.renderFilters()}
-        headerActions={baseList.renderHeaderActions()}
-        stats={baseList.renderStats()}
+        onExportClick={baseList.canExport ? () => baseList.handleExport(safeData) : undefined}
         data={safeData}
         columns={baseList.columns}
         loading={baseList.loading}

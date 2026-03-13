@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, Tab, Alert, Button, Box, CircularProgress } from '@mui/material';
 import CompanyInfoForm from '../components/settings/CompanyInfoForm';
 import SystemConfigForm from '../components/settings/SystemConfigForm';
+import NotificationSettingsTab from '../components/settings/NotificationSettingsTab';
 import './SettingsPage.css';
 import { useSettings } from '../store/entities/settingsStore';
 import apiClient from '../services/apiClient';
@@ -151,6 +152,7 @@ const SettingsPage: React.FC = () => {
       <Tabs value={tab} onChange={(_event, newValue) => setTab(newValue)} aria-label="Settings Tabs" className="settings-tabs">
         <Tab label="Company Info" />
         <Tab label="System Config" />
+        <Tab label="Notifications" />
         <Tab label="Sync" />
       </Tabs>
       <div className="settings-content">
@@ -175,6 +177,9 @@ const SettingsPage: React.FC = () => {
           />
         )}
         {tab === 2 && (
+          <NotificationSettingsTab />
+        )}
+        {tab === 3 && (
           <Box sx={{ p: 3 }}>
             <h3>Meter Reading Upload</h3>
             <p>Manually trigger an upload of collected meter readings to the remote client system.</p>

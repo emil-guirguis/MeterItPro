@@ -544,7 +544,7 @@ export const MeterReadingsList: React.FC<MeterReadingsListProps> = ({
         striped
         hoverable
         emptyMessage="No meter readings available"
-        headerActions={
+        toolbarContent={
           <div className="meter-readings-list__header-actions">
             <button
               type="button"

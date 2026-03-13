@@ -31,6 +31,7 @@ interface NotificationsActions {
   setFilters: (filters: Record<string, any>) => void;
   setPage: (page: number) => void;
   setPageSize: (size: number) => void;
+  createItem: (data: any) => Promise<void>;
   deleteItem: (id: string | number) => Promise<void>;
   // Notification-specific
   clearAll: () => Promise<void>;
@@ -95,6 +96,23 @@ export const useNotificationsStore = create<NotificationsStore>()(
       setPageSize: (size: number) => {
         set(s => ({ list: { ...s.list, pageSize: size, page: 1 } }));
         get().fetchItems();
+      },
+
+      createItem: async (data: any) => {
+        set(s => ({ list: { ...s.list, loading: true, error: null } }));
+        try {
+          const newNotification = await notificationService.createNotification(data);
+          const state = get();
+          set({
+            items: [newNotification, ...state.items],
+            list: { ...state.list, loading: false, total: state.list.total + 1 },
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to create notification';
+          set(s => ({ list: { ...s.list, loading: false, error: message } }));
+          console.error('[notificationsStore] Error creating notification:', error);
+          throw error;
+        }
       },
 
       deleteItem: async (id: string | number) => {
@@ -175,6 +193,7 @@ export const useNotificationsEnhanced = (): NotificationsEnhanced => {
     setFilters: store.setFilters,
     setPage: store.setPage,
     setPageSize: store.setPageSize,
+    createItem: store.createItem,
     deleteItem: store.deleteItem,
     clearAll: store.clearAll,
     fetchSettings: store.fetchSettings,

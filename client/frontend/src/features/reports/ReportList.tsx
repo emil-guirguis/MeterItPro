@@ -119,7 +119,8 @@ export const ReportList: React.FC<ReportListProps> = ({
       <BaseList
         title="Reports"
         filters={baseList.renderFilters()}
-        headerActions={baseList.renderHeaderActions()}
+        onCreateClick={baseList.canCreate ? baseList.handleCreate : undefined}
+        onExportClick={baseList.canExport ? () => baseList.handleExport(baseList.data) : undefined}
         data={baseList.data}
         columns={baseList.columns}
         loading={baseList.loading}

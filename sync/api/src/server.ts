@@ -6,10 +6,6 @@
  */
 
 import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import swaggerUi from 'swagger-ui-express';
 import {
   initializePools,
@@ -20,20 +16,17 @@ import {
   healthCheckRemote,
 } from './config/database.js';
 
-// Load environment variables from root .env file first, then local .env
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-dotenv.config({ path: join(__dirname, '../../../.env') });                              // dev defaults
-dotenv.config({ path: join(__dirname, '../../../.env.production'), override: true }); // prod overrides
-
 const app = express();
 const PORT = parseInt(process.env.SYNC_API_PORT || '3002', 10);
 
 // Middleware
-app.use(cors({
-  origin: '*', // Allow all origins on local network
-  methods: ['GET', 'POST', 'DELETE'],
-}));
+app.use((_req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (_req.method === 'OPTIONS') { res.sendStatus(200); return; }
+  next();
+});
 app.use(express.json());
 
 // Swagger documentation

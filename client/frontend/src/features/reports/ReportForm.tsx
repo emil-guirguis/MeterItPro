@@ -1,5 +1,6 @@
 import React from 'react';
 import { BaseForm, FormContainer } from '@framework/components/form';
+import { CronField } from '@framework/components/formfield/CronField';
 import { useReportsEnhanced } from './reportsStore';
 import { RecipientsField, MeterElementSelector, RegisterSelector } from './components';
 import type { Report } from './types';
@@ -40,7 +41,24 @@ export const ReportForm: React.FC<ReportFormProps> = ({
           onLegacySubmit={onSubmit}
           loading={loading}
           showTabs={true}
-          renderCustomField={(fieldName, _fieldDef, value, error, isDisabled, onChange) => {
+          renderCustomField={(fieldName, fieldDef, value, error, isDisabled, onChange) => {
+            // Custom rendering for schedule field
+            if (fieldName === 'schedule') {
+              return (
+                <CronField
+                  name="schedule"
+                  label={fieldDef?.label}
+                  value={value ?? '0 9 * * *'}
+                  onChange={(e) => onChange(e.target.value)}
+                  disabled={isDisabled}
+                  error={error}
+                  touched={!!error}
+                  help={fieldDef?.helpText}
+                  required={fieldDef?.required}
+                />
+              );
+            }
+
             // Custom rendering for recipients field
             if (fieldName === 'recipients') {
               return (

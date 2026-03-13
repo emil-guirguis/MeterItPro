@@ -6,8 +6,7 @@
  * Supports multiple data structures: nested objects, flat arrays, key-value pairs, and permissions.
  */
 
-import React, { useEffect, useState, Suspense } from 'react';
-const JsonView = React.lazy(() => import('@microlink/react-json-view'));
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -75,10 +74,60 @@ function deserializeJSONB(value: any): any {
   return {};
 }
 
+// Native recursive JSON renderer — no external library needed
+const JsonNode: React.FC<{ value: any; depth: number; collapsed: boolean }> = ({ value, depth, collapsed }) => {
+  const [open, setOpen] = useState(!collapsed || depth === 0);
+
+  if (value === null) return <span style={{ color: '#999' }}>null</span>;
+  if (typeof value === 'boolean') return <span style={{ color: '#9C27B0' }}>{String(value)}</span>;
+  if (typeof value === 'number') return <span style={{ color: '#1565C0' }}>{value}</span>;
+  if (typeof value === 'string') return <span style={{ color: '#C62828' }}>"{value}"</span>;
+
+  const isArray = Array.isArray(value);
+  const entries = isArray
+    ? (value as any[]).map((v, i) => [String(i), v] as [string, any])
+    : Object.entries(value as object);
+
+  const [open_, close_] = isArray ? ['[', ']'] : ['{', '}'];
+
+  if (entries.length === 0) return <span>{open_}{close_}</span>;
+
+  if (!open) {
+    return (
+      <span
+        onClick={() => setOpen(true)}
+        style={{ cursor: 'pointer', color: '#666', userSelect: 'none' }}
+      >
+        {open_}
+        <span style={{ fontStyle: 'italic' }}>
+          {isArray ? ` ${entries.length} items ` : ` ${entries.length} keys `}
+        </span>
+        {close_}
+      </span>
+    );
+  }
+
+  return (
+    <span>
+      <span onClick={() => setOpen(false)} style={{ cursor: 'pointer', userSelect: 'none' }}>
+        {open_}
+      </span>
+      <div style={{ paddingLeft: 16, borderLeft: '1px solid #e0e0e0', marginLeft: 4 }}>
+        {entries.map(([key, val], i) => (
+          <div key={key} style={{ lineHeight: 1.6 }}>
+            {!isArray && <span style={{ color: '#5D4037' }}>"{key}": </span>}
+            <JsonNode value={val} depth={depth + 1} collapsed={collapsed} />
+            {i < entries.length - 1 && ','}
+          </div>
+        ))}
+      </div>
+      {close_}
+    </span>
+  );
+};
+
 /**
  * JSONBField Component
- * 
- * Renders a JSONB field with @microlink/react-json-view
  */
 export const JSONBField: React.FC<JSONBFieldProps> = ({
   name,
@@ -153,21 +202,9 @@ export const JSONBField: React.FC<JSONBFieldProps> = ({
         }}
       >
         {deserializedValue !== undefined && deserializedValue !== null ? (
-          <Suspense fallback={<Typography variant="body2">Loading JSON viewer...</Typography>}>
-            <JsonView
-              {...{
-                src: deserializedValue,
-                shouldExpandNode: () => !jsonbConfig?.collapsed,
-                collapseStringsAfterLength:
-                  jsonbConfig?.collapseStringsAfterLength ?? 50,
-                displayDataTypes: jsonbConfig?.displayDataTypes ?? true,
-                enableClipboard: jsonbConfig?.enableClipboard ?? true,
-                quotesOnKeys: jsonbConfig?.quotesOnKeys ?? true,
-                sortKeys: jsonbConfig?.sortKeys ?? false,
-                theme: jsonbConfig?.theme as any ?? 'default',
-              } as any}
-            />
-          </Suspense>
+          <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.8125rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            <JsonNode value={deserializedValue} depth={0} collapsed={jsonbConfig?.collapsed ?? false} />
+          </pre>
         ) : (
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             No data
