@@ -139,6 +139,9 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
             error: error.message,
             code: error.code,
             detail: error.detail,
+            column: error.column ?? null,
+            where: error.where ?? null,
+            hint: error.hint ?? null,
           });
           skippedCount++;
         }

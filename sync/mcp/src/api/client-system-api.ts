@@ -182,33 +182,43 @@ export class ClientSystemApiClient {
       console.log(`✅ [ClientSystemApiClient] Upload response:`, JSON.stringify(response.data, null, 2));
       return response.data;
     } catch (error) {
-      // Handle retryable errors
-      if (this.isRetryableError(error) && retryCount < this.maxRetries) {
-        const delay = this.calculateBackoff(retryCount);
-        await this.sleep(delay);
-        return this.uploadBatch(readings, retryCount + 1);
-      }
-
-      // Handle non-retryable errors
       if (axios.isAxiosError(error)) {
-        console.error(`❌ [ClientSystemApiClient] Axios error: status=${error.response?.status} message=${error.message}`);
-        console.error(`❌ [ClientSystemApiClient] Response data:`, JSON.stringify(error.response?.data, null, 2));
+        const status = error.response?.status;
+        const data = error.response?.data;
 
-        if (error.response?.status === 500 && error.response?.data?.errors?.length) {
-          console.error(`❌ [ClientSystemApiClient] Insert errors from remote:`);
-          for (const e of error.response.data.errors) {
-            console.error(`   meter_id=${e.meter_id} code=${e.code} detail=${e.detail} message=${e.error}`);
+        // 500 with structured errors is a business logic failure — not retryable
+        if (status === 500 && data) {
+          const errors: any[] = data.errors ?? [];
+          console.error(`❌ [ClientSystemApiClient] Batch upload failed: ${data.message || error.message}`);
+          if (errors.length > 0) {
+            console.error(`❌ [ClientSystemApiClient] ${errors.length} record error(s):`);
+            for (const e of errors) {
+              console.error(`   meter_id=${e.meter_id ?? 'unknown'} | code=${e.code ?? ''} | ${e.detail ?? e.error ?? e.message ?? JSON.stringify(e)}`);
+            }
           }
+          return {
+            success: false,
+            recordsProcessed: data.recordsProcessed ?? 0,
+            message: data.message || 'Batch upload failed on remote server',
+          };
         }
 
-        if (error.response?.status === 400) {
+        // Handle retryable errors (transient 5xx, 429)
+        if (this.isRetryableError(error) && retryCount < this.maxRetries) {
+          const delay = this.calculateBackoff(retryCount);
+          console.log(`🔄 [ClientSystemApiClient] Retrying after ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries})`);
+          await this.sleep(delay);
+          return this.uploadBatch(readings, retryCount + 1);
+        }
+
+        if (status === 400) {
           return {
             success: false,
             recordsProcessed: 0,
-            message: error.response.data?.message || 'Invalid data format',
+            message: data?.message || 'Invalid data format',
           };
         }
-        if (error.response?.status === 401) {
+        if (status === 401) {
           return {
             success: false,
             recordsProcessed: 0,
@@ -218,6 +228,8 @@ export class ClientSystemApiClient {
         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
           throw new Error('Client System unreachable');
         }
+
+        console.error(`❌ [ClientSystemApiClient] Unhandled HTTP error: status=${status} message=${error.message}`);
       }
 
       throw error;
@@ -255,8 +267,12 @@ export class ClientSystemApiClient {
       if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
         return false; // These should be handled as offline
       }
-      // 5xx server errors are retryable
+      // 5xx server errors are retryable, unless they carry structured error data
+      // (structured errors = business logic failure, not a transient server issue)
       if (error.response && error.response.status >= 500) {
+        if (error.response.data?.errors?.length > 0) {
+          return false;
+        }
         return true;
       }
       // 429 rate limit is retryable

@@ -23,6 +23,7 @@ import { localSyncApi, tenantApi } from '../api/services';
 import CompanyInfoCard from '../components/CompanyInfoCard';
 import MeterCollectionCard from '../components/MeterCollectionCard';
 import RemoteMeterSyncCard from '../components/RemoteMeterSyncCard';
+import UploadQueueCard from '../components/UploadQueueCard';
 
 const POLLING_INTERVAL = 17 * 60 * 1000;
 
@@ -127,6 +128,10 @@ export default function SystemStatusPage() {
 
         {tenantInfo && (
           <>
+            <Grid item xs={12}>
+              <UploadQueueCard />
+            </Grid>
+
             <Grid item xs={12}>
               <RemoteMeterSyncCard />
             </Grid>

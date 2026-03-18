@@ -5,6 +5,14 @@
  * This API serves only local network requests (binds to 127.0.0.1).
  */
 
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+import dotenv from 'dotenv';
+
+// Load .env from project root regardless of process CWD
+const __dirname_local = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: resolve(__dirname_local, '../../../.env') });
+
 import express, { Request, Response, NextFunction } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import {
@@ -789,12 +797,95 @@ app.get('/api/sync/meter-reading-upload/log', async (_req, res) => {
   }
 });
 
-// Trigger meter reading upload (upload is managed by MCP process on its own schedule)
-app.post('/api/sync/meter-reading-upload/trigger', (_req, res) => {
-  res.json({
-    success: true,
-    message: 'Upload is managed by the MCP process on its own schedule. Check upload status for results.',
-  });
+// Trigger meter reading upload - fetches pending readings and posts to client API
+app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
+  console.log('📥 [API] POST /api/sync/meter-reading-upload/trigger - Request received');
+
+  try {
+    // Get tenant API key
+    const tenantResult = await syncPool.query(`SELECT api_key FROM tenant LIMIT 1`);
+    if (tenantResult.rows.length === 0 || !tenantResult.rows[0].api_key) {
+      return res.status(400).json({ success: false, message: 'No tenant or API key configured' });
+    }
+    const apiKey: string = tenantResult.rows[0].api_key;
+    const clientApiUrl = process.env.CLIENT_API_URL || 'http://localhost:3001/api';
+    const batchSize = parseInt(process.env.UPLOAD_BATCH_SIZE || '100', 10);
+
+    // Fetch pending readings
+    const readingsResult = await syncPool.query(`
+      SELECT meter_reading_id, meter_id, meter_element_id, created_at,
+             active_energy, active_energy_export, apparent_energy, apparent_energy_export,
+             apparent_power, apparent_power_phase_a, apparent_power_phase_b, apparent_power_phase_c,
+             current, current_line_a, current_line_b, current_line_c,
+             frequency, maximum_demand_real, power, power_factor,
+             power_factor_phase_a, power_factor_phase_b, power_factor_phase_c,
+             power_phase_a, power_phase_b, power_phase_c,
+             reactive_energy, reactive_energy_export, reactive_power,
+             reactive_power_phase_a, reactive_power_phase_b, reactive_power_phase_c,
+             voltage_a_b, voltage_a_n, voltage_b_c, voltage_b_n, voltage_c_a, voltage_c_n,
+             voltage_p_n, voltage_p_p, voltage_thd, voltage_thd_phase_a, voltage_thd_phase_b, voltage_thd_phase_c,
+             calculated_kwh
+      FROM meter_reading
+      WHERE is_synchronized = false AND retry_count < 5
+      ORDER BY created_at ASC
+      LIMIT $1
+    `, [batchSize]);
+
+    const readings = readingsResult.rows;
+    console.log(`📤 [API] Found ${readings.length} pending readings to upload`);
+
+    if (readings.length === 0) {
+      return res.json({ success: true, message: 'No pending readings to upload', recordsProcessed: 0 });
+    }
+
+    // Call client API
+    const response = await fetch(`${clientApiUrl}/sync/readings/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+      body: JSON.stringify({ readings }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    const data: any = await response.json();
+    const readingIds: string[] = readings.map((r: any) => r.meter_reading_id).filter(Boolean);
+
+    if (response.ok && data.success) {
+      // Mark as synchronized
+      await syncPool.query(
+        `UPDATE meter_reading SET is_synchronized = true, sync_status = 'synced' WHERE meter_reading_id = ANY($1::uuid[])`,
+        [readingIds]
+      );
+      await syncPool.query(
+        `INSERT INTO sync_log (batch_size, success, synced_at) VALUES ($1, true, NOW())`,
+        [readings.length]
+      );
+      console.log(`✅ [API] Upload successful - ${data.recordsProcessed} records processed`);
+      return res.json({ success: true, message: `Uploaded ${data.recordsProcessed} readings`, recordsProcessed: data.recordsProcessed });
+    } else {
+      // Increment retry count
+      await syncPool.query(
+        `UPDATE meter_reading SET retry_count = retry_count + 1 WHERE meter_reading_id = ANY($1::uuid[])`,
+        [readingIds]
+      );
+      const errorMsg = data.message || `HTTP ${response.status}`;
+      await syncPool.query(
+        `INSERT INTO sync_log (batch_size, success, error_message, synced_at) VALUES ($1, false, $2, NOW())`,
+        [readings.length, errorMsg]
+      );
+      console.error(`❌ [API] Upload failed: ${errorMsg}`);
+      return res.status(500).json({ success: false, message: errorMsg });
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('❌ [API] Upload trigger error:', msg);
+    try {
+      await syncPool.query(
+        `INSERT INTO sync_log (batch_size, success, error_message, synced_at) VALUES (0, false, $1, NOW())`,
+        [msg]
+      );
+    } catch { /* ignore */ }
+    res.status(500).json({ success: false, message: msg });
+  }
 });
 
 // Get meter sync status (mirrors the old MCP API endpoint)
