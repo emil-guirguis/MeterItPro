@@ -30,7 +30,7 @@ export const readingsApi = {
   },
 };
 
-export const syncApi = {
+export const localSyncApi = {
   getStatus: async (): Promise<SyncStatus> => {
     const response = await apiClient.get<SyncStatus>('/api/local/sync-status');
     return response.data;
@@ -41,7 +41,7 @@ export const syncApi = {
   },
 };
 
-export const meterSyncApi = {
+export const remoteMeterSyncApi = {
   getStatus: async (): Promise<MeterSyncStatus> => {
     try {
       // Use the meter-sync-status endpoint which provides detailed meter sync info
@@ -82,7 +82,7 @@ export const meterSyncApi = {
   },
 };
 
-export const meterReadingApi = {
+export const bacnetCollectionApi = {
   getStatus: async (): Promise<any> => {
     try {
       // Use the BACnet meter reading status endpoint
@@ -122,7 +122,7 @@ export const meterReadingApi = {
   },
 };
 
-export const meterReadingUploadApi = {
+export const uploadQueueApi = {
   getStatus: async (): Promise<any> => {
     try {
       const response = await apiClient.get<any>('/api/sync/meter-reading-upload/status');

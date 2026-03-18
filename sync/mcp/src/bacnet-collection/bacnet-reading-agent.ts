@@ -118,6 +118,10 @@ export class BACnetMeterReadingAgent {
         this.logger.info(`Scheduling upload cycles with cron: ${uploadCronExpression}`);
 
         this.uploadCronJob = cron.schedule(uploadCronExpression, async () => {
+          if (this.isCycleExecuting) {
+            this.logger.info('⏳ [UploadManager] Skipping scheduled upload — collection cycle (including kWh calculation) still in progress');
+            return;
+          }
           this.logger.info('Cron job triggered - performing scheduled upload');
           await this.uploadManager!.performUpload();
         });

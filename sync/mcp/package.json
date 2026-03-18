@@ -32,6 +32,7 @@
     "@modelcontextprotocol/sdk": "^1.0.4",
     "axios": "^1.12.2",
     "bacnet-node": "^0.2.23",
+    "dotenv": "^17.3.1",
     "express": "^5.1.0",
     "node-cron": "^4.2.1",
     "pg": "^8.16.3",

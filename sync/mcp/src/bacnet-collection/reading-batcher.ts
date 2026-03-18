@@ -3,7 +3,7 @@
  */
 
 import { PendingReading, ValidationResult, ValidationError, BatchInsertionResult } from './types.js';
-import { syncPool } from '../data-sync/data-sync.js';
+import { syncPool, calculateKwhForReadings } from '../data-sync/data-sync.js';
 import { cacheManager } from '../cache/cache-manager.js';
 
 export class ReadingBatcher {
@@ -368,6 +368,16 @@ export class ReadingBatcher {
             this.logger.debug(`   ✓ Connection released`);
           }
         }
+      }
+    }
+
+    // Calculate kWh for all successfully inserted readings
+    if (insertedReadingIds.length > 0) {
+      try {
+        await calculateKwhForReadings(syncPool, insertedReadingIds);
+      } catch (error) {
+        // Non-fatal: log but don't fail the batch — readings are still saved
+        this.logger.error('❌ [KWH] kWh calculation step failed:', error);
       }
     }
 

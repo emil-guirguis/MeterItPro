@@ -266,9 +266,15 @@ export class SyncDatabase {
              meter_element_id bigint,
              is_synchronized boolean DEFAULT false,
              retry_count bigint DEFAULT 0,
+             calculated_kwh numeric(18,4) DEFAULT NULL,
              CONSTRAINT meter_readings_realtime_pkey PRIMARY KEY (meter_reading_id)
          )
         `);
+
+      // Add calculated_kwh to existing databases that predate this column
+      await execQuery(this.pool,
+        `ALTER TABLE meter_reading ADD COLUMN IF NOT EXISTS calculated_kwh numeric(18,4) DEFAULT NULL`
+      );
 
       // Create sync_log table
       await execQuery(this.pool,
@@ -1286,6 +1292,51 @@ export class SyncDatabase {
  * Create a database instance from environment variables (legacy)
  * @deprecated Use initializePools() and access syncPool/remotePool directly instead
  */
+/**
+ * For each newly inserted reading, calculate the kWh consumption as:
+ *   current active_energy - previous active_energy (same meter + element, closest earlier timestamp)
+ *
+ * Rules:
+ *  - Skips readings where active_energy is 0 or NULL (bad/missing data)
+ *  - Stores NULL when there is no prior reading (first reading for that meter/element)
+ *  - Stores NULL when the difference is negative (meter rollover / replacement)
+ *
+ * Should be called immediately after a batch INSERT with the returned meter_reading_ids.
+ */
+export async function calculateKwhForReadings(pool: Pool, readingIds: string[]): Promise<void> {
+  if (!readingIds.length) return;
+
+  const sql = `
+    UPDATE meter_reading
+    SET calculated_kwh = (
+      SELECT
+        CASE
+          WHEN meter_reading.active_energy - prev.active_energy > 0
+          THEN 
+          meter_reading.active_energy - prev.active_energy
+          ELSE 0
+        END
+      FROM meter_reading prev
+      WHERE prev.meter_id = meter_reading.meter_id
+        AND prev.meter_element_id = meter_reading.meter_element_id
+        AND prev.created_at < meter_reading.created_at
+        --AND prev.active_energy > 0
+      ORDER BY prev.created_at DESC
+      LIMIT 1
+    )
+    WHERE meter_reading_id = ANY($1)
+      AND active_energy > 0
+  `;
+
+  try {
+    const result = await pool.query(sql, [readingIds]);
+    console.log(`⚡ [KWH] calculated_kwh updated for ${result.rowCount} reading(s)`);
+  } catch (error) {
+    console.error('❌ [KWH] Failed to calculate kWh for readings:', error);
+    throw error;
+  }
+}
+
 export function createDatabaseFromEnv(): SyncDatabase {
   const config: DatabaseConfig = {
     host: process.env.POSTGRES_SYNC_HOST || 'localhost',

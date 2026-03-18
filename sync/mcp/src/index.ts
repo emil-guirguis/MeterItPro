@@ -2,11 +2,12 @@
 
 /**
  * Sync MCP Server
- * 
+ *
  * Model Context Protocol server for Sync operations.
  * Provides AI tools for controlling meter collection, synchronization, and local data queries.
  */
 
+import 'dotenv/config';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
