@@ -191,12 +191,8 @@ export class ClientSystemApiClient {
 
       // Handle non-retryable errors
       if (axios.isAxiosError(error)) {
-        console.error(`❌ [ClientSystemApiClient] Axios error:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-          message: error.message
-        });
+        console.error(`❌ [ClientSystemApiClient] Axios error: status=${error.response?.status} message=${error.message}`);
+        console.error(`❌ [ClientSystemApiClient] Response data:`, JSON.stringify(error.response?.data, null, 2));
 
         if (error.response?.status === 500 && error.response?.data?.errors?.length) {
           console.error(`❌ [ClientSystemApiClient] Insert errors from remote:`);
