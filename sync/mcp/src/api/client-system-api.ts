@@ -165,6 +165,7 @@ export class ClientSystemApiClient {
         voltage_thd_phase_a: r.voltage_thd_phase_a ?? null,
         voltage_thd_phase_b: r.voltage_thd_phase_b ?? null,
         voltage_thd_phase_c: r.voltage_thd_phase_c ?? null,
+        calculated_kwh: r.calculated_kwh ?? null,
       })),
     };
 

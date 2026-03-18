@@ -53,4 +53,5 @@ export type MeterReadingEntity = {
   meter_element_id?: number;
   tenant_id?: number;
   sync_status?: string;
+  calculated_kwh?: number | null;
 };

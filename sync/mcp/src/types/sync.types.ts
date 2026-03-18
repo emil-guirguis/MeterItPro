@@ -146,6 +146,7 @@ export interface BatchUploadRequest {
     voltage_thd_phase_a?: number | null;
     voltage_thd_phase_b?: number | null;
     voltage_thd_phase_c?: number | null;
+    calculated_kwh?: number | null;
   }>;
 }
 

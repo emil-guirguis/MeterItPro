@@ -48,7 +48,7 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
               voltage_a_b, voltage_a_n, voltage_b_c, voltage_b_n,
               voltage_c_a, voltage_c_n, voltage_p_n, voltage_p_p,
               voltage_thd, voltage_thd_phase_a, voltage_thd_phase_b, voltage_thd_phase_c,
-              meter_element_id
+              meter_element_id, calculated_kwh
             )
             VALUES (
               $1, $2, $3, $4,
@@ -63,7 +63,7 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
               $33, $34, $35, $36,
               $37, $38, $39, $40,
               $41, $42, $43, $44,
-              $45
+              $45, $46
             )
             ON CONFLICT (tenant_id, meter_id, meter_element_id, created_at) WHERE meter_element_id IS NOT NULL DO NOTHING
             RETURNING meter_reading_id
@@ -114,6 +114,7 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
             reading.voltage_thd_phase_b ?? null,
             reading.voltage_thd_phase_c ?? null,
             reading.meter_element_id ?? null,
+            reading.calculated_kwh ?? null
           ];
 
           const insertResult = await client.query(readingQuery, readingParams);
