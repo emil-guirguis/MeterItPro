@@ -117,6 +117,7 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
             reading.calculated_kwh ?? null
           ];
 
+          console.log(`[Sync] INSERT params[${i}]:`, JSON.stringify(readingParams));
           const insertResult = await client.query(readingQuery, readingParams);
 
           await client.query(`RELEASE SAVEPOINT ${savepointName}`);

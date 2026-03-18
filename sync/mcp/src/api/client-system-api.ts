@@ -170,7 +170,7 @@ export class ClientSystemApiClient {
     };
 
     console.log(`📤 [ClientSystemApiClient] Uploading ${readings.length} readings`);
-    console.log(`📤 [ClientSystemApiClient] Sample reading:`, JSON.stringify(request.readings[0], null, 2));
+    console.log(`📤 [ClientSystemApiClient] Reading:`, JSON.stringify(request.readings[0], null, 2));
     console.log(`📤 [ClientSystemApiClient] API URL: ${this.client.defaults.baseURL}`);
     console.log(`📤 [ClientSystemApiClient] API Key: ${this.apiKey.substring(0, 8)}...`);
 
@@ -197,7 +197,14 @@ export class ClientSystemApiClient {
           data: error.response?.data,
           message: error.message
         });
-        
+
+        if (error.response?.status === 500 && error.response?.data?.errors?.length) {
+          console.error(`❌ [ClientSystemApiClient] Insert errors from remote:`);
+          for (const e of error.response.data.errors) {
+            console.error(`   meter_id=${e.meter_id} code=${e.code} detail=${e.detail} message=${e.error}`);
+          }
+        }
+
         if (error.response?.status === 400) {
           return {
             success: false,
