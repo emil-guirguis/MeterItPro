@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import SyncIcon from '@mui/icons-material/Sync';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import SpeedIcon from '@mui/icons-material/Speed';
 import { useAppStore } from '../stores/useAppStore';
 import './Layout.css';
 
@@ -35,8 +36,9 @@ export default function Layout() {
         position="fixed"
         sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
       >
-        <Toolbar>
-          <Typography variant="h6" noWrap component="div">
+        <Toolbar sx={{ gap: 1.5 }}>
+          <SpeedIcon sx={{ fontSize: 24 }} />
+          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
             MeterIT Sync
           </Typography>
         </Toolbar>
@@ -82,7 +84,15 @@ export default function Layout() {
           </List>
         </Box>
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          minHeight: '100vh',
+          backgroundColor: 'background.default',
+        }}
+      >
         <Toolbar />
         <Outlet />
       </Box>

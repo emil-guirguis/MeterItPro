@@ -1,4 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+
+/** Measure pixel width of a text string using canvas (no DOM side effects) */
+function measureTextWidth(text: string, font: string): number {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return 0;
+  ctx.font = font;
+  return ctx.measureText(text).width;
+}
 import type { SidebarMetersProps, Meter, Favorite, SelectedItem, FavoriteDisplay, MeterElement } from './types';
 import { MetersList } from './MetersList';
 import { FavoritesSection } from './FavoritesSection';
@@ -160,21 +169,22 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
    */
   const handleFavoriteToggle = useCallback(
     async (meterId: string, elementId?: string) => {
+      // Only operate on elements — never create a meter-level record (id2 = 0)
+      if (!elementId) return;
+
       try {
         const meterIdNum = parseInt(meterId);
-        const elementIdNum = elementId ? parseInt(elementId) : undefined;
+        const elementIdNum = parseInt(elementId);
 
         // Determine favorite state from meterElements (source of truth for the star UI)
         const elements = meterElements[meterIdNum] || meterElements[meterId] || [];
-        const element = elementIdNum !== undefined
-          ? elements.find((el: any) => Number(el.meter_element_id) === elementIdNum)
-          : null;
+        const element = elements.find((el: any) => Number(el.meter_element_id) === elementIdNum);
         const isFavorited = element ? !!element.is_favorited : false;
 
         if (isFavorited) {
-          // Find the favorite record to get its ID, using Number() to avoid type mismatches
+          // Find the favorite record to get its ID
           const favorite = favorites.find(
-            (fav) => Number(fav.id1) === meterIdNum && Number(fav.id2) === (elementIdNum ?? 0)
+            (fav) => Number(fav.id1) === meterIdNum && Number(fav.id2) === elementIdNum
           );
           if (favorite) {
             await favoritesService.removeFavoriteById(favorite.favorite_id, parseInt(tenantId));
@@ -182,7 +192,7 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
 
           // Remove from favorites state
           setFavorites((prev) =>
-            prev.filter((fav) => !(Number(fav.id1) === meterIdNum && Number(fav.id2) === (elementIdNum ?? 0)))
+            prev.filter((fav) => !(Number(fav.id1) === meterIdNum && Number(fav.id2) === elementIdNum))
           );
 
           // Update meterElements to reflect unfavorited status
@@ -191,7 +201,7 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
             const key = updated[meterIdNum] ? meterIdNum : meterId;
             if (updated[key]) {
               updated[key] = updated[key].map((el: any) =>
-                Number(el.meter_element_id) === (elementIdNum ?? 0)
+                Number(el.meter_element_id) === elementIdNum
                   ? { ...el, is_favorited: false }
                   : el
               );
@@ -221,7 +231,7 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
             const key = updated[meterIdNum] ? meterIdNum : meterId;
             if (updated[key]) {
               updated[key] = updated[key].map((el: any) =>
-                Number(el.meter_element_id) === (elementIdNum ?? 0)
+                Number(el.meter_element_id) === elementIdNum
                   ? { ...el, is_favorited: true }
                   : el
               );
@@ -253,6 +263,32 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
       };
     });
   }, [favorites]);
+
+  /**
+   * Dynamically resize the sidebar to fit the widest favorite name, max 350px.
+   * Overhead accounts for: drag handle (22px) + star button (32px) +
+   * item padding/margins (48px) + scrollbar gutter (8px) = ~110px
+   */
+  useEffect(() => {
+    const font = '13px system-ui, -apple-system, sans-serif'; // matches .favorite-item-text
+    const overhead = 110;
+    const minWidth = 200;
+    const maxWidth = 350;
+
+    const maxTextWidth = favoriteDisplays.reduce((max, fav) => {
+      const w = measureTextWidth(fav.favorite_name || '', font);
+      return w > max ? w : max;
+    }, 0);
+
+    const desired = favoriteDisplays.length > 0
+      ? Math.min(maxWidth, Math.max(minWidth, Math.ceil(maxTextWidth + overhead)))
+      : 300; // fallback when no favorites
+
+    const appLayout = document.querySelector('.app-layout') as HTMLElement | null;
+    if (appLayout) {
+      appLayout.style.setProperty('--sidebar-width', `${desired}px`);
+    }
+  }, [favoriteDisplays]);
 
   /**
    * Handle reorder of favorites from drag-and-drop

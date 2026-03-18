@@ -58,11 +58,11 @@ export const MetersList: React.FC<MetersListProps> = ({
     <div className="meters-list">
       {/* Meters Header with Collapse Icon */}
       {sortedMeters.length > 0 && (
-        <div className="meters-header">
+        <div className="meters-header" onClick={() => setIsMetersCollapsed(!isMetersCollapsed)} style={{ cursor: 'pointer' }}>
           <h3 className="meters-title">Meter Readings</h3>
           <IconButton
             size="small"
-            onClick={() => setIsMetersCollapsed(!isMetersCollapsed)}
+            onClick={(e) => { e.stopPropagation(); setIsMetersCollapsed(!isMetersCollapsed); }}
             sx={{ ml: 'auto' }}
           >
             {isMetersCollapsed ? <ExpandMoreIcon /> : <ExpandLessIcon />}
@@ -78,9 +78,26 @@ export const MetersList: React.FC<MetersListProps> = ({
           ) : (
             sortedMeters.map((meter) => {
               const isExpanded = expandedMeters.has(meter.id);
-              const isMeterFavorite = favoritesService.isFavorite(favorites, parseInt(meter.id));
               const isMeterSelected = selectedItem?.type === 'meter' && selectedItem?.meterId === meter.id;
               const elements = meterElements[meter.id] || [];
+
+              // Meter star is filled only when ALL elements are favorited
+              const isMeterFavorite = elements.length > 0 && elements.every((el: any) => el.is_favorited);
+
+              // Bulk-toggle: if all favorited → remove all; otherwise → add all that aren't yet favorited
+              const handleMeterStarClick = () => {
+                if (isMeterFavorite) {
+                  elements.forEach((el: any) => {
+                    onFavoriteToggle(meter.id, String(el.meter_element_id));
+                  });
+                } else {
+                  elements.forEach((el: any) => {
+                    if (!el.is_favorited) {
+                      onFavoriteToggle(meter.id, String(el.meter_element_id));
+                    }
+                  });
+                }
+              };
 
               return (
                 <div key={meter.id} className="meter-group">
@@ -91,7 +108,7 @@ export const MetersList: React.FC<MetersListProps> = ({
                     isSelected={isMeterSelected}
                     onExpand={() => handleMeterExpand(meter.id)}
                     onSelect={() => onMeterSelect(meter.id, meter.name)}
-                    onFavoriteToggle={() => onFavoriteToggle(meter.id)}
+                    onFavoriteToggle={handleMeterStarClick}
                   />
 
                   {/* Meter Elements (shown when expanded) */}

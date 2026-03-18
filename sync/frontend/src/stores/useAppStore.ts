@@ -9,6 +9,8 @@ interface AppState {
   tenantInfo: TenantInfo | null;
   isLoading: boolean;
   error: string | null;
+  // Favorite elements: keys are "meterId-dataPoint"
+  favoriteElements: string[];
 
   setMeters: (meters: Meter[]) => void;
   setReadings: (readings: MeterReading[]) => void;
@@ -17,6 +19,7 @@ interface AppState {
   setTenantInfo: (info: TenantInfo | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  toggleMeterFavorites: (meterId: number | string, dataPoints: string[]) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -27,6 +30,7 @@ export const useAppStore = create<AppState>((set) => ({
   tenantInfo: null,
   isLoading: false,
   error: null,
+  favoriteElements: JSON.parse(localStorage.getItem('favoriteElements') || '[]'),
 
   setMeters: (meters) => set({ meters }),
   setReadings: (readings) => set({ readings }),
@@ -35,4 +39,14 @@ export const useAppStore = create<AppState>((set) => ({
   setTenantInfo: (tenantInfo) => set({ tenantInfo }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
+  toggleMeterFavorites: (meterId, dataPoints) =>
+    set((state) => {
+      const keys = dataPoints.map((dp) => `${meterId}-${dp}`);
+      const allFavorited = keys.every((k) => state.favoriteElements.includes(k));
+      const newFavorites = allFavorited
+        ? state.favoriteElements.filter((k) => !keys.includes(k))
+        : [...new Set([...state.favoriteElements, ...keys])];
+      localStorage.setItem('favoriteElements', JSON.stringify(newFavorites));
+      return { favoriteElements: newFavorites };
+    }),
 }));

@@ -61,9 +61,9 @@ app.get('/meters', async (c) => {
         me.name,
         CASE
           WHEN me.meter_element_id IS NOT NULL THEN
-            CONCAT(COALESCE(m.name, 'Unknown Meter'), '    ', COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, 'Unknown'))
+            CONCAT('(', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, 'Unknown'))
           ELSE
-            COALESCE(m.name, 'Unknown Meter')
+            COALESCE(m.name, 'Unknown Meter/Element')
         END as favorite_name,
         CASE WHEN f.favorite_id IS NOT NULL THEN true ELSE false END as is_favorited,
         f.favorite_id
@@ -76,7 +76,7 @@ app.get('/meters', async (c) => {
         AND f.tenant_id = $1
         AND f.users_id = $2
       WHERE m.tenant_id = $1
-      ORDER BY m.name ASC, me.element ASC
+      ORDER BY me.element ASC
     `;
 
     const result = await query(c.env, sql, [tenant_id, users_id]);
@@ -114,7 +114,7 @@ app.get('/', async (c) => {
         me.name as element_name,
         CASE
           WHEN me.meter_element_id IS NOT NULL THEN
-            CONCAT(COALESCE(m.name, 'Unknown Meter'), '    ', COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, 'Unknown'))
+            CONCAT(COALESCE(m.name, 'Unknown Meter'), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, 'Unknown'))
           ELSE
             COALESCE(m.name, 'Unknown Meter')
         END as favorite_name
