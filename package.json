@@ -4,9 +4,9 @@
   "description": "Full-stack device tracking application with dual-deployment architecture",
   "scripts": {
     "predev": "powershell -NoProfile -ExecutionPolicy Bypass -File ./prepare-dev.ps1",
-    "dev": "concurrently -k -t -p \"[{name}]\" -n client-api,client-frontend,sync-api,sync-mcp,sync-frontend -c \"yellowBright,cyanBright,blueBright,magentaBright,greenBright\" \"npm run client:api\" \"npm run client:frontend\" \"npm run sync:api\" \"npm run sync:mcp\" \"npm run sync:frontend\"",
-    "dev:client": "concurrently -k -t -p \"[{name}]\" -n client-api,client-frontend -c \"yellowBright,cyanBright\" \"npm run client:api\" \"npm run client:frontend\"",
-    "dev:sync": "concurrently -k -t -p \"[{name}]\" -n sync-api,sync-mcp,sync-frontend -c \"blueBright,magentaBright,greenBright\" \"npm run sync:api\" \"npm run sync:mcp\" \"npm run sync:frontend\"",
+    "dev": "concurrently --kill-others-on-fail -t -p \"[{name}]\" -n client-api,client-frontend,sync-api,sync-mcp,sync-frontend -c \"yellowBright,cyanBright,blueBright,magentaBright,greenBright\" \"npm run client:api\" \"npm run client:frontend\" \"npm run sync:api\" \"npm run sync:mcp\" \"npm run sync:frontend\"",
+    "dev:client": "concurrently --kill-others-on-fail -t -p \"[{name}]\" -n client-api,client-frontend -c \"yellowBright,cyanBright\" \"npm run client:api\" \"npm run client:frontend\"",
+    "dev:sync": "concurrently --kill-others-on-fail -t -p \"[{name}]\" -n sync-api,sync-mcp,sync-frontend -c \"blueBright,magentaBright,greenBright\" \"npm run sync:api\" \"npm run sync:mcp\" \"npm run sync:frontend\"",
     "sync:api": "cd sync/api && npm start",
     "client:api": "cd client/api && npm start",
     "client:frontend": "cd client/frontend && npm run dev",

@@ -9,7 +9,7 @@ import {
   Box,
 } from '@mui/material';
 import SyncIcon from '@mui/icons-material/Sync';
-import { meterReadingApi } from '../api/services';
+import { bacnetCollectionApi} from '../api/services';
 
 export default function BACnetDebugCard() {
   const [isTriggering, setIsTriggering] = useState(false);
@@ -19,7 +19,7 @@ export default function BACnetDebugCard() {
     try {
       setIsTriggering(true);
       setMessage(null);
-      await meterReadingApi.triggerCollection();
+      await bacnetCollectionApi.triggerCollection();
       setMessage('BACnet meter reading triggered successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to trigger meter reading';
