@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
 import type { DashboardCard as DashboardCardType, AggregatedData } from '../types/dashboard';
@@ -118,6 +118,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onCloseExpandedCard,
 }) => {
   const [localLayout, setLocalLayout] = useState<Layout[]>(layout);
+  const [prevCardIds, setPrevCardIds] = useState<string[]>(layout.map(l => l.i));
+
+  // Sync localLayout when layout prop changes (detect new/removed cards)
+  useEffect(() => {
+    const currentCardIds = layout.map(l => l.i);
+    const cardCountChanged = currentCardIds.length !== prevCardIds.length;
+    const newCardsAdded = currentCardIds.some(id => !prevCardIds.includes(id));
+    const cardsRemoved = prevCardIds.some(id => !currentCardIds.includes(id));
+
+    if (cardCountChanged || newCardsAdded || cardsRemoved) {
+      setLocalLayout(layout);
+      setPrevCardIds(currentCardIds);
+    }
+  }, [layout]);
 
   // Handle layout change
   const handleLayoutChange = useCallback((newLayout: Layout[]) => {
@@ -211,8 +225,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           rowHeight={60}
           isDraggable={!savingLayout}
           isResizable={!savingLayout}
-          compactType="vertical"
-          preventCollision={false}
+          compactType={null}
+          preventCollision={true}
           useCSSTransforms={true}
           draggableHandle=".dashboard-page__drag-handle"
         >
