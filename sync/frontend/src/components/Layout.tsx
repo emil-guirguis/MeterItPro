@@ -51,6 +51,7 @@ export default function Layout() {
   };
 
   const drawer = (
+    <>
     <Toolbar />
     <Box sx={{ overflow: 'auto' }}>
       <List>
@@ -79,6 +80,7 @@ export default function Layout() {
         })}
       </List>
     </Box>
+    </>
   );
 
   return (
