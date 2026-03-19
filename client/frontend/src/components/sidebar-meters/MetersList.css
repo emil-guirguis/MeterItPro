@@ -69,3 +69,37 @@
   color: #ccc;
   font-size: 12px;
 }
+
+/* Mobile responsive styles - ensure sidebar content is visible */
+@media (max-width: 768px) {
+  .meters-list {
+    padding: 8px 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .meters-header {
+    padding: 8px 12px;
+    gap: 6px;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .meters-title {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .meter-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .meter-elements {
+    display: flex;
+    flex-direction: column;
+  }
+}

@@ -56,3 +56,32 @@
 .sidebar-meters-section .retry-button:active {
   transform: scale(0.98);
 }
+
+/* Mobile responsive styles - ensure sidebar is visible */
+@media (max-width: 768px) {
+  .sidebar-meters-section {
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+    width: 100%;
+  }
+
+  .sidebar-meters-section .loading-state {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+
+  .sidebar-meters-section .error-state {
+    padding: 8px;
+    margin: 4px;
+  }
+
+  .sidebar-meters-section .error-message {
+    font-size: 11px;
+  }
+
+  .sidebar-meters-section .retry-button {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}

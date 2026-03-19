@@ -192,8 +192,12 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
       console.log('[AppLayoutWrapper] Context updated');
       console.log('[AppLayoutWrapper] Navigating to /meter-readings');
       navigate('/meter-readings');
+      // Close mobile nav on mobile/tablet after selection
+      if (responsive.isMobile || responsive.isTablet) {
+        uiState.setMobileNavOpen(false);
+      }
     },
-    [setSelectedMeter, setSelectedElement, navigate]
+    [setSelectedMeter, setSelectedElement, navigate, responsive, uiState]
   );
 
   // Memoize meter element selection callback to prevent sidebar remount on route change
@@ -216,9 +220,13 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
       const url = `/meter-readings?${params.toString()}`;
       console.log('[AppLayoutWrapper] Navigating to:', url);
       navigate(url);
+      // Close mobile nav on mobile/tablet after selection
+      if (responsive.isMobile || responsive.isTablet) {
+        uiState.setMobileNavOpen(false);
+      }
       console.log('[AppLayoutWrapper] ===== METER ELEMENT SELECT COMPLETE =====');
     },
-    [setSelectedMeter, setSelectedElement, navigate]
+    [setSelectedMeter, setSelectedElement, navigate, responsive, uiState]
   );
 
   // Build configuration

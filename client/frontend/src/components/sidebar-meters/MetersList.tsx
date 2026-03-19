@@ -24,7 +24,7 @@ export const MetersList: React.FC<MetersListProps> = ({
   onMeterElementSelect,
   onFavoriteToggle,
 }) => {
-  const [isMetersCollapsed, setIsMetersCollapsed] = useState(true);
+  const [isMetersCollapsed, setIsMetersCollapsed] = useState(false);
 
 
 

@@ -1,6 +1,6 @@
 /**
  * DetailedMeterReadingView Component
- * 
+ *
  * Displays a comprehensive meter reading view with:
  * - Meter information (driver, description, serial number)
  * - Total consumption and generation metrics
@@ -10,6 +10,9 @@
  */
 
 import React, { useState } from 'react';
+import { useMeterSelection } from '../../contexts/MeterSelectionContext';
+import { useAuth } from '../../hooks/useAuth';
+import { ConsumptionGraph } from './ConsumptionGraph';
 import './DetailedMeterReadingView.css';
 
 interface MeterInfo {
@@ -92,6 +95,8 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
 }) => {
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('today');
   const [selectedGraphType, setSelectedGraphType] = useState<GraphType>('consumption');
+  const { selectedMeter, selectedElement } = useMeterSelection();
+  const { user } = useAuth();
 
   // Format number with specified decimals
   const formatNumber = (value: number | null | undefined, decimals: number = 2): string => {
@@ -99,6 +104,39 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
       return '0.00';
     }
     return value.toFixed(decimals);
+  };
+
+  // Get current week date range (Monday to Sunday)
+  const getWeekDateRange = (): { start: Date; end: Date } => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const start = new Date(now);
+    start.setDate(now.getDate() - daysToMonday);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+  };
+
+  const formatWeekRange = (): string => {
+    const { start, end } = getWeekDateRange();
+    const startMonth = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const endMonth = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${startMonth} - ${endMonth}`;
+  };
+
+  const formatMonthYear = (): string => {
+    const now = new Date();
+    return now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  const formatYear = (): string => {
+    const now = new Date();
+    return now.getFullYear().toString();
   };
 
   if (loading) {
@@ -149,7 +187,7 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
           {/* View All Readings Button */}
           {onViewAllReadings && (
             <div className="meter-info-card-actions">
-              <button className="view-all-readings-btn" onClick={onViewAllReadings}>
+              <button type="button" className="view-all-readings-btn" onClick={onViewAllReadings}>
                 View All Readings
               </button>
             </div>
@@ -280,58 +318,78 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
       {/* Consumption Graphs */}
       <div className="consumption-graphs-section">
         <h2 className="section-title">Consumption Graphs</h2>
-        <h3 className="graph-subtitle">Today's Usage</h3>
+        <h3 className="graph-subtitle">
+          {selectedTimePeriod === 'today' && "Today's Usage"}
+          {selectedTimePeriod === 'weekly' && `Week of ${formatWeekRange()}`}
+          {selectedTimePeriod === 'monthly' && `${formatMonthYear()}`}
+          {selectedTimePeriod === 'yearly' && `Year ${formatYear()}`}
+        </h3>
 
         <div className="graph-container">
-          {/* Placeholder for graph - TODO: Implement chart component */}
-          <div className="graph-placeholder">
-            <p>Graph visualization will be displayed here</p>
-            <p className="graph-note">(Chart component to be implemented)</p>
-          </div>
+          {/* Chart Display */}
+          {selectedGraphType === 'consumption' && selectedMeter && selectedElement && user?.client ? (
+            <ConsumptionGraph
+              meterId={selectedMeter}
+              meterElementId={selectedElement}
+              tenantId={user.client}
+              timePeriod={selectedTimePeriod}
+            />
+          ) : (
+            <div className="graph-placeholder">
+              <p>Unable to load consumption data</p>
+            </div>
+          )}
 
           {/* Time Period Buttons */}
           <div className="time-controls">
             <button
+              type="button"
               className={`time-button ${selectedTimePeriod === 'today' ? 'time-button--active' : ''}`}
               onClick={() => setSelectedTimePeriod('today')}
             >
               Today
             </button>
             <button
+              type="button"
               className={`time-button ${selectedTimePeriod === 'weekly' ? 'time-button--active' : ''}`}
               onClick={() => setSelectedTimePeriod('weekly')}
             >
-              Weekly
+              Week
             </button>
             <button
+              type="button"
               className={`time-button ${selectedTimePeriod === 'monthly' ? 'time-button--active' : ''}`}
               onClick={() => setSelectedTimePeriod('monthly')}
             >
-              Monthly
+              Month
             </button>
             <button
+              type="button"
               className={`time-button ${selectedTimePeriod === 'yearly' ? 'time-button--active' : ''}`}
               onClick={() => setSelectedTimePeriod('yearly')}
             >
-              Yearly
+              Year
             </button>
           </div>
 
           {/* Graph Type Buttons */}
           <div className="graph-type-controls">
             <button
+              type="button"
               className={`graph-type-button ${selectedGraphType === 'consumption' ? 'graph-type-button--active' : ''}`}
               onClick={() => setSelectedGraphType('consumption')}
             >
               Consumption
             </button>
             <button
+              type="button"
               className={`graph-type-button ${selectedGraphType === 'demand' ? 'graph-type-button--active' : ''}`}
               onClick={() => setSelectedGraphType('demand')}
             >
               Demand
             </button>
             <button
+              type="button"
               className={`graph-type-button ${selectedGraphType === 'ghg' ? 'graph-type-button--active' : ''}`}
               onClick={() => setSelectedGraphType('ghg')}
             >

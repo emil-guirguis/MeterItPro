@@ -85,6 +85,87 @@ app.get('/', requirePermission('meter:read'), async (c) => {
   }
 });
 
+// GET /consumption - Get aggregated consumption data for graph display
+app.get('/consumption', requirePermission('meter:read'), async (c) => {
+  try {
+    const tenantId = c.get('tenantId');
+    if (!tenantId) {
+      return c.json({ success: false, message: 'Unauthorized: tenant context required' }, 401);
+    }
+
+    const qs = c.req.query();
+    const meterId = qs.meterId ? parseInt(qs.meterId) : null;
+    const meterElementId = qs.meterElementId ? parseInt(qs.meterElementId) : null;
+    const timePeriod = qs.timePeriod || 'today';
+    const startDate = qs.startDate;
+    const endDate = qs.endDate;
+    const tzOffset = qs.tzOffset ? parseInt(qs.tzOffset) : 0; // minutes offset from UTC, e.g. +300 for UTC+5
+
+    if (!meterId || !meterElementId || !startDate || !endDate) {
+      return c.json({ success: false, message: 'meterId, meterElementId, startDate and endDate are required' }, 400);
+    }
+
+    // $4 = tzOffset (int), $5 = startDate, $6 = endDate
+    const params: any[] = [tenantId, meterId, meterElementId, tzOffset, startDate, endDate];
+    let sql: string;
+
+    if (timePeriod === 'today') {
+      sql = `
+        SELECT
+          EXTRACT(HOUR FROM (created_at + ($4::int * INTERVAL '1 minute')))::int AS label_key,
+          SUM(calculated_kwh) AS calculated_kwh
+        FROM meter_reading
+        WHERE tenant_id = $1
+          AND meter_id = $2
+          AND meter_element_id = $3
+          AND created_at >= $5::timestamptz
+          AND created_at <= $6::timestamptz
+        GROUP BY 1
+        ORDER BY 1
+      `;
+    } else if (timePeriod === 'weekly' || timePeriod === 'monthly') {
+      sql = `
+        SELECT
+          (created_at + ($4::int * INTERVAL '1 minute'))::date::text AS label_key,
+          SUM(calculated_kwh) AS calculated_kwh
+        FROM meter_reading
+        WHERE tenant_id = $1
+          AND meter_id = $2
+          AND meter_element_id = $3
+          AND (created_at + ($4::int * INTERVAL '1 minute')) >= $5::timestamptz
+          AND (created_at + ($4::int * INTERVAL '1 minute')) <= $6::timestamptz
+        GROUP BY 1
+        ORDER BY 1
+      `;
+    } else {
+      // yearly - group by local month
+      sql = `
+        SELECT
+          EXTRACT(MONTH FROM (created_at + ($4::int * INTERVAL '1 minute')))::int AS label_key,
+          SUM(calculated_kwh) AS calculated_kwh
+        FROM meter_reading
+        WHERE tenant_id = $1
+          AND meter_id = $2
+          AND meter_element_id = $3
+          AND (created_at + ($4::int * INTERVAL '1 minute')) >= $5::timestamptz
+          AND (created_at + ($4::int * INTERVAL '1 minute')) <= $6::timestamptz
+        GROUP BY 1
+        ORDER BY 1
+      `;
+    }
+
+    const result = await query(c.env, sql, params);
+    return c.json({ success: true, data: result.rows || [] });
+  } catch (error: any) {
+    logError('[MeterReadings] Error fetching consumption data:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to fetch consumption data',
+      error: error.message,
+    }, 500);
+  }
+});
+
 // GET /last - Get the last meter reading with meter details
 app.get('/last', requirePermission('meter:read'), async (c) => {
   try {

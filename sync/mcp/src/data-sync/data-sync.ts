@@ -1320,7 +1320,7 @@ export async function calculateKwhForReadings(pool: Pool, readingIds: string[]):
       WHERE prev.meter_id = meter_reading.meter_id
         AND prev.meter_element_id = meter_reading.meter_element_id
         AND prev.created_at < meter_reading.created_at
-        --AND prev.active_energy > 0
+        AND prev.active_energy > 0
       ORDER BY prev.created_at DESC
       LIMIT 1
     )

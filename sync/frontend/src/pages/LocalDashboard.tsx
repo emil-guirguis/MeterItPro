@@ -111,51 +111,51 @@ export default function LocalDashboard() {
       )}
 
       {/* Summary Cards */}
-      <Grid container spacing={3} mb={3}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid container spacing={2} mb={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography color="text.secondary" gutterBottom variant="caption">
                 Total Meters
               </Typography>
-              <Typography variant="h4">{totalCount}</Typography>
+              <Typography variant="h5">{totalCount}</Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography color="text.secondary" gutterBottom variant="caption">
                 Connected Meters
               </Typography>
-              <Box display="flex" alignItems="center" gap={1}>
-                <Typography variant="h4">{connectedCount}</Typography>
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <Typography variant="h5">{connectedCount}</Typography>
                 {connectedCount === totalCount && totalCount > 0 ? (
-                  <CheckCircleIcon color="success" />
+                  <CheckCircleIcon color="success" sx={{ fontSize: 20 }} />
                 ) : (
-                  <ErrorIcon color="error" />
+                  <ErrorIcon color="error" sx={{ fontSize: 20 }} />
                 )}
               </Box>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography color="text.secondary" gutterBottom variant="caption">
                 Readings (24h)
               </Typography>
-              <Typography variant="h4">{readings.length}</Typography>
+              <Typography variant="h5">{readings.length}</Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Typography color="text.secondary" gutterBottom variant="caption">
                 Unsynchronized
               </Typography>
-              <Typography variant="h4">
+              <Typography variant="h5">
                 {readings.filter((r) => !r.is_synchronized).length}
               </Typography>
             </CardContent>
@@ -164,7 +164,7 @@ export default function LocalDashboard() {
       </Grid>
 
       {/* Meter Status Cards */}
-      <Typography variant="h5" gutterBottom>
+      <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
         Meter Status
       </Typography>
       <Grid container spacing={2} mb={3}>

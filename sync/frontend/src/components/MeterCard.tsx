@@ -24,9 +24,9 @@ export default function MeterCard({
 }: MeterCardProps) {
   return (
     <Card>
-      <CardContent>
-        <Box display="flex" justifyContent="space-between" alignItems="start" mb={2}>
-          <Typography variant="h6" component="div">
+      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
+        <Box display="flex" justifyContent="space-between" alignItems="start" mb={1.5} gap={1}>
+          <Typography variant="body1" component="div" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {meter.name}
           </Typography>
           <Chip
@@ -34,31 +34,32 @@ export default function MeterCard({
             label={isConnected ? 'Connected' : 'Disconnected'}
             color={isConnected ? 'success' : 'error'}
             size="small"
+            sx={{ flexShrink: 0 }}
           />
         </Box>
 
         {meter.ip && (
-          <Typography variant="body2" color="text.secondary" gutterBottom>
+          <Typography variant="caption" color="text.secondary" gutterBottom sx={{ display: 'block', wordBreak: 'break-word' }}>
             BACnet IP: {meter.ip}
           </Typography>
         )}
 
         {lastReading && (
-          <Box mt={2}>
-            <Typography variant="body2" color="text.secondary">
+          <Box mt={1.5}>
+            <Typography variant="caption" color="text.secondary" display="block">
               Last Reading:
             </Typography>
-            <Typography variant="body1">
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
               {lastReading.value} {lastReading.unit || ''}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" display="block">
               {new Date(lastReading.timestamp).toLocaleString()}
             </Typography>
           </Box>
         )}
 
-        <Box mt={2}>
-          <Typography variant="body2" color="text.secondary">
+        <Box mt={1.5}>
+          <Typography variant="caption" color="text.secondary">
             Readings (24h): {readingCount}
           </Typography>
         </Box>

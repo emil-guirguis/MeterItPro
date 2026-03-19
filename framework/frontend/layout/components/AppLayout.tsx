@@ -130,6 +130,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               menuItems={filteredMenuItems}
               currentPath={location.pathname}
               onNavigate={navigateAndClose}
+              sidebarContent={sidebarContent}
             />
           )}
 

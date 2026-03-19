@@ -9,6 +9,7 @@ interface MobileNavProps {
   menuItems: MenuItem[];
   currentPath: string;
   onNavigate: (path: string) => void;
+  sidebarContent?: React.ReactNode;
 }
 
 /**
@@ -26,7 +27,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   onClose,
   menuItems,
   currentPath,
-  onNavigate
+  onNavigate,
+  sidebarContent
 }) => {
 
   // Prevent body scroll when mobile nav is open
@@ -59,16 +61,16 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
     <>
-      {/* Backdrop */}
-      <div 
-        className="mobile-nav-backdrop"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      {/* Backdrop - only show when open */}
+      {isOpen && (
+        <div
+          className="mobile-nav-backdrop"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
 
       {/* Mobile Navigation Drawer */}
       <nav 
@@ -77,6 +79,13 @@ export const MobileNav: React.FC<MobileNavProps> = ({
         role="navigation"
         id="main-navigation"
       >
+        {/* Sidebar Content (Favorites, Meter Readings, etc.) */}
+        {sidebarContent && (
+          <div className="mobile-nav__sidebar-content">
+            {sidebarContent}
+          </div>
+        )}
+
         {/* Navigation Menu */}
         <div className="mobile-nav__menu">
           <ul className="mobile-menu-list">

@@ -82,6 +82,7 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
   const importantColumns = [
     'created_at',
     'active_energy',
+    'calculated_kwh',
     'active_energy_export',
     'apparent_energy',
     'apparent_energy_export',
@@ -145,9 +146,9 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
   };
 
   const formatColumnName = (col: string): string => {
-    if (col === 'created_at') {
-      return 'Timestamp';
-    }
+    if (col === 'created_at') return 'Timestamp';
+    if (col === 'calculated_kwh') return 'Calc. kWh';
+
     // Convert snake_case to camelCase
     return col
       .split('_')

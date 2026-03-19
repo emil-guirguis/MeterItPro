@@ -126,6 +126,22 @@ class MeterReadingService {
     }
   }
 
+  // Get aggregated consumption data for graph display
+  async getConsumptionData(meterId: string, meterElementId: string, timePeriod: string, startDate: string, endDate: string, tzOffset: number): Promise<{ label_key: string | number; calculated_kwh: number }[]> {
+    try {
+      const response: AxiosResponse<{ success: boolean; data: any[] }> = await this.apiClient.get('/meterreadings/consumption', {
+        params: { meterId, meterElementId, timePeriod, startDate, endDate, tzOffset },
+      });
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.message || 'Failed to fetch consumption data';
+        throw new Error(message);
+      }
+      throw new Error('Network error occurred');
+    }
+  }
+
   // Get meter statistics
   async getMeterStats(): Promise<MeterReadingStats> {
     try {

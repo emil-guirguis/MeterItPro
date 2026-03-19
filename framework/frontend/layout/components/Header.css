@@ -317,9 +317,10 @@
   cursor: pointer;
   border-radius: 8px;
   transition: background-color 0.2s ease, transform 0.2s ease;
-  /* display: flex; */
+  display: flex;
   padding: 0px;
   justify-content: center;
+  align-items: center;
   color: white;
   /* Performance optimizations */
   will-change: background-color, transform;

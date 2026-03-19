@@ -14,7 +14,7 @@ export class DatabaseClient {
       database: config.database.database,
       user: config.database.user,
       password: config.database.password,
-      ssl: { rejectUnauthorized: false },
+      ssl: false,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 30000,

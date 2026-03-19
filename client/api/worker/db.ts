@@ -20,6 +20,7 @@ export async function query(env: Env, text: string, params: any[] = []) {
   const config = env.DATABASE_URL ? { connectionString: env.DATABASE_URL } : env.HYPERDRIVE;
   const client = new Client(config);
   await client.connect();
+  console.log('[SQL]', text, params.length ? params : '');
   try {
     return await client.query(text, params);
   } catch (error: any) {
@@ -37,9 +38,20 @@ export async function transaction<T>(env: Env, callback: (client: Client) => Pro
   const config = env.DATABASE_URL ? { connectionString: env.DATABASE_URL } : env.HYPERDRIVE;
   const client = new Client(config);
   await client.connect();
+  const loggingClient = new Proxy(client, {
+    get(target, prop) {
+      if (prop === 'query') {
+        return (text: string, params?: any[]) => {
+          console.log('[SQL]', text, params?.length ? params : '');
+          return target.query(text, params as any);
+        };
+      }
+      return (target as any)[prop];
+    },
+  });
   try {
     await client.query('BEGIN');
-    const result = await callback(client);
+    const result = await callback(loggingClient as Client);
     await client.query('COMMIT');
     return result;
   } catch (error: any) {
