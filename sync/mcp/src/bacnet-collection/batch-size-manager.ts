@@ -43,8 +43,8 @@ export class BatchSizeManager {
     this.initialBatchSize = config.initialBatchSize ?? 'all';
     this.minBatchSize = config.minBatchSize ?? 1;
     this.reductionFactor = config.reductionFactor ?? 0.5;
-    this.circuitBreakerThreshold = config.circuitBreakerThreshold ?? 5;
-    this.circuitCooldownMs = config.circuitCooldownMs ?? 15 * 60 * 1000;
+    this.circuitBreakerThreshold = config.circuitBreakerThreshold ?? 3;
+    this.circuitCooldownMs = config.circuitCooldownMs ?? 5 * 60 * 1000;
     this.logger = logger || console;
 
     // Validate configuration
@@ -57,17 +57,22 @@ export class BatchSizeManager {
   }
 
   /**
-   * Get the batch size for a meter
-   * 
-   * If the meter hasn't been seen before, initializes it with a small batch size.
-   * Starts with max 5 registers per batch to avoid timeouts, then grows on success.
+   * Get the batch size for a meter.
+   *
+   * On first encounter, respects the configured initialBatchSize:
+   *   'all' (default) → read all registers in one readPropertyMultiple call
+   *   number          → cap to that many registers per call
+   *
+   * On timeout, the size is reduced by reductionFactor until minBatchSize.
    */
   getBatchSize(meterId: number, totalRegisters: number): number {
     let state = this.meterStates.get(meterId);
 
     if (!state) {
-      // Initialize new meter state with small batch size (max 5)
-      const initialSize = Math.min(5, totalRegisters);
+      const initialSize =
+        this.initialBatchSize === 'all'
+          ? totalRegisters
+          : Math.min(this.initialBatchSize, totalRegisters);
 
       state = {
         meterId,
@@ -82,7 +87,7 @@ export class BatchSizeManager {
 
       this.meterStates.set(meterId, state);
       this.logger.info(
-        `Initialized batch size for meter ${meterId}: ${state.currentBatchSize} (total registers: ${totalRegisters})`
+        `Initialized batch size for meter ${meterId}: ${state.currentBatchSize} of ${totalRegisters} registers per readPropertyMultiple call`
       );
     }
 

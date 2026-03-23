@@ -14,7 +14,7 @@
  * Used by: BACnetMeterReadingAgent
  * Environment variable: BACNET_COLLECTION_INTERVAL_SECONDS
  */
-export const CRON_METER_READ = minutesToCronEvery(5);
+export const CRON_METER_READ = minutesToCronEvery(15);
 
 /**
  * BACnet Upload Interval

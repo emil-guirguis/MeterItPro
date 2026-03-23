@@ -8,6 +8,7 @@
 import { Pool, PoolClient, QueryResult } from 'pg';
 import { TenantEntity, MeterEntity, MeterReadingEntity, SyncLog } from '../entities/index.js';
 import { execQuery } from '../helpers/sql-functions.js';
+import { cacheManager } from '../cache/cache-manager.js';
 
 export interface DatabaseConfig {
   host: string;
@@ -1044,9 +1045,7 @@ export class SyncDatabase {
    */
   async logReadingFailure(meterId: string, operation: string, error: string): Promise<void> {
     try {
-      // Get tenant ID from cache
-      const tenantCache = require('../cache/cache-manager.js').cacheManager.getTenant();
-      const tenantId = tenantCache?.tenant_id || 0;
+      const tenantId = cacheManager.getTenantCache().getTenant()?.tenant_id || 0;
 
       await this.pool.query(
         `INSERT INTO meter_reading (

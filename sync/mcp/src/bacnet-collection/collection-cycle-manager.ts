@@ -219,6 +219,36 @@ async executeCycle(
               this.logger.info(
                 `Meter ${meter.meter_id}: inserted ${insertionResult.insertedCount} readings (${insertionResult.skippedCount} skipped, ${insertionResult.failedCount} failed)`
               );
+
+              // ─────────────────────────────────────────────────────────────
+              // DEV-ONLY: Post-read connectivity check
+              // Checks if the meter crashes after data is inserted.
+              // Remove this block before deploying to production.
+              // Enable by setting BACNET_DEBUG_POST_READ_CHECK=true in .env
+              // ─────────────────────────────────────────────────────────────
+              if (process.env.BACNET_DEBUG_POST_READ_CHECK === 'true') {
+                const wasAlreadyOffline = errors.some(
+                  e => e.meterId === String(meter.meter_id) && e.operation === 'connectivity'
+                );
+                if (!wasAlreadyOffline) {
+                  const postReadOnline = await bacnetClient.checkConnectivity(
+                    meter.ip, Number(meter.port) || 47808, Number(meter.device_id)
+                  );
+                  if (!postReadOnline) {
+                    this.logger.error(
+                      `[DEV] ⚠️  METER CRASHED AFTER READ — meter ${meter.meter_id} (${meter.element}) ` +
+                      `at ${meter.ip} is OFFLINE immediately after inserting ${insertionResult.insertedCount} readings. ` +
+                      `This suggests the BACnet reads are crashing the device.`
+                    );
+                  } else {
+                    this.logger.info(
+                      `[DEV] ✅ Post-read check: meter ${meter.meter_id} (${meter.element}) still online after insert`
+                    );
+                  }
+                }
+              }
+              // ─────────────────────────────────────────────────────────────
+
             } catch (writeError) {
               const errorMsg = writeError instanceof Error ? writeError.message : String(writeError);
               this.logger.error(
@@ -345,30 +375,61 @@ async executeCycle(
       this.logger.info(`   Full meter:`, JSON.stringify(meter, null, 2));
       this.logger.info(`${'='.repeat(100)}\n`);
 
-      // Check connectivity
-      this.logger.info(`Checking connectivity → ${meter.ip}:${meter.port || 47808}`);
-      const isOnline = await bacnetClient.checkConnectivity(meter.ip, meter.port || 47808);
+      // Check connectivity by reading the device object — fast 2s timeout
+      this.logger.info(`Checking connectivity → ${meter.ip} (device ${meter.device_id})`);
+      const isOnline = await bacnetClient.checkConnectivity(meter.ip, meter.port || 47808, Number(meter.device_id));
 
       if (!isOnline) {
-        this.logger.warn(`Meter ${meter.meter_id} (${meter.element}) is OFFLINE → skipping`);
-        errors.push({
-          meterId: String(meter.meter_id),
-          operation: 'connectivity',
-          error: `Offline/unreachable at ${meter.ip}:${meter.port || 47808}`,
-          timestamp: new Date(),
-        });
-        this.recordTimeoutEvent(
-          String(meter.meter_id),
-          0,
-          0,
-          readTimeoutMs,
-          'offline',
-          false
+        // Retry once after a short delay to rule out a transient network blip
+        const RETRY_DELAY_MS = 8000;
+        this.logger.warn(
+          `Meter ${meter.meter_id} (${meter.element}) failed connectivity — ` +
+          `waiting ${RETRY_DELAY_MS / 1000}s then retrying...`
         );
-        return readings;
-      }
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
 
-      this.logger.info(`Meter ${meter.meter_id} (${meter.element}) is ONLINE → proceeding`);
+        const isOnlineRetry = await bacnetClient.checkConnectivity(
+          meter.ip, meter.port || 47808, Number(meter.device_id)
+        );
+
+        if (!isOnlineRetry) {
+          this.logger.warn(
+            `Meter ${meter.meter_id} (${meter.element}) CONFIRMED OFFLINE after retry — inserting zero reading`
+          );
+
+          // Load registers so we know which fields to zero out
+          const offlineRegisters = cacheManager.getDeviceRegisterCache().getDeviceRegisters(Number(meter.device_id));
+          if (offlineRegisters.length > 0) {
+            for (const register of offlineRegisters) {
+              readings.push({
+                meter_id: Number(meter.meter_id),
+                meter_element_id: Number(meter.meter_element_id),
+                field_name: register.field_name,
+                value: 0,
+                register: register.register,
+                element: meter.element,
+                created_at: cycleStartTime || new Date(),
+              });
+            }
+            this.logger.info(
+              `Inserted ${readings.length} zero readings for offline meter ${meter.meter_id} (${meter.element})`
+            );
+          }
+
+          errors.push({
+            meterId: String(meter.meter_id),
+            operation: 'connectivity',
+            error: `Device confirmed offline after retry at ${meter.ip}:${meter.port || 47808}`,
+            timestamp: new Date(),
+          });
+          this.recordTimeoutEvent(String(meter.meter_id), 0, 0, readTimeoutMs, 'offline', false);
+          return readings;
+        }
+
+        this.logger.info(`Meter ${meter.meter_id} (${meter.element}) came back online on retry — proceeding`);
+      } else {
+        this.logger.info(`Meter ${meter.meter_id} (${meter.element}) is ONLINE → proceeding`);
+      }
 
       // ── Circuit breaker check ──────────────────────────────────────────
       if (this.batchSizeManager.isCircuitOpen(meter.meter_id)) {
@@ -657,12 +718,15 @@ async executeCycle(
         );
 
         if (hasTimeoutError) {
-          // Batch read timed out - force sequential fallback to get at least some data
+          // Batch timed out — do NOT fall back to individual reads.
+          // Sending individual readProperty calls to a struggling device floods it with
+          // UDP packets and makes the problem worse (especially when multiple elements
+          // share the same physical device IP). Record the failure and move on.
           this.logger.warn(
-            `⏱️  Batch ${batchNumber} timed out for meter ${meter.meter_id}, forcing sequential fallback`
+            `⏱️  Batch ${batchNumber} timed out for meter ${meter.meter_id} (${meter.ip}) — ` +
+            `marking ${batchRequests.length} registers failed, continuing to next batch`
           );
 
-          // Record timeout event
           this.recordTimeoutEvent(
             String(meter.meter_id),
             batchRequests.length,
@@ -671,52 +735,25 @@ async executeCycle(
             'reduced_batch',
             false
           );
-
           this.batchSizeManager.recordTimeout(meter.meter_id);
 
-          // Force sequential fallback immediately on timeout
-          const sequentialResults: any[] = [];
-          for (const request of batchRequests) {
-            try {
-              const result = await bacnetClient.readProperty(
-                meter.ip,
-                port,
-                request.objectType,
-                request.objectInstance,
-                request.propertyId,
-                readTimeoutMs
-              );
-              sequentialResults.push(result);
-            } catch (seqError) {
-              this.logger.warn(
-                `Sequential read failed for ${request.objectType}:${request.objectInstance}.${request.propertyId}: ${seqError}`
-              );
-              sequentialResults.push({
-                success: false,
-                error: String(seqError),
-              });
-            }
-          }
-
-          // Store sequential results
-          sequentialResults.forEach((result: any, index: number) => {
-            allResults[i + index] = result;
+          // Mark this batch as failed
+          batchRequests.forEach((_: any, index: number) => {
+            allResults[i + index] = { success: false, error: 'Batch timeout — skipped to protect device' };
           });
 
-          // Record sequential recovery success
-          const successCount = sequentialResults.filter((r: any) => r?.success).length;
-          this.recordTimeoutEvent(
-            String(meter.meter_id),
-            batchRequests.length,
-            currentBatchSize,
-            readTimeoutMs,
-            'sequential',
-            successCount > 0
-          );
-
-          this.logger.info(
-            `Sequential fallback for batch ${batchNumber}: ${successCount}/${batchRequests.length} succeeded`
-          );
+          // If this is the first batch and it timed out, abort remaining batches too —
+          // the device is unresponsive, no point hammering it further this cycle.
+          if (batchNumber === 1) {
+            this.logger.warn(
+              `🛑 First batch timed out for meter ${meter.meter_id} — aborting remaining ` +
+              `${allRequests.length - batchEnd} registers this cycle`
+            );
+            for (let j = batchEnd; j < allRequests.length; j++) {
+              allResults[j] = { success: false, error: 'Skipped: device unresponsive on first batch' };
+            }
+            break;
+          }
         } else {
           // Store successful results
           batchResults.forEach((result: any, index: number) => {
@@ -730,13 +767,13 @@ async executeCycle(
         }
 
       } catch (batchError) {
-        // Batch read threw an error (real timeout or exception) - force sequential fallback
+        // Batch threw an exception — same policy: no sequential fallback.
         const errorMsg = batchError instanceof Error ? batchError.message : String(batchError);
         this.logger.error(
-          `🔴 Batch ${batchNumber} threw error for meter ${meter.meter_id}: ${errorMsg}, forcing sequential fallback`
+          `🔴 Batch ${batchNumber} error for meter ${meter.meter_id} (${meter.ip}): ${errorMsg} — ` +
+          `marking ${batchRequests.length} registers failed`
         );
 
-        // Record timeout event
         this.recordTimeoutEvent(
           String(meter.meter_id),
           batchRequests.length,
@@ -745,52 +782,23 @@ async executeCycle(
           'reduced_batch',
           false
         );
-
         this.batchSizeManager.recordTimeout(meter.meter_id);
 
-        // Attempt sequential fallback - read properties one at a time
-        const sequentialResults: any[] = [];
-        for (const request of batchRequests) {
-          try {
-            const result = await bacnetClient.readProperty(
-              meter.ip,
-              port,
-              request.objectType,
-              request.objectInstance,
-              request.propertyId,
-              readTimeoutMs
-            );
-            sequentialResults.push(result);
-          } catch (seqError) {
-            this.logger.warn(
-              `Sequential read failed for ${request.objectType}:${request.objectInstance}.${request.propertyId}: ${seqError}`
-            );
-            sequentialResults.push({
-              success: false,
-              error: String(seqError),
-            });
-          }
-        }
-
-        // Store sequential results
-        sequentialResults.forEach((result: any, index: number) => {
-          allResults[i + index] = result;
+        batchRequests.forEach((_: any, index: number) => {
+          allResults[i + index] = { success: false, error: errorMsg };
         });
 
-        // Record timeout event with sequential recovery method
-        const successCount = sequentialResults.filter((r: any) => r?.success).length;
-        this.recordTimeoutEvent(
-          String(meter.meter_id),
-          batchRequests.length,
-          currentBatchSize,
-          readTimeoutMs,
-          'sequential',
-          successCount > 0
-        );
-
-        this.logger.info(
-          `Sequential fallback for batch ${batchNumber}: ${successCount}/${batchRequests.length} succeeded`
-        );
+        // Abort on first batch failure
+        if (batchNumber === 1) {
+          this.logger.warn(
+            `🛑 First batch errored for meter ${meter.meter_id} — aborting remaining ` +
+            `${allRequests.length - batchEnd} registers this cycle`
+          );
+          for (let j = batchEnd; j < allRequests.length; j++) {
+            allResults[j] = { success: false, error: 'Skipped: first batch error' };
+          }
+          break;
+        }
       }
 
       batchIndex++;

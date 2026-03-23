@@ -7,7 +7,13 @@
  * Provides AI tools for controlling meter collection, synchronization, and local data queries.
  */
 
-import 'dotenv/config';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+import dotenv from 'dotenv';
+
+// Load .env from project root regardless of process CWD (works for both src/ and dist/)
+const __dirname_local = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: resolve(__dirname_local, '../../../.env') });
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
