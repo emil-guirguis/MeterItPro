@@ -177,6 +177,34 @@ export const uploadQueueApi = {
   },
 };
 
+export const meterDeviceApi = {
+  getConnectivity: async (): Promise<Array<{ meter_id: number; name: string; ip: string; port: number; device_id: number; online: boolean }>> => {
+    try {
+      const response = await apiClient.get('/api/meters/connectivity');
+      return response.data;
+    } catch (error) {
+      console.error('❌ [Meter Device] Failed to fetch connectivity:', error);
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.error || error.message || 'Failed to fetch meter connectivity');
+      }
+      throw error;
+    }
+  },
+
+  reinitialize: async (meterId: number): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await apiClient.post<{ success: boolean; error?: string }>(`/api/meters/${meterId}/reinitialize`);
+      return response.data;
+    } catch (error) {
+      console.error('❌ [Meter Device] Failed to reinitialize meter:', error);
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.error || error.message || 'Failed to reinitialize meter');
+      }
+      throw error;
+    }
+  },
+};
+
 export const tenantApi = {
   getTenantInfo: async (): Promise<TenantInfo | null> => {
     try {

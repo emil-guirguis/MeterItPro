@@ -827,6 +827,88 @@ export class LocalApiServer {
       }
     });
 
+    // Get all meters with their BACnet connectivity status
+    this.app.get('/api/meters/connectivity', async (_req, res, next) => {
+      try {
+        console.log('📥 [API] GET /api/meters/connectivity - Request received');
+
+        // Use the same query as getMeters for consistency
+        const connectivityQuery = `SELECT meter_id, name, active, ip, port, meter_element_id, element, device_id FROM meter WHERE active = true ORDER BY meter_id, meter_element_id`;
+        console.log(`\n🔍 [API] /api/meters/connectivity SQL:\n   ${connectivityQuery}`);
+
+        const allRows = await this.database.getMeters(true);
+        console.log(`\n📊 [API] /api/meters/connectivity - getMeters returned ${allRows.length} rows (elements)`);
+        allRows.forEach((r: any, i: number) => console.log(`   Row ${i + 1}: meter_id=${r.meter_id}, element_id=${r.meter_element_id}, name=${r.name}, ip=${r.ip}, port=${r.port}, device_id=${r.device_id}`));
+
+        // Deduplicate by meter_id — one row per physical device
+        const seen = new Set<number>();
+        const uniqueMeters = allRows.filter((m: any) => {
+          if (seen.has(m.meter_id)) return false;
+          seen.add(m.meter_id);
+          return true;
+        });
+        console.log(`\n📊 [API] /api/meters/connectivity - ${uniqueMeters.length} unique meter(s) after dedup`);
+
+        const results = await Promise.all(
+          uniqueMeters.map(async (meter: any) => {
+            let online = false;
+            if (this.bacnetMeterReadingAgent && meter.ip && meter.device_id) {
+              online = await this.bacnetMeterReadingAgent.checkMeterConnectivity(
+                meter.ip,
+                meter.port || 47808,
+                meter.device_id
+              );
+            }
+            console.log(`   Connectivity: meter_id=${meter.meter_id} name=${meter.name} ip=${meter.ip} → ${online ? 'ONLINE' : 'OFFLINE'}`);
+            return {
+              meter_id: meter.meter_id,
+              name: meter.name,
+              ip: meter.ip,
+              port: meter.port || 47808,
+              device_id: meter.device_id,
+              online,
+            };
+          })
+        );
+
+        console.log(`📤 [API] GET /api/meters/connectivity - Returning ${results.length} meter(s)`);
+        res.json(results);
+      } catch (error) {
+        console.error('❌ [API] GET /api/meters/connectivity - Error:', error);
+        next(error);
+      }
+    });
+
+    // Reinitialize (restart) a BACnet device
+    this.app.post('/api/meters/:meterId/reinitialize', async (req, res, next) => {
+      try {
+        const { meterId } = req.params;
+        console.log(`📥 [API] POST /api/meters/${meterId}/reinitialize - Request received`);
+
+        if (!this.bacnetMeterReadingAgent) {
+          return res.status(503).json({ success: false, error: 'BACnet agent not available' });
+        }
+
+        const meters = await this.database.getMeters(true);
+        const meter = meters.find((m: any) => String(m.meter_id) === String(meterId));
+
+        if (!meter) {
+          return res.status(404).json({ success: false, error: 'Meter not found' });
+        }
+
+        if (!meter.ip) {
+          return res.status(400).json({ success: false, error: 'Meter has no IP address' });
+        }
+
+        const result = await this.bacnetMeterReadingAgent.reinitializeDevice(meter.ip, 0);
+        console.log(`📤 [API] POST /api/meters/${meterId}/reinitialize - Result:`, result);
+        res.json(result);
+      } catch (error) {
+        console.error(`❌ [API] POST /api/meters/reinitialize - Error:`, error);
+        next(error);
+      }
+    });
+
     // Trigger manual meter reading upload
     this.app.post('/api/sync/meter-reading-upload/trigger', async (_req, res, next) => {
       try {

@@ -14,6 +14,7 @@ import dotenv from 'dotenv';
 // Load .env from project root regardless of process CWD (works for both src/ and dist/)
 const __dirname_local = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname_local, '../../../.env') });
+import express from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -67,6 +68,7 @@ const logger = winston.createLogger({
  */
 class SyncMcpServer {
   private server: Server;
+  private httpServer?: express.Application;
   // API Server has been moved to sync/api
   // private apiServer?: LocalApiServer;
   private syncDatabase?: SyncDatabase;
@@ -704,6 +706,62 @@ class SyncMcpServer {
   }
 
   /**
+   * Initialize HTTP server for connectivity checks and other endpoints
+   */
+  private initializeHttpServer(): void {
+    this.httpServer = express();
+    this.httpServer.use(express.json());
+
+    // Health check endpoint
+    this.httpServer.get('/health', (_req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    });
+
+    // Meter connectivity check endpoint
+    this.httpServer.post('/api/check-connectivity', async (req, res) => {
+      try {
+        const { ip, port, deviceId } = req.body;
+
+        if (!ip || !deviceId) {
+          return res.status(400).json({
+            error: 'Missing required parameters: ip, deviceId',
+          });
+        }
+
+        if (!this.bacnetMeterReadingAgent) {
+          return res.status(503).json({
+            error: 'BACnet agent not initialized',
+          });
+        }
+
+        const isOnline = await this.bacnetMeterReadingAgent.checkMeterConnectivity(
+          ip,
+          port || 47808,
+          deviceId
+        );
+
+        res.json({
+          ip,
+          deviceId,
+          online: isOnline,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error('Error checking connectivity:', error);
+        res.status(500).json({
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+
+    const httpPort = parseInt(process.env.MCP_HTTP_PORT || '3001', 10);
+    this.httpServer.listen(httpPort, '127.0.0.1', () => {
+      console.log(`✅ [HTTP] MCP HTTP server listening on http://127.0.0.1:${httpPort}`);
+      console.log(`   Connectivity check: POST http://localhost:${httpPort}/api/check-connectivity`);
+    });
+  }
+
+  /**
    * Start the MCP server
    */
   async start(): Promise<void> {
@@ -712,6 +770,10 @@ class SyncMcpServer {
     // Initialize services immediately
     console.log('🔧 [MCP] Initializing services before connecting transport...');
     await this.initializeServices();
+
+    // Initialize HTTP server for connectivity checks
+    console.log('🔧 [MCP] Initializing HTTP server...');
+    this.initializeHttpServer();
 
     const transport = new StdioServerTransport();
     console.log('🔌 [MCP] Connecting to stdio transport...');

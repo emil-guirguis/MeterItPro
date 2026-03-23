@@ -56,7 +56,8 @@
       "Bash(test:*)",
       "Bash(tree:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(taskkill /F /PID 28940 /T)"
     ]
   }
 }

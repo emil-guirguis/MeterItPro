@@ -630,6 +630,75 @@ app.get('/api/local/meters', async (_req, res) => {
   }
 });
 
+// Get meter connectivity status
+app.get('/api/meters/connectivity', async (_req, res) => {
+  try {
+    console.log('📥 [API] GET /api/meters/connectivity - Request received');
+
+    const query = `
+      SELECT meter_id, device_id, name, active, ip, port
+      FROM meter
+      WHERE active = true
+      ORDER BY meter_id
+    `;
+    console.log(`\n🔍 [API] /api/meters/connectivity SQL:\n   ${query}`);
+
+    const result = await syncPool.query(query);
+    console.log(`\n📊 [API] /api/meters/connectivity - ${result.rows.length} meter(s) found`);
+
+    const mcpHttpUrl = process.env.MCP_HTTP_URL || 'http://127.0.0.1:3001';
+
+    // Check connectivity for each meter via MCP HTTP server
+    const meters = await Promise.all(
+      result.rows.map(async (row: any) => {
+        let online = false;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+          const checkResponse = await fetch(`${mcpHttpUrl}/api/check-connectivity`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              ip: row.ip,
+              port: row.port || 47808,
+              deviceId: parseInt(row.device_id, 10),
+            }),
+          });
+
+          clearTimeout(timeoutId);
+
+          if (checkResponse.ok) {
+            const checkData = await checkResponse.json() as any;
+            online = checkData.online ?? false;
+          }
+        } catch (err) {
+          console.warn(`Failed to check connectivity for ${row.ip}:`, err instanceof Error ? err.message : String(err));
+          online = false;
+        }
+
+        return {
+          meter_id: row.meter_id,
+          name: row.name,
+          ip: row.ip,
+          port: row.port || 47808,
+          device_id: row.device_id,
+          online,
+        };
+      })
+    );
+
+    console.log(`📤 [API] GET /api/meters/connectivity - Returning ${meters.length} meter(s)`);
+    res.json(meters);
+  } catch (error) {
+    console.error('❌ [API] GET /api/meters/connectivity - Error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
 // Get recent readings
 app.get('/api/local/readings', async (req, res) => {
   try {

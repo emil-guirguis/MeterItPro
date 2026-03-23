@@ -413,6 +413,38 @@ export class BACnetClient {
   }
 
   /**
+   * Send a ReinitializeDevice command to restart a BACnet device.
+   * State 0 = COLDSTART (full restart), state 1 = WARMSTART.
+   */
+  async reinitializeDevice(ip: string, state: number = 0): Promise<{ success: boolean; error?: string }> {
+    const REINIT_TIMEOUT_MS = 5000;
+    return new Promise((resolve) => {
+      const timeoutHandle = setTimeout(() => {
+        console.error(`BACnet reinitializeDevice timeout for ${ip} after ${REINIT_TIMEOUT_MS}ms`);
+        resolve({ success: false, error: `Reinitialize timeout after ${REINIT_TIMEOUT_MS}ms` });
+      }, REINIT_TIMEOUT_MS);
+
+      try {
+        this.client.reinitializeDevice(ip, state, (err: Error | null) => {
+          clearTimeout(timeoutHandle);
+          if (err) {
+            console.error(`BACnet reinitializeDevice error for ${ip}:`, err.message);
+            resolve({ success: false, error: err.message });
+          } else {
+            console.log(`BACnet reinitializeDevice successful for ${ip}`);
+            resolve({ success: true });
+          }
+        });
+      } catch (err) {
+        clearTimeout(timeoutHandle);
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error(`BACnet reinitializeDevice exception for ${ip}:`, errorMsg);
+        resolve({ success: false, error: errorMsg });
+      }
+    });
+  }
+
+  /**
    * Send WhoIs broadcast to discover BACnet devices
    */
   whoIs(): void {

@@ -22,6 +22,7 @@ import { useAppStore } from '../stores/useAppStore';
 import { localSyncApi, tenantApi } from '../api/services';
 import CompanyInfoCard from '../components/CompanyInfoCard';
 import MeterCollectionCard from '../components/MeterCollectionCard';
+import MeterDeviceStatusCard from '../components/MeterDeviceStatusCard';
 import RemoteMeterSyncCard from '../components/RemoteMeterSyncCard';
 import UploadQueueCard from '../components/UploadQueueCard';
 
@@ -129,6 +130,9 @@ export default function SystemStatusPage() {
         {tenantInfo && (
           <>
             <Grid item xs={12}>
+              <MeterDeviceStatusCard />
+            </Grid>
+            <Grid item xs={12}>
               <UploadQueueCard />
             </Grid>
 
@@ -139,6 +143,8 @@ export default function SystemStatusPage() {
             <Grid item xs={12}>
               <MeterCollectionCard />
             </Grid>
+
+
           </>
         )}
       </Grid>

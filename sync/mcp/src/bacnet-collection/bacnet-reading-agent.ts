@@ -388,4 +388,18 @@ export class BACnetMeterReadingAgent {
       offlineMeters: Array.from(this.offlineMetersMap.values()),
     };
   }
+
+  /**
+   * Check connectivity for a single BACnet device by IP and device ID
+   */
+  async checkMeterConnectivity(ip: string, port: number, deviceId: number): Promise<boolean> {
+    return this.bacnetClient.checkConnectivity(ip, port, deviceId);
+  }
+
+  /**
+   * Send reinitializeDevice command to a BACnet device (COLDSTART = 0, WARMSTART = 1)
+   */
+  async reinitializeDevice(ip: string, state: number = 0): Promise<{ success: boolean; error?: string }> {
+    return this.bacnetClient.reinitializeDevice(ip, state);
+  }
 }
