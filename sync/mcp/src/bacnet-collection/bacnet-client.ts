@@ -376,36 +376,37 @@ export class BACnetClient {
    * Uses a short 2-second timeout so a dead device fails fast.
    */
   async checkConnectivity(ip: string, port: number, deviceId: number): Promise<boolean> {
-    const CONNECTIVITY_TIMEOUT_MS = 2000;
+    const CONNECTIVITY_TIMEOUT_MS = 5000;
+    const address = `${ip}:${port}`;
     // objectType 8 = Device, property 77 = objectName
     const DEVICE_OBJECT_TYPE = 8;
     const OBJECT_NAME_PROPERTY = 77;
 
     return new Promise((resolve) => {
       const timeoutHandle = setTimeout(() => {
-        console.error(`BACnet connectivity timeout for ${ip} (device ${deviceId}) after ${CONNECTIVITY_TIMEOUT_MS}ms`);
+        console.error(`BACnet connectivity timeout for ${address} (device ${deviceId}) after ${CONNECTIVITY_TIMEOUT_MS}ms`);
         resolve(false);
       }, CONNECTIVITY_TIMEOUT_MS);
 
       try {
         this.client.readProperty(
-          ip,
+          address,
           { type: DEVICE_OBJECT_TYPE, instance: deviceId },
           OBJECT_NAME_PROPERTY,
           (error: Error | null, value: any) => {
             clearTimeout(timeoutHandle);
             if (error) {
-              console.error(`BACnet connectivity check failed for ${ip} (device ${deviceId}):`, error.message);
+              console.error(`BACnet connectivity check failed for ${address} (device ${deviceId}):`, error.message);
               resolve(false);
             } else {
-              console.log(`BACnet device ${deviceId} at ${ip} is online`);
+              console.log(`BACnet device ${deviceId} at ${address} is online`);
               resolve(true);
             }
           }
         );
       } catch (err) {
         clearTimeout(timeoutHandle);
-        console.error(`BACnet connectivity check error for ${ip}:`, err instanceof Error ? err.message : String(err));
+        console.error(`BACnet connectivity check error for ${address}:`, err instanceof Error ? err.message : String(err));
         resolve(false);
       }
     });
