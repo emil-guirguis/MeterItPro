@@ -137,19 +137,26 @@ export const DashboardPage: React.FC = () => {
         limit: 100
       });
       console.log('📊 [DashboardPage] Cards received:', response.items.length);
-      setCards(response.items);
 
-      const newLayout: Layout[] = response.items.map((card, index) => ({
+      // Ensure all cards have reasonable dimensions (grid: 12 cols, so w should be 2-12, h should be reasonable)
+      const cardsWithDefaults = response.items.map(card => ({
+        ...card,
+        grid_w: (card.grid_w && card.grid_w > 0 && card.grid_w <= 12) ? card.grid_w : 4,
+        grid_h: (card.grid_h && card.grid_h > 0 && card.grid_h <= 20) ? card.grid_h : 8,
+      }));
+      setCards(cardsWithDefaults);
+
+      const newLayout: Layout[] = cardsWithDefaults.map((card, index) => ({
         i: card.dashboard_id.toString(),
         x: card.grid_x ?? 0,
-        y: card.grid_y ?? (index * 520),
-        w: card.grid_w ?? 300,
-        h: card.grid_h ?? 500,
+        y: card.grid_y ?? (index * 10),
+        w: cardsWithDefaults[index].grid_w,
+        h: cardsWithDefaults[index].grid_h,
         static: false,
       }));
       setLayout(newLayout);
 
-      response.items.forEach((card) => {
+      cardsWithDefaults.forEach((card) => {
         fetchCardData(card.dashboard_id);
       });
 
@@ -236,12 +243,75 @@ export const DashboardPage: React.FC = () => {
 
   // Handle modal success
   const handleModalSuccess = (card: DashboardCardType) => {
+    console.log('✅ handleModalSuccess called, editingCard:', !!editingCard, 'card:', card);
     if (editingCard) {
       setCards(prev => prev.map(c => c.dashboard_id === card.dashboard_id ? card : c));
     } else {
-      setCards(prev => [...prev, card]);
-      fetchCardData(card.dashboard_id);
+      // Ensure card has reasonable default dimensions (grid: 12 cols, h: reasonable rows)
+      const cardWithDefaults = {
+        ...card,
+        grid_w: (card.grid_w && card.grid_w > 0 && card.grid_w <= 12) ? card.grid_w : 4,
+        grid_h: (card.grid_h && card.grid_h > 0 && card.grid_h <= 20) ? card.grid_h : 8,
+      };
+
+      console.log('📝 Creating new card:', cardWithDefaults.dashboard_id, cardWithDefaults.card_name);
+      setCards(prev => {
+        const updated = [...prev, cardWithDefaults];
+        console.log('📍 After setCards, cards count:', updated.length);
+        return updated;
+      });
+
+      setLayout(prev => {
+        const newW = cardWithDefaults.grid_w;
+        const newH = cardWithDefaults.grid_h;
+        const gridCols = 12;
+        const gap = 0; // 0 column gap between cards
+
+        console.log('Finding placement for card w:', newW, 'h:', newH);
+
+        // Try to find available space (left-to-right, top-to-bottom)
+        let bestX = 0;
+        let bestY = 0;
+        let placed = false;
+
+        // Scan for available space with gap consideration
+        for (let tryY = 0; tryY <= 50; tryY++) {
+          for (let tryX = 0; tryX <= gridCols - newW; tryX++) {
+            // Check for conflicts with gap
+            const conflicts = prev.some(item =>
+              !(tryX + newW + gap <= item.x || tryX >= item.x + item.w + gap ||
+                tryY + newH + gap <= item.y || tryY >= item.y + item.h + gap)
+            );
+
+            if (!conflicts) {
+              bestX = tryX;
+              bestY = tryY;
+              placed = true;
+              break;
+            }
+          }
+          if (placed) break;
+        }
+
+        const newLayoutItem = {
+          i: cardWithDefaults.dashboard_id.toString(),
+          x: bestX,
+          y: bestY,
+          w: newW,
+          h: newH,
+          static: false,
+        };
+        console.log('New layout item placed at x:', bestX, 'y:', bestY);
+
+        const updated = [...prev, newLayoutItem];
+        console.log('📍 After setLayout, layout count:', updated.length);
+        return updated;
+      });
+
+      console.log('🔄 Fetching data for card:', cardWithDefaults.dashboard_id);
+      fetchCardData(cardWithDefaults.dashboard_id);
     }
+    console.log('🚪 Closing modal');
     handleModalClose();
   };
 
@@ -256,9 +326,21 @@ export const DashboardPage: React.FC = () => {
   // Handle delete card
   const handleDeleteCard = async (cardId: number | string) => {
     const numCardId = typeof cardId === 'string' ? parseInt(cardId) : cardId;
+    const cardIdStr = numCardId.toString();
+    console.log(`🗑️ Deleting card ${cardIdStr}`);
     try {
       await dashboardService.deleteDashboardCard(numCardId);
-      setCards(prev => prev.filter(c => c.dashboard_id !== numCardId));
+      console.log(`✅ Card ${cardIdStr} deleted from API`);
+      setCards(prev => {
+        const filtered = prev.filter(c => String(c.dashboard_id) !== cardIdStr);
+        console.log(`Cards after filter:`, filtered.length, 'cards remaining');
+        return filtered;
+      });
+      setLayout(prev => {
+        const filtered = prev.filter(item => item.i !== cardIdStr);
+        console.log(`Layout after filter:`, filtered.length, 'items remaining');
+        return filtered;
+      });
       setCardDataMap(prev => {
         const newMap = { ...prev };
         delete newMap[numCardId];
@@ -267,7 +349,7 @@ export const DashboardPage: React.FC = () => {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to delete card';
       setError(errorMsg);
-      console.error('Error deleting card:', err);
+      console.error('❌ Error deleting card:', err);
     }
   };
 
