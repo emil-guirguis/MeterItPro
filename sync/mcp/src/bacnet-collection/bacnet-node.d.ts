@@ -27,7 +27,7 @@ declare module 'bacnet-node' {
       callback: (error: Error | null, data: any) => void
     ): void;
 
-    whoIs(lowLimit?: number, highLimit?: number): void;
+    whoIs(receiver?: string | { lowLimit?: number; highLimit?: number }, options?: { lowLimit?: number; highLimit?: number }): void;
 
     reinitializeDevice(
       receiver: string,

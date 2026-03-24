@@ -232,7 +232,7 @@ async executeCycle(
                 );
                 if (!wasAlreadyOffline) {
                   const postReadOnline = await bacnetClient.checkConnectivity(
-                    meter.ip, Number(meter.port) || 47808, Number(meter.device_id)
+                    meter.ip, Number(meter.port) || 47808
                   );
                   if (!postReadOnline) {
                     this.logger.error(
@@ -374,62 +374,6 @@ async executeCycle(
       this.logger.info(`   Device ID: ${meter.device_id} | IP: ${meter.ip}:${meter.port || 47808}`);
       this.logger.info(`   Full meter:`, JSON.stringify(meter, null, 2));
       this.logger.info(`${'='.repeat(100)}\n`);
-
-      // Check connectivity by reading the device object — fast 2s timeout
-      this.logger.info(`Checking connectivity → ${meter.ip} (device ${meter.device_id})`);
-      const isOnline = await bacnetClient.checkConnectivity(meter.ip, meter.port || 47808, Number(meter.device_id));
-
-      if (!isOnline) {
-        // Retry once after a short delay to rule out a transient network blip
-        const RETRY_DELAY_MS = 8000;
-        this.logger.warn(
-          `Meter ${meter.meter_id} (${meter.element}) failed connectivity — ` +
-          `waiting ${RETRY_DELAY_MS / 1000}s then retrying...`
-        );
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-
-        const isOnlineRetry = await bacnetClient.checkConnectivity(
-          meter.ip, meter.port || 47808, Number(meter.device_id)
-        );
-
-        if (!isOnlineRetry) {
-          this.logger.warn(
-            `Meter ${meter.meter_id} (${meter.element}) CONFIRMED OFFLINE after retry — inserting zero reading`
-          );
-
-          // Load registers so we know which fields to zero out
-          const offlineRegisters = cacheManager.getDeviceRegisterCache().getDeviceRegisters(Number(meter.device_id));
-          if (offlineRegisters.length > 0) {
-            for (const register of offlineRegisters) {
-              readings.push({
-                meter_id: Number(meter.meter_id),
-                meter_element_id: Number(meter.meter_element_id),
-                field_name: register.field_name,
-                value: 0,
-                register: register.register,
-                element: meter.element,
-                created_at: cycleStartTime || new Date(),
-              });
-            }
-            this.logger.info(
-              `Inserted ${readings.length} zero readings for offline meter ${meter.meter_id} (${meter.element})`
-            );
-          }
-
-          errors.push({
-            meterId: String(meter.meter_id),
-            operation: 'connectivity',
-            error: `Device confirmed offline after retry at ${meter.ip}:${meter.port || 47808}`,
-            timestamp: new Date(),
-          });
-          this.recordTimeoutEvent(String(meter.meter_id), 0, 0, readTimeoutMs, 'offline', false);
-          return readings;
-        }
-
-        this.logger.info(`Meter ${meter.meter_id} (${meter.element}) came back online on retry — proceeding`);
-      } else {
-        this.logger.info(`Meter ${meter.meter_id} (${meter.element}) is ONLINE → proceeding`);
-      }
 
       // ── Circuit breaker check ──────────────────────────────────────────
       if (this.batchSizeManager.isCircuitOpen(meter.meter_id)) {

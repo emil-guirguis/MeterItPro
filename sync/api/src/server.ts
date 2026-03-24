@@ -654,7 +654,7 @@ app.get('/api/meters/connectivity', async (_req, res) => {
         let online = false;
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
 
           const checkResponse = await fetch(`${mcpHttpUrl}/api/check-connectivity`, {
             method: 'POST',
@@ -696,6 +696,36 @@ app.get('/api/meters/connectivity', async (_req, res) => {
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
+  }
+});
+
+// Reinitialize (restart) a BACnet meter device
+app.post('/api/meters/:meterId/reinitialize', async (req, res) => {
+  try {
+    const { meterId } = req.params;
+    const mcpHttpUrl = process.env.MCP_HTTP_URL || 'http://127.0.0.1:3001';
+
+    const meterResult = await syncPool.query(
+      'SELECT meter_id, ip, port FROM meter WHERE meter_id = $1 AND active = true',
+      [meterId]
+    );
+
+    if (meterResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Meter not found' });
+    }
+
+    const meter = meterResult.rows[0];
+    const response = await fetch(`${mcpHttpUrl}/api/reinitialize-device`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip: meter.ip, port: meter.port || 47808 }),
+    });
+
+    const data = await response.json() as any;
+    res.json(data);
+  } catch (error) {
+    console.error('❌ [API] POST /api/meters/:meterId/reinitialize - Error:', error);
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -1231,13 +1261,26 @@ app.get('/api/meter-reading/status', async (_req, res) => {
   }
 });
 
-// Trigger BACnet meter reading (not supported from standalone API)
+// Trigger BACnet meter reading — proxied to MCP HTTP server
 app.post('/api/meter-reading/trigger', async (_req, res) => {
-  console.log('📥 [API] POST /api/meter-reading/trigger - Request received');
-  res.status(503).json({
-    success: false,
-    message: 'BACnet meter reading collection is managed by the MCP process. This API cannot trigger it directly.',
-  });
+  console.log('📥 [API] POST /api/meter-reading/trigger - Proxying to MCP process');
+  try {
+    const mcpHttpUrl = process.env.MCP_HTTP_URL || 'http://127.0.0.1:3001';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 min timeout
+    const mcpRes = await fetch(`${mcpHttpUrl}/api/meter-reading/trigger`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    const data = await mcpRes.json();
+    res.status(mcpRes.status).json(data);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('❌ [API] POST /api/meter-reading/trigger - Failed to reach MCP process:', errorMsg);
+    res.status(503).json({ success: false, error: `MCP process unreachable: ${errorMsg}` });
+  }
 });
 
 // ==================== ERROR HANDLING ====================

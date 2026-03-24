@@ -371,43 +371,45 @@ export class BACnetClient {
   }
 
   /**
-   * Check if a BACnet device is reachable by attempting to read its Device object name.
-   * Every BACnet device must expose objectType=8 (Device), property=77 (objectName).
-   * Uses a short 2-second timeout so a dead device fails fast.
+   * Check if a BACnet device is reachable by reading objectName (prop 77) from
+   * the Device object (type 8, instance 0). Any reply — value or BACnet error —
+   * means the device is online. Only a timeout (no UDP reply) means offline.
    */
-  async checkConnectivity(ip: string, port: number, deviceId: number): Promise<boolean> {
+  async checkConnectivity(ip: string, port: number): Promise<boolean> {
     const CONNECTIVITY_TIMEOUT_MS = 5000;
-    const address = `${ip}:${port}`;
-    // objectType 8 = Device, property 77 = objectName
-    const DEVICE_OBJECT_TYPE = 8;
-    const OBJECT_NAME_PROPERTY = 77;
 
     return new Promise((resolve) => {
+      let resolved = false;
+
+      const done = (online: boolean) => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeoutHandle);
+        resolve(online);
+      };
+
       const timeoutHandle = setTimeout(() => {
-        console.error(`BACnet connectivity timeout for ${address} (device ${deviceId}) after ${CONNECTIVITY_TIMEOUT_MS}ms`);
-        resolve(false);
+        console.error(`BACnet connectivity timeout for ${ip}:${port} — no response after ${CONNECTIVITY_TIMEOUT_MS}ms`);
+        done(false);
       }, CONNECTIVITY_TIMEOUT_MS);
 
       try {
         this.client.readProperty(
-          address,
-          { type: DEVICE_OBJECT_TYPE, instance: deviceId },
-          OBJECT_NAME_PROPERTY,
-          (error: Error | null, value: any) => {
-            clearTimeout(timeoutHandle);
-            if (error) {
-              console.error(`BACnet connectivity check failed for ${address} (device ${deviceId}):`, error.message);
-              resolve(false);
+          ip,
+          { type: 8, instance: 0 },
+          77,
+          (err: Error | null, value: any) => {
+            if (err) {
+              // BACnet-level error still means the device replied — it's online.
+              console.log(`BACnet device at ${ip}:${port} is online (error reply: ${err.message})`);
             } else {
-              console.log(`BACnet device ${deviceId} at ${address} is online`);
-              resolve(true);
+              console.log(`BACnet device at ${ip}:${port} is online (objectName: ${value})`);
             }
+            done(true);
           }
         );
       } catch (err) {
-        clearTimeout(timeoutHandle);
-        console.error(`BACnet connectivity check error for ${address}:`, err instanceof Error ? err.message : String(err));
-        resolve(false);
+        done(false);
       }
     });
   }
@@ -420,8 +422,10 @@ export class BACnetClient {
     const REINIT_TIMEOUT_MS = 5000;
     return new Promise((resolve) => {
       const timeoutHandle = setTimeout(() => {
-        console.error(`BACnet reinitializeDevice timeout for ${ip} after ${REINIT_TIMEOUT_MS}ms`);
-        resolve({ success: false, error: `Reinitialize timeout after ${REINIT_TIMEOUT_MS}ms` });
+        // A COLDSTART causes the device to reboot immediately, often before it can send an ACK.
+        // Treat timeout as a likely success — command was sent, device is rebooting.
+        console.warn(`BACnet reinitializeDevice timeout for ${ip} — device likely rebooted before sending ACK`);
+        resolve({ success: true });
       }, REINIT_TIMEOUT_MS);
 
       try {

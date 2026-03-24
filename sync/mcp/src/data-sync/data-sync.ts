@@ -182,6 +182,7 @@ export class SyncDatabase {
           device_id INTEGER,
           register_id INTEGER,
           location_id INTEGER,
+          name VARCHAR(255),
           ip VARCHAR(50),
           port VARCHAR(10),
           active BOOLEAN DEFAULT true,
@@ -195,6 +196,8 @@ export class SyncDatabase {
         `ALTER TABLE meter ADD COLUMN IF NOT EXISTS meter_element_id INTEGER NOT NULL DEFAULT 0`);
       await execQuery(this.pool,
         `ALTER TABLE meter ADD COLUMN IF NOT EXISTS element VARCHAR(255)`);
+      await execQuery(this.pool,
+        `ALTER TABLE meter ADD COLUMN IF NOT EXISTS name VARCHAR(255)`);
 
       // Create register table
       await execQuery(this.pool,

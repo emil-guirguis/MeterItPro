@@ -154,7 +154,7 @@ export async function create(env: Env, table: string, data: Record<string, any>)
 }
 
 export async function update(env: Env, table: string, primaryKey: string, id: any, data: Record<string, any>) {
-  const keys = Object.keys(data).filter((k) => data[k] !== undefined && k !== primaryKey);
+  const keys = Object.keys(data).filter((k) => data[k] !== undefined && k !== primaryKey && k !== 'updated_at' && k !== 'created_at');
   if (keys.length === 0) return null;
 
   const setClauses = keys.map((k, i) => `${k} = $${i + 1}`);

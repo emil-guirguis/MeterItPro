@@ -147,8 +147,8 @@ export default function MeterDeviceStatusCard() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {meters.map((meter) => (
-                    <TableRow key={meter.meter_id}>
+                  {meters.map((meter, idx) => (
+                    <TableRow key={`${meter.meter_id}-${idx}`}>
                       <TableCell>{meter.name}</TableCell>
                       <TableCell sx={{ fontFamily: 'monospace' }}>{meter.ip || '—'}</TableCell>
                       <TableCell sx={{ fontFamily: 'monospace' }}>{meter.port}</TableCell>

@@ -855,8 +855,7 @@ export class LocalApiServer {
             if (this.bacnetMeterReadingAgent && meter.ip && meter.device_id) {
               online = await this.bacnetMeterReadingAgent.checkMeterConnectivity(
                 meter.ip,
-                meter.port || 47808,
-                meter.device_id
+                meter.port || 47808
               );
             }
             console.log(`   Connectivity: meter_id=${meter.meter_id} name=${meter.name} ip=${meter.ip} → ${online ? 'ONLINE' : 'OFFLINE'}`);

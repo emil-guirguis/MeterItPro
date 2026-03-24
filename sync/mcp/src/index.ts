@@ -720,32 +720,43 @@ class SyncMcpServer {
     // Meter connectivity check endpoint
     this.httpServer.post('/api/check-connectivity', async (req, res) => {
       try {
-        const { ip, port, deviceId } = req.body;
+        const { ip, port } = req.body;
 
-        if (!ip || !deviceId) {
-          return res.status(400).json({
-            error: 'Missing required parameters: ip, deviceId',
-          });
+        if (!ip) {
+          return res.status(400).json({ error: 'Missing required parameter: ip' });
         }
 
         if (!this.bacnetMeterReadingAgent) {
-          return res.status(503).json({
-            error: 'BACnet agent not initialized',
-          });
+          return res.status(503).json({ error: 'BACnet agent not initialized' });
         }
 
-        const isOnline = await this.bacnetMeterReadingAgent.checkMeterConnectivity(
-          ip,
-          port || 47808,
-          deviceId
-        );
+        // Find a meter at this IP to get its device_id and element,
+        // then read its first real register — the only probe this device responds to.
+        const meters = cacheManager.getMeterCache().getMeters();
+        const meter = meters.find((m: any) => m.ip === ip);
 
-        res.json({
-          ip,
-          deviceId,
-          online: isOnline,
-          timestamp: new Date().toISOString(),
-        });
+        let online = false;
+
+        if (meter) {
+          const registers = cacheManager.getDeviceRegisterCache().getDeviceRegisters(Number(meter.device_id));
+          if (registers.length > 0) {
+            const elementLetter = (meter.element || 'A').trim().toUpperCase();
+            const elementIndex = elementLetter.charCodeAt(0) - 'A'.charCodeAt(0) + 1;
+            const baseOffset = (elementIndex - 1) * 10000;
+            const firstInstance = baseOffset + Number(registers[0].register);
+
+            const results = await (this.bacnetMeterReadingAgent as any).bacnetClient.readPropertyMultiple(
+              ip, port || 47808,
+              [{ objectType: 'analogInput', objectInstance: firstInstance, propertyId: 'presentValue' }],
+              5000
+            );
+            // Any response (success or BACnet error) means the device is reachable
+            online = results.length > 0 && results[0].error !== 'Batch read timeout after 6000ms'
+              && !results[0].error?.includes('timeout');
+          }
+        }
+
+        res.json({ ip, online, timestamp: new Date().toISOString() });
       } catch (error) {
         console.error('Error checking connectivity:', error);
         res.status(500).json({
@@ -754,10 +765,61 @@ class SyncMcpServer {
       }
     });
 
+    // Reinitialize (cold-restart) a BACnet device by IP
+    this.httpServer.post('/api/reinitialize-device', async (req, res) => {
+      try {
+        const { ip } = req.body;
+        if (!ip) return res.status(400).json({ success: false, error: 'Missing ip' });
+        if (!this.bacnetMeterReadingAgent) {
+          return res.status(503).json({ success: false, error: 'BACnet agent not initialized' });
+        }
+        const result = await this.bacnetMeterReadingAgent.reinitializeDevice(ip, 0);
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
+      }
+    });
+
+    // Debug: read specific analogInput instances from a device
+    this.httpServer.post('/api/debug/read-registers', async (req, res) => {
+      try {
+        const { ip, port, instances } = req.body;
+        if (!ip || !Array.isArray(instances)) {
+          return res.status(400).json({ error: 'Missing ip or instances[]' });
+        }
+        if (!this.bacnetMeterReadingAgent) {
+          return res.status(503).json({ error: 'BACnet agent not initialized' });
+        }
+        const results = await (this.bacnetMeterReadingAgent as any).bacnetClient.readPropertyMultiple(
+          ip, port || 47808,
+          instances.map((inst: number) => ({ objectType: 'analogInput', objectInstance: inst, propertyId: 'presentValue' })),
+          8000
+        );
+        res.json(results.map((r: any, i: number) => ({ instance: instances[i], ...r })));
+      } catch (error) {
+        res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+      }
+    });
+
+    // Trigger BACnet meter reading collection
+    this.httpServer.post('/api/meter-reading/trigger', async (_req, res) => {
+      try {
+        if (!this.bacnetMeterReadingAgent) {
+          return res.status(503).json({ success: false, error: 'BACnet meter reading agent not initialized' });
+        }
+        const result = await this.bacnetMeterReadingAgent.triggerCollection();
+        res.json({ success: true, message: 'Collection triggered', cycle_result: result });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        res.status(409).json({ success: false, error: errorMsg });
+      }
+    });
+
     const httpPort = parseInt(process.env.MCP_HTTP_PORT || '3001', 10);
     this.httpServer.listen(httpPort, '127.0.0.1', () => {
       console.log(`✅ [HTTP] MCP HTTP server listening on http://127.0.0.1:${httpPort}`);
       console.log(`   Connectivity check: POST http://localhost:${httpPort}/api/check-connectivity`);
+      console.log(`   Meter reading trigger: POST http://localhost:${httpPort}/api/meter-reading/trigger`);
     });
   }
 

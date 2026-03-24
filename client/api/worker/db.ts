@@ -16,9 +16,8 @@ export interface Env {
 }
 
 export async function query(env: Env, text: string, params: any[] = []) {
-  // For local development, use DATABASE_URL if available; otherwise use HYPERDRIVE
-  const config = env.DATABASE_URL ? { connectionString: env.DATABASE_URL } : env.HYPERDRIVE;
-  const client = new Client(config);
+  const connectionString = env.DATABASE_URL || env.HYPERDRIVE?.connectionString;
+  const client = new Client({ connectionString });
   await client.connect();
   console.log('[SQL]', text, params.length ? params : '');
   try {
@@ -34,9 +33,8 @@ export async function query(env: Env, text: string, params: any[] = []) {
 }
 
 export async function transaction<T>(env: Env, callback: (client: Client) => Promise<T>): Promise<T> {
-  // For local development, use DATABASE_URL if available; otherwise use HYPERDRIVE
-  const config = env.DATABASE_URL ? { connectionString: env.DATABASE_URL } : env.HYPERDRIVE;
-  const client = new Client(config);
+  const connectionString = env.DATABASE_URL || env.HYPERDRIVE?.connectionString;
+  const client = new Client({ connectionString });
   await client.connect();
   const loggingClient = new Proxy(client, {
     get(target, prop) {

@@ -11,6 +11,7 @@
     "dev:node": "npm run build && node --env-file=../../.env dist/server.js"
   },
   "dependencies": {
+    "dotenv": "^16.0.0",
     "express": "^5.1.0",
     "pg": "^8.16.3",
     "swagger-ui-express": "^5.0.0",

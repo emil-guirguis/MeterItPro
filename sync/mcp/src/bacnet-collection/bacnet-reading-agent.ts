@@ -392,8 +392,8 @@ export class BACnetMeterReadingAgent {
   /**
    * Check connectivity for a single BACnet device by IP and device ID
    */
-  async checkMeterConnectivity(ip: string, port: number, deviceId: number): Promise<boolean> {
-    return this.bacnetClient.checkConnectivity(ip, port, deviceId);
+  async checkMeterConnectivity(ip: string, port: number): Promise<boolean> {
+    return this.bacnetClient.checkConnectivity(ip, port);
   }
 
   /**
