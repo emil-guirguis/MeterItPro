@@ -16,6 +16,7 @@ interface ConsumptionGraphProps {
   meterElementId: string;
   tenantId: string;
   timePeriod: 'today' | 'weekly' | 'monthly' | 'yearly';
+  offset?: number;
 }
 
 interface ChartData {
@@ -32,37 +33,48 @@ function formatHour(hour: number): string {
   return `${hour - 12}PM`;
 }
 
-function getDateRange(timePeriod: string): { startDate: Date; endDate: Date } {
+function getDateRange(timePeriod: string, offset: number = 0): { startDate: Date; endDate: Date } {
   const now = new Date();
-  let startDate: Date;
-  let endDate: Date;
 
   if (timePeriod === 'today') {
-    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-  } else if (timePeriod === 'weekly') {
-    // Get current week (Monday to Sunday)
-    const dayOfWeek = now.getDay();
-    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    startDate = new Date(now);
-    startDate.setDate(now.getDate() - daysToMonday);
-    startDate.setHours(0, 0, 0, 0);
-
-    endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
-    endDate.setHours(23, 59, 59, 999);
-  } else if (timePeriod === 'monthly') {
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-  } else {
-    startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+    return {
+      startDate: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0),
+      endDate: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999),
+    };
   }
 
+  if (timePeriod === 'weekly') {
+    const dayOfWeek = now.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const startDate = new Date(now);
+    startDate.setDate(now.getDate() - daysToMonday + offset * 7);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    endDate.setHours(23, 59, 59, 999);
+    return { startDate, endDate };
+  }
+
+  if (timePeriod === 'monthly') {
+    const targetMonth = now.getMonth() + offset;
+    const startDate = new Date(now.getFullYear(), targetMonth, 1, 0, 0, 0, 0);
+    const endDate = offset === 0
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+      : new Date(now.getFullYear(), targetMonth + 1, 0, 23, 59, 59, 999);
+    return { startDate, endDate };
+  }
+
+  // yearly
+  const targetYear = now.getFullYear() + offset;
+  const startDate = new Date(targetYear, 0, 1, 0, 0, 0, 0);
+  const endDate = offset === 0
+    ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+    : new Date(targetYear, 11, 31, 23, 59, 59, 999);
   return { startDate, endDate };
 }
 
-function buildChartData(rows: { label_key: string | number; calculated_kwh: number }[], timePeriod: string): ChartData[] {
+function buildChartData(rows: { label_key: string | number; calculated_kwh: number }[], timePeriod: string, offset: number = 0): ChartData[] {
   const lookup = new Map<string, number>();
   for (const row of rows) {
     lookup.set(String(row.label_key), Math.round(Number(row.calculated_kwh) * 10000) / 10000);
@@ -83,7 +95,7 @@ function buildChartData(rows: { label_key: string | number; calculated_kwh: numb
   }
 
   // weekly / monthly — fill every day in the range using local dates
-  const { startDate, endDate } = getDateRange(timePeriod);
+  const { startDate, endDate } = getDateRange(timePeriod, offset);
   const result: ChartData[] = [];
   const cursor = new Date(startDate);
   cursor.setHours(0, 0, 0, 0);
@@ -110,6 +122,7 @@ export const ConsumptionGraph: React.FC<ConsumptionGraphProps> = ({
   meterId,
   meterElementId,
   timePeriod,
+  offset = 0,
 }) => {
   const [data, setData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,7 +136,7 @@ export const ConsumptionGraph: React.FC<ConsumptionGraphProps> = ({
         const now = new Date();
         // getTimezoneOffset() returns minutes BEHIND UTC (negative for UTC+), so negate it
         const tzOffsetMinutes = -now.getTimezoneOffset();
-        const { startDate, endDate } = getDateRange(timePeriod);
+        const { startDate, endDate } = getDateRange(timePeriod, offset);
 
         const rows = await meterReadingService.getConsumptionData(
           meterId,
@@ -133,7 +146,7 @@ export const ConsumptionGraph: React.FC<ConsumptionGraphProps> = ({
           endDate.toISOString(),
           tzOffsetMinutes,
         );
-        setData(buildChartData(rows, timePeriod));
+        setData(buildChartData(rows, timePeriod, offset));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch consumption data');
       } finally {
@@ -142,7 +155,7 @@ export const ConsumptionGraph: React.FC<ConsumptionGraphProps> = ({
     };
 
     fetchData();
-  }, [meterId, meterElementId, timePeriod]);
+  }, [meterId, meterElementId, timePeriod, offset]);
 
   if (loading) return <div className="consumption-graph-loading">Loading chart...</div>;
   if (error) return <div className="consumption-graph-error">Error: {error}</div>;

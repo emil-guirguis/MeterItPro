@@ -95,8 +95,14 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
 }) => {
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('today');
   const [selectedGraphType, setSelectedGraphType] = useState<GraphType>('consumption');
+  const [offset, setOffset] = useState<number>(0);
   const { selectedMeter, selectedElement } = useMeterSelection();
   const { user } = useAuth();
+
+  const handleTimePeriodChange = (period: TimePeriod) => {
+    setSelectedTimePeriod(period);
+    setOffset(0);
+  };
 
   // Format number with specified decimals
   const formatNumber = (value: number | null | undefined, decimals: number = 2): string => {
@@ -106,13 +112,13 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
     return value.toFixed(decimals);
   };
 
-  // Get current week date range (Monday to Sunday)
-  const getWeekDateRange = (): { start: Date; end: Date } => {
+  // Get week date range (Monday to Sunday) with offset
+  const getWeekDateRange = (weekOffset: number = 0): { start: Date; end: Date } => {
     const now = new Date();
     const dayOfWeek = now.getDay();
     const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     const start = new Date(now);
-    start.setDate(now.getDate() - daysToMonday);
+    start.setDate(now.getDate() - daysToMonday + weekOffset * 7);
     start.setHours(0, 0, 0, 0);
 
     const end = new Date(start);
@@ -122,21 +128,28 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
     return { start, end };
   };
 
-  const formatWeekRange = (): string => {
-    const { start, end } = getWeekDateRange();
-    const startMonth = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const endMonth = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `${startMonth} - ${endMonth}`;
-  };
-
-  const formatMonthYear = (): string => {
+  const getPeriodSubtitle = (): string => {
     const now = new Date();
-    return now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  };
 
-  const formatYear = (): string => {
-    const now = new Date();
-    return now.getFullYear().toString();
+    if (selectedTimePeriod === 'today') {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+      return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+
+    if (selectedTimePeriod === 'weekly') {
+      const { start, end } = getWeekDateRange(offset);
+      const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `Week of ${startStr} - ${endStr}`;
+    }
+
+    if (selectedTimePeriod === 'monthly') {
+      const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+      return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+
+    // yearly
+    return String(now.getFullYear() + offset);
   };
 
   if (loading) {
@@ -318,12 +331,7 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
       {/* Consumption Graphs */}
       <div className="consumption-graphs-section">
         <h2 className="section-title">Consumption Graphs</h2>
-        <h3 className="graph-subtitle">
-          {selectedTimePeriod === 'today' && "Today's Usage"}
-          {selectedTimePeriod === 'weekly' && `Week of ${formatWeekRange()}`}
-          {selectedTimePeriod === 'monthly' && `${formatMonthYear()}`}
-          {selectedTimePeriod === 'yearly' && `Year ${formatYear()}`}
-        </h3>
+        <h3 className="graph-subtitle">{getPeriodSubtitle()}</h3>
 
         <div className="graph-container">
           {/* Chart Display */}
@@ -333,6 +341,7 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
               meterElementId={selectedElement}
               tenantId={user.client}
               timePeriod={selectedTimePeriod}
+              offset={offset}
             />
           ) : (
             <div className="graph-placeholder">
@@ -345,31 +354,53 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
             <button
               type="button"
               className={`time-button ${selectedTimePeriod === 'today' ? 'time-button--active' : ''}`}
-              onClick={() => setSelectedTimePeriod('today')}
+              onClick={() => handleTimePeriodChange('today')}
             >
-              Today
+              Day
             </button>
             <button
               type="button"
               className={`time-button ${selectedTimePeriod === 'weekly' ? 'time-button--active' : ''}`}
-              onClick={() => setSelectedTimePeriod('weekly')}
+              onClick={() => handleTimePeriodChange('weekly')}
             >
               Week
             </button>
             <button
               type="button"
               className={`time-button ${selectedTimePeriod === 'monthly' ? 'time-button--active' : ''}`}
-              onClick={() => setSelectedTimePeriod('monthly')}
+              onClick={() => handleTimePeriodChange('monthly')}
             >
               Month
             </button>
-            <button
-              type="button"
-              className={`time-button ${selectedTimePeriod === 'yearly' ? 'time-button--active' : ''}`}
-              onClick={() => setSelectedTimePeriod('yearly')}
-            >
-              Year
-            </button>
+            <div className="year-button-group">
+              <button
+                type="button"
+                className={`time-button ${selectedTimePeriod === 'yearly' ? 'time-button--active' : ''}`}
+                onClick={() => handleTimePeriodChange('yearly')}
+              >
+                Year
+              </button>
+              {/* Period Navigation - under Year button */}
+              <div className="period-nav-controls">
+                <button
+                  type="button"
+                  className="period-nav-button"
+                  onClick={() => setOffset(o => o - 1)}
+                  aria-label="Previous period"
+                >
+                  &#8592;
+                </button>
+                <button
+                  type="button"
+                  className="period-nav-button"
+                  onClick={() => setOffset(o => o + 1)}
+                  disabled={offset === 0}
+                  aria-label="Next period"
+                >
+                  &#8594;
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Graph Type Buttons */}
