@@ -50,6 +50,17 @@ export const MeterInfoPanel: React.FC<MeterInfoPanelProps> = ({
   meter,
   reading,
 }) => {
+  /**
+   * Build description in the format: [meter name] (element number) element name
+   * This matches the favorite caption format for consistency
+   */
+  const getFormattedDescription = (): string => {
+    if (meter.meterName && meter.elementName && meter.elementNumber) {
+      return `${meter.meterName} (${meter.elementNumber}) ${meter.elementName}`;
+    }
+    return meter.description || PLACEHOLDER_TEXT;
+  };
+
   return (
     <div className="meter-info-panel">
       <div className="meter-info-panel__grid">
@@ -65,7 +76,7 @@ export const MeterInfoPanel: React.FC<MeterInfoPanelProps> = ({
         <div className="meter-info-panel__item">
           <label className="meter-info-panel__label">Description</label>
           <p className="meter-info-panel__value">
-            {meter.description || PLACEHOLDER_TEXT}
+            {getFormattedDescription()}
           </p>
         </div>
 

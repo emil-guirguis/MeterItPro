@@ -164,7 +164,9 @@ export function adaptMeterReading(raw: RawMeterReading): {
   // Extract meter info
   const meterInfo: MeterInfo = {
     driver: raw.meter_protocol || 'Unknown Driver',
-    description: raw.meter_name || raw.meter_notes || 'No Description',
+    description: raw.meter_name && raw.element_number && raw.element_name
+      ? `${raw.meter_name} (${String(raw.element_number).trim()}) ${raw.element_name}`
+      : raw.meter_name || raw.meter_notes || 'No Description',
     serialNumber: raw.serial_number || 'N/A',
   };
   

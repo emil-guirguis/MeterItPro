@@ -163,8 +163,10 @@ export const MeterReadingForm: React.FC<MeterReadingFormProps> = ({
         description: firstReading?.meter?.description || 'N/A',
         serialNumber: firstReading?.meter?.serialNumber || 'N/A',
         elements: [],
+        meterName: firstReading?.meter_name || firstReading?.meter?.name,
+        elementName: firstReading?.element_name,
+        elementNumber: firstReading?.element_number,
       };
-      console.log('[MeterReadingForm] Setting meter:', meterObj);
       setMeter(meterObj);
     }
   }, [selectedMeter, meterReadingsStore.items]);

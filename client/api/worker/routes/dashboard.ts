@@ -56,6 +56,8 @@ app.get('/cards', requirePermission('dashboard:read'), async (c) => {
       sortOrder: qs.sortOrder,
     });
 
+    console.log('[Dashboard] GET /cards - Raw database rows:', result.rows.map((c: any) => ({ id: c.dashboard_id, grid_x: c.grid_x, grid_y: c.grid_y })));
+
     const items = result.rows.map((card: any, index: number) => {
       const cardIndex = (page - 1) * limit + index;
       return {
@@ -285,6 +287,8 @@ app.put('/cards/:id', requirePermission('dashboard:update'), async (c) => {
 
     const body = await c.req.json();
 
+    console.log('[Dashboard] PUT /cards/:id - Request body:', body);
+
     // Validate selected columns if provided
     if (body.selected_columns !== undefined) {
       if (!Array.isArray(body.selected_columns) || body.selected_columns.length === 0) {
@@ -300,7 +304,9 @@ app.put('/cards/:id', requirePermission('dashboard:update'), async (c) => {
       body.selected_columns = JSON.stringify(body.selected_columns);
     }
 
+    console.log('[Dashboard] PUT /cards/:id - Body after processing:', body);
     const updated = await update(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), body);
+    console.log('[Dashboard] PUT /cards/:id - Updated result:', updated);
 
     return c.json({
       success: true,
@@ -665,6 +671,90 @@ app.get('/power-columns/cache/invalidate', requirePermission('dashboard:admin'),
 // GET /power-columns/cache/stats
 app.get('/power-columns/cache/stats', requirePermission('dashboard:read'), (c) => {
   return c.json({ success: true, data: { cached: false, message: 'No cache on worker deployment' } });
+});
+
+// GET /total-active-energy - Sum of active_energy from latest reading of each active meter element
+app.get('/total-active-energy', requirePermission('dashboard:read'), async (c) => {
+  try {
+    const tenantId = c.get('tenantId');
+    if (!tenantId) {
+      return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
+    }
+
+    const sql = `
+      SELECT COALESCE(SUM(latest_readings.active_energy), 0) AS total_active_energy
+      FROM (
+        SELECT DISTINCT ON (mr.meter_element_id)
+          mr.active_energy
+        FROM meter m
+        JOIN meter_element me ON me.meter_id = m.meter_id
+        JOIN meter_reading mr
+          ON mr.meter_element_id = me.meter_element_id
+          AND mr.tenant_id = $1
+        WHERE m.tenant_id = $1
+          AND m.active = true
+        ORDER BY mr.meter_element_id, mr.created_at DESC
+      ) AS latest_readings
+    `;
+
+    console.log('[Dashboard] Total Active Energy SQL:', sql);
+    console.log('[Dashboard] Total Active Energy Params:', [tenantId]);
+
+    const result = await query(c.env, sql, [tenantId]);
+    const totalActiveEnergy = parseFloat(result.rows?.[0]?.total_active_energy || '0');
+
+    return c.json({
+      success: true,
+      data: {
+        total_active_energy: totalActiveEnergy,
+      },
+    });
+  } catch (error: any) {
+    logError('Error fetching total active energy', error);
+    return c.json({ success: false, message: 'Failed to fetch total active energy' }, 500);
+  }
+});
+
+// GET /total-power - Sum of power from latest reading of each active meter element
+app.get('/total-power', requirePermission('dashboard:read'), async (c) => {
+  try {
+    const tenantId = c.get('tenantId');
+    if (!tenantId) {
+      return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
+    }
+
+    const sql = `
+      SELECT COALESCE(SUM(latest_readings.power), 0) AS total_power
+      FROM (
+        SELECT DISTINCT ON (mr.meter_element_id)
+          mr.power
+        FROM meter m
+        JOIN meter_element me ON me.meter_id = m.meter_id
+        JOIN meter_reading mr
+          ON mr.meter_element_id = me.meter_element_id
+          AND mr.tenant_id = $1
+        WHERE m.tenant_id = $1
+          AND m.active = true
+        ORDER BY mr.meter_element_id, mr.created_at DESC
+      ) AS latest_readings
+    `;
+
+    console.log('[Dashboard] Total Power SQL:', sql);
+    console.log('[Dashboard] Total Power Params:', [tenantId]);
+
+    const result = await query(c.env, sql, [tenantId]);
+    const totalPower = parseFloat(result.rows?.[0]?.total_power || '0');
+
+    return c.json({
+      success: true,
+      data: {
+        total_power: totalPower,
+      },
+    });
+  } catch (error: any) {
+    logError('Error fetching total power', error);
+    return c.json({ success: false, message: 'Failed to fetch total power' }, 500);
+  }
 });
 
 export default app;

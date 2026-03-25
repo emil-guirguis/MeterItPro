@@ -278,6 +278,30 @@ class DashboardService {
       return [];
     }
   }
+
+  // Get total active energy from all active meters
+  async getTotalActiveEnergy(): Promise<number> {
+    try {
+      const response: AxiosResponse<{ success: boolean; data: { total_active_energy: number } }> =
+        await this.apiClient.get('/dashboard/total-active-energy');
+      return response.data.data?.total_active_energy ?? 0;
+    } catch (error) {
+      console.error('Failed to fetch total active energy:', error);
+      return 0;
+    }
+  }
+
+  // Get total power from all active meters
+  async getTotalPower(): Promise<number> {
+    try {
+      const response: AxiosResponse<{ success: boolean; data: { total_power: number } }> =
+        await this.apiClient.get('/dashboard/total-power');
+      return response.data.data?.total_power ?? 0;
+    } catch (error) {
+      console.error('Failed to fetch total power:', error);
+      return 0;
+    }
+  }
 }
 
 // Export singleton instance

@@ -7,6 +7,7 @@ import { ExpandedCardModal as FrameworkExpandedCardModal } from '@framework/dash
 import { Visualization } from '@framework/dashboards/components/Visualization';
 import type { DashboardCard as FrameworkDashboardCardType } from '@framework/dashboards/types';
 import { dashboardService, type DashboardCard as DashboardCardType, type AggregatedData } from '../services/dashboardService';
+import { DashboardBanner } from '../features/dashboard/DashboardBanner';
 import './DashboardPage.css';
 
 // Context for passing card data and handlers to ClientDashboardCard.
@@ -137,14 +138,42 @@ export const DashboardPage: React.FC = () => {
         limit: 100
       });
       console.log('📊 [DashboardPage] Cards received:', response.items.length);
+      response.items.forEach(c => {
+        console.log(`📊 [DashboardPage] Card ${c.dashboard_id}: grid_x=${c.grid_x}, grid_y=${c.grid_y}, grid_w=${c.grid_w}, grid_h=${c.grid_h}`);
+      });
 
       // Ensure all cards have reasonable dimensions (grid: 12 cols, so w should be 2-12, h should be reasonable)
-      const cardsWithDefaults = response.items.map(card => ({
+      const cardsWithDefaults = response.items.map((card, index) => ({
         ...card,
-        grid_w: (card.grid_w && card.grid_w > 0 && card.grid_w <= 12) ? card.grid_w : 4,
-        grid_h: (card.grid_h && card.grid_h > 0 && card.grid_h <= 20) ? card.grid_h : 8,
+        grid_x: card.grid_x ?? 0,
+        grid_y: card.grid_y ?? (index * 520),
+        // If grid_w is too small (like 1), reset to default - this handles cards that were corrupted by layout saves
+        grid_w: (card.grid_w && card.grid_w > 2 && card.grid_w <= 12) ? card.grid_w : 4,
+        grid_h: (card.grid_h && card.grid_h > 2 && card.grid_h <= 20) ? card.grid_h : 8,
       }));
+      console.log('📊 [DashboardPage] Cards with defaults:', cardsWithDefaults);
       setCards(cardsWithDefaults);
+
+      // Fix corrupted grid dimensions in database (where grid_w or grid_h are too small)
+      console.log('🔧 [DashboardPage] Checking for corrupted dimensions...');
+      const corruptedCards = response.items.filter(c => (c.grid_w && c.grid_w <= 2) || (c.grid_h && c.grid_h <= 2));
+      console.log(`🔧 [DashboardPage] Found ${corruptedCards.length} corrupted card(s)`, corruptedCards);
+
+      for (const originalCard of corruptedCards) {
+        const correctedCard = cardsWithDefaults.find(c => c.dashboard_id === originalCard.dashboard_id);
+        if (correctedCard) {
+          try {
+            console.log(`🔧 [DashboardPage] Fixing card ${originalCard.dashboard_id}: ${originalCard.grid_w}x${originalCard.grid_h} -> ${correctedCard.grid_w}x${correctedCard.grid_h}`);
+            const result = await dashboardService.updateDashboardCard(originalCard.dashboard_id, {
+              grid_w: correctedCard.grid_w,
+              grid_h: correctedCard.grid_h,
+            });
+            console.log(`✅ [DashboardPage] Card ${originalCard.dashboard_id} fixed, result:`, result);
+          } catch (err) {
+            console.error(`❌ [DashboardPage] Failed to fix card ${originalCard.dashboard_id}:`, err);
+          }
+        }
+      }
 
       const newLayout: Layout[] = cardsWithDefaults.map((card, index) => ({
         i: card.dashboard_id.toString(),
@@ -161,6 +190,7 @@ export const DashboardPage: React.FC = () => {
       });
 
       isInitialLoadRef.current = false;
+      console.log('✅ [DashboardPage] Initial load complete, cards are now draggable');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch dashboard cards';
       setError(errorMsg);
@@ -172,6 +202,7 @@ export const DashboardPage: React.FC = () => {
 
   // Load cards on mount
   useEffect(() => {
+    console.log('📊 [DashboardPage] Component mounted, loading cards...');
     fetchCards();
     fetchMeters();
   }, [fetchCards]);
@@ -245,7 +276,8 @@ export const DashboardPage: React.FC = () => {
   const handleModalSuccess = (card: DashboardCardType) => {
     console.log('✅ handleModalSuccess called, editingCard:', !!editingCard, 'card:', card);
     if (editingCard) {
-      setCards(prev => prev.map(c => c.dashboard_id === card.dashboard_id ? card : c));
+      // Preserve grid layout when updating card
+      setCards(prev => prev.map(c => c.dashboard_id === card.dashboard_id ? { ...c, ...card } : c));
     } else {
       // Ensure card has reasonable default dimensions (grid: 12 cols, h: reasonable rows)
       const cardWithDefaults = {
@@ -315,12 +347,56 @@ export const DashboardPage: React.FC = () => {
     handleModalClose();
   };
 
-  // Handle layout change - do not save to database
+  // Handle layout change - save to database
   const handleLayoutChange = async (newLayout: Layout[]) => {
+    console.log('🔄 [Layout] handleLayoutChange called with', newLayout.length, 'items, isInitialLoad:', isInitialLoadRef.current);
+    console.log('🔄 [Layout] Current cardsRef.current:', cardsRef.current);
+
     if (isInitialLoadRef.current) {
+      console.log('🔄 [Layout] Skipping layout change during initial load');
       return;
     }
+
+    console.log('🔄 [Layout] Layout change detected, updating state');
+    // Update local state
     setLayout(newLayout);
+
+    // Save layout changes to database (position only, not size)
+    try {
+      // Save position for all cards in the new layout
+      for (const layoutItem of newLayout) {
+        const cardId = parseInt(layoutItem.i);
+        // Only save position (x, y), not size (w, h) - size should be configured separately
+        const updates = {
+          grid_x: layoutItem.x,
+          grid_y: layoutItem.y,
+        };
+
+        try {
+          console.log(`📍 [Layout] Saving position for card ${cardId}:`, updates);
+          const result = await dashboardService.updateDashboardCard(cardId, updates);
+          console.log(`✅ [Layout] API returned for card ${cardId}:`, {
+            grid_x: result?.grid_x,
+            grid_y: result?.grid_y,
+            grid_w: result?.grid_w,
+            grid_h: result?.grid_h
+          });
+
+          // Update cards state with new position
+          setCards(prev =>
+            prev.map(card =>
+              card.dashboard_id === cardId
+                ? { ...card, ...updates }
+                : card
+            )
+          );
+        } catch (error) {
+          console.error(`❌ [Layout] Failed to save position for card ${cardId}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('❌ [Layout] Error handling layout change:', error);
+    }
   };
 
   // Handle delete card
@@ -492,30 +568,36 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <DashboardContext.Provider value={dashboardContextValue}>
-      <FrameworkDashboardPage
-        cards={cards.map(card => ({
-          ...card,
-          id: card.dashboard_id
-        })) as any}
-        loading={loading}
-        error={error}
-        layout={layout}
-        onLayoutChange={handleLayoutChange}
-        onCreateCard={handleCreateCard}
-        onRefresh={handleGlobalRefresh}
-        onEditCard={handleEditCard as any}
-        onDeleteCard={handleDeleteCard as any}
-        onExpandCard={handleExpandCard as any}
-        onCardRefresh={handleCardRefresh}
-        onDrillDown={handleDrillDown}
-        onErrorClose={handleErrorClose}
-        refreshing={refreshing}
-        CardComponent={ClientDashboardCard}
-        ExpandedModalComponent={FrameworkExpandedCardModal}
-        expandedCardData={expandedCardData}
-        expandedCard={expandedCard as any}
-        onCloseExpandedCard={handleCloseExpandedCard}
-      />
+      <div className="dashboard-with-banner">
+        <FrameworkDashboardPage
+          cards={cards.map(card => ({
+            ...card,
+            id: card.dashboard_id
+          })) as any}
+          loading={loading}
+          error={error}
+          layout={layout}
+          onLayoutChange={handleLayoutChange}
+          onCreateCard={handleCreateCard}
+          onRefresh={handleGlobalRefresh}
+          onEditCard={handleEditCard as any}
+          onDeleteCard={handleDeleteCard as any}
+          onExpandCard={handleExpandCard as any}
+          onCardRefresh={handleCardRefresh}
+          onDrillDown={handleDrillDown}
+          onErrorClose={handleErrorClose}
+          refreshing={refreshing}
+          CardComponent={ClientDashboardCard}
+          ExpandedModalComponent={FrameworkExpandedCardModal}
+          expandedCardData={expandedCardData}
+          expandedCard={expandedCard as any}
+          onCloseExpandedCard={handleCloseExpandedCard}
+        />
+        <DashboardBanner
+          cardDataMap={cardDataMap}
+          cards={cards}
+        />
+      </div>
       <FrameworkDashboardCardModal
         isOpen={showModal}
         card={editingCard}

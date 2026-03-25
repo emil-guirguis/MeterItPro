@@ -33,6 +33,9 @@ export interface Meter {
   description: string;
   serialNumber: string;
   elements: MeterElement[];
+  meterName?: string;
+  elementName?: string;
+  elementNumber?: string | number;
 }
 
 /**

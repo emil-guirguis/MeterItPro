@@ -28,32 +28,35 @@ app.get('/', requirePermission('meter:read'), async (c) => {
 
     // Build WHERE clause
     let whereClause = 'WHERE tenant_id = $1';
-    const params: any[] = [tenantId];
+    const filterParams: any[] = [tenantId];
     let paramCount = 2;
 
     if (meterId !== undefined && meterId !== '') {
       whereClause += ` AND meter_id = $${paramCount}`;
-      params.push(parseInt(meterId));
+      filterParams.push(parseInt(meterId));
       paramCount++;
     }
 
     if (meterElementId !== undefined && meterElementId !== '') {
       whereClause += ` AND meter_element_id = $${paramCount}`;
-      params.push(parseInt(meterElementId));
+      filterParams.push(parseInt(meterElementId));
       paramCount++;
     }
 
     // Get total count
     const countSql = `SELECT COUNT(*) as count FROM meter_reading ${whereClause}`;
     console.log('[MeterReadings] Count SQL:', countSql);
-    console.log('[MeterReadings] Count Params:', params);
+    console.log('[MeterReadings] Count Params:', filterParams);
 
-    const countResult = await query(c.env, countSql, params.slice(0, paramCount - 1));
+    const countResult = await query(c.env, countSql, filterParams);
     const total = parseInt(countResult.rows?.[0]?.count || '0');
 
     // Get paginated data
-    const dataSql = `SELECT * FROM meter_reading ${whereClause} ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-    const dataParams = [...params, pageSize, skip];
+    const dataSql = `
+      SELECT * FROM meter_reading
+      ${whereClause} ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}
+    `;
+    const dataParams = [...filterParams, pageSize, skip];
 
     console.log('[MeterReadings] Data SQL:', dataSql);
     console.log('[MeterReadings] Data Params:', dataParams);
@@ -183,23 +186,11 @@ app.get('/last', requirePermission('meter:read'), async (c) => {
     }
 
     const sql = `
-      SELECT
-        mr.*,
-        m.name as meter_name,
-        m.serial_number,
-        m.ip as meter_ip,
-        m.port as meter_port,
-        m.protocol as meter_protocol,
-        m.notes as meter_notes,
-        me.name as element_name,
-        me.element
-      FROM meter_reading mr
-      LEFT JOIN meter m ON mr.meter_id = m.meter_id
-      LEFT JOIN meter_element me ON mr.meter_element_id = me.meter_element_id
-      WHERE mr.tenant_id = $1
-        AND mr.meter_id = $2
-        AND mr.meter_element_id = $3
-      ORDER BY mr.created_at DESC
+      SELECT * FROM meter_reading
+      WHERE tenant_id = $1
+        AND meter_id = $2
+        AND meter_element_id = $3
+      ORDER BY created_at DESC
       LIMIT 1
     `;
 
