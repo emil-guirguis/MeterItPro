@@ -1296,10 +1296,10 @@ export class SyncDatabase {
  */
 /**
  * For each newly inserted reading, calculate the kWh consumption as:
- *   current active_energy - previous active_energy (same meter + element, closest earlier timestamp)
+ *   current kwh - previous kwh (same meter + element, closest earlier timestamp)
  *
  * Rules:
- *  - Skips readings where active_energy is 0 or NULL (bad/missing data)
+ *  - Skips readings where kwh is 0 or NULL (bad/missing data)
  *  - Stores NULL when there is no prior reading (first reading for that meter/element)
  *  - Stores NULL when the difference is negative (meter rollover / replacement)
  *
@@ -1313,21 +1313,21 @@ export async function calculateKwhForReadings(pool: Pool, readingIds: string[]):
     SET calculated_kwh = (
       SELECT
         CASE
-          WHEN meter_reading.active_energy - prev.active_energy > 0
-          THEN 
-          meter_reading.active_energy - prev.active_energy
+          WHEN meter_reading.kwh - prev.kwh > 0
+          THEN
+          meter_reading.kwh - prev.kwh
           ELSE 0
         END
       FROM meter_reading prev
       WHERE prev.meter_id = meter_reading.meter_id
         AND prev.meter_element_id = meter_reading.meter_element_id
         AND prev.created_at < meter_reading.created_at
-        AND prev.active_energy > 0
+        AND prev.kwh > 0
       ORDER BY prev.created_at DESC
       LIMIT 1
     )
     WHERE meter_reading_id = ANY($1)
-      AND active_energy > 0
+      AND kwh > 0
   `;
 
   try {

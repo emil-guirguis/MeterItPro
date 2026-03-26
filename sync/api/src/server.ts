@@ -913,16 +913,16 @@ app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
     // Fetch pending readings
     const readingsResult = await syncPool.query(`
       SELECT meter_reading_id, meter_id, meter_element_id, created_at,
-             active_energy, active_energy_export, apparent_energy, apparent_energy_export,
-             apparent_power, apparent_power_phase_a, apparent_power_phase_b, apparent_power_phase_c,
-             current, current_line_a, current_line_b, current_line_c,
-             frequency, maximum_demand_real, power, power_factor,
-             power_factor_phase_a, power_factor_phase_b, power_factor_phase_c,
-             power_phase_a, power_phase_b, power_phase_c,
-             reactive_energy, reactive_energy_export, reactive_power,
-             reactive_power_phase_a, reactive_power_phase_b, reactive_power_phase_c,
+             kwh, mwh, kvah, kvah_export,
+             kva, phase_kva_a, phase_kva_b, phase_kva_c,
+             amperage, phase_amperage_a, phase_amperage_b, phase_amperage_c,
+             frequency, peak_kw, kw, power_factor,
+             pf_a, pf_b, pf_c,
+             phase_kw_a, phase_kw_b, phase_kw_c,
+             kvarh, reactive_energy_export, kvar,
+             phase_kvar_a, phase_kvar_b, phase_kvar_c,
              voltage_a_b, voltage_a_n, voltage_b_c, voltage_b_n, voltage_c_a, voltage_c_n,
-             voltage_p_n, voltage_p_p, voltage_thd, voltage_thd_phase_a, voltage_thd_phase_b, voltage_thd_phase_c,
+             voltage_p_n, voltage_p_p, total_thdv, phase_thdv_a, phase_thdv_b, phase_thdv_c,
              calculated_kwh
       FROM meter_reading
       WHERE is_synchronized = false AND retry_count < 5
@@ -972,7 +972,12 @@ app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
         [readings.length, errorMsg]
       );
       console.error(`❌ [API] Upload failed: ${errorMsg}`);
-      return res.status(500).json({ success: false, message: errorMsg });
+      if (data.errors?.length > 0) {
+        for (const e of data.errors) {
+          console.error(`   meter_id=${e.meter_id ?? 'unknown'} | code=${e.code ?? ''} | column=${e.column ?? ''} | ${e.detail ?? e.error ?? e.message ?? JSON.stringify(e)}`);
+        }
+      }
+      return res.status(500).json({ success: false, message: errorMsg, errors: data.errors });
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);

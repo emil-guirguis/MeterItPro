@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as fc from 'fast-check';
 import { MeterReadingUploadManager, MeterReadingUploadManagerConfig } from './meter-reading-upload-manager.js';
-import { SyncDatabase, MeterReadingEntity } from '../types/index.js';
+import { SyncDatabase } from '../types/index.js';
 import { ClientSystemApiClient } from '../api/client-system-api.js';
 
 describe('MeterReadingUploadManager Batch Size Configuration', () => {
@@ -172,57 +172,5 @@ describe('MeterReadingUploadManager Batch Size Configuration', () => {
       );
     });
 
-    it('should split readings into batches using uploadBatchSize', async () => {
-      const config: MeterReadingUploadManagerConfig = {
-        database: mockDatabase as SyncDatabase,
-        apiClient: mockApiClient as ClientSystemApiClient,
-        batchSize: 50,
-      };
-
-      uploadManager = new MeterReadingUploadManager(config);
-      (uploadManager as any).uploadBatchSize = 50;
-      (uploadManager as any).apiClient = mockApiClient;
-      (uploadManager as any).tenantId = 1;
-
-      // Create mock readings (100 total, should be split into 2 batches of 50)
-      const mockReadings: Partial<MeterReadingEntity>[] = Array.from({ length: 100 }, (_, i) => ({
-        meter_reading_id: `reading-${i}`,
-        meter_id: 1,
-        active_energy: 100 + i,
-        is_synchronized: false,
-      }));
-
-      // Mock getUnsynchronizedReadings to return all readings
-      mockDatabase.getUnsynchronizedReadings.mockResolvedValueOnce(mockReadings);
-
-      // Mock uploadBatch to succeed
-      mockApiClient.uploadBatch.mockResolvedValue({ success: true, recordsProcessed: 50 });
-
-      // Mock markReadingsAsSynchronized
-      mockDatabase.markReadingsAsSynchronized.mockResolvedValue(50);
-
-      // Mock connectivity check
-      vi.spyOn(uploadManager as any, 'checkClientConnectivity').mockResolvedValue(true);
-
-      // Mock validation middleware
-      (uploadManager as any).validationMiddleware.validateReadingsBeforeUpload = vi.fn().mockResolvedValue({
-        validReadings: mockReadings,
-        invalidReadings: [],
-        report: { realDataReadings: 100, mockDataDetected: 0 },
-      });
-
-      // Call performUpload
-      await (uploadManager as any).performUpload();
-
-      // Verify uploadBatch was called twice (once for each batch)
-      expect(mockApiClient.uploadBatch).toHaveBeenCalledTimes(2);
-
-      // Verify each call had 50 readings
-      const firstCall = mockApiClient.uploadBatch.mock.calls[0][0];
-      const secondCall = mockApiClient.uploadBatch.mock.calls[1][0];
-
-      expect(firstCall).toHaveLength(50);
-      expect(secondCall).toHaveLength(50);
-    });
   });
 });

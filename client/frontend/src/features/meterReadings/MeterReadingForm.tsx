@@ -113,19 +113,19 @@ export const MeterReadingForm: React.FC<MeterReadingFormProps> = ({
           },
           'Current': {
             'Current': {
-              overall: lastReading.current || 0,
-              phase1: lastReading.current_line_a || 0,
-              phase2: lastReading.current_line_b || 0,
-              phase3: lastReading.current_line_c || 0,
+              overall: lastReading.amperage || 0,
+              phase1: lastReading.phase_amperage_a || 0,
+              phase2: lastReading.phase_amperage_b || 0,
+              phase3: lastReading.phase_amperage_c || 0,
               unit: 'A'
             },
           },
           'Power': {
             'Active Power': {
-              overall: lastReading.power || 0,
-              phase1: lastReading.power_phase_a || 0,
-              phase2: lastReading.power_phase_b || 0,
-              phase3: lastReading.power_phase_c || 0,
+              overall: lastReading.kw || 0,
+              phase1: lastReading.phase_kw_a || 0,
+              phase2: lastReading.phase_kw_b || 0,
+              phase3: lastReading.phase_kw_c || 0,
               unit: 'kW'
             },
           },

@@ -37,49 +37,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
-// Define CORS headers once for reuse
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://meteritpro.com",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Request-ID",
-  "Access-Control-Allow-Credentials": "true",
-  "Access-Control-Max-Age": "86400",
-};
-
-export default {
-  async fetch(request, env, ctx) {
-    // 1. Fix CORS Preflight (OPTIONS request)
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders });
-    }
-
-    const startTime = Date.now();
-    const requestId = request.headers.get("X-Request-ID") || crypto.randomUUID();
-
-    try {
-      // 2. Perform your actual logic (e.g., Auth/Login)
-      // Note: Replace handleRequest with your actual logic
-      let response = await handleRequest(request, env); 
-
-      // 3. Reconstruct response to add your custom headers
-      const newResponse = new Response(response.body, response);
-      Object.entries(corsHeaders).forEach(([k, v]) => newResponse.headers.set(k, v));
-      newResponse.headers.set("X-Request-ID", requestId);
-      newResponse.headers.set("X-Response-Time", `${Date.now() - startTime}ms`);
-      
-      return newResponse;
-
-    } catch (err) {
-      // 4. Handle 500 Errors gracefully with CORS headers
-      // This ensures the browser can read the error instead of blocking it
-      return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders }
-      });
-    }
-  }
-};
-
 
 // node_modules/unenv/dist/runtime/_internal/utils.mjs
 // @__NO_SIDE_EFFECTS__
@@ -1346,9 +1303,9 @@ var require_postgres_date = __commonJS({
       if (type === "Z") {
         return 0;
       }
-      var sign = type === "-" ? -1 : 1;
+      var sign3 = type === "-" ? -1 : 1;
       var offset = parseInt(zone[2], 10) * 3600 + parseInt(zone[3] || 0, 10) * 60 + parseInt(zone[4] || 0, 10);
-      return offset * sign * 1e3;
+      return offset * sign3 * 1e3;
     }
     __name(timeZoneOffset, "timeZoneOffset");
     function bcYearToNegativeYear(year) {
@@ -1398,7 +1355,7 @@ var require_postgres_interval = __commonJS({
       if (!(this instanceof PostgresInterval)) {
         return new PostgresInterval(raw2);
       }
-      extend(this, parse(raw2));
+      extend(this, parse2(raw2));
     }
     __name(PostgresInterval, "PostgresInterval");
     var properties = ["seconds", "minutes", "hours", "days", "months", "years"];
@@ -1462,7 +1419,7 @@ var require_postgres_interval = __commonJS({
       return parseInt(microseconds, 10) / 1e3;
     }
     __name(parseMilliseconds, "parseMilliseconds");
-    function parse(interval) {
+    function parse2(interval) {
       if (!interval) return {};
       var matches = INTERVAL.exec(interval);
       var isNegative = matches[8] === "-";
@@ -1479,7 +1436,7 @@ var require_postgres_interval = __commonJS({
         return parsed;
       }, {});
     }
-    __name(parse, "parse");
+    __name(parse2, "parse");
   }
 });
 
@@ -1741,11 +1698,11 @@ var require_pg_int8 = __commonJS({
     function readInt8(buffer) {
       var high = buffer.readInt32BE(0);
       var low = buffer.readUInt32BE(4);
-      var sign = "";
+      var sign3 = "";
       if (high < 0) {
         high = ~high + (low === 0);
         low = ~low + 1 >>> 0;
-        sign = "-";
+        sign3 = "-";
       }
       var result = "";
       var carry;
@@ -1761,7 +1718,7 @@ var require_pg_int8 = __commonJS({
         low = t / BASE >>> 0;
         digits = "" + (t - BASE * low);
         if (low === 0 && high === 0) {
-          return sign + digits + result;
+          return sign3 + digits + result;
         }
         pad = "";
         l = 6 - digits.length;
@@ -1777,7 +1734,7 @@ var require_pg_int8 = __commonJS({
         low = t / BASE >>> 0;
         digits = "" + (t - BASE * low);
         if (low === 0 && high === 0) {
-          return sign + digits + result;
+          return sign3 + digits + result;
         }
         pad = "";
         l = 6 - digits.length;
@@ -1793,7 +1750,7 @@ var require_pg_int8 = __commonJS({
         low = t / BASE >>> 0;
         digits = "" + (t - BASE * low);
         if (low === 0 && high === 0) {
-          return sign + digits + result;
+          return sign3 + digits + result;
         }
         pad = "";
         l = 6 - digits.length;
@@ -1806,7 +1763,7 @@ var require_pg_int8 = __commonJS({
         carry = high % BASE;
         t = 4294967296 * carry + low;
         digits = "" + t % BASE;
-        return sign + digits + result;
+        return sign3 + digits + result;
       }
     }
     __name(readInt8, "readInt8");
@@ -1859,7 +1816,7 @@ var require_binaryParsers = __commonJS({
     }, "parseBits");
     var parseFloatFromBits = /* @__PURE__ */ __name(function(data, precisionBits, exponentBits) {
       var bias = Math.pow(2, exponentBits - 1) - 1;
-      var sign = parseBits(data, 1);
+      var sign3 = parseBits(data, 1);
       var exponent = parseBits(data, exponentBits, 1);
       if (exponent === 0) {
         return 0;
@@ -1880,11 +1837,11 @@ var require_binaryParsers = __commonJS({
       var mantissa = parseBits(data, precisionBits, exponentBits + 1, false, parsePrecisionBits);
       if (exponent == Math.pow(2, exponentBits + 1) - 1) {
         if (mantissa === 0) {
-          return sign === 0 ? Infinity : -Infinity;
+          return sign3 === 0 ? Infinity : -Infinity;
         }
         return NaN;
       }
-      return (sign === 0 ? 1 : -1) * Math.pow(2, exponent - bias) * mantissa;
+      return (sign3 === 0 ? 1 : -1) * Math.pow(2, exponent - bias) * mantissa;
     }, "parseFloatFromBits");
     var parseInt16 = /* @__PURE__ */ __name(function(value) {
       if (parseBits(value, 1) == 1) {
@@ -1905,8 +1862,8 @@ var require_binaryParsers = __commonJS({
       return parseFloatFromBits(value, 52, 11);
     }, "parseFloat64");
     var parseNumeric = /* @__PURE__ */ __name(function(value) {
-      var sign = parseBits(value, 16, 32);
-      if (sign == 49152) {
+      var sign3 = parseBits(value, 16, 32);
+      if (sign3 == 49152) {
         return NaN;
       }
       var weight = Math.pow(1e4, parseBits(value, 16, 16));
@@ -1918,12 +1875,12 @@ var require_binaryParsers = __commonJS({
         weight /= 1e4;
       }
       var scale = Math.pow(10, parseBits(value, 16, 48));
-      return (sign === 0 ? 1 : -1) * Math.round(result * scale) / scale;
+      return (sign3 === 0 ? 1 : -1) * Math.round(result * scale) / scale;
     }, "parseNumeric");
     var parseDate = /* @__PURE__ */ __name(function(isUTC, value) {
-      var sign = parseBits(value, 1);
+      var sign3 = parseBits(value, 1);
       var rawValue = parseBits(value, 63, 1);
-      var result = new Date((sign === 0 ? 1 : -1) * rawValue / 1e3 + 9466848e5);
+      var result = new Date((sign3 === 0 ? 1 : -1) * rawValue / 1e3 + 9466848e5);
       if (!isUTC) {
         result.setTime(result.getTime() + result.getTimezoneOffset() * 6e4);
       }
@@ -1968,13 +1925,13 @@ var require_binaryParsers = __commonJS({
           console.log("ERROR: ElementType not implemented: " + elementType2);
         }
       }, "parseElement");
-      var parse = /* @__PURE__ */ __name(function(dimension, elementType2) {
+      var parse2 = /* @__PURE__ */ __name(function(dimension, elementType2) {
         var array = [];
         var i2;
         if (dimension.length > 1) {
           var count3 = dimension.shift();
           for (i2 = 0; i2 < count3; i2++) {
-            array[i2] = parse(dimension, elementType2);
+            array[i2] = parse2(dimension, elementType2);
           }
           dimension.unshift(count3);
         } else {
@@ -1984,7 +1941,7 @@ var require_binaryParsers = __commonJS({
         }
         return array;
       }, "parse");
-      return parse(dims, elementType);
+      return parse2(dims, elementType);
     }, "parseArray");
     var parseText = /* @__PURE__ */ __name(function(value) {
       return value.toString("utf8");
@@ -3357,7 +3314,7 @@ var require_pg_connection_string = __commonJS({
     init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
     init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
     init_performance2();
-    function parse(str, options = {}) {
+    function parse2(str, options = {}) {
       if (str.charAt(0) === "/") {
         const config3 = str.split(" ");
         return { host: config3[0], database: config3[1] };
@@ -3475,7 +3432,7 @@ var require_pg_connection_string = __commonJS({
       }
       return config2;
     }
-    __name(parse, "parse");
+    __name(parse2, "parse");
     function toConnectionOptions(sslConfig) {
       const connectionOptions = Object.entries(sslConfig).reduce((c, [key, value]) => {
         if (value !== void 0 && value !== null) {
@@ -3515,13 +3472,13 @@ var require_pg_connection_string = __commonJS({
     }
     __name(toClientConfig, "toClientConfig");
     function parseIntoClientConfig(str) {
-      return toClientConfig(parse(str));
+      return toClientConfig(parse2(str));
     }
     __name(parseIntoClientConfig, "parseIntoClientConfig");
-    module.exports = parse;
-    parse.parse = parse;
-    parse.toClientConfig = toClientConfig;
-    parse.parseIntoClientConfig = parseIntoClientConfig;
+    module.exports = parse2;
+    parse2.parse = parse2;
+    parse2.toClientConfig = toClientConfig;
+    parse2.parseIntoClientConfig = parseIntoClientConfig;
   }
 });
 
@@ -3534,7 +3491,7 @@ var require_connection_parameters = __commonJS({
     init_performance2();
     var dns = require_dns();
     var defaults2 = require_defaults();
-    var parse = require_pg_connection_string().parse;
+    var parse2 = require_pg_connection_string().parse;
     var val = /* @__PURE__ */ __name(function(key, config2, envVar) {
       if (envVar === void 0) {
         envVar = process.env["PG" + key.toUpperCase()];
@@ -3572,9 +3529,9 @@ var require_connection_parameters = __commonJS({
         __name(this, "ConnectionParameters");
       }
       constructor(config2) {
-        config2 = typeof config2 === "string" ? parse(config2) : config2 || {};
+        config2 = typeof config2 === "string" ? parse2(config2) : config2 || {};
         if (config2.connectionString) {
-          config2 = Object.assign({}, config2, parse(config2.connectionString));
+          config2 = Object.assign({}, config2, parse2(config2.connectionString));
         }
         this.user = val("user", config2);
         this.database = val("database", config2);
@@ -3731,12 +3688,12 @@ var require_result = __commonJS({
         const row = { ...this._prebuiltEmptyResultObject };
         for (let i = 0, len = rowData.length; i < len; i++) {
           const rawValue = rowData[i];
-          const field = this.fields[i].name;
+          const field16 = this.fields[i].name;
           if (rawValue !== null) {
             const v = this.fields[i].format === "binary" ? Buffer.from(rawValue) : rawValue;
-            row[field] = this._parsers[i](v);
+            row[field16] = this._parsers[i](v);
           } else {
-            row[field] = null;
+            row[field16] = null;
           }
         }
         return row;
@@ -4319,7 +4276,7 @@ var require_serializer = __commonJS({
       );
     }, "query");
     var emptyArray = [];
-    var parse = /* @__PURE__ */ __name((query3) => {
+    var parse2 = /* @__PURE__ */ __name((query3) => {
       const name = query3.name || "";
       if (name.length > 63) {
         console.error("Warning! Postgres only supports 63 characters for query names.");
@@ -4462,14 +4419,14 @@ var require_serializer = __commonJS({
       99
       /* code.copyDone */
     );
-    var serialize = {
+    var serialize2 = {
       startup,
       password,
       requestSsl,
       sendSASLInitialResponseMessage,
       sendSCRAMClientFinalMessage,
       query: query2,
-      parse,
+      parse: parse2,
       bind,
       execute,
       describe,
@@ -4482,7 +4439,7 @@ var require_serializer = __commonJS({
       copyFail,
       cancel
     };
-    exports.serialize = serialize;
+    exports.serialize = serialize2;
   }
 });
 
@@ -4869,13 +4826,13 @@ var require_dist = __commonJS({
       return serializer_1.serialize;
     }, "get") });
     var parser_1 = require_parser();
-    function parse(stream, callback) {
+    function parse2(stream, callback) {
       const parser = new parser_1.Parser();
       stream.on("data", (buffer) => parser.parse(buffer, callback));
       return new Promise((resolve) => stream.on("end", () => resolve()));
     }
-    __name(parse, "parse");
-    exports.parse = parse;
+    __name(parse2, "parse");
+    exports.parse = parse2;
   }
 });
 
@@ -5147,11 +5104,11 @@ var require_connection = __commonJS({
     init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
     init_performance2();
     var EventEmitter2 = require_events().EventEmitter;
-    var { parse, serialize } = require_dist();
+    var { parse: parse2, serialize: serialize2 } = require_dist();
     var { getStream, getSecureStream } = require_stream();
-    var flushBuffer = serialize.flush();
-    var syncBuffer = serialize.sync();
-    var endBuffer = serialize.end();
+    var flushBuffer = serialize2.flush();
+    var syncBuffer = serialize2.sync();
+    var endBuffer = serialize2.end();
     var Connection2 = class extends EventEmitter2 {
       static {
         __name(this, "Connection");
@@ -5237,7 +5194,7 @@ var require_connection = __commonJS({
         });
       }
       attachListeners(stream) {
-        parse(stream, (msg) => {
+        parse2(stream, (msg) => {
           const eventName = msg.name === "error" ? "errorMessage" : msg.name;
           if (this._emitMessage) {
             this.emit("message", msg);
@@ -5246,22 +5203,22 @@ var require_connection = __commonJS({
         });
       }
       requestSsl() {
-        this.stream.write(serialize.requestSsl());
+        this.stream.write(serialize2.requestSsl());
       }
       startup(config2) {
-        this.stream.write(serialize.startup(config2));
+        this.stream.write(serialize2.startup(config2));
       }
       cancel(processID, secretKey) {
-        this._send(serialize.cancel(processID, secretKey));
+        this._send(serialize2.cancel(processID, secretKey));
       }
       password(password) {
-        this._send(serialize.password(password));
+        this._send(serialize2.password(password));
       }
       sendSASLInitialResponseMessage(mechanism, initialResponse) {
-        this._send(serialize.sendSASLInitialResponseMessage(mechanism, initialResponse));
+        this._send(serialize2.sendSASLInitialResponseMessage(mechanism, initialResponse));
       }
       sendSCRAMClientFinalMessage(additionalData) {
-        this._send(serialize.sendSCRAMClientFinalMessage(additionalData));
+        this._send(serialize2.sendSCRAMClientFinalMessage(additionalData));
       }
       _send(buffer) {
         if (!this.stream.writable) {
@@ -5270,19 +5227,19 @@ var require_connection = __commonJS({
         return this.stream.write(buffer);
       }
       query(text) {
-        this._send(serialize.query(text));
+        this._send(serialize2.query(text));
       }
       // send parse message
       parse(query2) {
-        this._send(serialize.parse(query2));
+        this._send(serialize2.parse(query2));
       }
       // send bind message
       bind(config2) {
-        this._send(serialize.bind(config2));
+        this._send(serialize2.bind(config2));
       }
       // send execute message
       execute(config2) {
-        this._send(serialize.execute(config2));
+        this._send(serialize2.execute(config2));
       }
       flush() {
         if (this.stream.writable) {
@@ -5310,19 +5267,19 @@ var require_connection = __commonJS({
         });
       }
       close(msg) {
-        this._send(serialize.close(msg));
+        this._send(serialize2.close(msg));
       }
       describe(msg) {
-        this._send(serialize.describe(msg));
+        this._send(serialize2.describe(msg));
       }
       sendCopyFromChunk(chunk) {
-        this._send(serialize.copyData(chunk));
+        this._send(serialize2.copyData(chunk));
       }
       endCopyFrom() {
-        this._send(serialize.copyDone());
+        this._send(serialize2.copyDone());
       }
       sendCopyFail(msg) {
-        this._send(serialize.copyFail(msg));
+        this._send(serialize2.copyFail(msg));
       }
     };
     module.exports = Connection2;
@@ -5541,13 +5498,13 @@ var require_helper = __commonJS({
       return true;
     };
     var matcher = module.exports.match = function(connInfo, entry) {
-      return fieldNames.slice(0, -1).reduce(function(prev, field, idx) {
+      return fieldNames.slice(0, -1).reduce(function(prev, field16, idx) {
         if (idx == 1) {
-          if (Number(connInfo[field] || defaultPort) === Number(entry[field])) {
+          if (Number(connInfo[field16] || defaultPort) === Number(entry[field16])) {
             return prev && true;
           }
         }
-        return prev && (entry[field] === "*" || entry[field] === connInfo[field]);
+        return prev && (entry[field16] === "*" || entry[field16] === connInfo[field16]);
       }, true);
     };
     module.exports.getPassword = function(connInfo, stream, cb) {
@@ -5585,11 +5542,11 @@ var require_helper = __commonJS({
       var obj = {};
       var isLastField = false;
       var addToObj = /* @__PURE__ */ __name(function(idx, i0, i1) {
-        var field = line.substring(i0, i1);
+        var field16 = line.substring(i0, i1);
         if (!Object.hasOwnProperty.call(process.env, "PGPASS_NO_DEESCAPE")) {
-          field = field.replace(/\\([:\\])/g, "$1");
+          field16 = field16.replace(/\\([:\\])/g, "$1");
         }
-        obj[fieldNames[idx]] = field;
+        obj[fieldNames[idx]] = field16;
       }, "addToObj");
       for (var i = 0; i < line.length - 1; i += 1) {
         curChar = line.charAt(i + 1);
@@ -6260,15 +6217,15 @@ var require_pg_pool = __commonJS({
       return { callback: cb, result };
     }
     __name(promisify, "promisify");
-    function makeIdleListener(pool2, client) {
+    function makeIdleListener(pool, client) {
       return /* @__PURE__ */ __name(function idleListener(err) {
         err.client = client;
         client.removeListener("error", idleListener);
         client.on("error", () => {
-          pool2.log("additional client error after disconnection due to error", err);
+          pool.log("additional client error after disconnection due to error", err);
         });
-        pool2._remove(client);
-        pool2.emit("error", err, client);
+        pool._remove(client);
+        pool.emit("error", err, client);
       }, "idleListener");
     }
     __name(makeIdleListener, "makeIdleListener");
@@ -7073,4211 +7030,6 @@ var require_lib2 = __commonJS({
         }
       });
     }
-  }
-});
-
-// node-built-in-modules:buffer
-import libDefault10 from "buffer";
-var require_buffer = __commonJS({
-  "node-built-in-modules:buffer"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    module.exports = libDefault10;
-  }
-});
-
-// node_modules/safe-buffer/index.js
-var require_safe_buffer = __commonJS({
-  "node_modules/safe-buffer/index.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var buffer = require_buffer();
-    var Buffer2 = buffer.Buffer;
-    function copyProps(src, dst) {
-      for (var key in src) {
-        dst[key] = src[key];
-      }
-    }
-    __name(copyProps, "copyProps");
-    if (Buffer2.from && Buffer2.alloc && Buffer2.allocUnsafe && Buffer2.allocUnsafeSlow) {
-      module.exports = buffer;
-    } else {
-      copyProps(buffer, exports);
-      exports.Buffer = SafeBuffer;
-    }
-    function SafeBuffer(arg, encodingOrOffset, length) {
-      return Buffer2(arg, encodingOrOffset, length);
-    }
-    __name(SafeBuffer, "SafeBuffer");
-    SafeBuffer.prototype = Object.create(Buffer2.prototype);
-    copyProps(Buffer2, SafeBuffer);
-    SafeBuffer.from = function(arg, encodingOrOffset, length) {
-      if (typeof arg === "number") {
-        throw new TypeError("Argument must not be a number");
-      }
-      return Buffer2(arg, encodingOrOffset, length);
-    };
-    SafeBuffer.alloc = function(size, fill, encoding) {
-      if (typeof size !== "number") {
-        throw new TypeError("Argument must be a number");
-      }
-      var buf = Buffer2(size);
-      if (fill !== void 0) {
-        if (typeof encoding === "string") {
-          buf.fill(fill, encoding);
-        } else {
-          buf.fill(fill);
-        }
-      } else {
-        buf.fill(0);
-      }
-      return buf;
-    };
-    SafeBuffer.allocUnsafe = function(size) {
-      if (typeof size !== "number") {
-        throw new TypeError("Argument must be a number");
-      }
-      return Buffer2(size);
-    };
-    SafeBuffer.allocUnsafeSlow = function(size) {
-      if (typeof size !== "number") {
-        throw new TypeError("Argument must be a number");
-      }
-      return buffer.SlowBuffer(size);
-    };
-  }
-});
-
-// node_modules/jws/lib/data-stream.js
-var require_data_stream = __commonJS({
-  "node_modules/jws/lib/data-stream.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Buffer2 = require_safe_buffer().Buffer;
-    var Stream = require_stream2();
-    var util = require_util();
-    function DataStream(data) {
-      this.buffer = null;
-      this.writable = true;
-      this.readable = true;
-      if (!data) {
-        this.buffer = Buffer2.alloc(0);
-        return this;
-      }
-      if (typeof data.pipe === "function") {
-        this.buffer = Buffer2.alloc(0);
-        data.pipe(this);
-        return this;
-      }
-      if (data.length || typeof data === "object") {
-        this.buffer = data;
-        this.writable = false;
-        process.nextTick(function() {
-          this.emit("end", data);
-          this.readable = false;
-          this.emit("close");
-        }.bind(this));
-        return this;
-      }
-      throw new TypeError("Unexpected data type (" + typeof data + ")");
-    }
-    __name(DataStream, "DataStream");
-    util.inherits(DataStream, Stream);
-    DataStream.prototype.write = /* @__PURE__ */ __name(function write2(data) {
-      this.buffer = Buffer2.concat([this.buffer, Buffer2.from(data)]);
-      this.emit("data", data);
-    }, "write");
-    DataStream.prototype.end = /* @__PURE__ */ __name(function end(data) {
-      if (data)
-        this.write(data);
-      this.emit("end", data);
-      this.emit("close");
-      this.writable = false;
-      this.readable = false;
-    }, "end");
-    module.exports = DataStream;
-  }
-});
-
-// node_modules/ecdsa-sig-formatter/src/param-bytes-for-alg.js
-var require_param_bytes_for_alg = __commonJS({
-  "node_modules/ecdsa-sig-formatter/src/param-bytes-for-alg.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    function getParamSize(keySize) {
-      var result = (keySize / 8 | 0) + (keySize % 8 === 0 ? 0 : 1);
-      return result;
-    }
-    __name(getParamSize, "getParamSize");
-    var paramBytesForAlg = {
-      ES256: getParamSize(256),
-      ES384: getParamSize(384),
-      ES512: getParamSize(521)
-    };
-    function getParamBytesForAlg(alg) {
-      var paramBytes = paramBytesForAlg[alg];
-      if (paramBytes) {
-        return paramBytes;
-      }
-      throw new Error('Unknown algorithm "' + alg + '"');
-    }
-    __name(getParamBytesForAlg, "getParamBytesForAlg");
-    module.exports = getParamBytesForAlg;
-  }
-});
-
-// node_modules/ecdsa-sig-formatter/src/ecdsa-sig-formatter.js
-var require_ecdsa_sig_formatter = __commonJS({
-  "node_modules/ecdsa-sig-formatter/src/ecdsa-sig-formatter.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Buffer2 = require_safe_buffer().Buffer;
-    var getParamBytesForAlg = require_param_bytes_for_alg();
-    var MAX_OCTET = 128;
-    var CLASS_UNIVERSAL = 0;
-    var PRIMITIVE_BIT = 32;
-    var TAG_SEQ = 16;
-    var TAG_INT = 2;
-    var ENCODED_TAG_SEQ = TAG_SEQ | PRIMITIVE_BIT | CLASS_UNIVERSAL << 6;
-    var ENCODED_TAG_INT = TAG_INT | CLASS_UNIVERSAL << 6;
-    function base64Url(base64) {
-      return base64.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-    }
-    __name(base64Url, "base64Url");
-    function signatureAsBuffer(signature) {
-      if (Buffer2.isBuffer(signature)) {
-        return signature;
-      } else if ("string" === typeof signature) {
-        return Buffer2.from(signature, "base64");
-      }
-      throw new TypeError("ECDSA signature must be a Base64 string or a Buffer");
-    }
-    __name(signatureAsBuffer, "signatureAsBuffer");
-    function derToJose(signature, alg) {
-      signature = signatureAsBuffer(signature);
-      var paramBytes = getParamBytesForAlg(alg);
-      var maxEncodedParamLength = paramBytes + 1;
-      var inputLength = signature.length;
-      var offset = 0;
-      if (signature[offset++] !== ENCODED_TAG_SEQ) {
-        throw new Error('Could not find expected "seq"');
-      }
-      var seqLength = signature[offset++];
-      if (seqLength === (MAX_OCTET | 1)) {
-        seqLength = signature[offset++];
-      }
-      if (inputLength - offset < seqLength) {
-        throw new Error('"seq" specified length of "' + seqLength + '", only "' + (inputLength - offset) + '" remaining');
-      }
-      if (signature[offset++] !== ENCODED_TAG_INT) {
-        throw new Error('Could not find expected "int" for "r"');
-      }
-      var rLength = signature[offset++];
-      if (inputLength - offset - 2 < rLength) {
-        throw new Error('"r" specified length of "' + rLength + '", only "' + (inputLength - offset - 2) + '" available');
-      }
-      if (maxEncodedParamLength < rLength) {
-        throw new Error('"r" specified length of "' + rLength + '", max of "' + maxEncodedParamLength + '" is acceptable');
-      }
-      var rOffset = offset;
-      offset += rLength;
-      if (signature[offset++] !== ENCODED_TAG_INT) {
-        throw new Error('Could not find expected "int" for "s"');
-      }
-      var sLength = signature[offset++];
-      if (inputLength - offset !== sLength) {
-        throw new Error('"s" specified length of "' + sLength + '", expected "' + (inputLength - offset) + '"');
-      }
-      if (maxEncodedParamLength < sLength) {
-        throw new Error('"s" specified length of "' + sLength + '", max of "' + maxEncodedParamLength + '" is acceptable');
-      }
-      var sOffset = offset;
-      offset += sLength;
-      if (offset !== inputLength) {
-        throw new Error('Expected to consume entire buffer, but "' + (inputLength - offset) + '" bytes remain');
-      }
-      var rPadding = paramBytes - rLength, sPadding = paramBytes - sLength;
-      var dst = Buffer2.allocUnsafe(rPadding + rLength + sPadding + sLength);
-      for (offset = 0; offset < rPadding; ++offset) {
-        dst[offset] = 0;
-      }
-      signature.copy(dst, offset, rOffset + Math.max(-rPadding, 0), rOffset + rLength);
-      offset = paramBytes;
-      for (var o = offset; offset < o + sPadding; ++offset) {
-        dst[offset] = 0;
-      }
-      signature.copy(dst, offset, sOffset + Math.max(-sPadding, 0), sOffset + sLength);
-      dst = dst.toString("base64");
-      dst = base64Url(dst);
-      return dst;
-    }
-    __name(derToJose, "derToJose");
-    function countPadding(buf, start, stop) {
-      var padding = 0;
-      while (start + padding < stop && buf[start + padding] === 0) {
-        ++padding;
-      }
-      var needsSign = buf[start + padding] >= MAX_OCTET;
-      if (needsSign) {
-        --padding;
-      }
-      return padding;
-    }
-    __name(countPadding, "countPadding");
-    function joseToDer(signature, alg) {
-      signature = signatureAsBuffer(signature);
-      var paramBytes = getParamBytesForAlg(alg);
-      var signatureBytes = signature.length;
-      if (signatureBytes !== paramBytes * 2) {
-        throw new TypeError('"' + alg + '" signatures must be "' + paramBytes * 2 + '" bytes, saw "' + signatureBytes + '"');
-      }
-      var rPadding = countPadding(signature, 0, paramBytes);
-      var sPadding = countPadding(signature, paramBytes, signature.length);
-      var rLength = paramBytes - rPadding;
-      var sLength = paramBytes - sPadding;
-      var rsBytes = 1 + 1 + rLength + 1 + 1 + sLength;
-      var shortLength = rsBytes < MAX_OCTET;
-      var dst = Buffer2.allocUnsafe((shortLength ? 2 : 3) + rsBytes);
-      var offset = 0;
-      dst[offset++] = ENCODED_TAG_SEQ;
-      if (shortLength) {
-        dst[offset++] = rsBytes;
-      } else {
-        dst[offset++] = MAX_OCTET | 1;
-        dst[offset++] = rsBytes & 255;
-      }
-      dst[offset++] = ENCODED_TAG_INT;
-      dst[offset++] = rLength;
-      if (rPadding < 0) {
-        dst[offset++] = 0;
-        offset += signature.copy(dst, offset, 0, paramBytes);
-      } else {
-        offset += signature.copy(dst, offset, rPadding, paramBytes);
-      }
-      dst[offset++] = ENCODED_TAG_INT;
-      dst[offset++] = sLength;
-      if (sPadding < 0) {
-        dst[offset++] = 0;
-        signature.copy(dst, offset, paramBytes);
-      } else {
-        signature.copy(dst, offset, paramBytes + sPadding);
-      }
-      return dst;
-    }
-    __name(joseToDer, "joseToDer");
-    module.exports = {
-      derToJose,
-      joseToDer
-    };
-  }
-});
-
-// node_modules/buffer-equal-constant-time/index.js
-var require_buffer_equal_constant_time = __commonJS({
-  "node_modules/buffer-equal-constant-time/index.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Buffer2 = require_buffer().Buffer;
-    var SlowBuffer = require_buffer().SlowBuffer;
-    module.exports = bufferEq;
-    function bufferEq(a, b) {
-      if (!Buffer2.isBuffer(a) || !Buffer2.isBuffer(b)) {
-        return false;
-      }
-      if (a.length !== b.length) {
-        return false;
-      }
-      var c = 0;
-      for (var i = 0; i < a.length; i++) {
-        c |= a[i] ^ b[i];
-      }
-      return c === 0;
-    }
-    __name(bufferEq, "bufferEq");
-    bufferEq.install = function() {
-      Buffer2.prototype.equal = SlowBuffer.prototype.equal = /* @__PURE__ */ __name(function equal(that) {
-        return bufferEq(this, that);
-      }, "equal");
-    };
-    var origBufEqual = Buffer2.prototype.equal;
-    var origSlowBufEqual = SlowBuffer.prototype.equal;
-    bufferEq.restore = function() {
-      Buffer2.prototype.equal = origBufEqual;
-      SlowBuffer.prototype.equal = origSlowBufEqual;
-    };
-  }
-});
-
-// node_modules/jwa/index.js
-var require_jwa = __commonJS({
-  "node_modules/jwa/index.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Buffer2 = require_safe_buffer().Buffer;
-    var crypto2 = require_crypto();
-    var formatEcdsa = require_ecdsa_sig_formatter();
-    var util = require_util();
-    var MSG_INVALID_ALGORITHM = '"%s" is not a valid algorithm.\n  Supported algorithms are:\n  "HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "ES512" and "none".';
-    var MSG_INVALID_SECRET = "secret must be a string or buffer";
-    var MSG_INVALID_VERIFIER_KEY = "key must be a string or a buffer";
-    var MSG_INVALID_SIGNER_KEY = "key must be a string, a buffer or an object";
-    var supportsKeyObjects = typeof crypto2.createPublicKey === "function";
-    if (supportsKeyObjects) {
-      MSG_INVALID_VERIFIER_KEY += " or a KeyObject";
-      MSG_INVALID_SECRET += "or a KeyObject";
-    }
-    function checkIsPublicKey(key) {
-      if (Buffer2.isBuffer(key)) {
-        return;
-      }
-      if (typeof key === "string") {
-        return;
-      }
-      if (!supportsKeyObjects) {
-        throw typeError(MSG_INVALID_VERIFIER_KEY);
-      }
-      if (typeof key !== "object") {
-        throw typeError(MSG_INVALID_VERIFIER_KEY);
-      }
-      if (typeof key.type !== "string") {
-        throw typeError(MSG_INVALID_VERIFIER_KEY);
-      }
-      if (typeof key.asymmetricKeyType !== "string") {
-        throw typeError(MSG_INVALID_VERIFIER_KEY);
-      }
-      if (typeof key.export !== "function") {
-        throw typeError(MSG_INVALID_VERIFIER_KEY);
-      }
-    }
-    __name(checkIsPublicKey, "checkIsPublicKey");
-    function checkIsPrivateKey(key) {
-      if (Buffer2.isBuffer(key)) {
-        return;
-      }
-      if (typeof key === "string") {
-        return;
-      }
-      if (typeof key === "object") {
-        return;
-      }
-      throw typeError(MSG_INVALID_SIGNER_KEY);
-    }
-    __name(checkIsPrivateKey, "checkIsPrivateKey");
-    function checkIsSecretKey(key) {
-      if (Buffer2.isBuffer(key)) {
-        return;
-      }
-      if (typeof key === "string") {
-        return key;
-      }
-      if (!supportsKeyObjects) {
-        throw typeError(MSG_INVALID_SECRET);
-      }
-      if (typeof key !== "object") {
-        throw typeError(MSG_INVALID_SECRET);
-      }
-      if (key.type !== "secret") {
-        throw typeError(MSG_INVALID_SECRET);
-      }
-      if (typeof key.export !== "function") {
-        throw typeError(MSG_INVALID_SECRET);
-      }
-    }
-    __name(checkIsSecretKey, "checkIsSecretKey");
-    function fromBase64(base64) {
-      return base64.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-    }
-    __name(fromBase64, "fromBase64");
-    function toBase64(base64url) {
-      base64url = base64url.toString();
-      var padding = 4 - base64url.length % 4;
-      if (padding !== 4) {
-        for (var i = 0; i < padding; ++i) {
-          base64url += "=";
-        }
-      }
-      return base64url.replace(/\-/g, "+").replace(/_/g, "/");
-    }
-    __name(toBase64, "toBase64");
-    function typeError(template) {
-      var args = [].slice.call(arguments, 1);
-      var errMsg = util.format.bind(util, template).apply(null, args);
-      return new TypeError(errMsg);
-    }
-    __name(typeError, "typeError");
-    function bufferOrString(obj) {
-      return Buffer2.isBuffer(obj) || typeof obj === "string";
-    }
-    __name(bufferOrString, "bufferOrString");
-    function normalizeInput(thing) {
-      if (!bufferOrString(thing))
-        thing = JSON.stringify(thing);
-      return thing;
-    }
-    __name(normalizeInput, "normalizeInput");
-    function createHmacSigner(bits) {
-      return /* @__PURE__ */ __name(function sign(thing, secret) {
-        checkIsSecretKey(secret);
-        thing = normalizeInput(thing);
-        var hmac = crypto2.createHmac("sha" + bits, secret);
-        var sig = (hmac.update(thing), hmac.digest("base64"));
-        return fromBase64(sig);
-      }, "sign");
-    }
-    __name(createHmacSigner, "createHmacSigner");
-    var bufferEqual;
-    var timingSafeEqual = "timingSafeEqual" in crypto2 ? /* @__PURE__ */ __name(function timingSafeEqual2(a, b) {
-      if (a.byteLength !== b.byteLength) {
-        return false;
-      }
-      return crypto2.timingSafeEqual(a, b);
-    }, "timingSafeEqual") : /* @__PURE__ */ __name(function timingSafeEqual2(a, b) {
-      if (!bufferEqual) {
-        bufferEqual = require_buffer_equal_constant_time();
-      }
-      return bufferEqual(a, b);
-    }, "timingSafeEqual");
-    function createHmacVerifier(bits) {
-      return /* @__PURE__ */ __name(function verify(thing, signature, secret) {
-        var computedSig = createHmacSigner(bits)(thing, secret);
-        return timingSafeEqual(Buffer2.from(signature), Buffer2.from(computedSig));
-      }, "verify");
-    }
-    __name(createHmacVerifier, "createHmacVerifier");
-    function createKeySigner(bits) {
-      return /* @__PURE__ */ __name(function sign(thing, privateKey) {
-        checkIsPrivateKey(privateKey);
-        thing = normalizeInput(thing);
-        var signer = crypto2.createSign("RSA-SHA" + bits);
-        var sig = (signer.update(thing), signer.sign(privateKey, "base64"));
-        return fromBase64(sig);
-      }, "sign");
-    }
-    __name(createKeySigner, "createKeySigner");
-    function createKeyVerifier(bits) {
-      return /* @__PURE__ */ __name(function verify(thing, signature, publicKey) {
-        checkIsPublicKey(publicKey);
-        thing = normalizeInput(thing);
-        signature = toBase64(signature);
-        var verifier = crypto2.createVerify("RSA-SHA" + bits);
-        verifier.update(thing);
-        return verifier.verify(publicKey, signature, "base64");
-      }, "verify");
-    }
-    __name(createKeyVerifier, "createKeyVerifier");
-    function createPSSKeySigner(bits) {
-      return /* @__PURE__ */ __name(function sign(thing, privateKey) {
-        checkIsPrivateKey(privateKey);
-        thing = normalizeInput(thing);
-        var signer = crypto2.createSign("RSA-SHA" + bits);
-        var sig = (signer.update(thing), signer.sign({
-          key: privateKey,
-          padding: crypto2.constants.RSA_PKCS1_PSS_PADDING,
-          saltLength: crypto2.constants.RSA_PSS_SALTLEN_DIGEST
-        }, "base64"));
-        return fromBase64(sig);
-      }, "sign");
-    }
-    __name(createPSSKeySigner, "createPSSKeySigner");
-    function createPSSKeyVerifier(bits) {
-      return /* @__PURE__ */ __name(function verify(thing, signature, publicKey) {
-        checkIsPublicKey(publicKey);
-        thing = normalizeInput(thing);
-        signature = toBase64(signature);
-        var verifier = crypto2.createVerify("RSA-SHA" + bits);
-        verifier.update(thing);
-        return verifier.verify({
-          key: publicKey,
-          padding: crypto2.constants.RSA_PKCS1_PSS_PADDING,
-          saltLength: crypto2.constants.RSA_PSS_SALTLEN_DIGEST
-        }, signature, "base64");
-      }, "verify");
-    }
-    __name(createPSSKeyVerifier, "createPSSKeyVerifier");
-    function createECDSASigner(bits) {
-      var inner = createKeySigner(bits);
-      return /* @__PURE__ */ __name(function sign() {
-        var signature = inner.apply(null, arguments);
-        signature = formatEcdsa.derToJose(signature, "ES" + bits);
-        return signature;
-      }, "sign");
-    }
-    __name(createECDSASigner, "createECDSASigner");
-    function createECDSAVerifer(bits) {
-      var inner = createKeyVerifier(bits);
-      return /* @__PURE__ */ __name(function verify(thing, signature, publicKey) {
-        signature = formatEcdsa.joseToDer(signature, "ES" + bits).toString("base64");
-        var result = inner(thing, signature, publicKey);
-        return result;
-      }, "verify");
-    }
-    __name(createECDSAVerifer, "createECDSAVerifer");
-    function createNoneSigner() {
-      return /* @__PURE__ */ __name(function sign() {
-        return "";
-      }, "sign");
-    }
-    __name(createNoneSigner, "createNoneSigner");
-    function createNoneVerifier() {
-      return /* @__PURE__ */ __name(function verify(thing, signature) {
-        return signature === "";
-      }, "verify");
-    }
-    __name(createNoneVerifier, "createNoneVerifier");
-    module.exports = /* @__PURE__ */ __name(function jwa(algorithm) {
-      var signerFactories = {
-        hs: createHmacSigner,
-        rs: createKeySigner,
-        ps: createPSSKeySigner,
-        es: createECDSASigner,
-        none: createNoneSigner
-      };
-      var verifierFactories = {
-        hs: createHmacVerifier,
-        rs: createKeyVerifier,
-        ps: createPSSKeyVerifier,
-        es: createECDSAVerifer,
-        none: createNoneVerifier
-      };
-      var match2 = algorithm.match(/^(RS|PS|ES|HS)(256|384|512)$|^(none)$/i);
-      if (!match2)
-        throw typeError(MSG_INVALID_ALGORITHM, algorithm);
-      var algo = (match2[1] || match2[3]).toLowerCase();
-      var bits = match2[2];
-      return {
-        sign: signerFactories[algo](bits),
-        verify: verifierFactories[algo](bits)
-      };
-    }, "jwa");
-  }
-});
-
-// node_modules/jws/lib/tostring.js
-var require_tostring = __commonJS({
-  "node_modules/jws/lib/tostring.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Buffer2 = require_buffer().Buffer;
-    module.exports = /* @__PURE__ */ __name(function toString(obj) {
-      if (typeof obj === "string")
-        return obj;
-      if (typeof obj === "number" || Buffer2.isBuffer(obj))
-        return obj.toString();
-      return JSON.stringify(obj);
-    }, "toString");
-  }
-});
-
-// node_modules/jws/lib/sign-stream.js
-var require_sign_stream = __commonJS({
-  "node_modules/jws/lib/sign-stream.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Buffer2 = require_safe_buffer().Buffer;
-    var DataStream = require_data_stream();
-    var jwa = require_jwa();
-    var Stream = require_stream2();
-    var toString = require_tostring();
-    var util = require_util();
-    function base64url(string, encoding) {
-      return Buffer2.from(string, encoding).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-    }
-    __name(base64url, "base64url");
-    function jwsSecuredInput(header, payload, encoding) {
-      encoding = encoding || "utf8";
-      var encodedHeader = base64url(toString(header), "binary");
-      var encodedPayload = base64url(toString(payload), encoding);
-      return util.format("%s.%s", encodedHeader, encodedPayload);
-    }
-    __name(jwsSecuredInput, "jwsSecuredInput");
-    function jwsSign(opts) {
-      var header = opts.header;
-      var payload = opts.payload;
-      var secretOrKey = opts.secret || opts.privateKey;
-      var encoding = opts.encoding;
-      var algo = jwa(header.alg);
-      var securedInput = jwsSecuredInput(header, payload, encoding);
-      var signature = algo.sign(securedInput, secretOrKey);
-      return util.format("%s.%s", securedInput, signature);
-    }
-    __name(jwsSign, "jwsSign");
-    function SignStream(opts) {
-      var secret = opts.secret || opts.privateKey || opts.key;
-      var secretStream = new DataStream(secret);
-      this.readable = true;
-      this.header = opts.header;
-      this.encoding = opts.encoding;
-      this.secret = this.privateKey = this.key = secretStream;
-      this.payload = new DataStream(opts.payload);
-      this.secret.once("close", function() {
-        if (!this.payload.writable && this.readable)
-          this.sign();
-      }.bind(this));
-      this.payload.once("close", function() {
-        if (!this.secret.writable && this.readable)
-          this.sign();
-      }.bind(this));
-    }
-    __name(SignStream, "SignStream");
-    util.inherits(SignStream, Stream);
-    SignStream.prototype.sign = /* @__PURE__ */ __name(function sign() {
-      try {
-        var signature = jwsSign({
-          header: this.header,
-          payload: this.payload.buffer,
-          secret: this.secret.buffer,
-          encoding: this.encoding
-        });
-        this.emit("done", signature);
-        this.emit("data", signature);
-        this.emit("end");
-        this.readable = false;
-        return signature;
-      } catch (e) {
-        this.readable = false;
-        this.emit("error", e);
-        this.emit("close");
-      }
-    }, "sign");
-    SignStream.sign = jwsSign;
-    module.exports = SignStream;
-  }
-});
-
-// node_modules/jws/lib/verify-stream.js
-var require_verify_stream = __commonJS({
-  "node_modules/jws/lib/verify-stream.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Buffer2 = require_safe_buffer().Buffer;
-    var DataStream = require_data_stream();
-    var jwa = require_jwa();
-    var Stream = require_stream2();
-    var toString = require_tostring();
-    var util = require_util();
-    var JWS_REGEX = /^[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.([a-zA-Z0-9\-_]+)?$/;
-    function isObject(thing) {
-      return Object.prototype.toString.call(thing) === "[object Object]";
-    }
-    __name(isObject, "isObject");
-    function safeJsonParse(thing) {
-      if (isObject(thing))
-        return thing;
-      try {
-        return JSON.parse(thing);
-      } catch (e) {
-        return void 0;
-      }
-    }
-    __name(safeJsonParse, "safeJsonParse");
-    function headerFromJWS(jwsSig) {
-      var encodedHeader = jwsSig.split(".", 1)[0];
-      return safeJsonParse(Buffer2.from(encodedHeader, "base64").toString("binary"));
-    }
-    __name(headerFromJWS, "headerFromJWS");
-    function securedInputFromJWS(jwsSig) {
-      return jwsSig.split(".", 2).join(".");
-    }
-    __name(securedInputFromJWS, "securedInputFromJWS");
-    function signatureFromJWS(jwsSig) {
-      return jwsSig.split(".")[2];
-    }
-    __name(signatureFromJWS, "signatureFromJWS");
-    function payloadFromJWS(jwsSig, encoding) {
-      encoding = encoding || "utf8";
-      var payload = jwsSig.split(".")[1];
-      return Buffer2.from(payload, "base64").toString(encoding);
-    }
-    __name(payloadFromJWS, "payloadFromJWS");
-    function isValidJws(string) {
-      return JWS_REGEX.test(string) && !!headerFromJWS(string);
-    }
-    __name(isValidJws, "isValidJws");
-    function jwsVerify(jwsSig, algorithm, secretOrKey) {
-      if (!algorithm) {
-        var err = new Error("Missing algorithm parameter for jws.verify");
-        err.code = "MISSING_ALGORITHM";
-        throw err;
-      }
-      jwsSig = toString(jwsSig);
-      var signature = signatureFromJWS(jwsSig);
-      var securedInput = securedInputFromJWS(jwsSig);
-      var algo = jwa(algorithm);
-      return algo.verify(securedInput, signature, secretOrKey);
-    }
-    __name(jwsVerify, "jwsVerify");
-    function jwsDecode(jwsSig, opts) {
-      opts = opts || {};
-      jwsSig = toString(jwsSig);
-      if (!isValidJws(jwsSig))
-        return null;
-      var header = headerFromJWS(jwsSig);
-      if (!header)
-        return null;
-      var payload = payloadFromJWS(jwsSig);
-      if (header.typ === "JWT" || opts.json)
-        payload = JSON.parse(payload, opts.encoding);
-      return {
-        header,
-        payload,
-        signature: signatureFromJWS(jwsSig)
-      };
-    }
-    __name(jwsDecode, "jwsDecode");
-    function VerifyStream(opts) {
-      opts = opts || {};
-      var secretOrKey = opts.secret || opts.publicKey || opts.key;
-      var secretStream = new DataStream(secretOrKey);
-      this.readable = true;
-      this.algorithm = opts.algorithm;
-      this.encoding = opts.encoding;
-      this.secret = this.publicKey = this.key = secretStream;
-      this.signature = new DataStream(opts.signature);
-      this.secret.once("close", function() {
-        if (!this.signature.writable && this.readable)
-          this.verify();
-      }.bind(this));
-      this.signature.once("close", function() {
-        if (!this.secret.writable && this.readable)
-          this.verify();
-      }.bind(this));
-    }
-    __name(VerifyStream, "VerifyStream");
-    util.inherits(VerifyStream, Stream);
-    VerifyStream.prototype.verify = /* @__PURE__ */ __name(function verify() {
-      try {
-        var valid = jwsVerify(this.signature.buffer, this.algorithm, this.key.buffer);
-        var obj = jwsDecode(this.signature.buffer, this.encoding);
-        this.emit("done", valid, obj);
-        this.emit("data", valid);
-        this.emit("end");
-        this.readable = false;
-        return valid;
-      } catch (e) {
-        this.readable = false;
-        this.emit("error", e);
-        this.emit("close");
-      }
-    }, "verify");
-    VerifyStream.decode = jwsDecode;
-    VerifyStream.isValid = isValidJws;
-    VerifyStream.verify = jwsVerify;
-    module.exports = VerifyStream;
-  }
-});
-
-// node_modules/jws/index.js
-var require_jws = __commonJS({
-  "node_modules/jws/index.js"(exports) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SignStream = require_sign_stream();
-    var VerifyStream = require_verify_stream();
-    var ALGORITHMS = [
-      "HS256",
-      "HS384",
-      "HS512",
-      "RS256",
-      "RS384",
-      "RS512",
-      "PS256",
-      "PS384",
-      "PS512",
-      "ES256",
-      "ES384",
-      "ES512"
-    ];
-    exports.ALGORITHMS = ALGORITHMS;
-    exports.sign = SignStream.sign;
-    exports.verify = VerifyStream.verify;
-    exports.decode = VerifyStream.decode;
-    exports.isValid = VerifyStream.isValid;
-    exports.createSign = /* @__PURE__ */ __name(function createSign(opts) {
-      return new SignStream(opts);
-    }, "createSign");
-    exports.createVerify = /* @__PURE__ */ __name(function createVerify(opts) {
-      return new VerifyStream(opts);
-    }, "createVerify");
-  }
-});
-
-// node_modules/jsonwebtoken/decode.js
-var require_decode = __commonJS({
-  "node_modules/jsonwebtoken/decode.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var jws = require_jws();
-    module.exports = function(jwt3, options) {
-      options = options || {};
-      var decoded = jws.decode(jwt3, options);
-      if (!decoded) {
-        return null;
-      }
-      var payload = decoded.payload;
-      if (typeof payload === "string") {
-        try {
-          var obj = JSON.parse(payload);
-          if (obj !== null && typeof obj === "object") {
-            payload = obj;
-          }
-        } catch (e) {
-        }
-      }
-      if (options.complete === true) {
-        return {
-          header: decoded.header,
-          payload,
-          signature: decoded.signature
-        };
-      }
-      return payload;
-    };
-  }
-});
-
-// node_modules/jsonwebtoken/lib/JsonWebTokenError.js
-var require_JsonWebTokenError = __commonJS({
-  "node_modules/jsonwebtoken/lib/JsonWebTokenError.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var JsonWebTokenError = /* @__PURE__ */ __name(function(message, error3) {
-      Error.call(this, message);
-      if (Error.captureStackTrace) {
-        Error.captureStackTrace(this, this.constructor);
-      }
-      this.name = "JsonWebTokenError";
-      this.message = message;
-      if (error3) this.inner = error3;
-    }, "JsonWebTokenError");
-    JsonWebTokenError.prototype = Object.create(Error.prototype);
-    JsonWebTokenError.prototype.constructor = JsonWebTokenError;
-    module.exports = JsonWebTokenError;
-  }
-});
-
-// node_modules/jsonwebtoken/lib/NotBeforeError.js
-var require_NotBeforeError = __commonJS({
-  "node_modules/jsonwebtoken/lib/NotBeforeError.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var JsonWebTokenError = require_JsonWebTokenError();
-    var NotBeforeError = /* @__PURE__ */ __name(function(message, date) {
-      JsonWebTokenError.call(this, message);
-      this.name = "NotBeforeError";
-      this.date = date;
-    }, "NotBeforeError");
-    NotBeforeError.prototype = Object.create(JsonWebTokenError.prototype);
-    NotBeforeError.prototype.constructor = NotBeforeError;
-    module.exports = NotBeforeError;
-  }
-});
-
-// node_modules/jsonwebtoken/lib/TokenExpiredError.js
-var require_TokenExpiredError = __commonJS({
-  "node_modules/jsonwebtoken/lib/TokenExpiredError.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var JsonWebTokenError = require_JsonWebTokenError();
-    var TokenExpiredError = /* @__PURE__ */ __name(function(message, expiredAt) {
-      JsonWebTokenError.call(this, message);
-      this.name = "TokenExpiredError";
-      this.expiredAt = expiredAt;
-    }, "TokenExpiredError");
-    TokenExpiredError.prototype = Object.create(JsonWebTokenError.prototype);
-    TokenExpiredError.prototype.constructor = TokenExpiredError;
-    module.exports = TokenExpiredError;
-  }
-});
-
-// node_modules/jsonwebtoken/node_modules/ms/index.js
-var require_ms = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/ms/index.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var s = 1e3;
-    var m = s * 60;
-    var h = m * 60;
-    var d = h * 24;
-    var w = d * 7;
-    var y = d * 365.25;
-    module.exports = function(val, options) {
-      options = options || {};
-      var type = typeof val;
-      if (type === "string" && val.length > 0) {
-        return parse(val);
-      } else if (type === "number" && isFinite(val)) {
-        return options.long ? fmtLong(val) : fmtShort(val);
-      }
-      throw new Error(
-        "val is not a non-empty string or a valid number. val=" + JSON.stringify(val)
-      );
-    };
-    function parse(str) {
-      str = String(str);
-      if (str.length > 100) {
-        return;
-      }
-      var match2 = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
-        str
-      );
-      if (!match2) {
-        return;
-      }
-      var n = parseFloat(match2[1]);
-      var type = (match2[2] || "ms").toLowerCase();
-      switch (type) {
-        case "years":
-        case "year":
-        case "yrs":
-        case "yr":
-        case "y":
-          return n * y;
-        case "weeks":
-        case "week":
-        case "w":
-          return n * w;
-        case "days":
-        case "day":
-        case "d":
-          return n * d;
-        case "hours":
-        case "hour":
-        case "hrs":
-        case "hr":
-        case "h":
-          return n * h;
-        case "minutes":
-        case "minute":
-        case "mins":
-        case "min":
-        case "m":
-          return n * m;
-        case "seconds":
-        case "second":
-        case "secs":
-        case "sec":
-        case "s":
-          return n * s;
-        case "milliseconds":
-        case "millisecond":
-        case "msecs":
-        case "msec":
-        case "ms":
-          return n;
-        default:
-          return void 0;
-      }
-    }
-    __name(parse, "parse");
-    function fmtShort(ms) {
-      var msAbs = Math.abs(ms);
-      if (msAbs >= d) {
-        return Math.round(ms / d) + "d";
-      }
-      if (msAbs >= h) {
-        return Math.round(ms / h) + "h";
-      }
-      if (msAbs >= m) {
-        return Math.round(ms / m) + "m";
-      }
-      if (msAbs >= s) {
-        return Math.round(ms / s) + "s";
-      }
-      return ms + "ms";
-    }
-    __name(fmtShort, "fmtShort");
-    function fmtLong(ms) {
-      var msAbs = Math.abs(ms);
-      if (msAbs >= d) {
-        return plural(ms, msAbs, d, "day");
-      }
-      if (msAbs >= h) {
-        return plural(ms, msAbs, h, "hour");
-      }
-      if (msAbs >= m) {
-        return plural(ms, msAbs, m, "minute");
-      }
-      if (msAbs >= s) {
-        return plural(ms, msAbs, s, "second");
-      }
-      return ms + " ms";
-    }
-    __name(fmtLong, "fmtLong");
-    function plural(ms, msAbs, n, name) {
-      var isPlural = msAbs >= n * 1.5;
-      return Math.round(ms / n) + " " + name + (isPlural ? "s" : "");
-    }
-    __name(plural, "plural");
-  }
-});
-
-// node_modules/jsonwebtoken/lib/timespan.js
-var require_timespan = __commonJS({
-  "node_modules/jsonwebtoken/lib/timespan.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var ms = require_ms();
-    module.exports = function(time3, iat) {
-      var timestamp = iat || Math.floor(Date.now() / 1e3);
-      if (typeof time3 === "string") {
-        var milliseconds = ms(time3);
-        if (typeof milliseconds === "undefined") {
-          return;
-        }
-        return Math.floor(timestamp + milliseconds / 1e3);
-      } else if (typeof time3 === "number") {
-        return timestamp + time3;
-      } else {
-        return;
-      }
-    };
-  }
-});
-
-// node_modules/semver/internal/constants.js
-var require_constants = __commonJS({
-  "node_modules/semver/internal/constants.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SEMVER_SPEC_VERSION = "2.0.0";
-    var MAX_LENGTH = 256;
-    var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || /* istanbul ignore next */
-    9007199254740991;
-    var MAX_SAFE_COMPONENT_LENGTH = 16;
-    var MAX_SAFE_BUILD_LENGTH = MAX_LENGTH - 6;
-    var RELEASE_TYPES = [
-      "major",
-      "premajor",
-      "minor",
-      "preminor",
-      "patch",
-      "prepatch",
-      "prerelease"
-    ];
-    module.exports = {
-      MAX_LENGTH,
-      MAX_SAFE_COMPONENT_LENGTH,
-      MAX_SAFE_BUILD_LENGTH,
-      MAX_SAFE_INTEGER,
-      RELEASE_TYPES,
-      SEMVER_SPEC_VERSION,
-      FLAG_INCLUDE_PRERELEASE: 1,
-      FLAG_LOOSE: 2
-    };
-  }
-});
-
-// node_modules/semver/internal/debug.js
-var require_debug = __commonJS({
-  "node_modules/semver/internal/debug.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var debug3 = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
-    };
-    module.exports = debug3;
-  }
-});
-
-// node_modules/semver/internal/re.js
-var require_re = __commonJS({
-  "node_modules/semver/internal/re.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var {
-      MAX_SAFE_COMPONENT_LENGTH,
-      MAX_SAFE_BUILD_LENGTH,
-      MAX_LENGTH
-    } = require_constants();
-    var debug3 = require_debug();
-    exports = module.exports = {};
-    var re = exports.re = [];
-    var safeRe = exports.safeRe = [];
-    var src = exports.src = [];
-    var safeSrc = exports.safeSrc = [];
-    var t = exports.t = {};
-    var R = 0;
-    var LETTERDASHNUMBER = "[a-zA-Z0-9-]";
-    var safeRegexReplacements = [
-      ["\\s", 1],
-      ["\\d", MAX_LENGTH],
-      [LETTERDASHNUMBER, MAX_SAFE_BUILD_LENGTH]
-    ];
-    var makeSafeRegex = /* @__PURE__ */ __name((value) => {
-      for (const [token, max] of safeRegexReplacements) {
-        value = value.split(`${token}*`).join(`${token}{0,${max}}`).split(`${token}+`).join(`${token}{1,${max}}`);
-      }
-      return value;
-    }, "makeSafeRegex");
-    var createToken = /* @__PURE__ */ __name((name, value, isGlobal) => {
-      const safe = makeSafeRegex(value);
-      const index = R++;
-      debug3(name, index, value);
-      t[name] = index;
-      src[index] = value;
-      safeSrc[index] = safe;
-      re[index] = new RegExp(value, isGlobal ? "g" : void 0);
-      safeRe[index] = new RegExp(safe, isGlobal ? "g" : void 0);
-    }, "createToken");
-    createToken("NUMERICIDENTIFIER", "0|[1-9]\\d*");
-    createToken("NUMERICIDENTIFIERLOOSE", "\\d+");
-    createToken("NONNUMERICIDENTIFIER", `\\d*[a-zA-Z-]${LETTERDASHNUMBER}*`);
-    createToken("MAINVERSION", `(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})`);
-    createToken("MAINVERSIONLOOSE", `(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})`);
-    createToken("PRERELEASEIDENTIFIER", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.NUMERICIDENTIFIER]})`);
-    createToken("PRERELEASEIDENTIFIERLOOSE", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.NUMERICIDENTIFIERLOOSE]})`);
-    createToken("PRERELEASE", `(?:-(${src[t.PRERELEASEIDENTIFIER]}(?:\\.${src[t.PRERELEASEIDENTIFIER]})*))`);
-    createToken("PRERELEASELOOSE", `(?:-?(${src[t.PRERELEASEIDENTIFIERLOOSE]}(?:\\.${src[t.PRERELEASEIDENTIFIERLOOSE]})*))`);
-    createToken("BUILDIDENTIFIER", `${LETTERDASHNUMBER}+`);
-    createToken("BUILD", `(?:\\+(${src[t.BUILDIDENTIFIER]}(?:\\.${src[t.BUILDIDENTIFIER]})*))`);
-    createToken("FULLPLAIN", `v?${src[t.MAINVERSION]}${src[t.PRERELEASE]}?${src[t.BUILD]}?`);
-    createToken("FULL", `^${src[t.FULLPLAIN]}$`);
-    createToken("LOOSEPLAIN", `[v=\\s]*${src[t.MAINVERSIONLOOSE]}${src[t.PRERELEASELOOSE]}?${src[t.BUILD]}?`);
-    createToken("LOOSE", `^${src[t.LOOSEPLAIN]}$`);
-    createToken("GTLT", "((?:<|>)?=?)");
-    createToken("XRANGEIDENTIFIERLOOSE", `${src[t.NUMERICIDENTIFIERLOOSE]}|x|X|\\*`);
-    createToken("XRANGEIDENTIFIER", `${src[t.NUMERICIDENTIFIER]}|x|X|\\*`);
-    createToken("XRANGEPLAIN", `[v=\\s]*(${src[t.XRANGEIDENTIFIER]})(?:\\.(${src[t.XRANGEIDENTIFIER]})(?:\\.(${src[t.XRANGEIDENTIFIER]})(?:${src[t.PRERELEASE]})?${src[t.BUILD]}?)?)?`);
-    createToken("XRANGEPLAINLOOSE", `[v=\\s]*(${src[t.XRANGEIDENTIFIERLOOSE]})(?:\\.(${src[t.XRANGEIDENTIFIERLOOSE]})(?:\\.(${src[t.XRANGEIDENTIFIERLOOSE]})(?:${src[t.PRERELEASELOOSE]})?${src[t.BUILD]}?)?)?`);
-    createToken("XRANGE", `^${src[t.GTLT]}\\s*${src[t.XRANGEPLAIN]}$`);
-    createToken("XRANGELOOSE", `^${src[t.GTLT]}\\s*${src[t.XRANGEPLAINLOOSE]}$`);
-    createToken("COERCEPLAIN", `${"(^|[^\\d])(\\d{1,"}${MAX_SAFE_COMPONENT_LENGTH}})(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?`);
-    createToken("COERCE", `${src[t.COERCEPLAIN]}(?:$|[^\\d])`);
-    createToken("COERCEFULL", src[t.COERCEPLAIN] + `(?:${src[t.PRERELEASE]})?(?:${src[t.BUILD]})?(?:$|[^\\d])`);
-    createToken("COERCERTL", src[t.COERCE], true);
-    createToken("COERCERTLFULL", src[t.COERCEFULL], true);
-    createToken("LONETILDE", "(?:~>?)");
-    createToken("TILDETRIM", `(\\s*)${src[t.LONETILDE]}\\s+`, true);
-    exports.tildeTrimReplace = "$1~";
-    createToken("TILDE", `^${src[t.LONETILDE]}${src[t.XRANGEPLAIN]}$`);
-    createToken("TILDELOOSE", `^${src[t.LONETILDE]}${src[t.XRANGEPLAINLOOSE]}$`);
-    createToken("LONECARET", "(?:\\^)");
-    createToken("CARETTRIM", `(\\s*)${src[t.LONECARET]}\\s+`, true);
-    exports.caretTrimReplace = "$1^";
-    createToken("CARET", `^${src[t.LONECARET]}${src[t.XRANGEPLAIN]}$`);
-    createToken("CARETLOOSE", `^${src[t.LONECARET]}${src[t.XRANGEPLAINLOOSE]}$`);
-    createToken("COMPARATORLOOSE", `^${src[t.GTLT]}\\s*(${src[t.LOOSEPLAIN]})$|^$`);
-    createToken("COMPARATOR", `^${src[t.GTLT]}\\s*(${src[t.FULLPLAIN]})$|^$`);
-    createToken("COMPARATORTRIM", `(\\s*)${src[t.GTLT]}\\s*(${src[t.LOOSEPLAIN]}|${src[t.XRANGEPLAIN]})`, true);
-    exports.comparatorTrimReplace = "$1$2$3";
-    createToken("HYPHENRANGE", `^\\s*(${src[t.XRANGEPLAIN]})\\s+-\\s+(${src[t.XRANGEPLAIN]})\\s*$`);
-    createToken("HYPHENRANGELOOSE", `^\\s*(${src[t.XRANGEPLAINLOOSE]})\\s+-\\s+(${src[t.XRANGEPLAINLOOSE]})\\s*$`);
-    createToken("STAR", "(<|>)?=?\\s*\\*");
-    createToken("GTE0", "^\\s*>=\\s*0\\.0\\.0\\s*$");
-    createToken("GTE0PRE", "^\\s*>=\\s*0\\.0\\.0-0\\s*$");
-  }
-});
-
-// node_modules/semver/internal/parse-options.js
-var require_parse_options = __commonJS({
-  "node_modules/semver/internal/parse-options.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var looseOption = Object.freeze({ loose: true });
-    var emptyOpts = Object.freeze({});
-    var parseOptions = /* @__PURE__ */ __name((options) => {
-      if (!options) {
-        return emptyOpts;
-      }
-      if (typeof options !== "object") {
-        return looseOption;
-      }
-      return options;
-    }, "parseOptions");
-    module.exports = parseOptions;
-  }
-});
-
-// node_modules/semver/internal/identifiers.js
-var require_identifiers = __commonJS({
-  "node_modules/semver/internal/identifiers.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var numeric = /^[0-9]+$/;
-    var compareIdentifiers = /* @__PURE__ */ __name((a, b) => {
-      if (typeof a === "number" && typeof b === "number") {
-        return a === b ? 0 : a < b ? -1 : 1;
-      }
-      const anum = numeric.test(a);
-      const bnum = numeric.test(b);
-      if (anum && bnum) {
-        a = +a;
-        b = +b;
-      }
-      return a === b ? 0 : anum && !bnum ? -1 : bnum && !anum ? 1 : a < b ? -1 : 1;
-    }, "compareIdentifiers");
-    var rcompareIdentifiers = /* @__PURE__ */ __name((a, b) => compareIdentifiers(b, a), "rcompareIdentifiers");
-    module.exports = {
-      compareIdentifiers,
-      rcompareIdentifiers
-    };
-  }
-});
-
-// node_modules/semver/classes/semver.js
-var require_semver = __commonJS({
-  "node_modules/semver/classes/semver.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var debug3 = require_debug();
-    var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants();
-    var { safeRe: re, t } = require_re();
-    var parseOptions = require_parse_options();
-    var { compareIdentifiers } = require_identifiers();
-    var SemVer = class _SemVer {
-      static {
-        __name(this, "SemVer");
-      }
-      constructor(version2, options) {
-        options = parseOptions(options);
-        if (version2 instanceof _SemVer) {
-          if (version2.loose === !!options.loose && version2.includePrerelease === !!options.includePrerelease) {
-            return version2;
-          } else {
-            version2 = version2.version;
-          }
-        } else if (typeof version2 !== "string") {
-          throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version2}".`);
-        }
-        if (version2.length > MAX_LENGTH) {
-          throw new TypeError(
-            `version is longer than ${MAX_LENGTH} characters`
-          );
-        }
-        debug3("SemVer", version2, options);
-        this.options = options;
-        this.loose = !!options.loose;
-        this.includePrerelease = !!options.includePrerelease;
-        const m = version2.trim().match(options.loose ? re[t.LOOSE] : re[t.FULL]);
-        if (!m) {
-          throw new TypeError(`Invalid Version: ${version2}`);
-        }
-        this.raw = version2;
-        this.major = +m[1];
-        this.minor = +m[2];
-        this.patch = +m[3];
-        if (this.major > MAX_SAFE_INTEGER || this.major < 0) {
-          throw new TypeError("Invalid major version");
-        }
-        if (this.minor > MAX_SAFE_INTEGER || this.minor < 0) {
-          throw new TypeError("Invalid minor version");
-        }
-        if (this.patch > MAX_SAFE_INTEGER || this.patch < 0) {
-          throw new TypeError("Invalid patch version");
-        }
-        if (!m[4]) {
-          this.prerelease = [];
-        } else {
-          this.prerelease = m[4].split(".").map((id) => {
-            if (/^[0-9]+$/.test(id)) {
-              const num = +id;
-              if (num >= 0 && num < MAX_SAFE_INTEGER) {
-                return num;
-              }
-            }
-            return id;
-          });
-        }
-        this.build = m[5] ? m[5].split(".") : [];
-        this.format();
-      }
-      format() {
-        this.version = `${this.major}.${this.minor}.${this.patch}`;
-        if (this.prerelease.length) {
-          this.version += `-${this.prerelease.join(".")}`;
-        }
-        return this.version;
-      }
-      toString() {
-        return this.version;
-      }
-      compare(other) {
-        debug3("SemVer.compare", this.version, this.options, other);
-        if (!(other instanceof _SemVer)) {
-          if (typeof other === "string" && other === this.version) {
-            return 0;
-          }
-          other = new _SemVer(other, this.options);
-        }
-        if (other.version === this.version) {
-          return 0;
-        }
-        return this.compareMain(other) || this.comparePre(other);
-      }
-      compareMain(other) {
-        if (!(other instanceof _SemVer)) {
-          other = new _SemVer(other, this.options);
-        }
-        if (this.major < other.major) {
-          return -1;
-        }
-        if (this.major > other.major) {
-          return 1;
-        }
-        if (this.minor < other.minor) {
-          return -1;
-        }
-        if (this.minor > other.minor) {
-          return 1;
-        }
-        if (this.patch < other.patch) {
-          return -1;
-        }
-        if (this.patch > other.patch) {
-          return 1;
-        }
-        return 0;
-      }
-      comparePre(other) {
-        if (!(other instanceof _SemVer)) {
-          other = new _SemVer(other, this.options);
-        }
-        if (this.prerelease.length && !other.prerelease.length) {
-          return -1;
-        } else if (!this.prerelease.length && other.prerelease.length) {
-          return 1;
-        } else if (!this.prerelease.length && !other.prerelease.length) {
-          return 0;
-        }
-        let i = 0;
-        do {
-          const a = this.prerelease[i];
-          const b = other.prerelease[i];
-          debug3("prerelease compare", i, a, b);
-          if (a === void 0 && b === void 0) {
-            return 0;
-          } else if (b === void 0) {
-            return 1;
-          } else if (a === void 0) {
-            return -1;
-          } else if (a === b) {
-            continue;
-          } else {
-            return compareIdentifiers(a, b);
-          }
-        } while (++i);
-      }
-      compareBuild(other) {
-        if (!(other instanceof _SemVer)) {
-          other = new _SemVer(other, this.options);
-        }
-        let i = 0;
-        do {
-          const a = this.build[i];
-          const b = other.build[i];
-          debug3("build compare", i, a, b);
-          if (a === void 0 && b === void 0) {
-            return 0;
-          } else if (b === void 0) {
-            return 1;
-          } else if (a === void 0) {
-            return -1;
-          } else if (a === b) {
-            continue;
-          } else {
-            return compareIdentifiers(a, b);
-          }
-        } while (++i);
-      }
-      // preminor will bump the version up to the next minor release, and immediately
-      // down to pre-release. premajor and prepatch work the same way.
-      inc(release2, identifier, identifierBase) {
-        if (release2.startsWith("pre")) {
-          if (!identifier && identifierBase === false) {
-            throw new Error("invalid increment argument: identifier is empty");
-          }
-          if (identifier) {
-            const match2 = `-${identifier}`.match(this.options.loose ? re[t.PRERELEASELOOSE] : re[t.PRERELEASE]);
-            if (!match2 || match2[1] !== identifier) {
-              throw new Error(`invalid identifier: ${identifier}`);
-            }
-          }
-        }
-        switch (release2) {
-          case "premajor":
-            this.prerelease.length = 0;
-            this.patch = 0;
-            this.minor = 0;
-            this.major++;
-            this.inc("pre", identifier, identifierBase);
-            break;
-          case "preminor":
-            this.prerelease.length = 0;
-            this.patch = 0;
-            this.minor++;
-            this.inc("pre", identifier, identifierBase);
-            break;
-          case "prepatch":
-            this.prerelease.length = 0;
-            this.inc("patch", identifier, identifierBase);
-            this.inc("pre", identifier, identifierBase);
-            break;
-          // If the input is a non-prerelease version, this acts the same as
-          // prepatch.
-          case "prerelease":
-            if (this.prerelease.length === 0) {
-              this.inc("patch", identifier, identifierBase);
-            }
-            this.inc("pre", identifier, identifierBase);
-            break;
-          case "release":
-            if (this.prerelease.length === 0) {
-              throw new Error(`version ${this.raw} is not a prerelease`);
-            }
-            this.prerelease.length = 0;
-            break;
-          case "major":
-            if (this.minor !== 0 || this.patch !== 0 || this.prerelease.length === 0) {
-              this.major++;
-            }
-            this.minor = 0;
-            this.patch = 0;
-            this.prerelease = [];
-            break;
-          case "minor":
-            if (this.patch !== 0 || this.prerelease.length === 0) {
-              this.minor++;
-            }
-            this.patch = 0;
-            this.prerelease = [];
-            break;
-          case "patch":
-            if (this.prerelease.length === 0) {
-              this.patch++;
-            }
-            this.prerelease = [];
-            break;
-          // This probably shouldn't be used publicly.
-          // 1.0.0 'pre' would become 1.0.0-0 which is the wrong direction.
-          case "pre": {
-            const base = Number(identifierBase) ? 1 : 0;
-            if (this.prerelease.length === 0) {
-              this.prerelease = [base];
-            } else {
-              let i = this.prerelease.length;
-              while (--i >= 0) {
-                if (typeof this.prerelease[i] === "number") {
-                  this.prerelease[i]++;
-                  i = -2;
-                }
-              }
-              if (i === -1) {
-                if (identifier === this.prerelease.join(".") && identifierBase === false) {
-                  throw new Error("invalid increment argument: identifier already exists");
-                }
-                this.prerelease.push(base);
-              }
-            }
-            if (identifier) {
-              let prerelease = [identifier, base];
-              if (identifierBase === false) {
-                prerelease = [identifier];
-              }
-              if (compareIdentifiers(this.prerelease[0], identifier) === 0) {
-                if (isNaN(this.prerelease[1])) {
-                  this.prerelease = prerelease;
-                }
-              } else {
-                this.prerelease = prerelease;
-              }
-            }
-            break;
-          }
-          default:
-            throw new Error(`invalid increment argument: ${release2}`);
-        }
-        this.raw = this.format();
-        if (this.build.length) {
-          this.raw += `+${this.build.join(".")}`;
-        }
-        return this;
-      }
-    };
-    module.exports = SemVer;
-  }
-});
-
-// node_modules/semver/functions/parse.js
-var require_parse = __commonJS({
-  "node_modules/semver/functions/parse.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var parse = /* @__PURE__ */ __name((version2, options, throwErrors = false) => {
-      if (version2 instanceof SemVer) {
-        return version2;
-      }
-      try {
-        return new SemVer(version2, options);
-      } catch (er) {
-        if (!throwErrors) {
-          return null;
-        }
-        throw er;
-      }
-    }, "parse");
-    module.exports = parse;
-  }
-});
-
-// node_modules/semver/functions/valid.js
-var require_valid = __commonJS({
-  "node_modules/semver/functions/valid.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var parse = require_parse();
-    var valid = /* @__PURE__ */ __name((version2, options) => {
-      const v = parse(version2, options);
-      return v ? v.version : null;
-    }, "valid");
-    module.exports = valid;
-  }
-});
-
-// node_modules/semver/functions/clean.js
-var require_clean = __commonJS({
-  "node_modules/semver/functions/clean.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var parse = require_parse();
-    var clean = /* @__PURE__ */ __name((version2, options) => {
-      const s = parse(version2.trim().replace(/^[=v]+/, ""), options);
-      return s ? s.version : null;
-    }, "clean");
-    module.exports = clean;
-  }
-});
-
-// node_modules/semver/functions/inc.js
-var require_inc = __commonJS({
-  "node_modules/semver/functions/inc.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var inc = /* @__PURE__ */ __name((version2, release2, options, identifier, identifierBase) => {
-      if (typeof options === "string") {
-        identifierBase = identifier;
-        identifier = options;
-        options = void 0;
-      }
-      try {
-        return new SemVer(
-          version2 instanceof SemVer ? version2.version : version2,
-          options
-        ).inc(release2, identifier, identifierBase).version;
-      } catch (er) {
-        return null;
-      }
-    }, "inc");
-    module.exports = inc;
-  }
-});
-
-// node_modules/semver/functions/diff.js
-var require_diff = __commonJS({
-  "node_modules/semver/functions/diff.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var parse = require_parse();
-    var diff = /* @__PURE__ */ __name((version1, version2) => {
-      const v1 = parse(version1, null, true);
-      const v2 = parse(version2, null, true);
-      const comparison = v1.compare(v2);
-      if (comparison === 0) {
-        return null;
-      }
-      const v1Higher = comparison > 0;
-      const highVersion = v1Higher ? v1 : v2;
-      const lowVersion = v1Higher ? v2 : v1;
-      const highHasPre = !!highVersion.prerelease.length;
-      const lowHasPre = !!lowVersion.prerelease.length;
-      if (lowHasPre && !highHasPre) {
-        if (!lowVersion.patch && !lowVersion.minor) {
-          return "major";
-        }
-        if (lowVersion.compareMain(highVersion) === 0) {
-          if (lowVersion.minor && !lowVersion.patch) {
-            return "minor";
-          }
-          return "patch";
-        }
-      }
-      const prefix = highHasPre ? "pre" : "";
-      if (v1.major !== v2.major) {
-        return prefix + "major";
-      }
-      if (v1.minor !== v2.minor) {
-        return prefix + "minor";
-      }
-      if (v1.patch !== v2.patch) {
-        return prefix + "patch";
-      }
-      return "prerelease";
-    }, "diff");
-    module.exports = diff;
-  }
-});
-
-// node_modules/semver/functions/major.js
-var require_major = __commonJS({
-  "node_modules/semver/functions/major.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var major = /* @__PURE__ */ __name((a, loose) => new SemVer(a, loose).major, "major");
-    module.exports = major;
-  }
-});
-
-// node_modules/semver/functions/minor.js
-var require_minor = __commonJS({
-  "node_modules/semver/functions/minor.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var minor = /* @__PURE__ */ __name((a, loose) => new SemVer(a, loose).minor, "minor");
-    module.exports = minor;
-  }
-});
-
-// node_modules/semver/functions/patch.js
-var require_patch = __commonJS({
-  "node_modules/semver/functions/patch.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var patch = /* @__PURE__ */ __name((a, loose) => new SemVer(a, loose).patch, "patch");
-    module.exports = patch;
-  }
-});
-
-// node_modules/semver/functions/prerelease.js
-var require_prerelease = __commonJS({
-  "node_modules/semver/functions/prerelease.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var parse = require_parse();
-    var prerelease = /* @__PURE__ */ __name((version2, options) => {
-      const parsed = parse(version2, options);
-      return parsed && parsed.prerelease.length ? parsed.prerelease : null;
-    }, "prerelease");
-    module.exports = prerelease;
-  }
-});
-
-// node_modules/semver/functions/compare.js
-var require_compare = __commonJS({
-  "node_modules/semver/functions/compare.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var compare = /* @__PURE__ */ __name((a, b, loose) => new SemVer(a, loose).compare(new SemVer(b, loose)), "compare");
-    module.exports = compare;
-  }
-});
-
-// node_modules/semver/functions/rcompare.js
-var require_rcompare = __commonJS({
-  "node_modules/semver/functions/rcompare.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var compare = require_compare();
-    var rcompare = /* @__PURE__ */ __name((a, b, loose) => compare(b, a, loose), "rcompare");
-    module.exports = rcompare;
-  }
-});
-
-// node_modules/semver/functions/compare-loose.js
-var require_compare_loose = __commonJS({
-  "node_modules/semver/functions/compare-loose.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var compare = require_compare();
-    var compareLoose = /* @__PURE__ */ __name((a, b) => compare(a, b, true), "compareLoose");
-    module.exports = compareLoose;
-  }
-});
-
-// node_modules/semver/functions/compare-build.js
-var require_compare_build = __commonJS({
-  "node_modules/semver/functions/compare-build.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var compareBuild = /* @__PURE__ */ __name((a, b, loose) => {
-      const versionA = new SemVer(a, loose);
-      const versionB = new SemVer(b, loose);
-      return versionA.compare(versionB) || versionA.compareBuild(versionB);
-    }, "compareBuild");
-    module.exports = compareBuild;
-  }
-});
-
-// node_modules/semver/functions/sort.js
-var require_sort = __commonJS({
-  "node_modules/semver/functions/sort.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var compareBuild = require_compare_build();
-    var sort = /* @__PURE__ */ __name((list, loose) => list.sort((a, b) => compareBuild(a, b, loose)), "sort");
-    module.exports = sort;
-  }
-});
-
-// node_modules/semver/functions/rsort.js
-var require_rsort = __commonJS({
-  "node_modules/semver/functions/rsort.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var compareBuild = require_compare_build();
-    var rsort = /* @__PURE__ */ __name((list, loose) => list.sort((a, b) => compareBuild(b, a, loose)), "rsort");
-    module.exports = rsort;
-  }
-});
-
-// node_modules/semver/functions/gt.js
-var require_gt = __commonJS({
-  "node_modules/semver/functions/gt.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var compare = require_compare();
-    var gt = /* @__PURE__ */ __name((a, b, loose) => compare(a, b, loose) > 0, "gt");
-    module.exports = gt;
-  }
-});
-
-// node_modules/semver/functions/lt.js
-var require_lt = __commonJS({
-  "node_modules/semver/functions/lt.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var compare = require_compare();
-    var lt = /* @__PURE__ */ __name((a, b, loose) => compare(a, b, loose) < 0, "lt");
-    module.exports = lt;
-  }
-});
-
-// node_modules/semver/functions/eq.js
-var require_eq = __commonJS({
-  "node_modules/semver/functions/eq.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var compare = require_compare();
-    var eq = /* @__PURE__ */ __name((a, b, loose) => compare(a, b, loose) === 0, "eq");
-    module.exports = eq;
-  }
-});
-
-// node_modules/semver/functions/neq.js
-var require_neq = __commonJS({
-  "node_modules/semver/functions/neq.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var compare = require_compare();
-    var neq = /* @__PURE__ */ __name((a, b, loose) => compare(a, b, loose) !== 0, "neq");
-    module.exports = neq;
-  }
-});
-
-// node_modules/semver/functions/gte.js
-var require_gte = __commonJS({
-  "node_modules/semver/functions/gte.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var compare = require_compare();
-    var gte = /* @__PURE__ */ __name((a, b, loose) => compare(a, b, loose) >= 0, "gte");
-    module.exports = gte;
-  }
-});
-
-// node_modules/semver/functions/lte.js
-var require_lte = __commonJS({
-  "node_modules/semver/functions/lte.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var compare = require_compare();
-    var lte = /* @__PURE__ */ __name((a, b, loose) => compare(a, b, loose) <= 0, "lte");
-    module.exports = lte;
-  }
-});
-
-// node_modules/semver/functions/cmp.js
-var require_cmp = __commonJS({
-  "node_modules/semver/functions/cmp.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var eq = require_eq();
-    var neq = require_neq();
-    var gt = require_gt();
-    var gte = require_gte();
-    var lt = require_lt();
-    var lte = require_lte();
-    var cmp = /* @__PURE__ */ __name((a, op, b, loose) => {
-      switch (op) {
-        case "===":
-          if (typeof a === "object") {
-            a = a.version;
-          }
-          if (typeof b === "object") {
-            b = b.version;
-          }
-          return a === b;
-        case "!==":
-          if (typeof a === "object") {
-            a = a.version;
-          }
-          if (typeof b === "object") {
-            b = b.version;
-          }
-          return a !== b;
-        case "":
-        case "=":
-        case "==":
-          return eq(a, b, loose);
-        case "!=":
-          return neq(a, b, loose);
-        case ">":
-          return gt(a, b, loose);
-        case ">=":
-          return gte(a, b, loose);
-        case "<":
-          return lt(a, b, loose);
-        case "<=":
-          return lte(a, b, loose);
-        default:
-          throw new TypeError(`Invalid operator: ${op}`);
-      }
-    }, "cmp");
-    module.exports = cmp;
-  }
-});
-
-// node_modules/semver/functions/coerce.js
-var require_coerce = __commonJS({
-  "node_modules/semver/functions/coerce.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var parse = require_parse();
-    var { safeRe: re, t } = require_re();
-    var coerce = /* @__PURE__ */ __name((version2, options) => {
-      if (version2 instanceof SemVer) {
-        return version2;
-      }
-      if (typeof version2 === "number") {
-        version2 = String(version2);
-      }
-      if (typeof version2 !== "string") {
-        return null;
-      }
-      options = options || {};
-      let match2 = null;
-      if (!options.rtl) {
-        match2 = version2.match(options.includePrerelease ? re[t.COERCEFULL] : re[t.COERCE]);
-      } else {
-        const coerceRtlRegex = options.includePrerelease ? re[t.COERCERTLFULL] : re[t.COERCERTL];
-        let next;
-        while ((next = coerceRtlRegex.exec(version2)) && (!match2 || match2.index + match2[0].length !== version2.length)) {
-          if (!match2 || next.index + next[0].length !== match2.index + match2[0].length) {
-            match2 = next;
-          }
-          coerceRtlRegex.lastIndex = next.index + next[1].length + next[2].length;
-        }
-        coerceRtlRegex.lastIndex = -1;
-      }
-      if (match2 === null) {
-        return null;
-      }
-      const major = match2[2];
-      const minor = match2[3] || "0";
-      const patch = match2[4] || "0";
-      const prerelease = options.includePrerelease && match2[5] ? `-${match2[5]}` : "";
-      const build = options.includePrerelease && match2[6] ? `+${match2[6]}` : "";
-      return parse(`${major}.${minor}.${patch}${prerelease}${build}`, options);
-    }, "coerce");
-    module.exports = coerce;
-  }
-});
-
-// node_modules/semver/internal/lrucache.js
-var require_lrucache = __commonJS({
-  "node_modules/semver/internal/lrucache.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var LRUCache = class {
-      static {
-        __name(this, "LRUCache");
-      }
-      constructor() {
-        this.max = 1e3;
-        this.map = /* @__PURE__ */ new Map();
-      }
-      get(key) {
-        const value = this.map.get(key);
-        if (value === void 0) {
-          return void 0;
-        } else {
-          this.map.delete(key);
-          this.map.set(key, value);
-          return value;
-        }
-      }
-      delete(key) {
-        return this.map.delete(key);
-      }
-      set(key, value) {
-        const deleted = this.delete(key);
-        if (!deleted && value !== void 0) {
-          if (this.map.size >= this.max) {
-            const firstKey = this.map.keys().next().value;
-            this.delete(firstKey);
-          }
-          this.map.set(key, value);
-        }
-        return this;
-      }
-    };
-    module.exports = LRUCache;
-  }
-});
-
-// node_modules/semver/classes/range.js
-var require_range = __commonJS({
-  "node_modules/semver/classes/range.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SPACE_CHARACTERS = /\s+/g;
-    var Range = class _Range {
-      static {
-        __name(this, "Range");
-      }
-      constructor(range, options) {
-        options = parseOptions(options);
-        if (range instanceof _Range) {
-          if (range.loose === !!options.loose && range.includePrerelease === !!options.includePrerelease) {
-            return range;
-          } else {
-            return new _Range(range.raw, options);
-          }
-        }
-        if (range instanceof Comparator) {
-          this.raw = range.value;
-          this.set = [[range]];
-          this.formatted = void 0;
-          return this;
-        }
-        this.options = options;
-        this.loose = !!options.loose;
-        this.includePrerelease = !!options.includePrerelease;
-        this.raw = range.trim().replace(SPACE_CHARACTERS, " ");
-        this.set = this.raw.split("||").map((r) => this.parseRange(r.trim())).filter((c) => c.length);
-        if (!this.set.length) {
-          throw new TypeError(`Invalid SemVer Range: ${this.raw}`);
-        }
-        if (this.set.length > 1) {
-          const first = this.set[0];
-          this.set = this.set.filter((c) => !isNullSet(c[0]));
-          if (this.set.length === 0) {
-            this.set = [first];
-          } else if (this.set.length > 1) {
-            for (const c of this.set) {
-              if (c.length === 1 && isAny(c[0])) {
-                this.set = [c];
-                break;
-              }
-            }
-          }
-        }
-        this.formatted = void 0;
-      }
-      get range() {
-        if (this.formatted === void 0) {
-          this.formatted = "";
-          for (let i = 0; i < this.set.length; i++) {
-            if (i > 0) {
-              this.formatted += "||";
-            }
-            const comps = this.set[i];
-            for (let k = 0; k < comps.length; k++) {
-              if (k > 0) {
-                this.formatted += " ";
-              }
-              this.formatted += comps[k].toString().trim();
-            }
-          }
-        }
-        return this.formatted;
-      }
-      format() {
-        return this.range;
-      }
-      toString() {
-        return this.range;
-      }
-      parseRange(range) {
-        const memoOpts = (this.options.includePrerelease && FLAG_INCLUDE_PRERELEASE) | (this.options.loose && FLAG_LOOSE);
-        const memoKey = memoOpts + ":" + range;
-        const cached = cache.get(memoKey);
-        if (cached) {
-          return cached;
-        }
-        const loose = this.options.loose;
-        const hr = loose ? re[t.HYPHENRANGELOOSE] : re[t.HYPHENRANGE];
-        range = range.replace(hr, hyphenReplace(this.options.includePrerelease));
-        debug3("hyphen replace", range);
-        range = range.replace(re[t.COMPARATORTRIM], comparatorTrimReplace);
-        debug3("comparator trim", range);
-        range = range.replace(re[t.TILDETRIM], tildeTrimReplace);
-        debug3("tilde trim", range);
-        range = range.replace(re[t.CARETTRIM], caretTrimReplace);
-        debug3("caret trim", range);
-        let rangeList = range.split(" ").map((comp) => parseComparator(comp, this.options)).join(" ").split(/\s+/).map((comp) => replaceGTE0(comp, this.options));
-        if (loose) {
-          rangeList = rangeList.filter((comp) => {
-            debug3("loose invalid filter", comp, this.options);
-            return !!comp.match(re[t.COMPARATORLOOSE]);
-          });
-        }
-        debug3("range list", rangeList);
-        const rangeMap = /* @__PURE__ */ new Map();
-        const comparators = rangeList.map((comp) => new Comparator(comp, this.options));
-        for (const comp of comparators) {
-          if (isNullSet(comp)) {
-            return [comp];
-          }
-          rangeMap.set(comp.value, comp);
-        }
-        if (rangeMap.size > 1 && rangeMap.has("")) {
-          rangeMap.delete("");
-        }
-        const result = [...rangeMap.values()];
-        cache.set(memoKey, result);
-        return result;
-      }
-      intersects(range, options) {
-        if (!(range instanceof _Range)) {
-          throw new TypeError("a Range is required");
-        }
-        return this.set.some((thisComparators) => {
-          return isSatisfiable(thisComparators, options) && range.set.some((rangeComparators) => {
-            return isSatisfiable(rangeComparators, options) && thisComparators.every((thisComparator) => {
-              return rangeComparators.every((rangeComparator) => {
-                return thisComparator.intersects(rangeComparator, options);
-              });
-            });
-          });
-        });
-      }
-      // if ANY of the sets match ALL of its comparators, then pass
-      test(version2) {
-        if (!version2) {
-          return false;
-        }
-        if (typeof version2 === "string") {
-          try {
-            version2 = new SemVer(version2, this.options);
-          } catch (er) {
-            return false;
-          }
-        }
-        for (let i = 0; i < this.set.length; i++) {
-          if (testSet(this.set[i], version2, this.options)) {
-            return true;
-          }
-        }
-        return false;
-      }
-    };
-    module.exports = Range;
-    var LRU = require_lrucache();
-    var cache = new LRU();
-    var parseOptions = require_parse_options();
-    var Comparator = require_comparator();
-    var debug3 = require_debug();
-    var SemVer = require_semver();
-    var {
-      safeRe: re,
-      t,
-      comparatorTrimReplace,
-      tildeTrimReplace,
-      caretTrimReplace
-    } = require_re();
-    var { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = require_constants();
-    var isNullSet = /* @__PURE__ */ __name((c) => c.value === "<0.0.0-0", "isNullSet");
-    var isAny = /* @__PURE__ */ __name((c) => c.value === "", "isAny");
-    var isSatisfiable = /* @__PURE__ */ __name((comparators, options) => {
-      let result = true;
-      const remainingComparators = comparators.slice();
-      let testComparator = remainingComparators.pop();
-      while (result && remainingComparators.length) {
-        result = remainingComparators.every((otherComparator) => {
-          return testComparator.intersects(otherComparator, options);
-        });
-        testComparator = remainingComparators.pop();
-      }
-      return result;
-    }, "isSatisfiable");
-    var parseComparator = /* @__PURE__ */ __name((comp, options) => {
-      comp = comp.replace(re[t.BUILD], "");
-      debug3("comp", comp, options);
-      comp = replaceCarets(comp, options);
-      debug3("caret", comp);
-      comp = replaceTildes(comp, options);
-      debug3("tildes", comp);
-      comp = replaceXRanges(comp, options);
-      debug3("xrange", comp);
-      comp = replaceStars(comp, options);
-      debug3("stars", comp);
-      return comp;
-    }, "parseComparator");
-    var isX = /* @__PURE__ */ __name((id) => !id || id.toLowerCase() === "x" || id === "*", "isX");
-    var replaceTildes = /* @__PURE__ */ __name((comp, options) => {
-      return comp.trim().split(/\s+/).map((c) => replaceTilde(c, options)).join(" ");
-    }, "replaceTildes");
-    var replaceTilde = /* @__PURE__ */ __name((comp, options) => {
-      const r = options.loose ? re[t.TILDELOOSE] : re[t.TILDE];
-      return comp.replace(r, (_, M, m, p, pr) => {
-        debug3("tilde", comp, _, M, m, p, pr);
-        let ret;
-        if (isX(M)) {
-          ret = "";
-        } else if (isX(m)) {
-          ret = `>=${M}.0.0 <${+M + 1}.0.0-0`;
-        } else if (isX(p)) {
-          ret = `>=${M}.${m}.0 <${M}.${+m + 1}.0-0`;
-        } else if (pr) {
-          debug3("replaceTilde pr", pr);
-          ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
-        } else {
-          ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
-        }
-        debug3("tilde return", ret);
-        return ret;
-      });
-    }, "replaceTilde");
-    var replaceCarets = /* @__PURE__ */ __name((comp, options) => {
-      return comp.trim().split(/\s+/).map((c) => replaceCaret(c, options)).join(" ");
-    }, "replaceCarets");
-    var replaceCaret = /* @__PURE__ */ __name((comp, options) => {
-      debug3("caret", comp, options);
-      const r = options.loose ? re[t.CARETLOOSE] : re[t.CARET];
-      const z = options.includePrerelease ? "-0" : "";
-      return comp.replace(r, (_, M, m, p, pr) => {
-        debug3("caret", comp, _, M, m, p, pr);
-        let ret;
-        if (isX(M)) {
-          ret = "";
-        } else if (isX(m)) {
-          ret = `>=${M}.0.0${z} <${+M + 1}.0.0-0`;
-        } else if (isX(p)) {
-          if (M === "0") {
-            ret = `>=${M}.${m}.0${z} <${M}.${+m + 1}.0-0`;
-          } else {
-            ret = `>=${M}.${m}.0${z} <${+M + 1}.0.0-0`;
-          }
-        } else if (pr) {
-          debug3("replaceCaret pr", pr);
-          if (M === "0") {
-            if (m === "0") {
-              ret = `>=${M}.${m}.${p}-${pr} <${M}.${m}.${+p + 1}-0`;
-            } else {
-              ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
-            }
-          } else {
-            ret = `>=${M}.${m}.${p}-${pr} <${+M + 1}.0.0-0`;
-          }
-        } else {
-          debug3("no pr");
-          if (M === "0") {
-            if (m === "0") {
-              ret = `>=${M}.${m}.${p}${z} <${M}.${m}.${+p + 1}-0`;
-            } else {
-              ret = `>=${M}.${m}.${p}${z} <${M}.${+m + 1}.0-0`;
-            }
-          } else {
-            ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
-          }
-        }
-        debug3("caret return", ret);
-        return ret;
-      });
-    }, "replaceCaret");
-    var replaceXRanges = /* @__PURE__ */ __name((comp, options) => {
-      debug3("replaceXRanges", comp, options);
-      return comp.split(/\s+/).map((c) => replaceXRange(c, options)).join(" ");
-    }, "replaceXRanges");
-    var replaceXRange = /* @__PURE__ */ __name((comp, options) => {
-      comp = comp.trim();
-      const r = options.loose ? re[t.XRANGELOOSE] : re[t.XRANGE];
-      return comp.replace(r, (ret, gtlt, M, m, p, pr) => {
-        debug3("xRange", comp, ret, gtlt, M, m, p, pr);
-        const xM = isX(M);
-        const xm = xM || isX(m);
-        const xp = xm || isX(p);
-        const anyX = xp;
-        if (gtlt === "=" && anyX) {
-          gtlt = "";
-        }
-        pr = options.includePrerelease ? "-0" : "";
-        if (xM) {
-          if (gtlt === ">" || gtlt === "<") {
-            ret = "<0.0.0-0";
-          } else {
-            ret = "*";
-          }
-        } else if (gtlt && anyX) {
-          if (xm) {
-            m = 0;
-          }
-          p = 0;
-          if (gtlt === ">") {
-            gtlt = ">=";
-            if (xm) {
-              M = +M + 1;
-              m = 0;
-              p = 0;
-            } else {
-              m = +m + 1;
-              p = 0;
-            }
-          } else if (gtlt === "<=") {
-            gtlt = "<";
-            if (xm) {
-              M = +M + 1;
-            } else {
-              m = +m + 1;
-            }
-          }
-          if (gtlt === "<") {
-            pr = "-0";
-          }
-          ret = `${gtlt + M}.${m}.${p}${pr}`;
-        } else if (xm) {
-          ret = `>=${M}.0.0${pr} <${+M + 1}.0.0-0`;
-        } else if (xp) {
-          ret = `>=${M}.${m}.0${pr} <${M}.${+m + 1}.0-0`;
-        }
-        debug3("xRange return", ret);
-        return ret;
-      });
-    }, "replaceXRange");
-    var replaceStars = /* @__PURE__ */ __name((comp, options) => {
-      debug3("replaceStars", comp, options);
-      return comp.trim().replace(re[t.STAR], "");
-    }, "replaceStars");
-    var replaceGTE0 = /* @__PURE__ */ __name((comp, options) => {
-      debug3("replaceGTE0", comp, options);
-      return comp.trim().replace(re[options.includePrerelease ? t.GTE0PRE : t.GTE0], "");
-    }, "replaceGTE0");
-    var hyphenReplace = /* @__PURE__ */ __name((incPr) => ($0, from, fM, fm, fp, fpr, fb, to, tM, tm, tp, tpr) => {
-      if (isX(fM)) {
-        from = "";
-      } else if (isX(fm)) {
-        from = `>=${fM}.0.0${incPr ? "-0" : ""}`;
-      } else if (isX(fp)) {
-        from = `>=${fM}.${fm}.0${incPr ? "-0" : ""}`;
-      } else if (fpr) {
-        from = `>=${from}`;
-      } else {
-        from = `>=${from}${incPr ? "-0" : ""}`;
-      }
-      if (isX(tM)) {
-        to = "";
-      } else if (isX(tm)) {
-        to = `<${+tM + 1}.0.0-0`;
-      } else if (isX(tp)) {
-        to = `<${tM}.${+tm + 1}.0-0`;
-      } else if (tpr) {
-        to = `<=${tM}.${tm}.${tp}-${tpr}`;
-      } else if (incPr) {
-        to = `<${tM}.${tm}.${+tp + 1}-0`;
-      } else {
-        to = `<=${to}`;
-      }
-      return `${from} ${to}`.trim();
-    }, "hyphenReplace");
-    var testSet = /* @__PURE__ */ __name((set, version2, options) => {
-      for (let i = 0; i < set.length; i++) {
-        if (!set[i].test(version2)) {
-          return false;
-        }
-      }
-      if (version2.prerelease.length && !options.includePrerelease) {
-        for (let i = 0; i < set.length; i++) {
-          debug3(set[i].semver);
-          if (set[i].semver === Comparator.ANY) {
-            continue;
-          }
-          if (set[i].semver.prerelease.length > 0) {
-            const allowed = set[i].semver;
-            if (allowed.major === version2.major && allowed.minor === version2.minor && allowed.patch === version2.patch) {
-              return true;
-            }
-          }
-        }
-        return false;
-      }
-      return true;
-    }, "testSet");
-  }
-});
-
-// node_modules/semver/classes/comparator.js
-var require_comparator = __commonJS({
-  "node_modules/semver/classes/comparator.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var ANY = /* @__PURE__ */ Symbol("SemVer ANY");
-    var Comparator = class _Comparator {
-      static {
-        __name(this, "Comparator");
-      }
-      static get ANY() {
-        return ANY;
-      }
-      constructor(comp, options) {
-        options = parseOptions(options);
-        if (comp instanceof _Comparator) {
-          if (comp.loose === !!options.loose) {
-            return comp;
-          } else {
-            comp = comp.value;
-          }
-        }
-        comp = comp.trim().split(/\s+/).join(" ");
-        debug3("comparator", comp, options);
-        this.options = options;
-        this.loose = !!options.loose;
-        this.parse(comp);
-        if (this.semver === ANY) {
-          this.value = "";
-        } else {
-          this.value = this.operator + this.semver.version;
-        }
-        debug3("comp", this);
-      }
-      parse(comp) {
-        const r = this.options.loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR];
-        const m = comp.match(r);
-        if (!m) {
-          throw new TypeError(`Invalid comparator: ${comp}`);
-        }
-        this.operator = m[1] !== void 0 ? m[1] : "";
-        if (this.operator === "=") {
-          this.operator = "";
-        }
-        if (!m[2]) {
-          this.semver = ANY;
-        } else {
-          this.semver = new SemVer(m[2], this.options.loose);
-        }
-      }
-      toString() {
-        return this.value;
-      }
-      test(version2) {
-        debug3("Comparator.test", version2, this.options.loose);
-        if (this.semver === ANY || version2 === ANY) {
-          return true;
-        }
-        if (typeof version2 === "string") {
-          try {
-            version2 = new SemVer(version2, this.options);
-          } catch (er) {
-            return false;
-          }
-        }
-        return cmp(version2, this.operator, this.semver, this.options);
-      }
-      intersects(comp, options) {
-        if (!(comp instanceof _Comparator)) {
-          throw new TypeError("a Comparator is required");
-        }
-        if (this.operator === "") {
-          if (this.value === "") {
-            return true;
-          }
-          return new Range(comp.value, options).test(this.value);
-        } else if (comp.operator === "") {
-          if (comp.value === "") {
-            return true;
-          }
-          return new Range(this.value, options).test(comp.semver);
-        }
-        options = parseOptions(options);
-        if (options.includePrerelease && (this.value === "<0.0.0-0" || comp.value === "<0.0.0-0")) {
-          return false;
-        }
-        if (!options.includePrerelease && (this.value.startsWith("<0.0.0") || comp.value.startsWith("<0.0.0"))) {
-          return false;
-        }
-        if (this.operator.startsWith(">") && comp.operator.startsWith(">")) {
-          return true;
-        }
-        if (this.operator.startsWith("<") && comp.operator.startsWith("<")) {
-          return true;
-        }
-        if (this.semver.version === comp.semver.version && this.operator.includes("=") && comp.operator.includes("=")) {
-          return true;
-        }
-        if (cmp(this.semver, "<", comp.semver, options) && this.operator.startsWith(">") && comp.operator.startsWith("<")) {
-          return true;
-        }
-        if (cmp(this.semver, ">", comp.semver, options) && this.operator.startsWith("<") && comp.operator.startsWith(">")) {
-          return true;
-        }
-        return false;
-      }
-    };
-    module.exports = Comparator;
-    var parseOptions = require_parse_options();
-    var { safeRe: re, t } = require_re();
-    var cmp = require_cmp();
-    var debug3 = require_debug();
-    var SemVer = require_semver();
-    var Range = require_range();
-  }
-});
-
-// node_modules/semver/functions/satisfies.js
-var require_satisfies = __commonJS({
-  "node_modules/semver/functions/satisfies.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Range = require_range();
-    var satisfies = /* @__PURE__ */ __name((version2, range, options) => {
-      try {
-        range = new Range(range, options);
-      } catch (er) {
-        return false;
-      }
-      return range.test(version2);
-    }, "satisfies");
-    module.exports = satisfies;
-  }
-});
-
-// node_modules/semver/ranges/to-comparators.js
-var require_to_comparators = __commonJS({
-  "node_modules/semver/ranges/to-comparators.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Range = require_range();
-    var toComparators = /* @__PURE__ */ __name((range, options) => new Range(range, options).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" ")), "toComparators");
-    module.exports = toComparators;
-  }
-});
-
-// node_modules/semver/ranges/max-satisfying.js
-var require_max_satisfying = __commonJS({
-  "node_modules/semver/ranges/max-satisfying.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var Range = require_range();
-    var maxSatisfying = /* @__PURE__ */ __name((versions2, range, options) => {
-      let max = null;
-      let maxSV = null;
-      let rangeObj = null;
-      try {
-        rangeObj = new Range(range, options);
-      } catch (er) {
-        return null;
-      }
-      versions2.forEach((v) => {
-        if (rangeObj.test(v)) {
-          if (!max || maxSV.compare(v) === -1) {
-            max = v;
-            maxSV = new SemVer(max, options);
-          }
-        }
-      });
-      return max;
-    }, "maxSatisfying");
-    module.exports = maxSatisfying;
-  }
-});
-
-// node_modules/semver/ranges/min-satisfying.js
-var require_min_satisfying = __commonJS({
-  "node_modules/semver/ranges/min-satisfying.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var Range = require_range();
-    var minSatisfying = /* @__PURE__ */ __name((versions2, range, options) => {
-      let min = null;
-      let minSV = null;
-      let rangeObj = null;
-      try {
-        rangeObj = new Range(range, options);
-      } catch (er) {
-        return null;
-      }
-      versions2.forEach((v) => {
-        if (rangeObj.test(v)) {
-          if (!min || minSV.compare(v) === 1) {
-            min = v;
-            minSV = new SemVer(min, options);
-          }
-        }
-      });
-      return min;
-    }, "minSatisfying");
-    module.exports = minSatisfying;
-  }
-});
-
-// node_modules/semver/ranges/min-version.js
-var require_min_version = __commonJS({
-  "node_modules/semver/ranges/min-version.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var Range = require_range();
-    var gt = require_gt();
-    var minVersion = /* @__PURE__ */ __name((range, loose) => {
-      range = new Range(range, loose);
-      let minver = new SemVer("0.0.0");
-      if (range.test(minver)) {
-        return minver;
-      }
-      minver = new SemVer("0.0.0-0");
-      if (range.test(minver)) {
-        return minver;
-      }
-      minver = null;
-      for (let i = 0; i < range.set.length; ++i) {
-        const comparators = range.set[i];
-        let setMin = null;
-        comparators.forEach((comparator) => {
-          const compver = new SemVer(comparator.semver.version);
-          switch (comparator.operator) {
-            case ">":
-              if (compver.prerelease.length === 0) {
-                compver.patch++;
-              } else {
-                compver.prerelease.push(0);
-              }
-              compver.raw = compver.format();
-            /* fallthrough */
-            case "":
-            case ">=":
-              if (!setMin || gt(compver, setMin)) {
-                setMin = compver;
-              }
-              break;
-            case "<":
-            case "<=":
-              break;
-            /* istanbul ignore next */
-            default:
-              throw new Error(`Unexpected operation: ${comparator.operator}`);
-          }
-        });
-        if (setMin && (!minver || gt(minver, setMin))) {
-          minver = setMin;
-        }
-      }
-      if (minver && range.test(minver)) {
-        return minver;
-      }
-      return null;
-    }, "minVersion");
-    module.exports = minVersion;
-  }
-});
-
-// node_modules/semver/ranges/valid.js
-var require_valid2 = __commonJS({
-  "node_modules/semver/ranges/valid.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Range = require_range();
-    var validRange = /* @__PURE__ */ __name((range, options) => {
-      try {
-        return new Range(range, options).range || "*";
-      } catch (er) {
-        return null;
-      }
-    }, "validRange");
-    module.exports = validRange;
-  }
-});
-
-// node_modules/semver/ranges/outside.js
-var require_outside = __commonJS({
-  "node_modules/semver/ranges/outside.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var SemVer = require_semver();
-    var Comparator = require_comparator();
-    var { ANY } = Comparator;
-    var Range = require_range();
-    var satisfies = require_satisfies();
-    var gt = require_gt();
-    var lt = require_lt();
-    var lte = require_lte();
-    var gte = require_gte();
-    var outside = /* @__PURE__ */ __name((version2, range, hilo, options) => {
-      version2 = new SemVer(version2, options);
-      range = new Range(range, options);
-      let gtfn, ltefn, ltfn, comp, ecomp;
-      switch (hilo) {
-        case ">":
-          gtfn = gt;
-          ltefn = lte;
-          ltfn = lt;
-          comp = ">";
-          ecomp = ">=";
-          break;
-        case "<":
-          gtfn = lt;
-          ltefn = gte;
-          ltfn = gt;
-          comp = "<";
-          ecomp = "<=";
-          break;
-        default:
-          throw new TypeError('Must provide a hilo val of "<" or ">"');
-      }
-      if (satisfies(version2, range, options)) {
-        return false;
-      }
-      for (let i = 0; i < range.set.length; ++i) {
-        const comparators = range.set[i];
-        let high = null;
-        let low = null;
-        comparators.forEach((comparator) => {
-          if (comparator.semver === ANY) {
-            comparator = new Comparator(">=0.0.0");
-          }
-          high = high || comparator;
-          low = low || comparator;
-          if (gtfn(comparator.semver, high.semver, options)) {
-            high = comparator;
-          } else if (ltfn(comparator.semver, low.semver, options)) {
-            low = comparator;
-          }
-        });
-        if (high.operator === comp || high.operator === ecomp) {
-          return false;
-        }
-        if ((!low.operator || low.operator === comp) && ltefn(version2, low.semver)) {
-          return false;
-        } else if (low.operator === ecomp && ltfn(version2, low.semver)) {
-          return false;
-        }
-      }
-      return true;
-    }, "outside");
-    module.exports = outside;
-  }
-});
-
-// node_modules/semver/ranges/gtr.js
-var require_gtr = __commonJS({
-  "node_modules/semver/ranges/gtr.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var outside = require_outside();
-    var gtr = /* @__PURE__ */ __name((version2, range, options) => outside(version2, range, ">", options), "gtr");
-    module.exports = gtr;
-  }
-});
-
-// node_modules/semver/ranges/ltr.js
-var require_ltr = __commonJS({
-  "node_modules/semver/ranges/ltr.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var outside = require_outside();
-    var ltr = /* @__PURE__ */ __name((version2, range, options) => outside(version2, range, "<", options), "ltr");
-    module.exports = ltr;
-  }
-});
-
-// node_modules/semver/ranges/intersects.js
-var require_intersects = __commonJS({
-  "node_modules/semver/ranges/intersects.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Range = require_range();
-    var intersects = /* @__PURE__ */ __name((r1, r2, options) => {
-      r1 = new Range(r1, options);
-      r2 = new Range(r2, options);
-      return r1.intersects(r2, options);
-    }, "intersects");
-    module.exports = intersects;
-  }
-});
-
-// node_modules/semver/ranges/simplify.js
-var require_simplify = __commonJS({
-  "node_modules/semver/ranges/simplify.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var satisfies = require_satisfies();
-    var compare = require_compare();
-    module.exports = (versions2, range, options) => {
-      const set = [];
-      let first = null;
-      let prev = null;
-      const v = versions2.sort((a, b) => compare(a, b, options));
-      for (const version2 of v) {
-        const included = satisfies(version2, range, options);
-        if (included) {
-          prev = version2;
-          if (!first) {
-            first = version2;
-          }
-        } else {
-          if (prev) {
-            set.push([first, prev]);
-          }
-          prev = null;
-          first = null;
-        }
-      }
-      if (first) {
-        set.push([first, null]);
-      }
-      const ranges = [];
-      for (const [min, max] of set) {
-        if (min === max) {
-          ranges.push(min);
-        } else if (!max && min === v[0]) {
-          ranges.push("*");
-        } else if (!max) {
-          ranges.push(`>=${min}`);
-        } else if (min === v[0]) {
-          ranges.push(`<=${max}`);
-        } else {
-          ranges.push(`${min} - ${max}`);
-        }
-      }
-      const simplified = ranges.join(" || ");
-      const original = typeof range.raw === "string" ? range.raw : String(range);
-      return simplified.length < original.length ? simplified : range;
-    };
-  }
-});
-
-// node_modules/semver/ranges/subset.js
-var require_subset = __commonJS({
-  "node_modules/semver/ranges/subset.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var Range = require_range();
-    var Comparator = require_comparator();
-    var { ANY } = Comparator;
-    var satisfies = require_satisfies();
-    var compare = require_compare();
-    var subset = /* @__PURE__ */ __name((sub, dom, options = {}) => {
-      if (sub === dom) {
-        return true;
-      }
-      sub = new Range(sub, options);
-      dom = new Range(dom, options);
-      let sawNonNull = false;
-      OUTER: for (const simpleSub of sub.set) {
-        for (const simpleDom of dom.set) {
-          const isSub = simpleSubset(simpleSub, simpleDom, options);
-          sawNonNull = sawNonNull || isSub !== null;
-          if (isSub) {
-            continue OUTER;
-          }
-        }
-        if (sawNonNull) {
-          return false;
-        }
-      }
-      return true;
-    }, "subset");
-    var minimumVersionWithPreRelease = [new Comparator(">=0.0.0-0")];
-    var minimumVersion = [new Comparator(">=0.0.0")];
-    var simpleSubset = /* @__PURE__ */ __name((sub, dom, options) => {
-      if (sub === dom) {
-        return true;
-      }
-      if (sub.length === 1 && sub[0].semver === ANY) {
-        if (dom.length === 1 && dom[0].semver === ANY) {
-          return true;
-        } else if (options.includePrerelease) {
-          sub = minimumVersionWithPreRelease;
-        } else {
-          sub = minimumVersion;
-        }
-      }
-      if (dom.length === 1 && dom[0].semver === ANY) {
-        if (options.includePrerelease) {
-          return true;
-        } else {
-          dom = minimumVersion;
-        }
-      }
-      const eqSet = /* @__PURE__ */ new Set();
-      let gt, lt;
-      for (const c of sub) {
-        if (c.operator === ">" || c.operator === ">=") {
-          gt = higherGT(gt, c, options);
-        } else if (c.operator === "<" || c.operator === "<=") {
-          lt = lowerLT(lt, c, options);
-        } else {
-          eqSet.add(c.semver);
-        }
-      }
-      if (eqSet.size > 1) {
-        return null;
-      }
-      let gtltComp;
-      if (gt && lt) {
-        gtltComp = compare(gt.semver, lt.semver, options);
-        if (gtltComp > 0) {
-          return null;
-        } else if (gtltComp === 0 && (gt.operator !== ">=" || lt.operator !== "<=")) {
-          return null;
-        }
-      }
-      for (const eq of eqSet) {
-        if (gt && !satisfies(eq, String(gt), options)) {
-          return null;
-        }
-        if (lt && !satisfies(eq, String(lt), options)) {
-          return null;
-        }
-        for (const c of dom) {
-          if (!satisfies(eq, String(c), options)) {
-            return false;
-          }
-        }
-        return true;
-      }
-      let higher, lower;
-      let hasDomLT, hasDomGT;
-      let needDomLTPre = lt && !options.includePrerelease && lt.semver.prerelease.length ? lt.semver : false;
-      let needDomGTPre = gt && !options.includePrerelease && gt.semver.prerelease.length ? gt.semver : false;
-      if (needDomLTPre && needDomLTPre.prerelease.length === 1 && lt.operator === "<" && needDomLTPre.prerelease[0] === 0) {
-        needDomLTPre = false;
-      }
-      for (const c of dom) {
-        hasDomGT = hasDomGT || c.operator === ">" || c.operator === ">=";
-        hasDomLT = hasDomLT || c.operator === "<" || c.operator === "<=";
-        if (gt) {
-          if (needDomGTPre) {
-            if (c.semver.prerelease && c.semver.prerelease.length && c.semver.major === needDomGTPre.major && c.semver.minor === needDomGTPre.minor && c.semver.patch === needDomGTPre.patch) {
-              needDomGTPre = false;
-            }
-          }
-          if (c.operator === ">" || c.operator === ">=") {
-            higher = higherGT(gt, c, options);
-            if (higher === c && higher !== gt) {
-              return false;
-            }
-          } else if (gt.operator === ">=" && !satisfies(gt.semver, String(c), options)) {
-            return false;
-          }
-        }
-        if (lt) {
-          if (needDomLTPre) {
-            if (c.semver.prerelease && c.semver.prerelease.length && c.semver.major === needDomLTPre.major && c.semver.minor === needDomLTPre.minor && c.semver.patch === needDomLTPre.patch) {
-              needDomLTPre = false;
-            }
-          }
-          if (c.operator === "<" || c.operator === "<=") {
-            lower = lowerLT(lt, c, options);
-            if (lower === c && lower !== lt) {
-              return false;
-            }
-          } else if (lt.operator === "<=" && !satisfies(lt.semver, String(c), options)) {
-            return false;
-          }
-        }
-        if (!c.operator && (lt || gt) && gtltComp !== 0) {
-          return false;
-        }
-      }
-      if (gt && hasDomLT && !lt && gtltComp !== 0) {
-        return false;
-      }
-      if (lt && hasDomGT && !gt && gtltComp !== 0) {
-        return false;
-      }
-      if (needDomGTPre || needDomLTPre) {
-        return false;
-      }
-      return true;
-    }, "simpleSubset");
-    var higherGT = /* @__PURE__ */ __name((a, b, options) => {
-      if (!a) {
-        return b;
-      }
-      const comp = compare(a.semver, b.semver, options);
-      return comp > 0 ? a : comp < 0 ? b : b.operator === ">" && a.operator === ">=" ? b : a;
-    }, "higherGT");
-    var lowerLT = /* @__PURE__ */ __name((a, b, options) => {
-      if (!a) {
-        return b;
-      }
-      const comp = compare(a.semver, b.semver, options);
-      return comp < 0 ? a : comp > 0 ? b : b.operator === "<" && a.operator === "<=" ? b : a;
-    }, "lowerLT");
-    module.exports = subset;
-  }
-});
-
-// node_modules/semver/index.js
-var require_semver2 = __commonJS({
-  "node_modules/semver/index.js"(exports, module) {
-    "use strict";
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var internalRe = require_re();
-    var constants = require_constants();
-    var SemVer = require_semver();
-    var identifiers = require_identifiers();
-    var parse = require_parse();
-    var valid = require_valid();
-    var clean = require_clean();
-    var inc = require_inc();
-    var diff = require_diff();
-    var major = require_major();
-    var minor = require_minor();
-    var patch = require_patch();
-    var prerelease = require_prerelease();
-    var compare = require_compare();
-    var rcompare = require_rcompare();
-    var compareLoose = require_compare_loose();
-    var compareBuild = require_compare_build();
-    var sort = require_sort();
-    var rsort = require_rsort();
-    var gt = require_gt();
-    var lt = require_lt();
-    var eq = require_eq();
-    var neq = require_neq();
-    var gte = require_gte();
-    var lte = require_lte();
-    var cmp = require_cmp();
-    var coerce = require_coerce();
-    var Comparator = require_comparator();
-    var Range = require_range();
-    var satisfies = require_satisfies();
-    var toComparators = require_to_comparators();
-    var maxSatisfying = require_max_satisfying();
-    var minSatisfying = require_min_satisfying();
-    var minVersion = require_min_version();
-    var validRange = require_valid2();
-    var outside = require_outside();
-    var gtr = require_gtr();
-    var ltr = require_ltr();
-    var intersects = require_intersects();
-    var simplifyRange = require_simplify();
-    var subset = require_subset();
-    module.exports = {
-      parse,
-      valid,
-      clean,
-      inc,
-      diff,
-      major,
-      minor,
-      patch,
-      prerelease,
-      compare,
-      rcompare,
-      compareLoose,
-      compareBuild,
-      sort,
-      rsort,
-      gt,
-      lt,
-      eq,
-      neq,
-      gte,
-      lte,
-      cmp,
-      coerce,
-      Comparator,
-      Range,
-      satisfies,
-      toComparators,
-      maxSatisfying,
-      minSatisfying,
-      minVersion,
-      validRange,
-      outside,
-      gtr,
-      ltr,
-      intersects,
-      simplifyRange,
-      subset,
-      SemVer,
-      re: internalRe.re,
-      src: internalRe.src,
-      tokens: internalRe.t,
-      SEMVER_SPEC_VERSION: constants.SEMVER_SPEC_VERSION,
-      RELEASE_TYPES: constants.RELEASE_TYPES,
-      compareIdentifiers: identifiers.compareIdentifiers,
-      rcompareIdentifiers: identifiers.rcompareIdentifiers
-    };
-  }
-});
-
-// node_modules/jsonwebtoken/lib/asymmetricKeyDetailsSupported.js
-var require_asymmetricKeyDetailsSupported = __commonJS({
-  "node_modules/jsonwebtoken/lib/asymmetricKeyDetailsSupported.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var semver = require_semver2();
-    module.exports = semver.satisfies(process.version, ">=15.7.0");
-  }
-});
-
-// node_modules/jsonwebtoken/lib/rsaPssKeyDetailsSupported.js
-var require_rsaPssKeyDetailsSupported = __commonJS({
-  "node_modules/jsonwebtoken/lib/rsaPssKeyDetailsSupported.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var semver = require_semver2();
-    module.exports = semver.satisfies(process.version, ">=16.9.0");
-  }
-});
-
-// node_modules/jsonwebtoken/lib/validateAsymmetricKey.js
-var require_validateAsymmetricKey = __commonJS({
-  "node_modules/jsonwebtoken/lib/validateAsymmetricKey.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var ASYMMETRIC_KEY_DETAILS_SUPPORTED = require_asymmetricKeyDetailsSupported();
-    var RSA_PSS_KEY_DETAILS_SUPPORTED = require_rsaPssKeyDetailsSupported();
-    var allowedAlgorithmsForKeys = {
-      "ec": ["ES256", "ES384", "ES512"],
-      "rsa": ["RS256", "PS256", "RS384", "PS384", "RS512", "PS512"],
-      "rsa-pss": ["PS256", "PS384", "PS512"]
-    };
-    var allowedCurves = {
-      ES256: "prime256v1",
-      ES384: "secp384r1",
-      ES512: "secp521r1"
-    };
-    module.exports = function(algorithm, key) {
-      if (!algorithm || !key) return;
-      const keyType = key.asymmetricKeyType;
-      if (!keyType) return;
-      const allowedAlgorithms = allowedAlgorithmsForKeys[keyType];
-      if (!allowedAlgorithms) {
-        throw new Error(`Unknown key type "${keyType}".`);
-      }
-      if (!allowedAlgorithms.includes(algorithm)) {
-        throw new Error(`"alg" parameter for "${keyType}" key type must be one of: ${allowedAlgorithms.join(", ")}.`);
-      }
-      if (ASYMMETRIC_KEY_DETAILS_SUPPORTED) {
-        switch (keyType) {
-          case "ec":
-            const keyCurve = key.asymmetricKeyDetails.namedCurve;
-            const allowedCurve = allowedCurves[algorithm];
-            if (keyCurve !== allowedCurve) {
-              throw new Error(`"alg" parameter "${algorithm}" requires curve "${allowedCurve}".`);
-            }
-            break;
-          case "rsa-pss":
-            if (RSA_PSS_KEY_DETAILS_SUPPORTED) {
-              const length = parseInt(algorithm.slice(-3), 10);
-              const { hashAlgorithm, mgf1HashAlgorithm, saltLength } = key.asymmetricKeyDetails;
-              if (hashAlgorithm !== `sha${length}` || mgf1HashAlgorithm !== hashAlgorithm) {
-                throw new Error(`Invalid key for this operation, its RSA-PSS parameters do not meet the requirements of "alg" ${algorithm}.`);
-              }
-              if (saltLength !== void 0 && saltLength > length >> 3) {
-                throw new Error(`Invalid key for this operation, its RSA-PSS parameter saltLength does not meet the requirements of "alg" ${algorithm}.`);
-              }
-            }
-            break;
-        }
-      }
-    };
-  }
-});
-
-// node_modules/jsonwebtoken/lib/psSupported.js
-var require_psSupported = __commonJS({
-  "node_modules/jsonwebtoken/lib/psSupported.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var semver = require_semver2();
-    module.exports = semver.satisfies(process.version, "^6.12.0 || >=8.0.0");
-  }
-});
-
-// node_modules/jsonwebtoken/verify.js
-var require_verify = __commonJS({
-  "node_modules/jsonwebtoken/verify.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var JsonWebTokenError = require_JsonWebTokenError();
-    var NotBeforeError = require_NotBeforeError();
-    var TokenExpiredError = require_TokenExpiredError();
-    var decode = require_decode();
-    var timespan = require_timespan();
-    var validateAsymmetricKey = require_validateAsymmetricKey();
-    var PS_SUPPORTED = require_psSupported();
-    var jws = require_jws();
-    var { KeyObject, createSecretKey, createPublicKey } = require_crypto();
-    var PUB_KEY_ALGS = ["RS256", "RS384", "RS512"];
-    var EC_KEY_ALGS = ["ES256", "ES384", "ES512"];
-    var RSA_KEY_ALGS = ["RS256", "RS384", "RS512"];
-    var HS_ALGS = ["HS256", "HS384", "HS512"];
-    if (PS_SUPPORTED) {
-      PUB_KEY_ALGS.splice(PUB_KEY_ALGS.length, 0, "PS256", "PS384", "PS512");
-      RSA_KEY_ALGS.splice(RSA_KEY_ALGS.length, 0, "PS256", "PS384", "PS512");
-    }
-    module.exports = function(jwtString, secretOrPublicKey, options, callback) {
-      if (typeof options === "function" && !callback) {
-        callback = options;
-        options = {};
-      }
-      if (!options) {
-        options = {};
-      }
-      options = Object.assign({}, options);
-      let done;
-      if (callback) {
-        done = callback;
-      } else {
-        done = /* @__PURE__ */ __name(function(err, data) {
-          if (err) throw err;
-          return data;
-        }, "done");
-      }
-      if (options.clockTimestamp && typeof options.clockTimestamp !== "number") {
-        return done(new JsonWebTokenError("clockTimestamp must be a number"));
-      }
-      if (options.nonce !== void 0 && (typeof options.nonce !== "string" || options.nonce.trim() === "")) {
-        return done(new JsonWebTokenError("nonce must be a non-empty string"));
-      }
-      if (options.allowInvalidAsymmetricKeyTypes !== void 0 && typeof options.allowInvalidAsymmetricKeyTypes !== "boolean") {
-        return done(new JsonWebTokenError("allowInvalidAsymmetricKeyTypes must be a boolean"));
-      }
-      const clockTimestamp = options.clockTimestamp || Math.floor(Date.now() / 1e3);
-      if (!jwtString) {
-        return done(new JsonWebTokenError("jwt must be provided"));
-      }
-      if (typeof jwtString !== "string") {
-        return done(new JsonWebTokenError("jwt must be a string"));
-      }
-      const parts = jwtString.split(".");
-      if (parts.length !== 3) {
-        return done(new JsonWebTokenError("jwt malformed"));
-      }
-      let decodedToken;
-      try {
-        decodedToken = decode(jwtString, { complete: true });
-      } catch (err) {
-        return done(err);
-      }
-      if (!decodedToken) {
-        return done(new JsonWebTokenError("invalid token"));
-      }
-      const header = decodedToken.header;
-      let getSecret;
-      if (typeof secretOrPublicKey === "function") {
-        if (!callback) {
-          return done(new JsonWebTokenError("verify must be called asynchronous if secret or public key is provided as a callback"));
-        }
-        getSecret = secretOrPublicKey;
-      } else {
-        getSecret = /* @__PURE__ */ __name(function(header2, secretCallback) {
-          return secretCallback(null, secretOrPublicKey);
-        }, "getSecret");
-      }
-      return getSecret(header, function(err, secretOrPublicKey2) {
-        if (err) {
-          return done(new JsonWebTokenError("error in secret or public key callback: " + err.message));
-        }
-        const hasSignature = parts[2].trim() !== "";
-        if (!hasSignature && secretOrPublicKey2) {
-          return done(new JsonWebTokenError("jwt signature is required"));
-        }
-        if (hasSignature && !secretOrPublicKey2) {
-          return done(new JsonWebTokenError("secret or public key must be provided"));
-        }
-        if (!hasSignature && !options.algorithms) {
-          return done(new JsonWebTokenError('please specify "none" in "algorithms" to verify unsigned tokens'));
-        }
-        if (secretOrPublicKey2 != null && !(secretOrPublicKey2 instanceof KeyObject)) {
-          try {
-            secretOrPublicKey2 = createPublicKey(secretOrPublicKey2);
-          } catch (_) {
-            try {
-              secretOrPublicKey2 = createSecretKey(typeof secretOrPublicKey2 === "string" ? Buffer.from(secretOrPublicKey2) : secretOrPublicKey2);
-            } catch (_2) {
-              return done(new JsonWebTokenError("secretOrPublicKey is not valid key material"));
-            }
-          }
-        }
-        if (!options.algorithms) {
-          if (secretOrPublicKey2.type === "secret") {
-            options.algorithms = HS_ALGS;
-          } else if (["rsa", "rsa-pss"].includes(secretOrPublicKey2.asymmetricKeyType)) {
-            options.algorithms = RSA_KEY_ALGS;
-          } else if (secretOrPublicKey2.asymmetricKeyType === "ec") {
-            options.algorithms = EC_KEY_ALGS;
-          } else {
-            options.algorithms = PUB_KEY_ALGS;
-          }
-        }
-        if (options.algorithms.indexOf(decodedToken.header.alg) === -1) {
-          return done(new JsonWebTokenError("invalid algorithm"));
-        }
-        if (header.alg.startsWith("HS") && secretOrPublicKey2.type !== "secret") {
-          return done(new JsonWebTokenError(`secretOrPublicKey must be a symmetric key when using ${header.alg}`));
-        } else if (/^(?:RS|PS|ES)/.test(header.alg) && secretOrPublicKey2.type !== "public") {
-          return done(new JsonWebTokenError(`secretOrPublicKey must be an asymmetric key when using ${header.alg}`));
-        }
-        if (!options.allowInvalidAsymmetricKeyTypes) {
-          try {
-            validateAsymmetricKey(header.alg, secretOrPublicKey2);
-          } catch (e) {
-            return done(e);
-          }
-        }
-        let valid;
-        try {
-          valid = jws.verify(jwtString, decodedToken.header.alg, secretOrPublicKey2);
-        } catch (e) {
-          return done(e);
-        }
-        if (!valid) {
-          return done(new JsonWebTokenError("invalid signature"));
-        }
-        const payload = decodedToken.payload;
-        if (typeof payload.nbf !== "undefined" && !options.ignoreNotBefore) {
-          if (typeof payload.nbf !== "number") {
-            return done(new JsonWebTokenError("invalid nbf value"));
-          }
-          if (payload.nbf > clockTimestamp + (options.clockTolerance || 0)) {
-            return done(new NotBeforeError("jwt not active", new Date(payload.nbf * 1e3)));
-          }
-        }
-        if (typeof payload.exp !== "undefined" && !options.ignoreExpiration) {
-          if (typeof payload.exp !== "number") {
-            return done(new JsonWebTokenError("invalid exp value"));
-          }
-          if (clockTimestamp >= payload.exp + (options.clockTolerance || 0)) {
-            return done(new TokenExpiredError("jwt expired", new Date(payload.exp * 1e3)));
-          }
-        }
-        if (options.audience) {
-          const audiences = Array.isArray(options.audience) ? options.audience : [options.audience];
-          const target = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-          const match2 = target.some(function(targetAudience) {
-            return audiences.some(function(audience) {
-              return audience instanceof RegExp ? audience.test(targetAudience) : audience === targetAudience;
-            });
-          });
-          if (!match2) {
-            return done(new JsonWebTokenError("jwt audience invalid. expected: " + audiences.join(" or ")));
-          }
-        }
-        if (options.issuer) {
-          const invalid_issuer = typeof options.issuer === "string" && payload.iss !== options.issuer || Array.isArray(options.issuer) && options.issuer.indexOf(payload.iss) === -1;
-          if (invalid_issuer) {
-            return done(new JsonWebTokenError("jwt issuer invalid. expected: " + options.issuer));
-          }
-        }
-        if (options.subject) {
-          if (payload.sub !== options.subject) {
-            return done(new JsonWebTokenError("jwt subject invalid. expected: " + options.subject));
-          }
-        }
-        if (options.jwtid) {
-          if (payload.jti !== options.jwtid) {
-            return done(new JsonWebTokenError("jwt jwtid invalid. expected: " + options.jwtid));
-          }
-        }
-        if (options.nonce) {
-          if (payload.nonce !== options.nonce) {
-            return done(new JsonWebTokenError("jwt nonce invalid. expected: " + options.nonce));
-          }
-        }
-        if (options.maxAge) {
-          if (typeof payload.iat !== "number") {
-            return done(new JsonWebTokenError("iat required when maxAge is specified"));
-          }
-          const maxAgeTimestamp = timespan(options.maxAge, payload.iat);
-          if (typeof maxAgeTimestamp === "undefined") {
-            return done(new JsonWebTokenError('"maxAge" should be a number of seconds or string representing a timespan eg: "1d", "20h", 60'));
-          }
-          if (clockTimestamp >= maxAgeTimestamp + (options.clockTolerance || 0)) {
-            return done(new TokenExpiredError("maxAge exceeded", new Date(maxAgeTimestamp * 1e3)));
-          }
-        }
-        if (options.complete === true) {
-          const signature = decodedToken.signature;
-          return done(null, {
-            header,
-            payload,
-            signature
-          });
-        }
-        return done(null, payload);
-      });
-    };
-  }
-});
-
-// node_modules/lodash.includes/index.js
-var require_lodash = __commonJS({
-  "node_modules/lodash.includes/index.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var INFINITY = 1 / 0;
-    var MAX_SAFE_INTEGER = 9007199254740991;
-    var MAX_INTEGER = 17976931348623157e292;
-    var NAN = 0 / 0;
-    var argsTag = "[object Arguments]";
-    var funcTag = "[object Function]";
-    var genTag = "[object GeneratorFunction]";
-    var stringTag = "[object String]";
-    var symbolTag = "[object Symbol]";
-    var reTrim = /^\s+|\s+$/g;
-    var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
-    var reIsBinary = /^0b[01]+$/i;
-    var reIsOctal = /^0o[0-7]+$/i;
-    var reIsUint = /^(?:0|[1-9]\d*)$/;
-    var freeParseInt = parseInt;
-    function arrayMap(array, iteratee) {
-      var index = -1, length = array ? array.length : 0, result = Array(length);
-      while (++index < length) {
-        result[index] = iteratee(array[index], index, array);
-      }
-      return result;
-    }
-    __name(arrayMap, "arrayMap");
-    function baseFindIndex(array, predicate, fromIndex, fromRight) {
-      var length = array.length, index = fromIndex + (fromRight ? 1 : -1);
-      while (fromRight ? index-- : ++index < length) {
-        if (predicate(array[index], index, array)) {
-          return index;
-        }
-      }
-      return -1;
-    }
-    __name(baseFindIndex, "baseFindIndex");
-    function baseIndexOf(array, value, fromIndex) {
-      if (value !== value) {
-        return baseFindIndex(array, baseIsNaN, fromIndex);
-      }
-      var index = fromIndex - 1, length = array.length;
-      while (++index < length) {
-        if (array[index] === value) {
-          return index;
-        }
-      }
-      return -1;
-    }
-    __name(baseIndexOf, "baseIndexOf");
-    function baseIsNaN(value) {
-      return value !== value;
-    }
-    __name(baseIsNaN, "baseIsNaN");
-    function baseTimes(n, iteratee) {
-      var index = -1, result = Array(n);
-      while (++index < n) {
-        result[index] = iteratee(index);
-      }
-      return result;
-    }
-    __name(baseTimes, "baseTimes");
-    function baseValues(object, props) {
-      return arrayMap(props, function(key) {
-        return object[key];
-      });
-    }
-    __name(baseValues, "baseValues");
-    function overArg(func, transform) {
-      return function(arg) {
-        return func(transform(arg));
-      };
-    }
-    __name(overArg, "overArg");
-    var objectProto = Object.prototype;
-    var hasOwnProperty = objectProto.hasOwnProperty;
-    var objectToString = objectProto.toString;
-    var propertyIsEnumerable = objectProto.propertyIsEnumerable;
-    var nativeKeys = overArg(Object.keys, Object);
-    var nativeMax = Math.max;
-    function arrayLikeKeys(value, inherited) {
-      var result = isArray(value) || isArguments(value) ? baseTimes(value.length, String) : [];
-      var length = result.length, skipIndexes = !!length;
-      for (var key in value) {
-        if ((inherited || hasOwnProperty.call(value, key)) && !(skipIndexes && (key == "length" || isIndex(key, length)))) {
-          result.push(key);
-        }
-      }
-      return result;
-    }
-    __name(arrayLikeKeys, "arrayLikeKeys");
-    function baseKeys(object) {
-      if (!isPrototype(object)) {
-        return nativeKeys(object);
-      }
-      var result = [];
-      for (var key in Object(object)) {
-        if (hasOwnProperty.call(object, key) && key != "constructor") {
-          result.push(key);
-        }
-      }
-      return result;
-    }
-    __name(baseKeys, "baseKeys");
-    function isIndex(value, length) {
-      length = length == null ? MAX_SAFE_INTEGER : length;
-      return !!length && (typeof value == "number" || reIsUint.test(value)) && (value > -1 && value % 1 == 0 && value < length);
-    }
-    __name(isIndex, "isIndex");
-    function isPrototype(value) {
-      var Ctor = value && value.constructor, proto = typeof Ctor == "function" && Ctor.prototype || objectProto;
-      return value === proto;
-    }
-    __name(isPrototype, "isPrototype");
-    function includes(collection, value, fromIndex, guard) {
-      collection = isArrayLike(collection) ? collection : values(collection);
-      fromIndex = fromIndex && !guard ? toInteger(fromIndex) : 0;
-      var length = collection.length;
-      if (fromIndex < 0) {
-        fromIndex = nativeMax(length + fromIndex, 0);
-      }
-      return isString(collection) ? fromIndex <= length && collection.indexOf(value, fromIndex) > -1 : !!length && baseIndexOf(collection, value, fromIndex) > -1;
-    }
-    __name(includes, "includes");
-    function isArguments(value) {
-      return isArrayLikeObject(value) && hasOwnProperty.call(value, "callee") && (!propertyIsEnumerable.call(value, "callee") || objectToString.call(value) == argsTag);
-    }
-    __name(isArguments, "isArguments");
-    var isArray = Array.isArray;
-    function isArrayLike(value) {
-      return value != null && isLength(value.length) && !isFunction(value);
-    }
-    __name(isArrayLike, "isArrayLike");
-    function isArrayLikeObject(value) {
-      return isObjectLike(value) && isArrayLike(value);
-    }
-    __name(isArrayLikeObject, "isArrayLikeObject");
-    function isFunction(value) {
-      var tag = isObject(value) ? objectToString.call(value) : "";
-      return tag == funcTag || tag == genTag;
-    }
-    __name(isFunction, "isFunction");
-    function isLength(value) {
-      return typeof value == "number" && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
-    }
-    __name(isLength, "isLength");
-    function isObject(value) {
-      var type = typeof value;
-      return !!value && (type == "object" || type == "function");
-    }
-    __name(isObject, "isObject");
-    function isObjectLike(value) {
-      return !!value && typeof value == "object";
-    }
-    __name(isObjectLike, "isObjectLike");
-    function isString(value) {
-      return typeof value == "string" || !isArray(value) && isObjectLike(value) && objectToString.call(value) == stringTag;
-    }
-    __name(isString, "isString");
-    function isSymbol(value) {
-      return typeof value == "symbol" || isObjectLike(value) && objectToString.call(value) == symbolTag;
-    }
-    __name(isSymbol, "isSymbol");
-    function toFinite(value) {
-      if (!value) {
-        return value === 0 ? value : 0;
-      }
-      value = toNumber(value);
-      if (value === INFINITY || value === -INFINITY) {
-        var sign = value < 0 ? -1 : 1;
-        return sign * MAX_INTEGER;
-      }
-      return value === value ? value : 0;
-    }
-    __name(toFinite, "toFinite");
-    function toInteger(value) {
-      var result = toFinite(value), remainder = result % 1;
-      return result === result ? remainder ? result - remainder : result : 0;
-    }
-    __name(toInteger, "toInteger");
-    function toNumber(value) {
-      if (typeof value == "number") {
-        return value;
-      }
-      if (isSymbol(value)) {
-        return NAN;
-      }
-      if (isObject(value)) {
-        var other = typeof value.valueOf == "function" ? value.valueOf() : value;
-        value = isObject(other) ? other + "" : other;
-      }
-      if (typeof value != "string") {
-        return value === 0 ? value : +value;
-      }
-      value = value.replace(reTrim, "");
-      var isBinary = reIsBinary.test(value);
-      return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
-    }
-    __name(toNumber, "toNumber");
-    function keys(object) {
-      return isArrayLike(object) ? arrayLikeKeys(object) : baseKeys(object);
-    }
-    __name(keys, "keys");
-    function values(object) {
-      return object ? baseValues(object, keys(object)) : [];
-    }
-    __name(values, "values");
-    module.exports = includes;
-  }
-});
-
-// node_modules/lodash.isboolean/index.js
-var require_lodash2 = __commonJS({
-  "node_modules/lodash.isboolean/index.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var boolTag = "[object Boolean]";
-    var objectProto = Object.prototype;
-    var objectToString = objectProto.toString;
-    function isBoolean(value) {
-      return value === true || value === false || isObjectLike(value) && objectToString.call(value) == boolTag;
-    }
-    __name(isBoolean, "isBoolean");
-    function isObjectLike(value) {
-      return !!value && typeof value == "object";
-    }
-    __name(isObjectLike, "isObjectLike");
-    module.exports = isBoolean;
-  }
-});
-
-// node_modules/lodash.isinteger/index.js
-var require_lodash3 = __commonJS({
-  "node_modules/lodash.isinteger/index.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var INFINITY = 1 / 0;
-    var MAX_INTEGER = 17976931348623157e292;
-    var NAN = 0 / 0;
-    var symbolTag = "[object Symbol]";
-    var reTrim = /^\s+|\s+$/g;
-    var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
-    var reIsBinary = /^0b[01]+$/i;
-    var reIsOctal = /^0o[0-7]+$/i;
-    var freeParseInt = parseInt;
-    var objectProto = Object.prototype;
-    var objectToString = objectProto.toString;
-    function isInteger(value) {
-      return typeof value == "number" && value == toInteger(value);
-    }
-    __name(isInteger, "isInteger");
-    function isObject(value) {
-      var type = typeof value;
-      return !!value && (type == "object" || type == "function");
-    }
-    __name(isObject, "isObject");
-    function isObjectLike(value) {
-      return !!value && typeof value == "object";
-    }
-    __name(isObjectLike, "isObjectLike");
-    function isSymbol(value) {
-      return typeof value == "symbol" || isObjectLike(value) && objectToString.call(value) == symbolTag;
-    }
-    __name(isSymbol, "isSymbol");
-    function toFinite(value) {
-      if (!value) {
-        return value === 0 ? value : 0;
-      }
-      value = toNumber(value);
-      if (value === INFINITY || value === -INFINITY) {
-        var sign = value < 0 ? -1 : 1;
-        return sign * MAX_INTEGER;
-      }
-      return value === value ? value : 0;
-    }
-    __name(toFinite, "toFinite");
-    function toInteger(value) {
-      var result = toFinite(value), remainder = result % 1;
-      return result === result ? remainder ? result - remainder : result : 0;
-    }
-    __name(toInteger, "toInteger");
-    function toNumber(value) {
-      if (typeof value == "number") {
-        return value;
-      }
-      if (isSymbol(value)) {
-        return NAN;
-      }
-      if (isObject(value)) {
-        var other = typeof value.valueOf == "function" ? value.valueOf() : value;
-        value = isObject(other) ? other + "" : other;
-      }
-      if (typeof value != "string") {
-        return value === 0 ? value : +value;
-      }
-      value = value.replace(reTrim, "");
-      var isBinary = reIsBinary.test(value);
-      return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
-    }
-    __name(toNumber, "toNumber");
-    module.exports = isInteger;
-  }
-});
-
-// node_modules/lodash.isnumber/index.js
-var require_lodash4 = __commonJS({
-  "node_modules/lodash.isnumber/index.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var numberTag = "[object Number]";
-    var objectProto = Object.prototype;
-    var objectToString = objectProto.toString;
-    function isObjectLike(value) {
-      return !!value && typeof value == "object";
-    }
-    __name(isObjectLike, "isObjectLike");
-    function isNumber(value) {
-      return typeof value == "number" || isObjectLike(value) && objectToString.call(value) == numberTag;
-    }
-    __name(isNumber, "isNumber");
-    module.exports = isNumber;
-  }
-});
-
-// node_modules/lodash.isplainobject/index.js
-var require_lodash5 = __commonJS({
-  "node_modules/lodash.isplainobject/index.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var objectTag = "[object Object]";
-    function isHostObject(value) {
-      var result = false;
-      if (value != null && typeof value.toString != "function") {
-        try {
-          result = !!(value + "");
-        } catch (e) {
-        }
-      }
-      return result;
-    }
-    __name(isHostObject, "isHostObject");
-    function overArg(func, transform) {
-      return function(arg) {
-        return func(transform(arg));
-      };
-    }
-    __name(overArg, "overArg");
-    var funcProto = Function.prototype;
-    var objectProto = Object.prototype;
-    var funcToString = funcProto.toString;
-    var hasOwnProperty = objectProto.hasOwnProperty;
-    var objectCtorString = funcToString.call(Object);
-    var objectToString = objectProto.toString;
-    var getPrototype = overArg(Object.getPrototypeOf, Object);
-    function isObjectLike(value) {
-      return !!value && typeof value == "object";
-    }
-    __name(isObjectLike, "isObjectLike");
-    function isPlainObject(value) {
-      if (!isObjectLike(value) || objectToString.call(value) != objectTag || isHostObject(value)) {
-        return false;
-      }
-      var proto = getPrototype(value);
-      if (proto === null) {
-        return true;
-      }
-      var Ctor = hasOwnProperty.call(proto, "constructor") && proto.constructor;
-      return typeof Ctor == "function" && Ctor instanceof Ctor && funcToString.call(Ctor) == objectCtorString;
-    }
-    __name(isPlainObject, "isPlainObject");
-    module.exports = isPlainObject;
-  }
-});
-
-// node_modules/lodash.isstring/index.js
-var require_lodash6 = __commonJS({
-  "node_modules/lodash.isstring/index.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var stringTag = "[object String]";
-    var objectProto = Object.prototype;
-    var objectToString = objectProto.toString;
-    var isArray = Array.isArray;
-    function isObjectLike(value) {
-      return !!value && typeof value == "object";
-    }
-    __name(isObjectLike, "isObjectLike");
-    function isString(value) {
-      return typeof value == "string" || !isArray(value) && isObjectLike(value) && objectToString.call(value) == stringTag;
-    }
-    __name(isString, "isString");
-    module.exports = isString;
-  }
-});
-
-// node_modules/lodash.once/index.js
-var require_lodash7 = __commonJS({
-  "node_modules/lodash.once/index.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var FUNC_ERROR_TEXT = "Expected a function";
-    var INFINITY = 1 / 0;
-    var MAX_INTEGER = 17976931348623157e292;
-    var NAN = 0 / 0;
-    var symbolTag = "[object Symbol]";
-    var reTrim = /^\s+|\s+$/g;
-    var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
-    var reIsBinary = /^0b[01]+$/i;
-    var reIsOctal = /^0o[0-7]+$/i;
-    var freeParseInt = parseInt;
-    var objectProto = Object.prototype;
-    var objectToString = objectProto.toString;
-    function before(n, func) {
-      var result;
-      if (typeof func != "function") {
-        throw new TypeError(FUNC_ERROR_TEXT);
-      }
-      n = toInteger(n);
-      return function() {
-        if (--n > 0) {
-          result = func.apply(this, arguments);
-        }
-        if (n <= 1) {
-          func = void 0;
-        }
-        return result;
-      };
-    }
-    __name(before, "before");
-    function once2(func) {
-      return before(2, func);
-    }
-    __name(once2, "once");
-    function isObject(value) {
-      var type = typeof value;
-      return !!value && (type == "object" || type == "function");
-    }
-    __name(isObject, "isObject");
-    function isObjectLike(value) {
-      return !!value && typeof value == "object";
-    }
-    __name(isObjectLike, "isObjectLike");
-    function isSymbol(value) {
-      return typeof value == "symbol" || isObjectLike(value) && objectToString.call(value) == symbolTag;
-    }
-    __name(isSymbol, "isSymbol");
-    function toFinite(value) {
-      if (!value) {
-        return value === 0 ? value : 0;
-      }
-      value = toNumber(value);
-      if (value === INFINITY || value === -INFINITY) {
-        var sign = value < 0 ? -1 : 1;
-        return sign * MAX_INTEGER;
-      }
-      return value === value ? value : 0;
-    }
-    __name(toFinite, "toFinite");
-    function toInteger(value) {
-      var result = toFinite(value), remainder = result % 1;
-      return result === result ? remainder ? result - remainder : result : 0;
-    }
-    __name(toInteger, "toInteger");
-    function toNumber(value) {
-      if (typeof value == "number") {
-        return value;
-      }
-      if (isSymbol(value)) {
-        return NAN;
-      }
-      if (isObject(value)) {
-        var other = typeof value.valueOf == "function" ? value.valueOf() : value;
-        value = isObject(other) ? other + "" : other;
-      }
-      if (typeof value != "string") {
-        return value === 0 ? value : +value;
-      }
-      value = value.replace(reTrim, "");
-      var isBinary = reIsBinary.test(value);
-      return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
-    }
-    __name(toNumber, "toNumber");
-    module.exports = once2;
-  }
-});
-
-// node_modules/jsonwebtoken/sign.js
-var require_sign = __commonJS({
-  "node_modules/jsonwebtoken/sign.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    var timespan = require_timespan();
-    var PS_SUPPORTED = require_psSupported();
-    var validateAsymmetricKey = require_validateAsymmetricKey();
-    var jws = require_jws();
-    var includes = require_lodash();
-    var isBoolean = require_lodash2();
-    var isInteger = require_lodash3();
-    var isNumber = require_lodash4();
-    var isPlainObject = require_lodash5();
-    var isString = require_lodash6();
-    var once2 = require_lodash7();
-    var { KeyObject, createSecretKey, createPrivateKey } = require_crypto();
-    var SUPPORTED_ALGS = ["RS256", "RS384", "RS512", "ES256", "ES384", "ES512", "HS256", "HS384", "HS512", "none"];
-    if (PS_SUPPORTED) {
-      SUPPORTED_ALGS.splice(3, 0, "PS256", "PS384", "PS512");
-    }
-    var sign_options_schema = {
-      expiresIn: { isValid: /* @__PURE__ */ __name(function(value) {
-        return isInteger(value) || isString(value) && value;
-      }, "isValid"), message: '"expiresIn" should be a number of seconds or string representing a timespan' },
-      notBefore: { isValid: /* @__PURE__ */ __name(function(value) {
-        return isInteger(value) || isString(value) && value;
-      }, "isValid"), message: '"notBefore" should be a number of seconds or string representing a timespan' },
-      audience: { isValid: /* @__PURE__ */ __name(function(value) {
-        return isString(value) || Array.isArray(value);
-      }, "isValid"), message: '"audience" must be a string or array' },
-      algorithm: { isValid: includes.bind(null, SUPPORTED_ALGS), message: '"algorithm" must be a valid string enum value' },
-      header: { isValid: isPlainObject, message: '"header" must be an object' },
-      encoding: { isValid: isString, message: '"encoding" must be a string' },
-      issuer: { isValid: isString, message: '"issuer" must be a string' },
-      subject: { isValid: isString, message: '"subject" must be a string' },
-      jwtid: { isValid: isString, message: '"jwtid" must be a string' },
-      noTimestamp: { isValid: isBoolean, message: '"noTimestamp" must be a boolean' },
-      keyid: { isValid: isString, message: '"keyid" must be a string' },
-      mutatePayload: { isValid: isBoolean, message: '"mutatePayload" must be a boolean' },
-      allowInsecureKeySizes: { isValid: isBoolean, message: '"allowInsecureKeySizes" must be a boolean' },
-      allowInvalidAsymmetricKeyTypes: { isValid: isBoolean, message: '"allowInvalidAsymmetricKeyTypes" must be a boolean' }
-    };
-    var registered_claims_schema = {
-      iat: { isValid: isNumber, message: '"iat" should be a number of seconds' },
-      exp: { isValid: isNumber, message: '"exp" should be a number of seconds' },
-      nbf: { isValid: isNumber, message: '"nbf" should be a number of seconds' }
-    };
-    function validate(schema, allowUnknown, object, parameterName) {
-      if (!isPlainObject(object)) {
-        throw new Error('Expected "' + parameterName + '" to be a plain object.');
-      }
-      Object.keys(object).forEach(function(key) {
-        const validator = schema[key];
-        if (!validator) {
-          if (!allowUnknown) {
-            throw new Error('"' + key + '" is not allowed in "' + parameterName + '"');
-          }
-          return;
-        }
-        if (!validator.isValid(object[key])) {
-          throw new Error(validator.message);
-        }
-      });
-    }
-    __name(validate, "validate");
-    function validateOptions(options) {
-      return validate(sign_options_schema, false, options, "options");
-    }
-    __name(validateOptions, "validateOptions");
-    function validatePayload(payload) {
-      return validate(registered_claims_schema, true, payload, "payload");
-    }
-    __name(validatePayload, "validatePayload");
-    var options_to_payload = {
-      "audience": "aud",
-      "issuer": "iss",
-      "subject": "sub",
-      "jwtid": "jti"
-    };
-    var options_for_objects = [
-      "expiresIn",
-      "notBefore",
-      "noTimestamp",
-      "audience",
-      "issuer",
-      "subject",
-      "jwtid"
-    ];
-    module.exports = function(payload, secretOrPrivateKey, options, callback) {
-      if (typeof options === "function") {
-        callback = options;
-        options = {};
-      } else {
-        options = options || {};
-      }
-      const isObjectPayload = typeof payload === "object" && !Buffer.isBuffer(payload);
-      const header = Object.assign({
-        alg: options.algorithm || "HS256",
-        typ: isObjectPayload ? "JWT" : void 0,
-        kid: options.keyid
-      }, options.header);
-      function failure(err) {
-        if (callback) {
-          return callback(err);
-        }
-        throw err;
-      }
-      __name(failure, "failure");
-      if (!secretOrPrivateKey && options.algorithm !== "none") {
-        return failure(new Error("secretOrPrivateKey must have a value"));
-      }
-      if (secretOrPrivateKey != null && !(secretOrPrivateKey instanceof KeyObject)) {
-        try {
-          secretOrPrivateKey = createPrivateKey(secretOrPrivateKey);
-        } catch (_) {
-          try {
-            secretOrPrivateKey = createSecretKey(typeof secretOrPrivateKey === "string" ? Buffer.from(secretOrPrivateKey) : secretOrPrivateKey);
-          } catch (_2) {
-            return failure(new Error("secretOrPrivateKey is not valid key material"));
-          }
-        }
-      }
-      if (header.alg.startsWith("HS") && secretOrPrivateKey.type !== "secret") {
-        return failure(new Error(`secretOrPrivateKey must be a symmetric key when using ${header.alg}`));
-      } else if (/^(?:RS|PS|ES)/.test(header.alg)) {
-        if (secretOrPrivateKey.type !== "private") {
-          return failure(new Error(`secretOrPrivateKey must be an asymmetric key when using ${header.alg}`));
-        }
-        if (!options.allowInsecureKeySizes && !header.alg.startsWith("ES") && secretOrPrivateKey.asymmetricKeyDetails !== void 0 && //KeyObject.asymmetricKeyDetails is supported in Node 15+
-        secretOrPrivateKey.asymmetricKeyDetails.modulusLength < 2048) {
-          return failure(new Error(`secretOrPrivateKey has a minimum key size of 2048 bits for ${header.alg}`));
-        }
-      }
-      if (typeof payload === "undefined") {
-        return failure(new Error("payload is required"));
-      } else if (isObjectPayload) {
-        try {
-          validatePayload(payload);
-        } catch (error3) {
-          return failure(error3);
-        }
-        if (!options.mutatePayload) {
-          payload = Object.assign({}, payload);
-        }
-      } else {
-        const invalid_options = options_for_objects.filter(function(opt) {
-          return typeof options[opt] !== "undefined";
-        });
-        if (invalid_options.length > 0) {
-          return failure(new Error("invalid " + invalid_options.join(",") + " option for " + typeof payload + " payload"));
-        }
-      }
-      if (typeof payload.exp !== "undefined" && typeof options.expiresIn !== "undefined") {
-        return failure(new Error('Bad "options.expiresIn" option the payload already has an "exp" property.'));
-      }
-      if (typeof payload.nbf !== "undefined" && typeof options.notBefore !== "undefined") {
-        return failure(new Error('Bad "options.notBefore" option the payload already has an "nbf" property.'));
-      }
-      try {
-        validateOptions(options);
-      } catch (error3) {
-        return failure(error3);
-      }
-      if (!options.allowInvalidAsymmetricKeyTypes) {
-        try {
-          validateAsymmetricKey(header.alg, secretOrPrivateKey);
-        } catch (error3) {
-          return failure(error3);
-        }
-      }
-      const timestamp = payload.iat || Math.floor(Date.now() / 1e3);
-      if (options.noTimestamp) {
-        delete payload.iat;
-      } else if (isObjectPayload) {
-        payload.iat = timestamp;
-      }
-      if (typeof options.notBefore !== "undefined") {
-        try {
-          payload.nbf = timespan(options.notBefore, timestamp);
-        } catch (err) {
-          return failure(err);
-        }
-        if (typeof payload.nbf === "undefined") {
-          return failure(new Error('"notBefore" should be a number of seconds or string representing a timespan eg: "1d", "20h", 60'));
-        }
-      }
-      if (typeof options.expiresIn !== "undefined" && typeof payload === "object") {
-        try {
-          payload.exp = timespan(options.expiresIn, timestamp);
-        } catch (err) {
-          return failure(err);
-        }
-        if (typeof payload.exp === "undefined") {
-          return failure(new Error('"expiresIn" should be a number of seconds or string representing a timespan eg: "1d", "20h", 60'));
-        }
-      }
-      Object.keys(options_to_payload).forEach(function(key) {
-        const claim = options_to_payload[key];
-        if (typeof options[key] !== "undefined") {
-          if (typeof payload[claim] !== "undefined") {
-            return failure(new Error('Bad "options.' + key + '" option. The payload already has an "' + claim + '" property.'));
-          }
-          payload[claim] = options[key];
-        }
-      });
-      const encoding = options.encoding || "utf8";
-      if (typeof callback === "function") {
-        callback = callback && once2(callback);
-        jws.createSign({
-          header,
-          privateKey: secretOrPrivateKey,
-          payload,
-          encoding
-        }).once("error", callback).once("done", function(signature) {
-          if (!options.allowInsecureKeySizes && /^(?:RS|PS)/.test(header.alg) && signature.length < 256) {
-            return callback(new Error(`secretOrPrivateKey has a minimum key size of 2048 bits for ${header.alg}`));
-          }
-          callback(null, signature);
-        });
-      } else {
-        let signature = jws.sign({ header, payload, secret: secretOrPrivateKey, encoding });
-        if (!options.allowInsecureKeySizes && /^(?:RS|PS)/.test(header.alg) && signature.length < 256) {
-          throw new Error(`secretOrPrivateKey has a minimum key size of 2048 bits for ${header.alg}`);
-        }
-        return signature;
-      }
-    };
-  }
-});
-
-// node_modules/jsonwebtoken/index.js
-var require_jsonwebtoken = __commonJS({
-  "node_modules/jsonwebtoken/index.js"(exports, module) {
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-    init_performance2();
-    module.exports = {
-      decode: require_decode(),
-      verify: require_verify(),
-      sign: require_sign(),
-      JsonWebTokenError: require_JsonWebTokenError(),
-      NotBeforeError: require_NotBeforeError(),
-      TokenExpiredError: require_TokenExpiredError()
-    };
   }
 });
 
@@ -13268,13 +9020,13 @@ var require_base32 = __commonJS({
 });
 
 // node-built-in-modules:url
-import libDefault11 from "url";
+import libDefault10 from "url";
 var require_url = __commonJS({
   "node-built-in-modules:url"(exports, module) {
     init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
     init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
     init_performance2();
-    module.exports = libDefault11;
+    module.exports = libDefault10;
   }
 });
 
@@ -13492,6 +9244,402 @@ var require_speakeasy = __commonJS({
         query: query2
       });
     }, "otpauthURL");
+  }
+});
+
+// ../../framework/backend/api/base/SchemaDefinition.js
+var require_SchemaDefinition = __commonJS({
+  "../../framework/backend/api/base/SchemaDefinition.js"(exports, module) {
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    var FieldTypes16 = {
+      STRING: "string",
+      NUMBER: "number",
+      BOOLEAN: "boolean",
+      DATE: "date",
+      EMAIL: "email",
+      PHONE: "phone",
+      COUNTRY: "country",
+      URL: "url",
+      OBJECT: "object",
+      ARRAY: "array",
+      JSON: "json",
+      SELECT: "select"
+    };
+    function field16(definition) {
+      return {
+        name: definition.name || null,
+        type: definition.type,
+        default: definition.default,
+        required: definition.required || false,
+        readOnly: definition.readOnly || false,
+        disable: definition.disable || false,
+        label: definition.label || "",
+        description: definition.description || "",
+        placeholder: definition.placeholder || "",
+        dbField: definition.dbField || null,
+        enumValues: definition.enumValues || null,
+        enumLabels: definition.enumLabels || null,
+        minLength: definition.minLength !== void 0 ? definition.minLength : null,
+        maxLength: definition.maxLength !== void 0 ? definition.maxLength : null,
+        min: definition.min !== void 0 ? definition.min : null,
+        max: definition.max !== void 0 ? definition.max : null,
+        pattern: definition.pattern || null,
+        showOn: definition.showOn || null,
+        formGrouping: definition.formGrouping || null,
+        validate: definition.validate || null,
+        validationFields: definition.validationFields || null,
+        toApi: definition.toApi || null,
+        fromApi: definition.fromApi || null,
+        order: definition.order !== void 0 ? definition.order : null,
+        minWidth: definition.minWidth || null,
+        maxWidth: definition.maxWidth || null
+      };
+    }
+    __name(field16, "field");
+    var RelationshipTypes6 = {
+      BELONGS_TO: "belongsTo",
+      // Many-to-one (e.g., Meter belongs to Location)
+      HAS_MANY: "hasMany",
+      // One-to-many (e.g., Location has many Meters)
+      HAS_ONE: "hasOne",
+      // One-to-one
+      MANY_TO_MANY: "manyToMany"
+      // Many-to-many (through junction table)
+    };
+    function relationship6(config2) {
+      return {
+        type: config2.type,
+        model: config2.model,
+        foreignKey: config2.foreignKey,
+        targetKey: config2.targetKey || "id",
+        through: config2.through || null,
+        autoLoad: config2.autoLoad || false,
+        select: config2.select || null,
+        as: config2.as || null
+        // Alias for the relationship
+      };
+    }
+    __name(relationship6, "relationship");
+    function fieldRef(config2) {
+      return {
+        name: config2.name,
+        order: config2.order !== void 0 ? config2.order : null
+      };
+    }
+    __name(fieldRef, "fieldRef");
+    function section16(config2) {
+      return {
+        name: config2.name,
+        order: config2.order !== void 0 ? config2.order : null,
+        fields: config2.fields || [],
+        minWidth: config2.minWidth || null,
+        maxWidth: config2.maxWidth || null,
+        flex: config2.flex !== void 0 ? config2.flex : 1,
+        flexGrow: config2.flexGrow !== void 0 ? config2.flexGrow : 1,
+        flexShrink: config2.flexShrink !== void 0 ? config2.flexShrink : 1
+      };
+    }
+    __name(section16, "section");
+    function tab16(config2) {
+      return {
+        name: config2.name,
+        order: config2.order !== void 0 ? config2.order : null,
+        sections: config2.sections || [],
+        sectionOrientation: config2.sectionOrientation || null,
+        visibleFor: config2.visibleFor || null
+      };
+    }
+    __name(tab16, "tab");
+    function defineSchema16(definition) {
+      let formFields = definition.formFields || {};
+      if (definition.formTabs && Array.isArray(definition.formTabs)) {
+        const extractedFields = {};
+        definition.formTabs.forEach((tab17) => {
+          if (tab17.sections && Array.isArray(tab17.sections)) {
+            tab17.sections.forEach((section17) => {
+              if (section17.fields && Array.isArray(section17.fields)) {
+                section17.fields.forEach((fieldDef) => {
+                  if (fieldDef.type) {
+                    const fieldName = fieldDef.name;
+                    if (fieldName) {
+                      extractedFields[fieldName] = fieldDef;
+                    }
+                  }
+                });
+              }
+            });
+          }
+        });
+        formFields = { ...extractedFields, ...formFields };
+      }
+      let defaultSortBy = definition.defaultSortBy || null;
+      if (!defaultSortBy && definition.formTabs && Array.isArray(definition.formTabs)) {
+        for (const tab17 of definition.formTabs) {
+          if (tab17.sections && Array.isArray(tab17.sections)) {
+            for (const section17 of tab17.sections) {
+              if (section17.fields && Array.isArray(section17.fields)) {
+                for (const fieldDef of section17.fields) {
+                  if (fieldDef.showOn && fieldDef.showOn.includes("list")) {
+                    defaultSortBy = fieldDef.name;
+                    break;
+                  }
+                }
+                if (defaultSortBy) break;
+              }
+            }
+            if (defaultSortBy) break;
+          }
+        }
+      }
+      const schema = {
+        entityName: definition.entityName,
+        tableName: definition.tableName,
+        description: definition.description || "",
+        formFields,
+        formTabs: definition.formTabs || null,
+        formMaxWidth: definition.formMaxWidth || null,
+        defaultSortBy,
+        entityFields: definition.entityFields || {},
+        relationships: definition.relationships || {},
+        validation: definition.validation || {},
+        version: "1.2.0",
+        // Updated to include formTabs support
+        generatedAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      function toJSON() {
+        const serializable = JSON.parse(JSON.stringify(schema, (key, value) => {
+          if (typeof value === "function") {
+            return void 0;
+          }
+          return value;
+        }));
+        return serializable;
+      }
+      __name(toJSON, "toJSON");
+      function getAllFieldNames() {
+        return [
+          ...Object.keys(schema.formFields),
+          ...Object.keys(schema.entityFields)
+        ];
+      }
+      __name(getAllFieldNames, "getAllFieldNames");
+      function getFormFieldNames() {
+        return Object.keys(schema.formFields);
+      }
+      __name(getFormFieldNames, "getFormFieldNames");
+      function getEntityFieldNames() {
+        return Object.keys(schema.entityFields);
+      }
+      __name(getEntityFieldNames, "getEntityFieldNames");
+      function isFormField(fieldName) {
+        return fieldName in schema.formFields;
+      }
+      __name(isFormField, "isFormField");
+      function isEntityField(fieldName) {
+        return fieldName in schema.entityFields;
+      }
+      __name(isEntityField, "isEntityField");
+      function getField(fieldName) {
+        return schema.formFields[fieldName] || schema.entityFields[fieldName] || null;
+      }
+      __name(getField, "getField");
+      function validate(data) {
+        const errors = {};
+        Object.entries(schema.formFields).forEach(([fieldName, fieldDef]) => {
+          const value = data[fieldName];
+          if (fieldDef.required && (value === void 0 || value === null || value === "")) {
+            errors[fieldName] = `${fieldDef.label || fieldName} is required`;
+            return;
+          }
+          if (value === void 0 || value === null || value === "") {
+            return;
+          }
+          if (fieldDef.type === "number" && typeof value !== "number") {
+            errors[fieldName] = `${fieldDef.label || fieldName} must be a number`;
+          }
+          if (fieldDef.type === "boolean" && typeof value !== "boolean") {
+            errors[fieldName] = `${fieldDef.label || fieldName} must be a boolean`;
+          }
+          if ((fieldDef.type === "string" || fieldDef.type === "email") && typeof value === "string") {
+            if (fieldDef.minLength && value.length < fieldDef.minLength) {
+              errors[fieldName] = `${fieldDef.label || fieldName} must be at least ${fieldDef.minLength} characters`;
+            }
+            if (fieldDef.maxLength && value.length > fieldDef.maxLength) {
+              errors[fieldName] = `${fieldDef.label || fieldName} must be at most ${fieldDef.maxLength} characters`;
+            }
+            if (fieldDef.pattern && !new RegExp(fieldDef.pattern).test(value)) {
+              errors[fieldName] = `${fieldDef.label || fieldName} format is invalid`;
+            }
+          }
+          if (fieldDef.type === "number" && typeof value === "number") {
+            if (fieldDef.min !== null && value < fieldDef.min) {
+              errors[fieldName] = `${fieldDef.label || fieldName} must be at least ${fieldDef.min}`;
+            }
+            if (fieldDef.max !== null && value > fieldDef.max) {
+              errors[fieldName] = `${fieldDef.label || fieldName} must be at most ${fieldDef.max}`;
+            }
+          }
+          if (fieldDef.enumValues && !fieldDef.enumValues.includes(value)) {
+            errors[fieldName] = `${fieldDef.label || fieldName} must be one of: ${fieldDef.enumValues.join(", ")}`;
+          }
+          if (fieldDef.validate && typeof fieldDef.validate === "function") {
+            const customError = fieldDef.validate(value, data);
+            if (customError) {
+              errors[fieldName] = customError;
+            }
+          }
+        });
+        return {
+          isValid: Object.keys(errors).length === 0,
+          errors
+        };
+      }
+      __name(validate, "validate");
+      function toDatabase(formData) {
+        const dbData = {};
+        Object.entries(schema.formFields).forEach(([fieldName, fieldDef]) => {
+          const value = formData[fieldName];
+          const dbField = fieldDef.dbField || fieldName;
+          if (value !== void 0) {
+            dbData[dbField] = fieldDef.toApi ? fieldDef.toApi(value) : value;
+          }
+        });
+        return dbData;
+      }
+      __name(toDatabase, "toDatabase");
+      function fromDatabase(dbData) {
+        const formData = {};
+        Object.entries(schema.formFields).forEach(([fieldName, fieldDef]) => {
+          const dbField = fieldDef.dbField || fieldName;
+          const value = dbData[dbField];
+          if (value !== void 0) {
+            formData[fieldName] = fieldDef.fromApi ? fieldDef.fromApi(value) : value;
+          } else {
+            formData[fieldName] = fieldDef.default;
+          }
+        });
+        return formData;
+      }
+      __name(fromDatabase, "fromDatabase");
+      function initializeFromData(instance, data) {
+        console.log("\n" + "\u2588".repeat(120));
+        console.log("\u2588 [SCHEMA] initializeFromData - START");
+        console.log("\u2588".repeat(120));
+        console.log("Instance class:", instance.constructor.name);
+        console.log("Data keys:", Object.keys(data));
+        console.log("Data:", JSON.stringify(data, null, 2));
+        console.log("\nForm fields to initialize:");
+        Object.entries(schema.formFields).forEach(([fieldName, fieldDef]) => {
+          console.log(`  - ${fieldName} (dbField: ${fieldDef.dbField})`);
+        });
+        console.log("\nEntity fields to initialize:");
+        Object.entries(schema.entityFields).forEach(([fieldName, fieldDef]) => {
+          console.log(`  - ${fieldName} (dbField: ${fieldDef.dbField})`);
+        });
+        console.log("\n--- Initializing FORM FIELDS ---");
+        Object.entries(schema.formFields).forEach(([fieldName, fieldDef]) => {
+          if (fieldDef.dbField === null) {
+            console.log(`
+Form field: ${fieldName} (dbField: null) - SKIPPED (custom field)`);
+            return;
+          }
+          const dbField = fieldDef.dbField || fieldName;
+          console.log(`
+Form field: ${fieldName} (dbField: ${dbField})`);
+          console.log(`  data[dbField] = data["${dbField}"] =`, data[dbField]);
+          console.log(`  data[fieldName] = data["${fieldName}"] =`, data[fieldName]);
+          console.log(`  fieldDef.default =`, fieldDef.default);
+          if (data[dbField] !== void 0) {
+            instance[fieldName] = data[dbField];
+            console.log(`  \u2713 Set instance.${fieldName} = ${data[dbField]} (from dbField)`);
+          } else if (data[fieldName] !== void 0) {
+            instance[fieldName] = data[fieldName];
+            console.log(`  \u2713 Set instance.${fieldName} = ${data[fieldName]} (from fieldName)`);
+          } else if (fieldDef.default !== void 0) {
+            instance[fieldName] = fieldDef.default;
+            console.log(`  \u2713 Set instance.${fieldName} = ${fieldDef.default} (from default)`);
+          } else {
+            console.log(`  - No value set for ${fieldName}`);
+          }
+        });
+        console.log("\n--- Initializing ENTITY FIELDS ---");
+        Object.entries(schema.entityFields).forEach(([fieldName, fieldDef]) => {
+          if (fieldDef.dbField === null) {
+            console.log(`
+Entity field: ${fieldName} (dbField: null) - SKIPPED (custom field)`);
+            return;
+          }
+          const dbField = fieldDef.dbField || fieldName;
+          console.log(`
+Entity field: ${fieldName} (dbField: ${dbField})`);
+          console.log(`  data[dbField] = data["${dbField}"] =`, data[dbField]);
+          console.log(`  data[fieldName] = data["${fieldName}"] =`, data[fieldName]);
+          console.log(`  fieldDef.default =`, fieldDef.default);
+          if (data[dbField] !== void 0) {
+            instance[fieldName] = data[dbField];
+            console.log(`  \u2713 Set instance.${fieldName} = ${data[dbField]} (from dbField)`);
+          } else if (data[fieldName] !== void 0) {
+            instance[fieldName] = data[fieldName];
+            console.log(`  \u2713 Set instance.${fieldName} = ${data[fieldName]} (from fieldName)`);
+          } else if (fieldDef.default !== void 0) {
+            instance[fieldName] = fieldDef.default;
+            console.log(`  \u2713 Set instance.${fieldName} = ${fieldDef.default} (from default)`);
+          } else {
+            console.log(`  - No value set for ${fieldName}`);
+          }
+        });
+        return instance;
+      }
+      __name(initializeFromData, "initializeFromData");
+      function getConstructorCode(className, dataParamName = "data") {
+        const allFields = [
+          ...Object.keys(schema.formFields),
+          ...Object.keys(schema.entityFields)
+        ];
+        const assignments = allFields.map((fieldName) => {
+          return `    this.${fieldName} = ${dataParamName}.${fieldName};`;
+        }).join("\n");
+        return `  constructor(${dataParamName} = {}) {
+    super(${dataParamName});
+    
+${assignments}
+  }`;
+      }
+      __name(getConstructorCode, "getConstructorCode");
+      return {
+        // Expose schema data directly for easy access
+        schema,
+        formFields: schema.formFields,
+        entityFields: schema.entityFields,
+        relationships: schema.relationships,
+        // Expose utility methods
+        toJSON,
+        getAllFieldNames,
+        getFormFieldNames,
+        getEntityFieldNames,
+        isFormField,
+        isEntityField,
+        getField,
+        validate,
+        toDatabase,
+        fromDatabase,
+        initializeFromData,
+        getConstructorCode
+      };
+    }
+    __name(defineSchema16, "defineSchema");
+    module.exports = {
+      FieldTypes: FieldTypes16,
+      RelationshipTypes: RelationshipTypes6,
+      field: field16,
+      relationship: relationship6,
+      tab: tab16,
+      section: section16,
+      fieldRef,
+      defineSchema: defineSchema16
+    };
   }
 });
 
@@ -14718,14 +10866,14 @@ var Hono = class _Hono {
    * app.route("/api", app2) // GET /api/user
    * ```
    */
-  route(path, app22) {
+  route(path, app24) {
     const subApp = this.basePath(path);
-    app22.routes.map((r) => {
+    app24.routes.map((r) => {
       let handler;
-      if (app22.errorHandler === errorHandler) {
+      if (app24.errorHandler === errorHandler) {
         handler = r.handler;
       } else {
-        handler = /* @__PURE__ */ __name(async (c, next) => (await compose([], app22.errorHandler)(c, () => r.handler(c, next))).res, "handler");
+        handler = /* @__PURE__ */ __name(async (c, next) => (await compose([], app24.errorHandler)(c, () => r.handler(c, next))).res, "handler");
         handler[COMPOSED_HANDLER] = r.handler;
       }
       subApp.#addRoute(r.method, r.path, handler);
@@ -14946,9 +11094,9 @@ var Hono = class _Hono {
    * ```
    * @see https://hono.dev/docs/api/hono#request
    */
-  request = /* @__PURE__ */ __name((input, requestInit, Env22, executionCtx) => {
+  request = /* @__PURE__ */ __name((input, requestInit, Env24, executionCtx) => {
     if (input instanceof Request) {
-      return this.fetch(requestInit ? new Request(input, requestInit) : input, Env22, executionCtx);
+      return this.fetch(requestInit ? new Request(input, requestInit) : input, Env24, executionCtx);
     }
     input = input.toString();
     return this.fetch(
@@ -14956,7 +11104,7 @@ var Hono = class _Hono {
         /^https?:\/\//.test(input) ? input : `http://localhost${mergePath("/", input)}`,
         requestInit
       ),
-      Env22,
+      Env24,
       executionCtx
     );
   }, "request");
@@ -15782,60 +11930,711 @@ var TypeOverrides = import_lib.default.TypeOverrides;
 var defaults = import_lib.default.defaults;
 
 // worker/db.ts
-var pool = null;
-function getPool(env3) {
-  if (!pool) {
-    pool = new Pool({
-      connectionString: env3.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-      max: 5,
-      idleTimeoutMillis: 1e4,
-      connectionTimeoutMillis: 1e4
-    });
-  }
-  return pool;
-}
-__name(getPool, "getPool");
 async function query(env3, text, params = []) {
-  const p = getPool(env3);
-  const client = await p.connect();
+  const connectionString = env3.DATABASE_URL || env3.HYPERDRIVE?.connectionString;
+  const client = new Client({ connectionString });
+  await client.connect();
+  console.log("[SQL]", text, params.length ? params : "");
   try {
     return await client.query(text, params);
+  } catch (error3) {
+    error3.sql = text;
+    error3.sqlParams = params;
+    throw error3;
   } finally {
-    client.release();
+    await client.end();
   }
 }
 __name(query, "query");
 async function transaction(env3, callback) {
-  const p = getPool(env3);
-  const client = await p.connect();
+  const connectionString = env3.DATABASE_URL || env3.HYPERDRIVE?.connectionString;
+  const client = new Client({ connectionString });
+  await client.connect();
+  const loggingClient = new Proxy(client, {
+    get(target, prop) {
+      if (prop === "query") {
+        return (text, params) => {
+          console.log("[SQL]", text, params?.length ? params : "");
+          return target.query(text, params);
+        };
+      }
+      return target[prop];
+    }
+  });
   try {
     await client.query("BEGIN");
-    const result = await callback(client);
+    const result = await callback(loggingClient);
     await client.query("COMMIT");
     return result;
   } catch (error3) {
     await client.query("ROLLBACK");
     throw error3;
   } finally {
-    client.release();
+    await client.end();
   }
 }
 __name(transaction, "transaction");
-
-// worker/routes/auth.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-var import_jsonwebtoken2 = __toESM(require_jsonwebtoken());
-var import_bcryptjs = __toESM(require_bcrypt());
-var import_speakeasy = __toESM(require_speakeasy());
 
 // worker/middleware.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
-var import_jsonwebtoken = __toESM(require_jsonwebtoken());
+
+// node_modules/hono/dist/middleware/jwt/index.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+
+// node_modules/hono/dist/middleware/jwt/jwt.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+
+// node_modules/hono/dist/helper/cookie/index.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+
+// node_modules/hono/dist/utils/cookie.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+
+// node_modules/hono/dist/utils/jwt/index.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+
+// node_modules/hono/dist/utils/jwt/jwt.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+
+// node_modules/hono/dist/utils/encode.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var decodeBase64Url = /* @__PURE__ */ __name((str) => {
+  return decodeBase64(str.replace(/_|-/g, (m) => ({ _: "/", "-": "+" })[m] ?? m));
+}, "decodeBase64Url");
+var encodeBase64Url = /* @__PURE__ */ __name((buf) => encodeBase64(buf).replace(/\/|\+/g, (m) => ({ "/": "_", "+": "-" })[m] ?? m), "encodeBase64Url");
+var encodeBase64 = /* @__PURE__ */ __name((buf) => {
+  let binary = "";
+  const bytes = new Uint8Array(buf);
+  for (let i = 0, len = bytes.length; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}, "encodeBase64");
+var decodeBase64 = /* @__PURE__ */ __name((str) => {
+  const binary = atob(str);
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+  const half = binary.length / 2;
+  for (let i = 0, j = binary.length - 1; i <= half; i++, j--) {
+    bytes[i] = binary.charCodeAt(i);
+    bytes[j] = binary.charCodeAt(j);
+  }
+  return bytes;
+}, "decodeBase64");
+
+// node_modules/hono/dist/utils/jwt/jwa.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var AlgorithmTypes = /* @__PURE__ */ ((AlgorithmTypes2) => {
+  AlgorithmTypes2["HS256"] = "HS256";
+  AlgorithmTypes2["HS384"] = "HS384";
+  AlgorithmTypes2["HS512"] = "HS512";
+  AlgorithmTypes2["RS256"] = "RS256";
+  AlgorithmTypes2["RS384"] = "RS384";
+  AlgorithmTypes2["RS512"] = "RS512";
+  AlgorithmTypes2["PS256"] = "PS256";
+  AlgorithmTypes2["PS384"] = "PS384";
+  AlgorithmTypes2["PS512"] = "PS512";
+  AlgorithmTypes2["ES256"] = "ES256";
+  AlgorithmTypes2["ES384"] = "ES384";
+  AlgorithmTypes2["ES512"] = "ES512";
+  AlgorithmTypes2["EdDSA"] = "EdDSA";
+  return AlgorithmTypes2;
+})(AlgorithmTypes || {});
+
+// node_modules/hono/dist/utils/jwt/jws.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+
+// node_modules/hono/dist/helper/adapter/index.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var knownUserAgents = {
+  deno: "Deno",
+  bun: "Bun",
+  workerd: "Cloudflare-Workers",
+  node: "Node.js"
+};
+var getRuntimeKey = /* @__PURE__ */ __name(() => {
+  const global2 = globalThis;
+  const userAgentSupported = typeof navigator !== "undefined" && true;
+  if (userAgentSupported) {
+    for (const [runtimeKey, userAgent] of Object.entries(knownUserAgents)) {
+      if (checkUserAgentEquals(userAgent)) {
+        return runtimeKey;
+      }
+    }
+  }
+  if (typeof global2?.EdgeRuntime === "string") {
+    return "edge-light";
+  }
+  if (global2?.fastly !== void 0) {
+    return "fastly";
+  }
+  if (global2?.process?.release?.name === "node") {
+    return "node";
+  }
+  return "other";
+}, "getRuntimeKey");
+var checkUserAgentEquals = /* @__PURE__ */ __name((platform2) => {
+  const userAgent = "Cloudflare-Workers";
+  return userAgent.startsWith(platform2);
+}, "checkUserAgentEquals");
+
+// node_modules/hono/dist/utils/jwt/types.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var JwtAlgorithmNotImplemented = class extends Error {
+  static {
+    __name(this, "JwtAlgorithmNotImplemented");
+  }
+  constructor(alg) {
+    super(`${alg} is not an implemented algorithm`);
+    this.name = "JwtAlgorithmNotImplemented";
+  }
+};
+var JwtAlgorithmRequired = class extends Error {
+  static {
+    __name(this, "JwtAlgorithmRequired");
+  }
+  constructor() {
+    super('JWT verification requires "alg" option to be specified');
+    this.name = "JwtAlgorithmRequired";
+  }
+};
+var JwtAlgorithmMismatch = class extends Error {
+  static {
+    __name(this, "JwtAlgorithmMismatch");
+  }
+  constructor(expected, actual) {
+    super(`JWT algorithm mismatch: expected "${expected}", got "${actual}"`);
+    this.name = "JwtAlgorithmMismatch";
+  }
+};
+var JwtTokenInvalid = class extends Error {
+  static {
+    __name(this, "JwtTokenInvalid");
+  }
+  constructor(token) {
+    super(`invalid JWT token: ${token}`);
+    this.name = "JwtTokenInvalid";
+  }
+};
+var JwtTokenNotBefore = class extends Error {
+  static {
+    __name(this, "JwtTokenNotBefore");
+  }
+  constructor(token) {
+    super(`token (${token}) is being used before it's valid`);
+    this.name = "JwtTokenNotBefore";
+  }
+};
+var JwtTokenExpired = class extends Error {
+  static {
+    __name(this, "JwtTokenExpired");
+  }
+  constructor(token) {
+    super(`token (${token}) expired`);
+    this.name = "JwtTokenExpired";
+  }
+};
+var JwtTokenIssuedAt = class extends Error {
+  static {
+    __name(this, "JwtTokenIssuedAt");
+  }
+  constructor(currentTimestamp, iat) {
+    super(
+      `Invalid "iat" claim, must be a valid number lower than "${currentTimestamp}" (iat: "${iat}")`
+    );
+    this.name = "JwtTokenIssuedAt";
+  }
+};
+var JwtTokenIssuer = class extends Error {
+  static {
+    __name(this, "JwtTokenIssuer");
+  }
+  constructor(expected, iss) {
+    super(`expected issuer "${expected}", got ${iss ? `"${iss}"` : "none"} `);
+    this.name = "JwtTokenIssuer";
+  }
+};
+var JwtHeaderInvalid = class extends Error {
+  static {
+    __name(this, "JwtHeaderInvalid");
+  }
+  constructor(header) {
+    super(`jwt header is invalid: ${JSON.stringify(header)}`);
+    this.name = "JwtHeaderInvalid";
+  }
+};
+var JwtHeaderRequiresKid = class extends Error {
+  static {
+    __name(this, "JwtHeaderRequiresKid");
+  }
+  constructor(header) {
+    super(`required "kid" in jwt header: ${JSON.stringify(header)}`);
+    this.name = "JwtHeaderRequiresKid";
+  }
+};
+var JwtSymmetricAlgorithmNotAllowed = class extends Error {
+  static {
+    __name(this, "JwtSymmetricAlgorithmNotAllowed");
+  }
+  constructor(alg) {
+    super(`symmetric algorithm "${alg}" is not allowed for JWK verification`);
+    this.name = "JwtSymmetricAlgorithmNotAllowed";
+  }
+};
+var JwtAlgorithmNotAllowed = class extends Error {
+  static {
+    __name(this, "JwtAlgorithmNotAllowed");
+  }
+  constructor(alg, allowedAlgorithms) {
+    super(`algorithm "${alg}" is not in the allowed list: [${allowedAlgorithms.join(", ")}]`);
+    this.name = "JwtAlgorithmNotAllowed";
+  }
+};
+var JwtTokenSignatureMismatched = class extends Error {
+  static {
+    __name(this, "JwtTokenSignatureMismatched");
+  }
+  constructor(token) {
+    super(`token(${token}) signature mismatched`);
+    this.name = "JwtTokenSignatureMismatched";
+  }
+};
+var JwtPayloadRequiresAud = class extends Error {
+  static {
+    __name(this, "JwtPayloadRequiresAud");
+  }
+  constructor(payload) {
+    super(`required "aud" in jwt payload: ${JSON.stringify(payload)}`);
+    this.name = "JwtPayloadRequiresAud";
+  }
+};
+var JwtTokenAudience = class extends Error {
+  static {
+    __name(this, "JwtTokenAudience");
+  }
+  constructor(expected, aud) {
+    super(
+      `expected audience "${Array.isArray(expected) ? expected.join(", ") : expected}", got "${aud}"`
+    );
+    this.name = "JwtTokenAudience";
+  }
+};
+var CryptoKeyUsage = /* @__PURE__ */ ((CryptoKeyUsage2) => {
+  CryptoKeyUsage2["Encrypt"] = "encrypt";
+  CryptoKeyUsage2["Decrypt"] = "decrypt";
+  CryptoKeyUsage2["Sign"] = "sign";
+  CryptoKeyUsage2["Verify"] = "verify";
+  CryptoKeyUsage2["DeriveKey"] = "deriveKey";
+  CryptoKeyUsage2["DeriveBits"] = "deriveBits";
+  CryptoKeyUsage2["WrapKey"] = "wrapKey";
+  CryptoKeyUsage2["UnwrapKey"] = "unwrapKey";
+  return CryptoKeyUsage2;
+})(CryptoKeyUsage || {});
+
+// node_modules/hono/dist/utils/jwt/utf8.js
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var utf8Encoder = new TextEncoder();
+var utf8Decoder = new TextDecoder();
+
+// node_modules/hono/dist/utils/jwt/jws.js
+async function signing(privateKey, alg, data) {
+  const algorithm = getKeyAlgorithm(alg);
+  const cryptoKey = await importPrivateKey(privateKey, algorithm);
+  return await crypto.subtle.sign(algorithm, cryptoKey, data);
+}
+__name(signing, "signing");
+async function verifying(publicKey, alg, signature, data) {
+  const algorithm = getKeyAlgorithm(alg);
+  const cryptoKey = await importPublicKey(publicKey, algorithm);
+  return await crypto.subtle.verify(algorithm, cryptoKey, signature, data);
+}
+__name(verifying, "verifying");
+function pemToBinary(pem) {
+  return decodeBase64(pem.replace(/-+(BEGIN|END).*/g, "").replace(/\s/g, ""));
+}
+__name(pemToBinary, "pemToBinary");
+async function importPrivateKey(key, alg) {
+  if (!crypto.subtle || !crypto.subtle.importKey) {
+    throw new Error("`crypto.subtle.importKey` is undefined. JWT auth middleware requires it.");
+  }
+  if (isCryptoKey(key)) {
+    if (key.type !== "private" && key.type !== "secret") {
+      throw new Error(
+        `unexpected key type: CryptoKey.type is ${key.type}, expected private or secret`
+      );
+    }
+    return key;
+  }
+  const usages = [CryptoKeyUsage.Sign];
+  if (typeof key === "object") {
+    return await crypto.subtle.importKey("jwk", key, alg, false, usages);
+  }
+  if (key.includes("PRIVATE")) {
+    return await crypto.subtle.importKey("pkcs8", pemToBinary(key), alg, false, usages);
+  }
+  return await crypto.subtle.importKey("raw", utf8Encoder.encode(key), alg, false, usages);
+}
+__name(importPrivateKey, "importPrivateKey");
+async function importPublicKey(key, alg) {
+  if (!crypto.subtle || !crypto.subtle.importKey) {
+    throw new Error("`crypto.subtle.importKey` is undefined. JWT auth middleware requires it.");
+  }
+  if (isCryptoKey(key)) {
+    if (key.type === "public" || key.type === "secret") {
+      return key;
+    }
+    key = await exportPublicJwkFrom(key);
+  }
+  if (typeof key === "string" && key.includes("PRIVATE")) {
+    const privateKey = await crypto.subtle.importKey("pkcs8", pemToBinary(key), alg, true, [
+      CryptoKeyUsage.Sign
+    ]);
+    key = await exportPublicJwkFrom(privateKey);
+  }
+  const usages = [CryptoKeyUsage.Verify];
+  if (typeof key === "object") {
+    return await crypto.subtle.importKey("jwk", key, alg, false, usages);
+  }
+  if (key.includes("PUBLIC")) {
+    return await crypto.subtle.importKey("spki", pemToBinary(key), alg, false, usages);
+  }
+  return await crypto.subtle.importKey("raw", utf8Encoder.encode(key), alg, false, usages);
+}
+__name(importPublicKey, "importPublicKey");
+async function exportPublicJwkFrom(privateKey) {
+  if (privateKey.type !== "private") {
+    throw new Error(`unexpected key type: ${privateKey.type}`);
+  }
+  if (!privateKey.extractable) {
+    throw new Error("unexpected private key is unextractable");
+  }
+  const jwk = await crypto.subtle.exportKey("jwk", privateKey);
+  const { kty } = jwk;
+  const { alg, e, n } = jwk;
+  const { crv, x, y } = jwk;
+  return { kty, alg, e, n, crv, x, y, key_ops: [CryptoKeyUsage.Verify] };
+}
+__name(exportPublicJwkFrom, "exportPublicJwkFrom");
+function getKeyAlgorithm(name) {
+  switch (name) {
+    case "HS256":
+      return {
+        name: "HMAC",
+        hash: {
+          name: "SHA-256"
+        }
+      };
+    case "HS384":
+      return {
+        name: "HMAC",
+        hash: {
+          name: "SHA-384"
+        }
+      };
+    case "HS512":
+      return {
+        name: "HMAC",
+        hash: {
+          name: "SHA-512"
+        }
+      };
+    case "RS256":
+      return {
+        name: "RSASSA-PKCS1-v1_5",
+        hash: {
+          name: "SHA-256"
+        }
+      };
+    case "RS384":
+      return {
+        name: "RSASSA-PKCS1-v1_5",
+        hash: {
+          name: "SHA-384"
+        }
+      };
+    case "RS512":
+      return {
+        name: "RSASSA-PKCS1-v1_5",
+        hash: {
+          name: "SHA-512"
+        }
+      };
+    case "PS256":
+      return {
+        name: "RSA-PSS",
+        hash: {
+          name: "SHA-256"
+        },
+        saltLength: 32
+        // 256 >> 3
+      };
+    case "PS384":
+      return {
+        name: "RSA-PSS",
+        hash: {
+          name: "SHA-384"
+        },
+        saltLength: 48
+        // 384 >> 3
+      };
+    case "PS512":
+      return {
+        name: "RSA-PSS",
+        hash: {
+          name: "SHA-512"
+        },
+        saltLength: 64
+        // 512 >> 3,
+      };
+    case "ES256":
+      return {
+        name: "ECDSA",
+        hash: {
+          name: "SHA-256"
+        },
+        namedCurve: "P-256"
+      };
+    case "ES384":
+      return {
+        name: "ECDSA",
+        hash: {
+          name: "SHA-384"
+        },
+        namedCurve: "P-384"
+      };
+    case "ES512":
+      return {
+        name: "ECDSA",
+        hash: {
+          name: "SHA-512"
+        },
+        namedCurve: "P-521"
+      };
+    case "EdDSA":
+      return {
+        name: "Ed25519",
+        namedCurve: "Ed25519"
+      };
+    default:
+      throw new JwtAlgorithmNotImplemented(name);
+  }
+}
+__name(getKeyAlgorithm, "getKeyAlgorithm");
+function isCryptoKey(key) {
+  const runtime = getRuntimeKey();
+  if (runtime === "node" && !!crypto.webcrypto) {
+    return key instanceof crypto.webcrypto.CryptoKey;
+  }
+  return key instanceof CryptoKey;
+}
+__name(isCryptoKey, "isCryptoKey");
+
+// node_modules/hono/dist/utils/jwt/jwt.js
+var encodeJwtPart = /* @__PURE__ */ __name((part) => encodeBase64Url(utf8Encoder.encode(JSON.stringify(part)).buffer).replace(/=/g, ""), "encodeJwtPart");
+var encodeSignaturePart = /* @__PURE__ */ __name((buf) => encodeBase64Url(buf).replace(/=/g, ""), "encodeSignaturePart");
+var decodeJwtPart = /* @__PURE__ */ __name((part) => JSON.parse(utf8Decoder.decode(decodeBase64Url(part))), "decodeJwtPart");
+function isTokenHeader(obj) {
+  if (typeof obj === "object" && obj !== null) {
+    const objWithAlg = obj;
+    return "alg" in objWithAlg && Object.values(AlgorithmTypes).includes(objWithAlg.alg) && (!("typ" in objWithAlg) || objWithAlg.typ === "JWT");
+  }
+  return false;
+}
+__name(isTokenHeader, "isTokenHeader");
+var sign = /* @__PURE__ */ __name(async (payload, privateKey, alg = "HS256") => {
+  const encodedPayload = encodeJwtPart(payload);
+  let encodedHeader;
+  if (typeof privateKey === "object" && "alg" in privateKey) {
+    alg = privateKey.alg;
+    encodedHeader = encodeJwtPart({ alg, typ: "JWT", kid: privateKey.kid });
+  } else {
+    encodedHeader = encodeJwtPart({ alg, typ: "JWT" });
+  }
+  const partialToken = `${encodedHeader}.${encodedPayload}`;
+  const signaturePart = await signing(privateKey, alg, utf8Encoder.encode(partialToken));
+  const signature = encodeSignaturePart(signaturePart);
+  return `${partialToken}.${signature}`;
+}, "sign");
+var verify = /* @__PURE__ */ __name(async (token, publicKey, algOrOptions) => {
+  if (!algOrOptions) {
+    throw new JwtAlgorithmRequired();
+  }
+  const {
+    alg,
+    iss,
+    nbf = true,
+    exp = true,
+    iat = true,
+    aud
+  } = typeof algOrOptions === "string" ? { alg: algOrOptions } : algOrOptions;
+  if (!alg) {
+    throw new JwtAlgorithmRequired();
+  }
+  const tokenParts = token.split(".");
+  if (tokenParts.length !== 3) {
+    throw new JwtTokenInvalid(token);
+  }
+  const { header, payload } = decode(token);
+  if (!isTokenHeader(header)) {
+    throw new JwtHeaderInvalid(header);
+  }
+  if (header.alg !== alg) {
+    throw new JwtAlgorithmMismatch(alg, header.alg);
+  }
+  const now = Date.now() / 1e3 | 0;
+  if (nbf && payload.nbf && payload.nbf > now) {
+    throw new JwtTokenNotBefore(token);
+  }
+  if (exp && payload.exp && payload.exp <= now) {
+    throw new JwtTokenExpired(token);
+  }
+  if (iat && payload.iat && now < payload.iat) {
+    throw new JwtTokenIssuedAt(now, payload.iat);
+  }
+  if (iss) {
+    if (!payload.iss) {
+      throw new JwtTokenIssuer(iss, null);
+    }
+    if (typeof iss === "string" && payload.iss !== iss) {
+      throw new JwtTokenIssuer(iss, payload.iss);
+    }
+    if (iss instanceof RegExp && !iss.test(payload.iss)) {
+      throw new JwtTokenIssuer(iss, payload.iss);
+    }
+  }
+  if (aud) {
+    if (!payload.aud) {
+      throw new JwtPayloadRequiresAud(payload);
+    }
+    const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+    const matched = audiences.some(
+      (payloadAud) => aud instanceof RegExp ? aud.test(payloadAud) : typeof aud === "string" ? payloadAud === aud : Array.isArray(aud) && aud.includes(payloadAud)
+    );
+    if (!matched) {
+      throw new JwtTokenAudience(aud, payload.aud);
+    }
+  }
+  const headerPayload = token.substring(0, token.lastIndexOf("."));
+  const verified = await verifying(
+    publicKey,
+    alg,
+    decodeBase64Url(tokenParts[2]),
+    utf8Encoder.encode(headerPayload)
+  );
+  if (!verified) {
+    throw new JwtTokenSignatureMismatched(token);
+  }
+  return payload;
+}, "verify");
+var symmetricAlgorithms = [
+  AlgorithmTypes.HS256,
+  AlgorithmTypes.HS384,
+  AlgorithmTypes.HS512
+];
+var verifyWithJwks = /* @__PURE__ */ __name(async (token, options, init) => {
+  const verifyOpts = options.verification || {};
+  const header = decodeHeader(token);
+  if (!isTokenHeader(header)) {
+    throw new JwtHeaderInvalid(header);
+  }
+  if (!header.kid) {
+    throw new JwtHeaderRequiresKid(header);
+  }
+  if (symmetricAlgorithms.includes(header.alg)) {
+    throw new JwtSymmetricAlgorithmNotAllowed(header.alg);
+  }
+  if (!options.allowedAlgorithms.includes(header.alg)) {
+    throw new JwtAlgorithmNotAllowed(header.alg, options.allowedAlgorithms);
+  }
+  if (options.jwks_uri) {
+    const response = await fetch(options.jwks_uri, init);
+    if (!response.ok) {
+      throw new Error(`failed to fetch JWKS from ${options.jwks_uri}`);
+    }
+    const data = await response.json();
+    if (!data.keys) {
+      throw new Error('invalid JWKS response. "keys" field is missing');
+    }
+    if (!Array.isArray(data.keys)) {
+      throw new Error('invalid JWKS response. "keys" field is not an array');
+    }
+    if (options.keys) {
+      options.keys.push(...data.keys);
+    } else {
+      options.keys = data.keys;
+    }
+  } else if (!options.keys) {
+    throw new Error('verifyWithJwks requires options for either "keys" or "jwks_uri" or both');
+  }
+  const matchingKey = options.keys.find((key) => key.kid === header.kid);
+  if (!matchingKey) {
+    throw new JwtTokenInvalid(token);
+  }
+  if (matchingKey.alg && matchingKey.alg !== header.alg) {
+    throw new JwtAlgorithmMismatch(matchingKey.alg, header.alg);
+  }
+  return await verify(token, matchingKey, {
+    alg: header.alg,
+    ...verifyOpts
+  });
+}, "verifyWithJwks");
+var decode = /* @__PURE__ */ __name((token) => {
+  try {
+    const [h, p] = token.split(".");
+    const header = decodeJwtPart(h);
+    const payload = decodeJwtPart(p);
+    return {
+      header,
+      payload
+    };
+  } catch {
+    throw new JwtTokenInvalid(token);
+  }
+}, "decode");
+var decodeHeader = /* @__PURE__ */ __name((token) => {
+  try {
+    const [h] = token.split(".");
+    return decodeJwtPart(h);
+  } catch {
+    throw new JwtTokenInvalid(token);
+  }
+}, "decodeHeader");
+
+// node_modules/hono/dist/utils/jwt/index.js
+var Jwt = { sign, verify, decode, verifyWithJwks };
+
+// node_modules/hono/dist/middleware/jwt/jwt.js
+var verifyWithJwks2 = Jwt.verifyWithJwks;
+var verify2 = Jwt.verify;
+var decode2 = Jwt.decode;
+var sign2 = Jwt.sign;
+
+// worker/middleware.ts
 async function authenticateToken(c, next) {
   const authHeader = c.req.header("authorization");
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
@@ -15844,9 +12643,9 @@ async function authenticateToken(c, next) {
   }
   let decoded;
   try {
-    decoded = import_jsonwebtoken.default.verify(token, c.env.JWT_SECRET);
+    decoded = await verify2(token, c.env.JWT_SECRET, "HS256");
   } catch (err) {
-    if (err.name === "TokenExpiredError") {
+    if (err.message?.includes("expired") || err.name === "JwtTokenExpired") {
       return c.json({ success: false, message: "Token expired" }, 401);
     }
     return c.json({ success: false, message: "Invalid token" }, 401);
@@ -15854,6 +12653,7 @@ async function authenticateToken(c, next) {
   if (!decoded.userId) {
     return c.json({ success: false, message: "Invalid token - missing user ID" }, 401);
   }
+  console.log("[AUTH] Token decoded with userId:", decoded.userId);
   let user;
   try {
     const result = await query(
@@ -15866,6 +12666,7 @@ async function authenticateToken(c, next) {
       return c.json({ success: false, message: "Invalid token - user not found" }, 401);
     }
     user = result.rows[0];
+    console.log("[AUTH] User loaded:", { userId: user.users_id, email: user.email, tenantId: user.tenant_id, role: user.role });
   } catch (e) {
     console.error("[AUTH] User lookup error:", e);
     return c.json({ success: false, message: "Failed to verify user" }, 500);
@@ -15878,6 +12679,7 @@ async function authenticateToken(c, next) {
   }
   c.set("user", user);
   c.set("tenantId", user.tenant_id);
+  console.log("[AUTH] Context set - tenantId:", user.tenant_id);
   await next();
 }
 __name(authenticateToken, "authenticateToken");
@@ -15892,7 +12694,11 @@ function requirePermission(permission2) {
     }
     const [module, action] = permission2.split(":");
     const perms = user.permissions;
-    if (perms && typeof perms === "object" && perms[module] && perms[module][action]) {
+    if (Array.isArray(perms)) {
+      if (perms.includes(permission2)) {
+        return next();
+      }
+    } else if (perms && typeof perms === "object" && perms[module] && perms[module][action]) {
       return next();
     }
     return c.json({ success: false, message: "Insufficient permissions" }, 403);
@@ -15916,6 +12722,28 @@ async function authenticateSyncServer(c, next) {
   await next();
 }
 __name(authenticateSyncServer, "authenticateSyncServer");
+
+// worker/routes/auth.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_bcryptjs = __toESM(require_bcrypt());
+var import_speakeasy = __toESM(require_speakeasy());
+
+// worker/errorHandler.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+function logError(context2, error3) {
+  if (error3.sql) {
+    console.error(`${context2}:`, error3.message);
+    console.error("SQL:", error3.sql);
+    console.error("Params:", error3.sqlParams);
+  } else {
+    console.error(`${context2}:`, error3);
+  }
+}
+__name(logError, "logError");
 
 // worker/routes/auth.ts
 var auth = new Hono2();
@@ -15958,16 +12786,36 @@ function getPermissionsByRole(role) {
   return ROLE_PERMISSIONS[role.toLowerCase()] || ROLE_PERMISSIONS.viewer;
 }
 __name(getPermissionsByRole, "getPermissionsByRole");
-function generateToken(userId, tenant_id, jwtSecret, expiresIn) {
-  return import_jsonwebtoken2.default.sign({ userId, tenant_id }, jwtSecret, {
-    expiresIn: expiresIn || "1h"
-  });
+function parseExpiresIn(expiresIn) {
+  const match2 = expiresIn.match(/^(\d+)([smhd])$/);
+  if (!match2) return 3600;
+  const value = parseInt(match2[1], 10);
+  const unit = match2[2];
+  switch (unit) {
+    case "s":
+      return value;
+    case "m":
+      return value * 60;
+    case "h":
+      return value * 3600;
+    case "d":
+      return value * 86400;
+    default:
+      return 3600;
+  }
+}
+__name(parseExpiresIn, "parseExpiresIn");
+async function generateToken(userId, tenant_id, jwtSecret, expiresIn) {
+  const seconds = parseExpiresIn(expiresIn || "1h");
+  return sign2({ userId, tenant_id, exp: Math.floor(Date.now() / 1e3) + seconds }, jwtSecret);
 }
 __name(generateToken, "generateToken");
-function generate2FASessionToken(userId, tenant_id, jwtSecret) {
-  return import_jsonwebtoken2.default.sign({ userId, tenant_id, is2FASession: true }, jwtSecret, {
-    expiresIn: "10m"
-  });
+async function generateRefreshToken(userId, tenant_id, jwtSecret) {
+  return sign2({ userId, tenant_id, isRefresh: true, exp: Math.floor(Date.now() / 1e3) + 7 * 86400 }, jwtSecret);
+}
+__name(generateRefreshToken, "generateRefreshToken");
+async function generate2FASessionToken(userId, tenant_id, jwtSecret) {
+  return sign2({ userId, tenant_id, is2FASession: true, exp: Math.floor(Date.now() / 1e3) + 600 }, jwtSecret);
 }
 __name(generate2FASessionToken, "generate2FASessionToken");
 async function logAuthEvent(env3, params) {
@@ -15986,7 +12834,7 @@ async function logAuthEvent(env3, params) {
       ]
     );
   } catch (error3) {
-    console.error("[AUTH] Failed to log auth event:", error3);
+    logError("[AUTH] Failed to log auth event:", error3);
   }
 }
 __name(logAuthEvent, "logAuthEvent");
@@ -16006,7 +12854,7 @@ async function checkLoginLockout(env3, userId) {
     }
     return { isLocked: false, lockedUntil: null };
   } catch (error3) {
-    console.error("Error checking login lockout:", error3);
+    logError("Error checking login lockout:", error3);
     return { isLocked: false, lockedUntil: null };
   }
 }
@@ -16029,7 +12877,7 @@ async function incrementFailedLoginAttempts(env3, userId) {
     ]);
     return { attempts: newAttempts, isLocked: !!lockedUntil, lockedUntil };
   } catch (error3) {
-    console.error("Error incrementing failed login attempts:", error3);
+    logError("Error incrementing failed login attempts:", error3);
     return { attempts: 0, isLocked: false, lockedUntil: null };
   }
 }
@@ -16042,7 +12890,7 @@ async function resetFailedLoginAttempts(env3, userId) {
       [userId]
     );
   } catch (error3) {
-    console.error("Error resetting failed login attempts:", error3);
+    logError("Error resetting failed login attempts:", error3);
   }
 }
 __name(resetFailedLoginAttempts, "resetFailedLoginAttempts");
@@ -16056,7 +12904,7 @@ async function get2FAMethods(env3, userId) {
     );
     return result.rows ? result.rows.map((row) => row.method_type) : [];
   } catch (error3) {
-    console.error("Error getting 2FA methods:", error3);
+    logError("Error getting 2FA methods:", error3);
     return [];
   }
 }
@@ -16075,7 +12923,7 @@ async function checkPasswordResetRateLimit(env3, email, maxRequests = 3, windowM
     const count3 = parseInt(result.rows[0].count, 10);
     return count3 < maxRequests;
   } catch (error3) {
-    console.error("Error checking rate limit:", error3);
+    logError("Error checking rate limit:", error3);
     return true;
   }
 }
@@ -16224,7 +13072,7 @@ auth.post("/signup", async (c) => {
       return c.json({ success: false, message: "Failed to create account" }, 500);
     }
   } catch (error3) {
-    console.error("Signup error:", error3);
+    logError("Signup error:", error3);
     return c.json({ success: false, message: "Signup failed" }, 500);
   }
 });
@@ -16296,7 +13144,7 @@ auth.post("/login", async (c) => {
     }
     const twoFAMethods = await get2FAMethods(env2(c), userId);
     if (twoFAMethods && twoFAMethods.length > 0) {
-      const tempSessionToken = generate2FASessionToken(userId, user.tenant_id, c.env.JWT_SECRET);
+      const tempSessionToken = await generate2FASessionToken(userId, user.tenant_id, c.env.JWT_SECRET);
       await logAuthEvent(env2(c), {
         userId,
         eventType: "login",
@@ -16313,7 +13161,8 @@ auth.post("/login", async (c) => {
         message: "2FA verification required"
       });
     }
-    const token = generateToken(userId, user.tenant_id, c.env.JWT_SECRET, c.env.JWT_EXPIRES_IN);
+    const token = await generateToken(userId, user.tenant_id, c.env.JWT_SECRET, c.env.JWT_EXPIRES_IN);
+    const refreshToken = await generateRefreshToken(userId, user.tenant_id, c.env.JWT_SECRET);
     await resetFailedLoginAttempts(env2(c), userId);
     await logAuthEvent(env2(c), {
       userId,
@@ -16349,6 +13198,7 @@ auth.post("/login", async (c) => {
         user: {
           users_id: user.users_id,
           tenant_id: user.tenant_id,
+          client: user.tenant_id,
           email: user.email,
           name: user.name,
           role: user.role,
@@ -16357,14 +13207,23 @@ auth.post("/login", async (c) => {
         },
         tenant: tenantInfo,
         token,
+        refreshToken,
         expiresIn: 60 * 60
       }
     };
     console.log("[DEBUG] Sending response - user.active:", user.active, "-> status:", responseData.data.user.status);
     return c.json(responseData);
   } catch (error3) {
-    console.error("Login error:", error3);
-    return c.json({ success: false, message: "Login failed" }, 500);
+    logError("[LOGIN] Unhandled error:", error3);
+    console.error("[LOGIN] Error type:", error3?.constructor?.name);
+    console.error("[LOGIN] Error message:", error3?.message);
+    console.error("[LOGIN] Error stack:", error3?.stack);
+    const isDev = c.env.NODE_ENV !== "production";
+    return c.json({
+      success: false,
+      message: "Login failed",
+      ...isDev && { detail: error3?.message }
+    }, 500);
   }
 });
 auth.post("/verify-2fa", async (c) => {
@@ -16384,7 +13243,7 @@ auth.post("/verify-2fa", async (c) => {
     const userAgent = c.req.header("user-agent") || "";
     let decoded;
     try {
-      decoded = import_jsonwebtoken2.default.verify(session_token, c.env.JWT_SECRET);
+      decoded = await verify2(session_token, c.env.JWT_SECRET, "HS256");
       if (!decoded.is2FASession) {
         return c.json({ success: false, message: "Invalid session token" }, 401);
       }
@@ -16440,7 +13299,8 @@ auth.post("/verify-2fa", async (c) => {
         401
       );
     }
-    const token = generateToken(userId, tenantId, c.env.JWT_SECRET, c.env.JWT_EXPIRES_IN);
+    const token = await generateToken(userId, tenantId, c.env.JWT_SECRET, c.env.JWT_EXPIRES_IN);
+    const refreshTokenValue = await generateRefreshToken(userId, tenantId, c.env.JWT_SECRET);
     await resetFailedLoginAttempts(env2(c), userId);
     await logAuthEvent(env2(c), {
       userId,
@@ -16475,6 +13335,8 @@ auth.post("/verify-2fa", async (c) => {
       data: {
         user: {
           users_id: user.users_id,
+          tenant_id: user.tenant_id,
+          client: user.tenant_id,
           email: user.email,
           name: user.name,
           role: user.role,
@@ -16483,11 +13345,12 @@ auth.post("/verify-2fa", async (c) => {
         },
         tenant: tenantInfo,
         token,
+        refreshToken: refreshTokenValue,
         expiresIn: 60 * 60
       }
     });
   } catch (error3) {
-    console.error("2FA verification error:", error3);
+    logError("2FA verification error:", error3);
     return c.json({ success: false, message: "2FA verification failed" }, 500);
   }
 });
@@ -16527,8 +13390,8 @@ auth.post("/forgot-password", async (c) => {
           status: "success",
           details: { email }
         });
-      } catch (logError) {
-        console.error("[AUTH] Failed to log password reset request:", logError);
+      } catch (error3) {
+        logError("[AUTH] Failed to log password reset request", error3);
       }
     }
     return c.json({
@@ -16536,7 +13399,7 @@ auth.post("/forgot-password", async (c) => {
       message: "If an account exists with this email, you will receive a password reset link"
     });
   } catch (error3) {
-    console.error("Forgot password error:", error3);
+    logError("Forgot password error:", error3);
     return c.json({ success: false, message: "Failed to process password reset request" }, 500);
   }
 });
@@ -16624,7 +13487,7 @@ auth.post("/reset-password", async (c) => {
       message: "Password reset successfully. Please log in with your new password."
     });
   } catch (error3) {
-    console.error("Reset password error:", error3);
+    logError("Reset password error:", error3);
     return c.json({ success: false, message: "Failed to reset password" }, 500);
   }
 });
@@ -16717,7 +13580,7 @@ auth.post("/change-password", async (c) => {
       message: "Password changed successfully. Please log in again."
     });
   } catch (error3) {
-    console.error("Change password error:", error3);
+    logError("Change password error:", error3);
     return c.json({ success: false, message: "Failed to change password" }, 500);
   }
 });
@@ -16767,7 +13630,7 @@ auth.post("/2fa/setup", async (c) => {
       data: setupData
     });
   } catch (error3) {
-    console.error("2FA setup error:", error3);
+    logError("2FA setup error:", error3);
     return c.json({ success: false, message: "Failed to setup 2FA" }, 500);
   }
 });
@@ -16852,7 +13715,7 @@ auth.post("/2fa/verify-setup", async (c) => {
       }
     });
   } catch (error3) {
-    console.error("2FA verify setup error:", error3);
+    logError("2FA verify setup error:", error3);
     return c.json({ success: false, message: "Failed to verify 2FA setup" }, 500);
   }
 });
@@ -16877,7 +13740,7 @@ auth.get("/2fa/methods", async (c) => {
       data: { methods }
     });
   } catch (error3) {
-    console.error("Get 2FA methods error:", error3);
+    logError("Get 2FA methods error:", error3);
     return c.json({ success: false, message: "Failed to get 2FA methods" }, 500);
   }
 });
@@ -16932,7 +13795,7 @@ auth.post("/2fa/disable", async (c) => {
       message: "2FA method disabled successfully"
     });
   } catch (error3) {
-    console.error("Disable 2FA error:", error3);
+    logError("Disable 2FA error:", error3);
     return c.json({ success: false, message: "Failed to disable 2FA" }, 500);
   }
 });
@@ -16978,7 +13841,7 @@ auth.post("/2fa/regenerate-backup-codes", async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Regenerate backup codes error:", error3);
+    logError("Regenerate backup codes error:", error3);
     return c.json({ success: false, message: "Failed to regenerate backup codes" }, 500);
   }
 });
@@ -17003,8 +13866,68 @@ auth.get("/verify", async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Token verification error:", error3);
+    logError("Token verification error:", error3);
     return c.json({ success: false, message: "Token verification failed" }, 500);
+  }
+});
+auth.post("/refresh", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { refreshToken: refreshTokenValue } = body;
+    if (!refreshTokenValue) {
+      return c.json({ success: false, message: "Refresh token is required" }, 400);
+    }
+    let decoded;
+    try {
+      console.log("[REFRESH] Verifying refresh token, length:", refreshTokenValue.length);
+      decoded = await verify2(refreshTokenValue, c.env.JWT_SECRET, "HS256");
+      console.log("[REFRESH] Token verified, decoded:", JSON.stringify(decoded));
+      if (!decoded.isRefresh) {
+        console.log("[REFRESH] Token missing isRefresh claim");
+        return c.json({ success: false, message: "Invalid refresh token" }, 401);
+      }
+    } catch (err) {
+      console.error("[REFRESH] Token verify error:", err?.message || err, "name:", err?.name);
+      return c.json({ success: false, message: "Refresh token expired or invalid" }, 401);
+    }
+    const userId = decoded.userId;
+    const tenantId = decoded.tenant_id;
+    const userResult = await query(env2(c), "SELECT * FROM users WHERE users_id = $1", [userId]);
+    if (userResult.rows.length === 0) {
+      return c.json({ success: false, message: "User not found" }, 401);
+    }
+    const user = userResult.rows[0];
+    if (!user.active) {
+      return c.json({ success: false, message: "Account is inactive" }, 401);
+    }
+    const newToken = await generateToken(userId, tenantId, c.env.JWT_SECRET, c.env.JWT_EXPIRES_IN);
+    const newRefreshToken = await generateRefreshToken(userId, tenantId, c.env.JWT_SECRET);
+    const userRole = (user.role || "viewer").toLowerCase();
+    let permissions = getPermissionsByRole(userRole);
+    if (user.permissions && typeof user.permissions === "object" && !Array.isArray(user.permissions)) {
+      permissions = user.permissions;
+    }
+    return c.json({
+      success: true,
+      data: {
+        user: {
+          users_id: user.users_id,
+          tenant_id: user.tenant_id,
+          client: user.tenant_id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          permissions,
+          status: user.active ? "active" : "inactive"
+        },
+        token: newToken,
+        refreshToken: newRefreshToken,
+        expiresIn: 60 * 60
+      }
+    });
+  } catch (error3) {
+    logError("Token refresh error:", error3);
+    return c.json({ success: false, message: "Token refresh failed" }, 500);
   }
 });
 function env2(c) {
@@ -17023,22 +13946,43 @@ var import_bcryptjs2 = __toESM(require_bcrypt());
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
+function camelToSnake(str) {
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+__name(camelToSnake, "camelToSnake");
 async function findAll(env3, opts) {
   const {
     table: table3,
+    primaryKey,
     tenantId,
     page = 1,
     limit = 25,
     search,
     searchFields = ["name"],
     where = {},
-    orderBy = `${table3}.created_at DESC`,
+    sortBy,
+    sortOrder,
     joins = "",
     selectFields = `${table3}.*`
   } = opts;
-  const params = [tenantId];
-  let paramIdx = 2;
-  let whereClauses = [`${table3}.tenant_id = $1`];
+  let orderBy = opts.orderBy;
+  if (!orderBy) {
+    if (sortBy) {
+      const col = camelToSnake(sortBy);
+      const dir3 = (sortOrder || "desc").toUpperCase() === "ASC" ? "ASC" : "DESC";
+      orderBy = `${table3}.${col} ${dir3}`;
+    } else {
+      orderBy = `${table3}.${primaryKey} DESC`;
+    }
+  }
+  const params = [];
+  let paramIdx = 1;
+  let whereClauses = [];
+  if (tenantId !== void 0) {
+    whereClauses.push(`${table3}.tenant_id = $${paramIdx}`);
+    params.push(tenantId);
+    paramIdx++;
+  }
   if (search && searchFields.length > 0) {
     const searchClauses = searchFields.map((f) => {
       const clause = `LOWER(${table3}.${f}) LIKE LOWER($${paramIdx})`;
@@ -17058,13 +14002,19 @@ async function findAll(env3, opts) {
     }
   }
   const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
-  const countResult = await query(env3, `SELECT COUNT(*) as total FROM ${table3} ${joins} ${whereSQL}`, params);
+  const countSql = `SELECT COUNT(*) as total FROM ${table3} ${joins} ${whereSQL}`;
+  console.log("[findAll] COUNT SQL:", countSql);
+  console.log("[findAll] COUNT params:", params);
+  const countResult = await query(env3, countSql, params);
   const total = parseInt(countResult.rows[0].total, 10);
   const offset = (page - 1) * limit;
   const dataParams = [...params, limit, offset];
+  const dataSql = `SELECT ${selectFields} FROM ${table3} ${joins} ${whereSQL} ORDER BY ${orderBy} LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
+  console.log("[findAll] DATA SQL:", dataSql);
+  console.log("[findAll] DATA params:", dataParams);
   const dataResult = await query(
     env3,
-    `SELECT ${selectFields} FROM ${table3} ${joins} ${whereSQL} ORDER BY ${orderBy} LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+    dataSql,
     dataParams
   );
   return {
@@ -17099,7 +14049,7 @@ async function create(env3, table3, data) {
 }
 __name(create, "create");
 async function update(env3, table3, primaryKey, id, data) {
-  const keys = Object.keys(data).filter((k) => data[k] !== void 0 && k !== primaryKey);
+  const keys = Object.keys(data).filter((k) => data[k] !== void 0 && k !== primaryKey && k !== "updated_at" && k !== "created_at");
   if (keys.length === 0) return null;
   const setClauses = keys.map((k, i) => `${k} = $${i + 1}`);
   const values = keys.map((k) => data[k]);
@@ -17191,16 +14141,18 @@ function toNestedObject(flatArray) {
 __name(toNestedObject, "toNestedObject");
 app.get("/", requirePermission("user:read"), async (c) => {
   try {
-    const { page = "1", limit = "25", search } = c.req.query();
+    const qs = c.req.query();
     const tenantId = c.get("tenantId");
     const result = await findAll(c.env, {
       table: "users",
       primaryKey: "users_id",
       tenantId,
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      search: search || void 0,
-      searchFields: ["name", "email"]
+      page: parseInt(qs.page || "1", 10),
+      limit: parseInt(qs.limit || "25", 10),
+      search: qs.search || void 0,
+      searchFields: ["name", "email"],
+      sortBy: qs.sortBy,
+      sortOrder: qs.sortOrder
     });
     return c.json({
       success: true,
@@ -17213,7 +14165,7 @@ app.get("/", requirePermission("user:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching users:", error3);
+    logError("Error fetching users:", error3);
     return c.json({ success: false, message: "Failed to fetch users" }, 500);
   }
 });
@@ -17227,7 +14179,7 @@ app.get("/:id", requirePermission("user:read"), async (c) => {
     }
     return c.json({ success: true, data: user });
   } catch (error3) {
-    console.error("Error fetching user:", error3);
+    logError("Error fetching user:", error3);
     return c.json({ success: false, message: "Failed to fetch user" }, 500);
   }
 });
@@ -17272,7 +14224,7 @@ app.post("/", requirePermission("user:create"), async (c) => {
     const user = await create(c.env, "users", userData);
     return c.json({ success: true, data: user }, 201);
   } catch (error3) {
-    console.error("Error creating user:", error3);
+    logError("Error creating user:", error3);
     return c.json({
       success: false,
       message: "Failed to create user",
@@ -17355,7 +14307,7 @@ app.put("/:id", requirePermission("user:update"), async (c) => {
     const updated = await update(c.env, "users", "users_id", id, updateData);
     return c.json({ success: true, data: updated });
   } catch (error3) {
-    console.error("Error updating user:", error3);
+    logError("Error updating user:", error3);
     return c.json({ success: false, message: "Failed to update user" }, 500);
   }
 });
@@ -17383,7 +14335,7 @@ app.put("/:id/password", requirePermission("user:update"), async (c) => {
     );
     return c.json({ success: true, message: "Password updated successfully" });
   } catch (error3) {
-    console.error("Error changing password:", error3);
+    logError("Error changing password:", error3);
     return c.json({ success: false, message: "Failed to change password" }, 500);
   }
 });
@@ -17413,15 +14365,15 @@ app.post("/:id/reset-password", requirePermission("user:update"), async (c) => {
         "INSERT INTO auth_logs (user_id, event_type, status, details, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)",
         [userId, "password_reset_admin", "success", JSON.stringify({ admin_id: adminId, email: targetUser.email })]
       );
-    } catch (logError) {
-      console.error("[AUTH] Failed to log admin password reset:", logError);
+    } catch (error3) {
+      logError("[AUTH] Failed to log admin password reset", error3);
     }
     return c.json({
       success: true,
       message: "Password reset token has been generated for the user"
     });
   } catch (error3) {
-    console.error("Admin reset password error:", error3);
+    logError("Admin reset password error:", error3);
     return c.json({
       success: false,
       message: "Failed to process admin password reset"
@@ -17439,7 +14391,7 @@ app.delete("/:id", requirePermission("user:delete"), async (c) => {
     await remove(c.env, "users", "users_id", id);
     return c.json({ success: true, message: "User deleted successfully" });
   } catch (error3) {
-    console.error("Error deleting user:", error3);
+    logError("Error deleting user:", error3);
     return c.json({ success: false, message: "Failed to delete user" }, 500);
   }
 });
@@ -17487,7 +14439,7 @@ app2.get("/elements", requirePermission("meter:read"), async (c) => {
     });
     return c.json({ success: true, data: validatedData });
   } catch (error3) {
-    console.error("Error fetching meter elements:", error3);
+    logError("Error fetching meter elements", error3);
     return c.json({
       success: false,
       message: "Failed to fetch meter elements",
@@ -17534,7 +14486,7 @@ app2.get("/:meterId/virtual-config", requirePermission("meter:read"), async (c) 
     });
     return c.json({ success: true, meterId, selectedMeters });
   } catch (error3) {
-    console.error("Error fetching virtual meter config:", error3);
+    logError("Error fetching virtual meter config", error3);
     return c.json({
       success: false,
       message: "Failed to fetch virtual meter configuration",
@@ -17598,7 +14550,7 @@ app2.post("/:meterId/virtual-config", requirePermission("meter:update"), async (
       }
     });
   } catch (error3) {
-    console.error("Error saving virtual meter config:", error3);
+    logError("Error saving virtual meter config", error3);
     return c.json({
       success: false,
       message: "Failed to save virtual meter configuration",
@@ -17608,16 +14560,20 @@ app2.post("/:meterId/virtual-config", requirePermission("meter:update"), async (
 });
 app2.get("/", requirePermission("meter:read"), async (c) => {
   try {
-    const { page = "1", limit = "25", search } = c.req.query();
+    const qs = c.req.query();
     const tenantId = c.get("tenantId");
     const result = await findAll(c.env, {
       table: "meter",
       primaryKey: "meter_id",
       tenantId,
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      search: search || void 0,
-      searchFields: ["name", "serial_number"]
+      page: parseInt(qs.page || "1", 10),
+      limit: parseInt(qs.limit || "25", 10),
+      search: qs.search || void 0,
+      searchFields: ["name", "serial_number"],
+      sortBy: qs.sortBy,
+      sortOrder: qs.sortOrder,
+      joins: "LEFT JOIN device d ON meter.device_id = d.device_id",
+      selectFields: "meter.*, d.manufacturer as device_manufacturer, d.model_number as device_model_number"
     });
     return c.json({
       success: true,
@@ -17630,7 +14586,7 @@ app2.get("/", requirePermission("meter:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching meters:", error3);
+    logError("Error fetching meters", error3);
     return c.json({ success: false, message: "Failed to fetch meters" }, 500);
   }
 });
@@ -17655,7 +14611,7 @@ app2.post("/", requirePermission("meter:create"), async (c) => {
     const meter = await create(c.env, "meter", meterData);
     return c.json({ success: true, data: meter }, 201);
   } catch (error3) {
-    console.error("Error creating meter:", error3);
+    logError("Error creating meter", error3);
     return c.json({
       success: false,
       message: "Failed to create meter",
@@ -17675,7 +14631,7 @@ app2.get("/:id", requirePermission("meter:read"), async (c) => {
     }
     return c.json({ success: true, data: meter });
   } catch (error3) {
-    console.error("Error fetching meter:", error3);
+    logError("Error fetching meter", error3);
     return c.json({ success: false, message: "Failed to fetch meter" }, 500);
   }
 });
@@ -17686,12 +14642,6 @@ app2.put("/:id", requirePermission("meter:update"), async (c) => {
     const meter = await findById(c.env, "meter", "meter_id", id, tenantId);
     if (!meter) {
       return c.json({ success: false, message: "Meter not found" }, 404);
-    }
-    if (meter.tenant_id !== tenantId) {
-      return c.json({
-        success: false,
-        message: "You do not have permission to update this meter"
-      }, 403);
     }
     const body = await c.req.json();
     const updateData = { ...body };
@@ -17707,7 +14657,7 @@ app2.put("/:id", requirePermission("meter:update"), async (c) => {
     const updated = await update(c.env, "meter", "meter_id", id, updateData);
     return c.json({ success: true, data: updated });
   } catch (error3) {
-    console.error("Error updating meter:", error3);
+    logError("Error updating meter", error3);
     return c.json({ success: false, message: "Failed to update meter" }, 500);
   }
 });
@@ -17722,7 +14672,7 @@ app2.delete("/:id", requirePermission("meter:delete"), async (c) => {
     await remove(c.env, "meter", "meter_id", id);
     return c.json({ success: true, message: "Meter deleted successfully" });
   } catch (error3) {
-    console.error("Error deleting meter:", error3);
+    logError("Error deleting meter", error3);
     return c.json({ success: false, message: "Failed to delete meter" }, 500);
   }
 });
@@ -17736,17 +14686,25 @@ var app3 = new Hono2();
 app3.use("*", authenticateToken);
 app3.get("/", requirePermission("location:read"), async (c) => {
   try {
-    const { page = "1", limit = "25", search } = c.req.query();
+    const qs = c.req.query();
     const tenantId = c.get("tenantId");
+    console.log("[LOCATION] GET / - tenantId:", tenantId, "page:", qs.page, "limit:", qs.limit);
+    if (!tenantId) {
+      console.error("[LOCATION] No tenantId in context");
+      return c.json({ success: false, message: "Tenant context required" }, 401);
+    }
     const result = await findAll(c.env, {
       table: "location",
       primaryKey: "location_id",
       tenantId,
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      search: search || void 0,
-      searchFields: ["name"]
+      page: parseInt(qs.page || "1", 10),
+      limit: parseInt(qs.limit || "25", 10),
+      search: qs.search || void 0,
+      searchFields: ["name"],
+      sortBy: qs.sortBy,
+      sortOrder: qs.sortOrder
     });
+    console.log("[LOCATION] Found", result.rows.length, "locations");
     return c.json({
       success: true,
       data: {
@@ -17758,8 +14716,12 @@ app3.get("/", requirePermission("location:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching locations:", error3);
-    return c.json({ success: false, message: "Failed to fetch locations" }, 500);
+    logError("Error fetching locations", error3);
+    return c.json({
+      success: false,
+      message: "Failed to fetch locations",
+      ...false
+    }, 500);
   }
 });
 app3.get("/:id", requirePermission("location:read"), async (c) => {
@@ -17772,7 +14734,7 @@ app3.get("/:id", requirePermission("location:read"), async (c) => {
     }
     return c.json({ success: true, data: location });
   } catch (error3) {
-    console.error("Error fetching location:", error3);
+    logError("Error fetching location:", error3);
     return c.json({ success: false, message: "Failed to fetch location" }, 500);
   }
 });
@@ -17793,7 +14755,7 @@ app3.post("/", requirePermission("location:create"), async (c) => {
     const location = await create(c.env, "location", locationData);
     return c.json({ success: true, data: location }, 201);
   } catch (error3) {
-    console.error("Error creating location:", error3);
+    logError("Error creating location:", error3);
     return c.json({
       success: false,
       message: "Failed to create location",
@@ -17824,7 +14786,7 @@ app3.put("/:id", requirePermission("location:update"), async (c) => {
     const updated = await update(c.env, "location", "location_id", id, updateData);
     return c.json({ success: true, data: updated });
   } catch (error3) {
-    console.error("Error updating location:", error3);
+    logError("Error updating location:", error3);
     return c.json({ success: false, message: "Failed to update location" }, 500);
   }
 });
@@ -17851,7 +14813,7 @@ app3.delete("/:id", requirePermission("location:delete"), async (c) => {
     await remove(c.env, "location", "location_id", id);
     return c.json({ success: true, message: "Location deleted successfully" });
   } catch (error3) {
-    console.error("Error deleting location:", error3);
+    logError("Error deleting location:", error3);
     return c.json({ success: false, message: "Failed to delete location" }, 500);
   }
 });
@@ -17909,22 +14871,32 @@ app4.get("/stats/overview", requirePermission("contact:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching contact stats:", error3);
+    logError("Error fetching contact stats", error3);
     return c.json({ success: false, message: "Failed to fetch contact statistics" }, 500);
   }
 });
 app4.get("/", requirePermission("contact:read"), async (c) => {
   try {
-    const { page = "1", limit = "25", search } = c.req.query();
+    const qs = c.req.query();
     const tenantId = c.get("tenantId");
+    const where = {};
+    if (qs.active !== void 0 && qs.active !== "") {
+      where.active = qs.active === "true";
+    }
+    if (qs.role) {
+      where.role = qs.role;
+    }
     const result = await findAll(c.env, {
       table: "contact",
       primaryKey: "contact_id",
       tenantId,
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      search: search || void 0,
-      searchFields: ["name", "email", "company"]
+      page: parseInt(qs.page || "1", 10),
+      limit: parseInt(qs.limit || "25", 10),
+      search: qs.search || void 0,
+      searchFields: ["name", "email", "company"],
+      sortBy: qs.sortBy,
+      sortOrder: qs.sortOrder,
+      where
     });
     return c.json({
       success: true,
@@ -17937,7 +14909,7 @@ app4.get("/", requirePermission("contact:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching contacts:", error3);
+    logError("Error fetching contacts", error3);
     return c.json({ success: false, message: "Failed to fetch contacts" }, 500);
   }
 });
@@ -17951,7 +14923,7 @@ app4.get("/:id", requirePermission("contact:read"), async (c) => {
     }
     return c.json({ success: true, data: contact });
   } catch (error3) {
-    console.error("Error fetching contact:", error3);
+    logError("Error fetching contact", error3);
     return c.json({ success: false, message: "Failed to fetch contact" }, 500);
   }
 });
@@ -17972,7 +14944,7 @@ app4.post("/", requirePermission("contact:create"), async (c) => {
     const contact = await create(c.env, "contact", contactData);
     return c.json({ success: true, data: contact }, 201);
   } catch (error3) {
-    console.error("Error creating contact:", error3);
+    logError("Error creating contact", error3);
     return c.json({
       success: false,
       message: "Failed to create contact",
@@ -18002,7 +14974,7 @@ app4.put("/:id", requirePermission("contact:update"), async (c) => {
     const updated = await update(c.env, "contact", "contact_id", id, updateData);
     return c.json({ success: true, data: updated });
   } catch (error3) {
-    console.error("Error updating contact:", error3);
+    logError("Error updating contact", error3);
     return c.json({ success: false, message: "Failed to update contact" }, 500);
   }
 });
@@ -18017,7 +14989,7 @@ app4.delete("/:id", requirePermission("contact:delete"), async (c) => {
     await remove(c.env, "contact", "contact_id", id);
     return c.json({ success: true, message: "Contact deleted successfully" });
   } catch (error3) {
-    console.error("Error deleting contact:", error3);
+    logError("Error deleting contact", error3);
     return c.json({ success: false, message: "Failed to delete contact" }, 500);
   }
 });
@@ -18027,20 +14999,88 @@ var contacts_default = app4;
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
+
+// worker/routes/deviceSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var { defineSchema, field, tab, section, FieldTypes } = require_SchemaDefinition();
+var deviceSchema = defineSchema({
+  entityName: "Device",
+  tableName: "device",
+  description: "Device entity",
+  formMaxWidth: "770px",
+  defaultSort: "manufacturer",
+  customListColumns: {},
+  formTabs: [
+    tab({
+      name: "General",
+      order: 1,
+      sections: [
+        section({
+          name: "",
+          order: 1,
+          flex: 1,
+          fields: [
+            field({ name: "manufacturer", order: 1, type: FieldTypes.STRING, default: "", required: true, readOnly: true, label: "Manufacturer", dbField: "manufacturer", maxLength: 255, placeholder: "DENT Instruments", enumValues: ["DENT Instruments", "Honeywell", "Siemens", "TBWC, Inc."], showOn: ["list", "form"], filertable: ["true"] }),
+            field({ name: "model_number", order: 2, type: FieldTypes.STRING, default: "", required: true, readOnly: true, label: "Model Number", dbField: "model_number", maxLength: 255, placeholder: "Model", showOn: ["list", "form"] }),
+            field({ name: "description", order: 3, type: FieldTypes.STRING, default: "", required: false, readOnly: true, label: "Description", dbField: "description", maxLength: 50, placeholder: "Device description", showOn: ["list", "form"], filertable: ["main"] }),
+            field({
+              name: "type",
+              order: 4,
+              type: FieldTypes.STRING,
+              default: "",
+              required: true,
+              readOnly: true,
+              label: "Type",
+              dbField: "type",
+              maxLength: 255,
+              enumValues: ["Electric", "Gas", "Water", "Steam", "Other"],
+              placeholder: "Electric",
+              showOn: ["list", "form"],
+              filertable: ["true"]
+            })
+          ]
+        })
+      ]
+    }),
+    tab({
+      name: "Registers",
+      order: 2,
+      sections: [
+        section({
+          name: "",
+          order: 1,
+          fields: [
+            field({ name: "registers", order: 1, type: FieldTypes.OBJECT, default: null, required: false, readOnly: true, label: "Registers", showOn: ["form"] })
+          ]
+        })
+      ]
+    })
+  ],
+  entityFields: {
+    device_id: field({ name: "device_id", order: 1, type: FieldTypes.NUMBER, default: null, readOnly: true, label: "Id", dbField: "device_id" })
+  },
+  relationships: {},
+  validation: {}
+});
+
+// worker/routes/devices.ts
 var app5 = new Hono2();
 app5.use("*", authenticateToken);
 app5.get("/", requirePermission("device:read"), async (c) => {
   try {
-    const { page = "1", limit = "25", search } = c.req.query();
-    const tenantId = c.get("tenantId");
+    const qs = c.req.query();
+    const sortBy = qs.sortBy || deviceSchema.defaultSort;
     const result = await findAll(c.env, {
       table: "device",
       primaryKey: "device_id",
-      tenantId,
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      search: search || void 0,
-      searchFields: ["description"]
+      page: parseInt(qs.page || "1", 10),
+      limit: parseInt(qs.limit || "25", 10),
+      search: qs.search || void 0,
+      searchFields: ["description"],
+      sortBy,
+      sortOrder: qs.sortOrder
     });
     return c.json({
       success: true,
@@ -18053,7 +15093,7 @@ app5.get("/", requirePermission("device:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching devices:", error3);
+    logError("Error fetching devices:", error3);
     return c.json({ success: false, message: "Failed to fetch devices" }, 500);
   }
 });
@@ -18067,7 +15107,7 @@ app5.get("/:id", requirePermission("device:read"), async (c) => {
     }
     return c.json({ success: true, data: device });
   } catch (error3) {
-    console.error("Error fetching device:", error3);
+    logError("Error fetching device:", error3);
     return c.json({ success: false, message: "Failed to fetch device" }, 500);
   }
 });
@@ -18091,40 +15131,123 @@ app6.get("/", requirePermission("meter:read"), async (c) => {
     const skip = (page - 1) * pageSize;
     const meterId = qs.meterId;
     const meterElementId = qs.meterElementId;
-    let sql = "SELECT * FROM meter_reading WHERE tenant_id = $1";
-    const params = [tenantId];
+    let whereClause = "WHERE tenant_id = $1";
+    const filterParams = [tenantId];
     let paramCount = 2;
     if (meterId !== void 0 && meterId !== "") {
-      sql += ` AND meter_id = $${paramCount}`;
-      params.push(parseInt(meterId));
+      whereClause += ` AND meter_id = $${paramCount}`;
+      filterParams.push(parseInt(meterId));
       paramCount++;
     }
     if (meterElementId !== void 0 && meterElementId !== "") {
-      sql += ` AND meter_element_id = $${paramCount}`;
-      params.push(parseInt(meterElementId));
+      whereClause += ` AND meter_element_id = $${paramCount}`;
+      filterParams.push(parseInt(meterElementId));
       paramCount++;
     }
-    sql += ` ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-    params.push(pageSize);
-    params.push(skip);
-    const result = await query(c.env, sql, params);
+    const countSql = `SELECT COUNT(*) as count FROM meter_reading ${whereClause}`;
+    console.log("[MeterReadings] Count SQL:", countSql);
+    console.log("[MeterReadings] Count Params:", filterParams);
+    const countResult = await query(c.env, countSql, filterParams);
+    const total = parseInt(countResult.rows?.[0]?.count || "0");
+    const dataSql = `
+      SELECT * FROM meter_reading
+      ${whereClause} ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}
+    `;
+    const dataParams = [...filterParams, pageSize, skip];
+    console.log("[MeterReadings] Data SQL:", dataSql);
+    console.log("[MeterReadings] Data Params:", dataParams);
+    const result = await query(c.env, dataSql, dataParams);
     const items = result.rows || [];
+    const totalPages = Math.ceil(total / pageSize) || 1;
+    const hasMore = page < totalPages;
     return c.json({
       success: true,
       data: {
         items,
-        total: items.length,
+        total,
         page,
         pageSize,
-        totalPages: Math.ceil(items.length / pageSize) || 1,
-        hasMore: false
+        totalPages,
+        hasMore
       }
     });
   } catch (error3) {
-    console.error("[MeterReadings] Error:", error3);
+    logError("[MeterReadings] Error:", error3);
     return c.json({
       success: false,
       message: "Failed to fetch meter readings",
+      error: error3.message
+    }, 500);
+  }
+});
+app6.get("/consumption", requirePermission("meter:read"), async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    if (!tenantId) {
+      return c.json({ success: false, message: "Unauthorized: tenant context required" }, 401);
+    }
+    const qs = c.req.query();
+    const meterId = qs.meterId ? parseInt(qs.meterId) : null;
+    const meterElementId = qs.meterElementId ? parseInt(qs.meterElementId) : null;
+    const timePeriod = qs.timePeriod || "today";
+    const startDate = qs.startDate;
+    const endDate = qs.endDate;
+    const tzOffset = qs.tzOffset ? parseInt(qs.tzOffset) : 0;
+    if (!meterId || !meterElementId || !startDate || !endDate) {
+      return c.json({ success: false, message: "meterId, meterElementId, startDate and endDate are required" }, 400);
+    }
+    const params = [tenantId, meterId, meterElementId, tzOffset, startDate, endDate];
+    let sql;
+    if (timePeriod === "today") {
+      sql = `
+        SELECT
+          EXTRACT(HOUR FROM (created_at + ($4::int * INTERVAL '1 minute')))::int AS label_key,
+          SUM(calculated_kwh) AS calculated_kwh
+        FROM meter_reading
+        WHERE tenant_id = $1
+          AND meter_id = $2
+          AND meter_element_id = $3
+          AND created_at >= $5::timestamptz
+          AND created_at <= $6::timestamptz
+        GROUP BY 1
+        ORDER BY 1
+      `;
+    } else if (timePeriod === "weekly" || timePeriod === "monthly") {
+      sql = `
+        SELECT
+          (created_at + ($4::int * INTERVAL '1 minute'))::date::text AS label_key,
+          SUM(calculated_kwh) AS calculated_kwh
+        FROM meter_reading
+        WHERE tenant_id = $1
+          AND meter_id = $2
+          AND meter_element_id = $3
+          AND (created_at + ($4::int * INTERVAL '1 minute')) >= $5::timestamptz
+          AND (created_at + ($4::int * INTERVAL '1 minute')) <= $6::timestamptz
+        GROUP BY 1
+        ORDER BY 1
+      `;
+    } else {
+      sql = `
+        SELECT
+          EXTRACT(MONTH FROM (created_at + ($4::int * INTERVAL '1 minute')))::int AS label_key,
+          SUM(calculated_kwh) AS calculated_kwh
+        FROM meter_reading
+        WHERE tenant_id = $1
+          AND meter_id = $2
+          AND meter_element_id = $3
+          AND (created_at + ($4::int * INTERVAL '1 minute')) >= $5::timestamptz
+          AND (created_at + ($4::int * INTERVAL '1 minute')) <= $6::timestamptz
+        GROUP BY 1
+        ORDER BY 1
+      `;
+    }
+    const result = await query(c.env, sql, params);
+    return c.json({ success: true, data: result.rows || [] });
+  } catch (error3) {
+    logError("[MeterReadings] Error fetching consumption data:", error3);
+    return c.json({
+      success: false,
+      message: "Failed to fetch consumption data",
       error: error3.message
     }, 500);
   }
@@ -18142,23 +15265,11 @@ app6.get("/last", requirePermission("meter:read"), async (c) => {
       return c.json({ success: false, message: "meterId and meterElementId are required" }, 400);
     }
     const sql = `
-      SELECT
-        mr.*,
-        m.name as meter_name,
-        m.serial_number,
-        m.ip as meter_ip,
-        m.port as meter_port,
-        m.protocol as meter_protocol,
-        m.notes as meter_notes,
-        me.name as element_name,
-        me.element
-      FROM meter_reading mr
-      LEFT JOIN meter m ON mr.meter_id = m.meter_id
-      LEFT JOIN meter_element me ON mr.meter_element_id = me.meter_element_id
-      WHERE mr.tenant_id = $1
-        AND mr.meter_id = $2
-        AND mr.meter_element_id = $3
-      ORDER BY mr.created_at DESC
+      SELECT * FROM meter_reading
+      WHERE tenant_id = $1
+        AND meter_id = $2
+        AND meter_element_id = $3
+      ORDER BY created_at DESC
       LIMIT 1
     `;
     const params = [tenantId, parseInt(meterId), parseInt(meterElementId)];
@@ -18169,7 +15280,7 @@ app6.get("/last", requirePermission("meter:read"), async (c) => {
     }
     return c.json({ success: true, data: reading });
   } catch (error3) {
-    console.error("[MeterReadings] Error fetching last reading:", error3);
+    logError("[MeterReadings] Error fetching last reading:", error3);
     return c.json({
       success: false,
       message: "Failed to fetch last meter reading",
@@ -18196,10 +15307,11 @@ app7.get("/schema", (c) => {
           maxLength: 255
         },
         element: {
-          type: "text",
+          type: "select",
           label: "Element",
           required: true,
-          maxLength: 50
+          maxLength: 50,
+          enumValues: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
         }
       },
       entityFields: {
@@ -18433,6 +15545,52 @@ init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
 var app8 = new Hono2();
 app8.use("*", authenticateToken);
+function tenantToSettings(tenant) {
+  return {
+    id: String(tenant.tenant_id),
+    name: tenant.name ?? "",
+    logo: null,
+    address: {
+      street: tenant.street ?? "",
+      street2: tenant.street2 ?? "",
+      city: tenant.city ?? "",
+      state: tenant.state ?? "",
+      zip: tenant.zip ?? "",
+      country: tenant.country ?? ""
+    },
+    contactInfo: {
+      url: tenant.url ?? ""
+    },
+    systemConfig: {
+      timezone: tenant.timezone ?? "",
+      dateFormat: tenant.date_format ?? "",
+      timeFormat: tenant.time_format ?? "",
+      currency: tenant.currency ?? "",
+      language: tenant.language ?? ""
+    },
+    features: {
+      userManagement: true,
+      locationManagement: true,
+      meterManagement: true,
+      contactManagement: true,
+      emailTemplates: true,
+      reporting: true,
+      analytics: true,
+      mobileApp: false,
+      apiAccess: true
+    },
+    integrations: {
+      emailProvider: null,
+      smsProvider: null,
+      paymentProcessor: null,
+      calendarSync: false,
+      weatherAPI: false,
+      mapProvider: ""
+    },
+    updatedAt: tenant.updated_at
+  };
+}
+__name(tenantToSettings, "tenantToSettings");
 app8.get("/company", requirePermission("settings:read"), async (c) => {
   try {
     const tenantId = c.get("tenantId");
@@ -18441,13 +15599,15 @@ app8.get("/company", requirePermission("settings:read"), async (c) => {
     }
     const result = await query(
       c.env,
-      "SELECT * FROM settings WHERE tenant_id = $1 LIMIT 1",
+      "SELECT * FROM public.tenant WHERE tenant_id = $1 LIMIT 1",
       [tenantId]
     );
-    const settings = result.rows.length > 0 ? result.rows[0] : {};
-    return c.json({ success: true, data: settings });
+    if (result.rows.length === 0) {
+      return c.json({ success: false, message: "Tenant not found" }, 404);
+    }
+    return c.json({ success: true, data: tenantToSettings(result.rows[0]) });
   } catch (error3) {
-    console.error("Error fetching company settings:", error3);
+    logError("Error fetching company settings:", error3);
     return c.json({
       success: false,
       message: "Failed to fetch company settings",
@@ -18462,51 +15622,126 @@ app8.put("/company", requirePermission("settings:update"), async (c) => {
       return c.json({ success: false, message: "Tenant ID not found in user context" }, 400);
     }
     const body = await c.req.json();
-    const existing = await query(
-      c.env,
-      "SELECT settings_id FROM settings WHERE tenant_id = $1 LIMIT 1",
-      [tenantId]
-    );
-    let settings;
-    if (existing.rows.length > 0) {
-      const setClause = [];
-      const values = [];
-      let idx = 1;
-      for (const [key, value] of Object.entries(body)) {
-        if (key === "settings_id" || key === "tenant_id") continue;
-        setClause.push(`${key} = $${idx}`);
-        values.push(value);
-        idx++;
-      }
-      if (setClause.length === 0) {
-        return c.json({ success: true, data: existing.rows[0], message: "No fields to update" });
-      }
-      setClause.push(`updated_at = NOW()`);
-      values.push(existing.rows[0].settings_id);
-      const sql = `UPDATE settings SET ${setClause.join(", ")} WHERE settings_id = $${idx} RETURNING *`;
-      const result = await query(c.env, sql, values);
-      settings = result.rows[0];
-    } else {
-      const data = { ...body, tenant_id: tenantId };
-      const keys = Object.keys(data);
-      const values = Object.values(data);
-      const placeholders = keys.map((_, i) => `$${i + 1}`);
-      const sql = `INSERT INTO settings (${keys.join(", ")}) VALUES (${placeholders.join(", ")}) RETURNING *`;
-      const result = await query(c.env, sql, values);
-      settings = result.rows[0];
+    const updateData = {};
+    if (body.name !== void 0) updateData.name = body.name;
+    if (body.contactInfo?.url !== void 0) updateData.url = body.contactInfo.url;
+    if (body.address?.street !== void 0) updateData.street = body.address.street;
+    if (body.address?.street2 !== void 0) updateData.street2 = body.address.street2;
+    if (body.address?.city !== void 0) updateData.city = body.address.city;
+    if (body.address?.state !== void 0) updateData.state = body.address.state;
+    if (body.address?.zip !== void 0) updateData.zip = body.address.zip;
+    if (body.address?.country !== void 0) updateData.country = body.address.country;
+    if (Object.keys(updateData).length === 0) {
+      return c.json({ success: true, message: "No fields to update" });
     }
+    const setClause = [];
+    const values = [];
+    let idx = 1;
+    for (const [key, value] of Object.entries(updateData)) {
+      setClause.push(`${key} = $${idx}`);
+      values.push(value);
+      idx++;
+    }
+    setClause.push(`updated_at = NOW()`);
+    values.push(tenantId);
+    const sql = `UPDATE public.tenant SET ${setClause.join(", ")} WHERE tenant_id = $${idx} RETURNING *`;
+    const result = await query(c.env, sql, values);
     return c.json({
       success: true,
-      data: settings,
+      data: tenantToSettings(result.rows[0]),
       message: "Company settings updated successfully"
     });
   } catch (error3) {
-    console.error("Error updating company settings:", error3);
+    logError("Error updating company settings:", error3);
     return c.json({
       success: false,
       message: "Failed to update company settings",
       error: error3.message
     }, 500);
+  }
+});
+app8.get("/notifications", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const result = await query(
+      c.env,
+      "SELECT * FROM public.notification_settings WHERE tenant_id = $1 LIMIT 1",
+      [tenantId]
+    );
+    let settings;
+    if (result.rows.length === 0) {
+      settings = {
+        id: null,
+        health_check_cron: "0 * * * *",
+        daily_email_cron: "0 9 * * *",
+        email_template_id: null,
+        enabled: true,
+        stale_threshold_hours: 2,
+        updated_at: null
+      };
+    } else {
+      const row = result.rows[0];
+      settings = {
+        id: String(row.notification_settings_id),
+        health_check_cron: row.health_check_cron,
+        daily_email_cron: row.daily_email_cron,
+        email_template_id: row.email_template_id ? String(row.email_template_id) : null,
+        enabled: row.enabled,
+        stale_threshold_hours: row.stale_threshold_hours,
+        updated_at: row.updated_at
+      };
+    }
+    return c.json({ success: true, data: { settings } });
+  } catch (error3) {
+    logError("Error fetching notification settings:", error3);
+    return c.json({ success: false, message: "Failed to fetch notification settings" }, 500);
+  }
+});
+app8.put("/notifications", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const body = await c.req.json();
+    const { health_check_cron, daily_email_cron, email_template_id, enabled, stale_threshold_hours } = body;
+    const result = await query(
+      c.env,
+      `INSERT INTO public.notification_settings
+         (tenant_id, health_check_cron, daily_email_cron, email_template_id, enabled, stale_threshold_hours, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+       ON CONFLICT (tenant_id) DO UPDATE SET
+         health_check_cron = COALESCE(EXCLUDED.health_check_cron, notification_settings.health_check_cron),
+         daily_email_cron = COALESCE(EXCLUDED.daily_email_cron, notification_settings.daily_email_cron),
+         email_template_id = EXCLUDED.email_template_id,
+         enabled = COALESCE(EXCLUDED.enabled, notification_settings.enabled),
+         stale_threshold_hours = COALESCE(EXCLUDED.stale_threshold_hours, notification_settings.stale_threshold_hours),
+         updated_at = NOW()
+       RETURNING *`,
+      [
+        tenantId,
+        health_check_cron || "0 * * * *",
+        daily_email_cron || "0 9 * * *",
+        email_template_id || null,
+        enabled !== void 0 ? enabled : true,
+        stale_threshold_hours || 2
+      ]
+    );
+    const row = result.rows[0];
+    return c.json({
+      success: true,
+      data: {
+        settings: {
+          id: String(row.notification_settings_id),
+          health_check_cron: row.health_check_cron,
+          daily_email_cron: row.daily_email_cron,
+          email_template_id: row.email_template_id ? String(row.email_template_id) : null,
+          enabled: row.enabled,
+          stale_threshold_hours: row.stale_threshold_hours,
+          updated_at: row.updated_at
+        }
+      }
+    });
+  } catch (error3) {
+    logError("Error updating notification settings:", error3);
+    return c.json({ success: false, message: "Failed to update notification settings" }, 500);
   }
 });
 app8.get("/", requirePermission("settings:read"), async (c) => {
@@ -18517,13 +15752,15 @@ app8.get("/", requirePermission("settings:read"), async (c) => {
     }
     const result = await query(
       c.env,
-      "SELECT * FROM settings WHERE tenant_id = $1 LIMIT 1",
+      "SELECT * FROM public.tenant WHERE tenant_id = $1 LIMIT 1",
       [tenantId]
     );
-    const settings = result.rows.length > 0 ? result.rows[0] : {};
-    return c.json({ success: true, data: { company: settings } });
+    if (result.rows.length === 0) {
+      return c.json({ success: false, message: "Tenant not found" }, 404);
+    }
+    return c.json({ success: true, data: { company: tenantToSettings(result.rows[0]) } });
   } catch (error3) {
-    console.error("Error fetching settings:", error3);
+    logError("Error fetching settings:", error3);
     return c.json({
       success: false,
       message: "Failed to fetch settings",
@@ -18562,7 +15799,8 @@ app9.get("/", requirePermission("template:read"), async (c) => {
       search: qs.search || void 0,
       searchFields: ["name", "subject"],
       where,
-      orderBy: qs.sortBy ? `email_template.${qs.sortBy} ${qs.sortOrder === "asc" ? "ASC" : "DESC"}` : "email_template.created_at DESC"
+      sortBy: qs.sortBy,
+      sortOrder: qs.sortOrder
     });
     return c.json({
       success: true,
@@ -18575,7 +15813,7 @@ app9.get("/", requirePermission("template:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching templates:", error3);
+    logError("Error fetching templates:", error3);
     return c.json({ success: false, message: "Failed to fetch templates" }, 500);
   }
 });
@@ -18594,7 +15832,7 @@ app9.get("/stats", requirePermission("template:read"), async (c) => {
     );
     return c.json({ success: true, data: result.rows[0] });
   } catch (error3) {
-    console.error("Error fetching template stats:", error3);
+    logError("Error fetching template stats:", error3);
     return c.json({ success: false, message: "Failed to fetch template statistics" }, 500);
   }
 });
@@ -18638,7 +15876,7 @@ app9.get("/search", requirePermission("template:read"), async (c) => {
     const result = await query(c.env, sql, params);
     return c.json({ success: true, data: result.rows });
   } catch (error3) {
-    console.error("Error searching templates:", error3);
+    logError("Error searching templates:", error3);
     return c.json({ success: false, message: "Failed to search templates" }, 500);
   }
 });
@@ -18681,7 +15919,7 @@ app9.get("/export", requirePermission("template:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error exporting templates:", error3);
+    logError("Error exporting templates:", error3);
     return c.json({ success: false, message: "Failed to export templates" }, 500);
   }
 });
@@ -18697,7 +15935,7 @@ app9.get("/usage-analytics", requirePermission("template:read"), async (c) => {
     );
     return c.json({ success: true, data: result.rows });
   } catch (error3) {
-    console.error("Error fetching usage analytics:", error3);
+    logError("Error fetching usage analytics:", error3);
     return c.json({ success: false, message: "Failed to fetch usage analytics" }, 500);
   }
 });
@@ -18715,7 +15953,7 @@ app9.get("/category/:category", requirePermission("template:read"), async (c) =>
     );
     return c.json({ success: true, data: result.rows });
   } catch (error3) {
-    console.error("Error fetching templates by category:", error3);
+    logError("Error fetching templates by category:", error3);
     return c.json({ success: false, message: "Failed to fetch templates by category" }, 500);
   }
 });
@@ -18736,7 +15974,7 @@ app9.get("/:id/variables", requirePermission("template:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching template variables:", error3);
+    logError("Error fetching template variables:", error3);
     return c.json({ success: false, message: "Failed to fetch template variables" }, 500);
   }
 });
@@ -18750,7 +15988,7 @@ app9.get("/:id", requirePermission("template:read"), async (c) => {
     }
     return c.json({ success: true, data: template });
   } catch (error3) {
-    console.error("Error fetching template:", error3);
+    logError("Error fetching template:", error3);
     return c.json({ success: false, message: "Failed to fetch template" }, 500);
   }
 });
@@ -18815,7 +16053,7 @@ app9.post("/import", requirePermission("template:create"), async (c) => {
       message: `Import completed: ${created} created, ${updated} updated, ${failed} failed`
     });
   } catch (error3) {
-    console.error("Error importing templates:", error3);
+    logError("Error importing templates", error3);
     return c.json({ success: false, message: "Failed to import templates" }, 500);
   }
 });
@@ -18857,7 +16095,7 @@ app9.post("/bulk", requirePermission("template:update"), async (c) => {
       message: `Bulk ${action} completed: ${updatedCount} updated, ${failedCount} failed`
     });
   } catch (error3) {
-    console.error("Error performing bulk operation:", error3);
+    logError("Error performing bulk operation:", error3);
     return c.json({ success: false, message: "Failed to perform bulk operation" }, 500);
   }
 });
@@ -18885,7 +16123,7 @@ app9.post("/", requirePermission("template:create"), async (c) => {
     });
     return c.json({ success: true, data: template }, 201);
   } catch (error3) {
-    console.error("Error creating template:", error3);
+    logError("Error creating template:", error3);
     return c.json({ success: false, message: "Failed to create template" }, 500);
   }
 });
@@ -18916,7 +16154,7 @@ app9.post("/:id/duplicate", requirePermission("template:create"), async (c) => {
     });
     return c.json({ success: true, data: duplicate, message: "Template duplicated successfully" }, 201);
   } catch (error3) {
-    console.error("Error duplicating template:", error3);
+    logError("Error duplicating template:", error3);
     return c.json({ success: false, message: "Failed to duplicate template" }, 500);
   }
 });
@@ -18947,7 +16185,7 @@ app9.post("/:id/usage", requirePermission("template:read"), async (c) => {
     }
     return c.json({ success: true, data: result.rows[0], message: "Template usage recorded" });
   } catch (error3) {
-    console.error("Error recording template usage:", error3);
+    logError("Error recording template usage:", error3);
     return c.json({ success: false, message: "Failed to record template usage" }, 500);
   }
 });
@@ -18965,7 +16203,7 @@ app9.put("/:id", requirePermission("template:update"), async (c) => {
     const updated = await update(c.env, "email_template", "email_template_id", id, body);
     return c.json({ success: true, data: updated });
   } catch (error3) {
-    console.error("Error updating template:", error3);
+    logError("Error updating template:", error3);
     return c.json({ success: false, message: "Failed to update template" }, 500);
   }
 });
@@ -18980,7 +16218,7 @@ app9.delete("/:id", requirePermission("template:delete"), async (c) => {
     await remove(c.env, "email_template", "email_template_id", id);
     return c.json({ success: true, message: "Template deleted successfully" });
   } catch (error3) {
-    console.error("Error deleting template:", error3);
+    logError("Error deleting template:", error3);
     return c.json({ success: false, message: "Failed to delete template" }, 500);
   }
 });
@@ -19017,7 +16255,7 @@ app10.get("/delivery-stats", requirePermission("email:read"), async (c) => {
     );
     return c.json({ success: true, data: result.rows });
   } catch (error3) {
-    console.error("Error fetching delivery stats:", error3);
+    logError("Error fetching delivery stats:", error3);
     return c.json({ success: false, message: "Failed to fetch delivery statistics" }, 500);
   }
 });
@@ -19085,7 +16323,7 @@ app10.get("/logs", requirePermission("email:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching email logs:", error3);
+    logError("Error fetching email logs:", error3);
     return c.json({ success: false, message: "Failed to fetch email logs" }, 500);
   }
 });
@@ -19100,7 +16338,7 @@ app10.get("/track/open/:trackingId", async (c) => {
       [trackingId]
     );
   } catch (error3) {
-    console.error("Error tracking email open:", error3);
+    logError("Error tracking email open:", error3);
   }
   const pixelBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
   const pixelBytes = Uint8Array.from(atob(pixelBase64), (ch) => ch.charCodeAt(0));
@@ -19184,7 +16422,7 @@ app10.get("/notifications/logs", requirePermission("notification:read"), async (
       }
     });
   } catch (error3) {
-    console.error("Error fetching notification logs:", error3);
+    logError("Error fetching notification logs:", error3);
     return c.json({ success: false, message: "Failed to fetch notification logs" }, 500);
   }
 });
@@ -19215,18 +16453,18 @@ app11.post("/readings/batch", authenticateSyncServer, async (c) => {
           const readingQuery = `
             INSERT INTO meter_reading (
               tenant_id, meter_id, created_at, sync_status,
-              active_energy, active_energy_export, apparent_energy, apparent_energy_export,
-              apparent_power, apparent_power_phase_a, apparent_power_phase_b, apparent_power_phase_c,
-              current, current_line_a, current_line_b, current_line_c,
-              frequency, maximum_demand_real, power, power_factor,
+              kwh, mwh, kvah, kvah_export,
+              kva, phase_kva_a, phase_kva_b, phase_kva_c,
+              amperage, phase_amperage_a, phase_amperage_b, phase_amperage_c,
+              frequency, peak_kw, kw, power_factor,
               power_factor_phase_a, power_factor_phase_b, power_factor_phase_c,
-              power_phase_a, power_phase_b, power_phase_c,
-              reactive_energy, reactive_energy_export, reactive_power,
-              reactive_power_phase_a, reactive_power_phase_b, reactive_power_phase_c,
+              phase_kw_a, phase_kw_b, phase_kw_c,
+              kvarh, reactive_energy_export, kvar,
+              phase_kvar_a, phase_kvar_b, phase_kvar_c,
               voltage_a_b, voltage_a_n, voltage_b_c, voltage_b_n,
               voltage_c_a, voltage_c_n, voltage_p_n, voltage_p_p,
-              voltage_thd, voltage_thd_phase_a, voltage_thd_phase_b, voltage_thd_phase_c,
-              meter_element_id
+              total_thdv, phase_thdv_a, phase_thdv_b, phase_thdv_c,
+              meter_element_id, calculated_kwh
             )
             VALUES (
               $1, $2, $3, $4,
@@ -19241,43 +16479,44 @@ app11.post("/readings/batch", authenticateSyncServer, async (c) => {
               $33, $34, $35, $36,
               $37, $38, $39, $40,
               $41, $42, $43, $44,
-              $45
+              $45, $46
             )
+            ON CONFLICT (tenant_id, meter_id, meter_element_id, created_at) WHERE meter_element_id IS NOT NULL DO NOTHING
             RETURNING meter_reading_id
           `;
           const readingParams = [
             tenantId,
             parseInt(reading.meter_id, 10),
-            /* @__PURE__ */ new Date(),
+            reading.created_at ? new Date(reading.created_at) : /* @__PURE__ */ new Date(),
             "pending",
-            reading.active_energy ?? null,
-            reading.active_energy_export ?? null,
-            reading.apparent_energy ?? null,
-            reading.apparent_energy_export ?? null,
-            reading.apparent_power ?? null,
-            reading.apparent_power_phase_a ?? null,
-            reading.apparent_power_phase_b ?? null,
-            reading.apparent_power_phase_c ?? null,
-            reading.current ?? null,
-            reading.current_line_a ?? null,
-            reading.current_line_b ?? null,
-            reading.current_line_c ?? null,
+            reading.kwh ?? null,
+            reading.mwh ?? null,
+            reading.kvah ?? null,
+            reading.kvah_export ?? null,
+            reading.kva ?? null,
+            reading.phase_kva_a ?? null,
+            reading.phase_kva_b ?? null,
+            reading.phase_kva_c ?? null,
+            reading.amperage ?? null,
+            reading.phase_amperage_a ?? null,
+            reading.phase_amperage_b ?? null,
+            reading.phase_amperage_c ?? null,
             reading.frequency ?? null,
-            reading.maximum_demand_real ?? null,
-            reading.power ?? null,
+            reading.peak_kw ?? null,
+            reading.kw ?? null,
             reading.power_factor ?? null,
-            reading.power_factor_phase_a ?? null,
-            reading.power_factor_phase_b ?? null,
-            reading.power_factor_phase_c ?? null,
-            reading.power_phase_a ?? null,
-            reading.power_phase_b ?? null,
-            reading.power_phase_c ?? null,
-            reading.reactive_energy ?? null,
+            reading.pf_a ?? null,
+            reading.pf_b ?? null,
+            reading.pf_c ?? null,
+            reading.phase_kw_a ?? null,
+            reading.phase_kw_b ?? null,
+            reading.phase_kw_c ?? null,
+            reading.kvarh ?? null,
             reading.reactive_energy_export ?? null,
-            reading.reactive_power ?? null,
-            reading.reactive_power_phase_a ?? null,
-            reading.reactive_power_phase_b ?? null,
-            reading.reactive_power_phase_c ?? null,
+            reading.kvar ?? null,
+            reading.phase_kvar_a ?? null,
+            reading.phase_kvar_b ?? null,
+            reading.phase_kvar_c ?? null,
             reading.voltage_a_b ?? null,
             reading.voltage_a_n ?? null,
             reading.voltage_b_c ?? null,
@@ -19286,12 +16525,14 @@ app11.post("/readings/batch", authenticateSyncServer, async (c) => {
             reading.voltage_c_n ?? null,
             reading.voltage_p_n ?? null,
             reading.voltage_p_p ?? null,
-            reading.voltage_thd ?? null,
-            reading.voltage_thd_phase_a ?? null,
-            reading.voltage_thd_phase_b ?? null,
-            reading.voltage_thd_phase_c ?? null,
-            reading.meter_element_id ?? null
+            reading.total_thdv ?? null,
+            reading.phase_thdv_a ?? null,
+            reading.phase_thdv_b ?? null,
+            reading.phase_thdv_c ?? null,
+            reading.meter_element_id ?? null,
+            reading.calculated_kwh ?? null
           ];
+          console.log(`[Sync] INSERT params[${i}]:`, JSON.stringify(readingParams));
           const insertResult = await client.query(readingQuery, readingParams);
           await client.query(`RELEASE SAVEPOINT ${savepointName}`);
           if (insertResult.rowCount && insertResult.rowCount > 0) {
@@ -19308,23 +16549,27 @@ app11.post("/readings/batch", authenticateSyncServer, async (c) => {
             meter_id: reading.meter_id,
             error: error3.message,
             code: error3.code,
-            detail: error3.detail
+            detail: error3.detail,
+            column: error3.column ?? null,
+            where: error3.where ?? null,
+            hint: error3.hint ?? null
           });
           skippedCount++;
         }
       }
       return { insertedCount, skippedCount, insertErrors };
     });
+    const hasErrors = result.insertErrors.length > 0;
     return c.json({
-      success: true,
+      success: !hasErrors,
       recordsProcessed: result.insertedCount,
-      message: `Batch upload completed: ${result.insertedCount} inserted, ${result.skippedCount} skipped`,
+      message: hasErrors ? `Batch upload failed: ${result.insertErrors.length} errors, ${result.insertedCount} inserted, ${result.skippedCount} skipped` : `Batch upload completed: ${result.insertedCount} inserted, ${result.skippedCount} skipped`,
       inserted: result.insertedCount,
       skipped: result.skippedCount,
       errors: result.insertErrors
-    });
+    }, hasErrors ? 500 : 200);
   } catch (error3) {
-    console.error("[Sync] Batch upload error:", error3);
+    logError("[Sync] Batch upload error:", error3);
     return c.json({
       success: false,
       recordsProcessed: 0,
@@ -19367,7 +16612,7 @@ app11.get("/getmeters", authenticateSyncServer, async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Meter download error:", error3);
+    logError("Meter download error:", error3);
     return c.json({ success: false, message: "Meter download error", error: error3.message }, 500);
   }
 });
@@ -19405,7 +16650,7 @@ app11.get("/getmregisters", authenticateSyncServer, async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Register download error:", error3);
+    logError("Register download error:", error3);
     return c.json({ success: false, message: "Register download error", error: error3.message }, 500);
   }
 });
@@ -19465,7 +16710,7 @@ app11.post("/connect", async (c) => {
       }
     });
   } catch (error3) {
-    console.error("[Sync Connect] Error:", error3);
+    logError("[Sync Connect] Error:", error3);
     return c.json({ success: false, message: "Connection failed" }, 500);
   }
 });
@@ -19481,242 +16726,1429 @@ var sync_default = app11;
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
+
+// worker/routes/locationSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition = __toESM(require_SchemaDefinition());
+var locationSchema = (0, import_SchemaDefinition.defineSchema)({
+  entityName: "Location",
+  tableName: "location",
+  description: "Location entity",
+  formMaxWidth: "700px",
+  customListColumns: {},
+  formTabs: [
+    (0, import_SchemaDefinition.tab)({
+      name: "General",
+      order: 1,
+      sections: [
+        (0, import_SchemaDefinition.section)({
+          name: "Details",
+          order: 1,
+          fields: [
+            (0, import_SchemaDefinition.field)({ name: "name", order: 1, type: import_SchemaDefinition.FieldTypes.STRING, default: "", required: true, label: "Name", dbField: "name", maxLength: 200, placeholder: "Location", filertable: ["main"], showOn: ["list", "form"] }),
+            (0, import_SchemaDefinition.field)({ name: "type", order: 2, type: import_SchemaDefinition.FieldTypes.STRING, default: "", required: true, label: "Type", dbField: "type", maxLength: 20, enumValues: ["Warehouse", "Apartment", "Ofice", "Retail", "Hotel", "Building", "Other"], placeholder: "Warehouse", showOn: ["list", "form"] })
+          ]
+        }),
+        (0, import_SchemaDefinition.section)({
+          name: "Address",
+          order: 2,
+          fields: [
+            (0, import_SchemaDefinition.field)({ name: "street", order: 1, type: import_SchemaDefinition.FieldTypes.STRING, default: "", required: true, label: "Street", dbField: "street", maxLength: 200, placeholder: "1234 Street", showOn: ["form"] }),
+            (0, import_SchemaDefinition.field)({ name: "street2", order: 2, type: import_SchemaDefinition.FieldTypes.STRING, default: "", required: false, label: "Street2", dbField: "street2", maxLength: 100, placeholder: "Unit A", showOn: ["form"] }),
+            (0, import_SchemaDefinition.field)({ name: "city", order: 3, type: import_SchemaDefinition.FieldTypes.STRING, default: "", required: true, label: "City", dbField: "city", maxLength: 100, placeholder: "City", showOn: ["form"] }),
+            (0, import_SchemaDefinition.field)({ name: "state", order: 4, type: import_SchemaDefinition.FieldTypes.STRING, default: "", required: true, label: "State", dbField: "state", maxLength: 50, placeholder: "State", showOn: ["form"] }),
+            (0, import_SchemaDefinition.field)({ name: "zip", order: 5, type: import_SchemaDefinition.FieldTypes.STRING, default: "", required: true, label: "Zip", dbField: "zip", placeholder: "Zip", showOn: ["form"], maxLength: 20 }),
+            (0, import_SchemaDefinition.field)({ name: "country", order: 6, type: import_SchemaDefinition.FieldTypes.COUNTRY, default: "", required: true, label: "Country", dbField: "country", maxLength: 100, placeholder: "USA", showOn: ["form"] })
+          ]
+        }),
+        (0, import_SchemaDefinition.section)({
+          name: "Status",
+          order: 3,
+          maxWidth: "100px",
+          flexGrow: 0,
+          flexShrink: 0,
+          fields: [
+            (0, import_SchemaDefinition.field)({ name: "active", order: 2, type: import_SchemaDefinition.FieldTypes.BOOLEAN, default: true, required: false, label: "Active", dbField: "active", showOn: ["list", "form"] })
+          ]
+        })
+      ]
+    }),
+    (0, import_SchemaDefinition.tab)({
+      name: "Additional Info",
+      order: 2,
+      sections: [
+        (0, import_SchemaDefinition.section)({
+          name: "Notes",
+          order: 1,
+          fields: [
+            (0, import_SchemaDefinition.field)({ name: "notes", order: 1, type: import_SchemaDefinition.FieldTypes.STRING, default: "", required: false, label: "Notes", dbField: "notes", showOn: ["form"] })
+          ]
+        }),
+        (0, import_SchemaDefinition.section)({
+          name: "Audit",
+          order: 3,
+          maxWidth: "200px",
+          flexGrow: 0,
+          flexShrink: 0,
+          fields: [
+            (0, import_SchemaDefinition.field)({ name: "created_at", order: 1, type: import_SchemaDefinition.FieldTypes.DATE, default: null, disable: true, label: "Created At", dbField: "created_at", showOn: ["form"] }),
+            (0, import_SchemaDefinition.field)({ name: "updated_at", order: 2, type: import_SchemaDefinition.FieldTypes.DATE, default: null, disable: true, label: "Updated At", dbField: "updated_at", showOn: ["form"] })
+          ]
+        })
+      ]
+    })
+  ],
+  entityFields: {
+    location_id: (0, import_SchemaDefinition.field)({ name: "location_id", type: import_SchemaDefinition.FieldTypes.NUMBER, default: null, readOnly: true, label: "Id", dbField: "location_id" }),
+    tenant_id: (0, import_SchemaDefinition.field)({ name: "tenant_id", type: import_SchemaDefinition.FieldTypes.NUMBER, default: null, readOnly: false, label: "Tenant ID", dbField: "tenant_id" })
+  },
+  validation: {}
+});
+
+// worker/routes/meterSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition2 = __toESM(require_SchemaDefinition());
+var meterSchema = (0, import_SchemaDefinition2.defineSchema)({
+  entityName: "Meter",
+  tableName: "meter",
+  description: "Meter entity for managing electric, gas, water, and other utility meters",
+  formMaxWidth: "770px",
+  customListColumns: {},
+  formTabs: [
+    (0, import_SchemaDefinition2.tab)({
+      name: "Meter",
+      order: 1,
+      minWidth: "400px",
+      sections: [
+        (0, import_SchemaDefinition2.section)({
+          name: "Information",
+          order: 1,
+          minWidth: "350px",
+          fields: [
+            (0, import_SchemaDefinition2.field)({
+              name: "name",
+              order: 1,
+              type: import_SchemaDefinition2.FieldTypes.STRING,
+              default: "",
+              required: true,
+              label: "Meter Name",
+              dbField: "name",
+              minLength: 3,
+              maxLength: 100,
+              placeholder: "Enter meter name",
+              showOn: ["list", "form"],
+              filertable: ["main"]
+            }),
+            (0, import_SchemaDefinition2.field)({
+              name: "serial_number",
+              order: 2,
+              type: import_SchemaDefinition2.FieldTypes.STRING,
+              default: "",
+              required: true,
+              label: "Serial Number",
+              dbField: "serial_number",
+              maxLength: 200,
+              placeholder: "Enter serial number",
+              filertable: ["true"],
+              showOn: ["list", "form"],
+              visibleFor: ["physical"]
+            }),
+            (0, import_SchemaDefinition2.field)({
+              name: "device_id",
+              order: 3,
+              type: import_SchemaDefinition2.FieldTypes.NUMBER,
+              default: null,
+              required: true,
+              label: "Device",
+              dbField: "device_id",
+              min: 1,
+              maxLength: 200,
+              showOn: ["list", "form"],
+              validate: true,
+              validationFields: ["manufacturer", "model_number"],
+              visibleFor: ["physical"]
+            }),
+            (0, import_SchemaDefinition2.field)({
+              name: "location_id",
+              order: 4,
+              type: import_SchemaDefinition2.FieldTypes.NUMBER,
+              default: null,
+              required: true,
+              label: "Location",
+              dbField: "location_id",
+              min: 1,
+              showOn: ["form"],
+              validate: true,
+              validationFields: ["name"]
+            }),
+            (0, import_SchemaDefinition2.field)({
+              name: "type",
+              order: 5,
+              type: import_SchemaDefinition2.FieldTypes.SELECT,
+              default: "electric",
+              required: true,
+              label: "Meter Type",
+              dbField: "type",
+              readOnly: false,
+              enumValues: ["electric", "gas", "water", "steam", "other"],
+              enumLabels: {
+                electric: "Electric",
+                gas: "Gas",
+                water: "Water",
+                steam: "Steam",
+                other: "Other"
+              },
+              showOn: ["form", "list"]
+            })
+          ]
+        }),
+        (0, import_SchemaDefinition2.section)({
+          name: "Network",
+          order: 2,
+          visibleFor: ["physical"],
+          fields: [
+            (0, import_SchemaDefinition2.field)({
+              name: "ip",
+              order: 1,
+              type: import_SchemaDefinition2.FieldTypes.STRING,
+              default: "",
+              required: true,
+              label: "IP Address",
+              dbField: "ip",
+              placeholder: "192.168.1.100",
+              showOn: ["list", "form"]
+            }),
+            (0, import_SchemaDefinition2.field)({
+              name: "port",
+              order: 2,
+              type: import_SchemaDefinition2.FieldTypes.NUMBER,
+              default: 47808,
+              required: true,
+              label: "Port Number",
+              dbField: "port",
+              min: 1,
+              max: 65535,
+              placeholder: "47808",
+              showOn: ["form"]
+            })
+          ]
+        }),
+        (0, import_SchemaDefinition2.section)({
+          name: "Status",
+          order: 3,
+          fields: [
+            (0, import_SchemaDefinition2.field)({
+              name: "active",
+              order: 1,
+              type: import_SchemaDefinition2.FieldTypes.BOOLEAN,
+              default: true,
+              required: true,
+              label: "Active",
+              dbField: "active",
+              showOn: ["list", "form"],
+              filertable: ["true"]
+            }),
+            (0, import_SchemaDefinition2.field)({
+              name: "installation_date",
+              order: 2,
+              type: import_SchemaDefinition2.FieldTypes.DATE,
+              default: null,
+              required: false,
+              label: "Installation Date",
+              dbField: "installation_date",
+              placeholder: "Select date",
+              showOn: ["form"]
+            }),
+            (0, import_SchemaDefinition2.field)({
+              name: "is_virtual",
+              order: 3,
+              type: import_SchemaDefinition2.FieldTypes.SELECT,
+              default: "physical",
+              required: true,
+              label: "Physical/Virtual",
+              dbField: "is_virtual",
+              readOnly: true,
+              enumValues: ["physical", "virtual"],
+              enumLabels: {
+                physical: "Physical",
+                virtual: "Virtual"
+              },
+              showOn: ["form", "list"]
+            })
+          ]
+        })
+      ]
+    }),
+    (0, import_SchemaDefinition2.tab)({
+      name: "Elements",
+      order: 2,
+      visibleFor: ["physical"],
+      sections: [
+        (0, import_SchemaDefinition2.section)({
+          name: "Meter Elements",
+          order: 1,
+          fields: [
+            (0, import_SchemaDefinition2.field)({
+              name: "elements",
+              order: 1,
+              type: import_SchemaDefinition2.FieldTypes.OBJECT,
+              default: null,
+              required: false,
+              label: "Elements",
+              dbField: null,
+              showOn: ["form"]
+            })
+          ]
+        })
+      ]
+    }),
+    (0, import_SchemaDefinition2.tab)({
+      name: "Combined Meters",
+      order: 2,
+      visibleFor: ["virtual"],
+      sections: [
+        (0, import_SchemaDefinition2.section)({
+          name: "Combined Meters",
+          order: 1,
+          fields: [
+            (0, import_SchemaDefinition2.field)({
+              name: "elements",
+              order: 1,
+              type: import_SchemaDefinition2.FieldTypes.OBJECT,
+              default: null,
+              required: false,
+              label: "Elements",
+              dbField: null,
+              showOn: ["form"]
+            })
+          ]
+        })
+      ]
+    }),
+    (0, import_SchemaDefinition2.tab)({
+      name: "Additional Info",
+      order: 3,
+      sectionOrientation: "vertical",
+      sections: [
+        (0, import_SchemaDefinition2.section)({
+          name: "notes",
+          order: 1,
+          minWidth: "500px",
+          fields: [
+            (0, import_SchemaDefinition2.field)({
+              name: "notes",
+              order: 1,
+              type: import_SchemaDefinition2.FieldTypes.STRING,
+              default: "",
+              required: false,
+              label: "Notes",
+              dbField: "notes",
+              maxLength: 500,
+              placeholder: "Enter notes",
+              showOn: ["form"]
+            })
+          ]
+        }),
+        (0, import_SchemaDefinition2.section)({
+          name: "Audit",
+          order: 2,
+          minWidth: "250px",
+          fields: [
+            (0, import_SchemaDefinition2.field)({
+              name: "created_at",
+              order: 1,
+              type: import_SchemaDefinition2.FieldTypes.DATETIME,
+              default: null,
+              readOnly: true,
+              label: "Created At",
+              dbField: "created_at"
+            }),
+            (0, import_SchemaDefinition2.field)({
+              name: "updated_at",
+              order: 2,
+              type: import_SchemaDefinition2.FieldTypes.DATETIME,
+              default: null,
+              readOnly: true,
+              label: "Updated At",
+              dbField: "updated_at"
+            })
+          ]
+        })
+      ]
+    })
+  ],
+  formFields: {
+    elements: (0, import_SchemaDefinition2.field)({
+      type: import_SchemaDefinition2.FieldTypes.OBJECT,
+      default: null,
+      required: false,
+      label: "Elements",
+      dbField: null,
+      showOn: ["form"]
+    })
+  },
+  entityFields: {
+    meter_id: (0, import_SchemaDefinition2.field)({
+      name: "meter_id",
+      type: import_SchemaDefinition2.FieldTypes.NUMBER,
+      default: null,
+      readOnly: true,
+      label: "ID",
+      dbField: "meter_id"
+    }),
+    tenant_id: (0, import_SchemaDefinition2.field)({
+      name: "tenant_id",
+      type: import_SchemaDefinition2.FieldTypes.NUMBER,
+      default: 0,
+      readOnly: false,
+      label: "Tenant ID",
+      dbField: "tenant_id"
+    })
+  },
+  validation: {}
+});
+
+// worker/routes/contactSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var { defineSchema: defineSchema4, field: field4, tab: tab4, section: section4, FieldTypes: FieldTypes4 } = require_SchemaDefinition();
+var contactSchema = defineSchema4({
+  entityName: "Contact",
+  tableName: "contact",
+  description: "Contact entity for customers, vendors, and other business contacts",
+  formMaxWidth: "700px",
+  customListColumns: {},
+  formTabs: [
+    tab4({
+      name: "Contact",
+      order: 1,
+      sections: [
+        section4({
+          name: "Information",
+          order: 1,
+          flex: 1,
+          minWidth: "300px",
+          fields: [
+            field4({ name: "name", order: 1, type: FieldTypes4.STRING, default: "", required: true, label: "Name", dbField: "name", minLength: 2, maxLength: 100, placeholder: "John Doe", filertable: ["main"], showOn: ["list", "form"] }),
+            field4({ name: "company", order: 2, type: FieldTypes4.STRING, default: "", required: false, label: "Company", dbField: "company", maxLength: 200, placeholder: "Acme Corporation", filertable: ["true"], showOn: ["list", "form"] }),
+            field4({ name: "role", order: 3, type: FieldTypes4.STRING, default: "", required: false, label: "Role", dbField: "role", maxLength: 100, enumValues: ["Vendor", "Customer", "Contractor", "Technician", "Client", "Sales Manager"], placeholder: "Vendor", filertable: ["true"], showOn: ["list", "form"] }),
+            field4({ name: "email", order: 4, type: FieldTypes4.EMAIL, default: "", required: true, label: "Email", dbField: "email", maxLength: 254, pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", placeholder: "john@example.com", showOn: ["form"] }),
+            field4({ name: "phone", order: 5, type: FieldTypes4.PHONE, default: "", required: false, label: "Phone", dbField: "phone", maxLength: 50, placeholder: "() -", showOn: ["list", "form"] })
+          ]
+        }),
+        section4({
+          name: "Status",
+          order: 2,
+          maxWidth: "100px",
+          flexGrow: 0,
+          flexShrink: 0,
+          fields: [
+            field4({ name: "active", order: 1, type: FieldTypes4.BOOLEAN, default: true, readOnly: false, label: "Active", dbField: "active", description: "Whether the contact is active", showOn: ["list", "form"] })
+          ]
+        })
+      ]
+    }),
+    tab4({
+      name: "Address",
+      order: 2,
+      sections: [
+        section4({
+          name: "Address Information",
+          order: 1,
+          fields: [
+            field4({ name: "street", order: 1, type: FieldTypes4.STRING, default: "", required: false, label: "Street Address", dbField: "street", maxLength: 200, placeholder: "123 Main St", showOn: ["form"] }),
+            field4({ name: "street2", order: 2, type: FieldTypes4.STRING, default: "", required: false, label: "Street Address 2", dbField: "street2", maxLength: 100, placeholder: "Suite 100", showOn: ["form"] }),
+            field4({ name: "city", order: 3, type: FieldTypes4.STRING, default: "", required: false, label: "City", dbField: "city", maxLength: 100, placeholder: "New York", showOn: ["form"] }),
+            field4({ name: "state", order: 4, type: FieldTypes4.STRING, default: "", required: false, label: "State", dbField: "state", maxLength: 50, placeholder: "NY", showOn: ["form"] }),
+            field4({ name: "zip", order: 5, type: FieldTypes4.STRING, default: "", required: false, label: "ZIP Code", dbField: "zip", maxLength: 20, pattern: "^[0-9]{5}(-[0-9]{4})?$", placeholder: "10001", showOn: ["form"] }),
+            field4({ name: "country", order: 6, type: FieldTypes4.COUNTRY, default: "US", required: false, label: "Country", dbField: "country", maxLength: 100, placeholder: "USA", showOn: ["form"] })
+          ]
+        })
+      ]
+    }),
+    tab4({
+      name: "Additional Info",
+      order: 3,
+      sectionOrientation: "vertical",
+      sections: [
+        section4({
+          name: "Notes",
+          order: 1,
+          fields: [
+            field4({ name: "notes", order: 1, type: FieldTypes4.STRING, default: "", required: false, label: "Notes", dbField: "notes", maxLength: 5e3, placeholder: "Additional notes...", showOn: ["form"] })
+          ]
+        }),
+        section4({
+          name: "Audit",
+          order: 2,
+          fields: [
+            field4({ name: "created_at", order: 1, type: FieldTypes4.DATE, default: null, readOnly: true, label: "Created At", dbField: "created_at", showOn: ["form"] }),
+            field4({ name: "updated_at", order: 2, type: FieldTypes4.DATE, default: null, readOnly: true, label: "Updated At", dbField: "updated_at", showOn: ["form"] })
+          ]
+        })
+      ]
+    })
+  ],
+  entityFields: {
+    contact_id: field4({ name: "contact_id", type: FieldTypes4.NUMBER, default: null, readOnly: true, label: "ID", dbField: "contact_id" }),
+    tenant_id: field4({ name: "tenant_id", type: FieldTypes4.NUMBER, default: 0, readOnly: false, label: "Tenant ID", dbField: "tenant_id" })
+  },
+  relationships: {},
+  validation: {}
+});
+
+// worker/routes/usersSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition3 = __toESM(require_SchemaDefinition());
+var userSchema = (0, import_SchemaDefinition3.defineSchema)({
+  entityName: "User",
+  tableName: "users",
+  description: "User entity for authentication and authorization",
+  formMaxWidth: "700px",
+  customListColumns: {},
+  formTabs: [
+    (0, import_SchemaDefinition3.tab)({
+      name: "General",
+      order: 1,
+      sections: [
+        (0, import_SchemaDefinition3.section)({
+          name: "Information",
+          order: 1,
+          fields: [
+            (0, import_SchemaDefinition3.field)({ name: "name", order: 1, type: import_SchemaDefinition3.FieldTypes.STRING, default: "", required: true, label: "Name", dbField: "name", maxLength: 100, placeholder: "John Doe", filertable: ["main"], showOn: ["list", "form"] }),
+            (0, import_SchemaDefinition3.field)({ name: "email", order: 2, type: import_SchemaDefinition3.FieldTypes.EMAIL, default: "", required: true, label: "Email", dbField: "email", maxLength: 254, placeholder: "email@yahoo.com", showOn: ["list", "form"] }),
+            (0, import_SchemaDefinition3.field)({ name: "phone", order: 3, type: import_SchemaDefinition3.FieldTypes.PHONE, default: "", required: true, label: "Phone", dbField: "phone", maxLength: 20, placeholder: "(xxx) xxx-xxxx", showOn: ["list", "form"] }),
+            (0, import_SchemaDefinition3.field)({ name: "password", order: 3, type: "password", default: "", required: true, label: "Password", dbField: "password", maxLength: 200, placeholder: "********", showOn: ["form"] }),
+            (0, import_SchemaDefinition3.field)({ name: "role", order: 4, type: import_SchemaDefinition3.FieldTypes.STRING, default: "viewer", required: false, label: "Role", dbField: "role", maxLength: 20, enumValues: ["admin", "manager", "technician", "viewer"], placeholder: "viewer", filertable: ["true"], showOn: ["list", "form"] })
+          ]
+        }),
+        (0, import_SchemaDefinition3.section)({
+          name: "Status",
+          order: 2,
+          maxWidth: "100px",
+          flexGrow: 0,
+          flexShrink: 0,
+          fields: [
+            (0, import_SchemaDefinition3.field)({ name: "active", order: 1, type: import_SchemaDefinition3.FieldTypes.BOOLEAN, default: true, required: false, label: "Active", dbField: "active", showOn: ["list", "form"] })
+          ]
+        })
+      ]
+    }),
+    (0, import_SchemaDefinition3.tab)({
+      name: "Security",
+      order: 2,
+      sections: [
+        (0, import_SchemaDefinition3.section)({
+          name: "Permissions",
+          order: 1,
+          maxWidth: "400px",
+          fields: [
+            (0, import_SchemaDefinition3.field)({ name: "permissions", order: 1, type: import_SchemaDefinition3.FieldTypes.JSON, default: {}, required: false, label: "", dbField: "permissions", showOn: ["form"] })
+          ]
+        }),
+        (0, import_SchemaDefinition3.section)({
+          name: "Password Reset",
+          order: 2,
+          maxWidth: "200px",
+          fields: [
+            (0, import_SchemaDefinition3.field)({ name: "password_reset_actions", order: 1, type: import_SchemaDefinition3.FieldTypes.STRING, default: "", required: false, label: "Password Management", dbField: "", readOnly: true, showOn: ["form"], description: "Actions for managing user password" }),
+            (0, import_SchemaDefinition3.field)({ name: "password_reset_token", order: 2, type: import_SchemaDefinition3.FieldTypes.STRING, default: "", required: false, label: "Reset Token", dbField: "password_reset_token", maxLength: 200, readOnly: true, showOn: ["form"], placeholder: "No active reset", description: "Active password reset token if one exists" }),
+            (0, import_SchemaDefinition3.field)({ name: "password_reset_expires_at", order: 3, type: import_SchemaDefinition3.FieldTypes.DATE, default: null, required: false, label: "Token Expires", dbField: "password_reset_expires_at", readOnly: true, showOn: ["form"], placeholder: "No expiration", description: "When the reset token expires" })
+          ]
+        })
+      ]
+    })
+  ],
+  entityFields: {
+    users_id: (0, import_SchemaDefinition3.field)({ name: "users_id", type: import_SchemaDefinition3.FieldTypes.NUMBER, default: null, readOnly: true, label: "ID", dbField: "users_id" }),
+    tenant_id: (0, import_SchemaDefinition3.field)({ name: "tenant_id", type: import_SchemaDefinition3.FieldTypes.NUMBER, default: null, readOnly: false, label: "Tenant ID", dbField: "tenant_id" }),
+    passwordHash: (0, import_SchemaDefinition3.field)({ name: "passwordHash", type: import_SchemaDefinition3.FieldTypes.STRING, default: "", required: false, label: "Password Hash", dbField: "passwordhash", maxLength: 200, readOnly: true }),
+    createdAt: (0, import_SchemaDefinition3.field)({ name: "createdAt", type: import_SchemaDefinition3.FieldTypes.DATE, default: null, readOnly: true, label: "Created At", dbField: "created_at" }),
+    updatedAt: (0, import_SchemaDefinition3.field)({ name: "updatedAt", type: import_SchemaDefinition3.FieldTypes.DATE, default: null, readOnly: true, label: "Updated At", dbField: "updated_at" }),
+    lastLogin: (0, import_SchemaDefinition3.field)({ name: "lastLogin", type: import_SchemaDefinition3.FieldTypes.DATE, default: null, readOnly: true, label: "Last Login", dbField: "last_login_at" }),
+    passwordChangedAt: (0, import_SchemaDefinition3.field)({ name: "passwordChangedAt", type: import_SchemaDefinition3.FieldTypes.DATE, default: null, readOnly: true, label: "Password Changed At", dbField: "password_changed_at" }),
+    failedLoginAttempts: (0, import_SchemaDefinition3.field)({ name: "failedLoginAttempts", type: import_SchemaDefinition3.FieldTypes.NUMBER, default: 0, readOnly: false, label: "Failed Login Attempts", dbField: "failed_login_attempts" }),
+    lockedUntil: (0, import_SchemaDefinition3.field)({ name: "lockedUntil", type: import_SchemaDefinition3.FieldTypes.DATE, default: null, readOnly: false, label: "Locked Until", dbField: "locked_until" })
+  },
+  relationships: {
+    tenant: (0, import_SchemaDefinition3.relationship)({
+      type: import_SchemaDefinition3.RelationshipTypes.BELONGS_TO,
+      model: "Tenant",
+      foreignKey: "tenant_id",
+      autoLoad: false
+    })
+  },
+  validation: {}
+});
+
+// worker/routes/tenantSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition4 = __toESM(require_SchemaDefinition());
+var tenantSchema = (0, import_SchemaDefinition4.defineSchema)({
+  entityName: "Tenant",
+  tableName: "tenant",
+  description: "Tenant entity for multi-tenant isolation",
+  customListColumns: {},
+  formFields: {
+    name: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.STRING, default: "", required: true, label: "Name", dbField: "name", maxLength: 100, placeholder: "Company Name" }),
+    url: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.URL, default: "", required: false, label: "Website URL", dbField: "url", maxLength: 255, placeholder: "https://example.com" }),
+    street: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.STRING, default: "", required: false, label: "Street Address", dbField: "street", maxLength: 100, placeholder: "123 Main St" }),
+    street2: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.STRING, default: "", required: false, label: "Street Address 2", dbField: "street2", maxLength: 100, placeholder: "Suite 100" }),
+    city: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.STRING, default: "", required: false, label: "City", dbField: "city", maxLength: 50, placeholder: "New York" }),
+    state: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.STRING, default: "", required: false, label: "State", dbField: "state", maxLength: 50, placeholder: "NY" }),
+    zip: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.STRING, default: "", required: false, label: "ZIP Code", dbField: "zip", maxLength: 15, placeholder: "10001" }),
+    country: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.COUNTRY, default: "US", required: false, label: "Country", dbField: "country", maxLength: 50, placeholder: "USA" }),
+    active: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.BOOLEAN, default: true, required: false, label: "Active", dbField: "active", description: "Whether the tenant is active" }),
+    meterReadingBatchCount: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.NUMBER, default: 0, required: false, label: "Meter Reading Batch Count", dbField: "meter_reading_batch_count", description: "Number of meter reading batches processed" })
+  },
+  entityFields: {
+    tenant_id: (0, import_SchemaDefinition4.field)({ name: "tenant_id", type: import_SchemaDefinition4.FieldTypes.NUMBER, default: null, readOnly: true, label: "ID", dbField: "tenant_id" }),
+    createdAt: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.DATE, default: null, readOnly: true, label: "Created At", dbField: "created_at" }),
+    updatedAt: (0, import_SchemaDefinition4.field)({ type: import_SchemaDefinition4.FieldTypes.DATE, default: null, readOnly: true, label: "Updated At", dbField: "updated_at" })
+  },
+  relationships: {
+    users: (0, import_SchemaDefinition4.relationship)({ type: import_SchemaDefinition4.RelationshipTypes.HAS_MANY, model: "User", foreignKey: "tenant_id", autoLoad: false, as: "users" }),
+    contacts: (0, import_SchemaDefinition4.relationship)({ type: import_SchemaDefinition4.RelationshipTypes.HAS_MANY, model: "Contact", foreignKey: "contact_id", autoLoad: false, as: "contacts" }),
+    devices: (0, import_SchemaDefinition4.relationship)({ type: import_SchemaDefinition4.RelationshipTypes.HAS_MANY, model: "Device", foreignKey: "device_id", autoLoad: false, as: "devices" })
+  },
+  validation: {}
+});
+
+// worker/routes/meterReadingSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition5 = __toESM(require_SchemaDefinition());
+var meterReadingSchema = (0, import_SchemaDefinition5.defineSchema)({
+  entityName: "MeterReadings",
+  tableName: "meter_reading",
+  description: "MeterReadings entity",
+  customListColumns: {},
+  formFields: {
+    source: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Source", dbField: "source", maxLength: 100 }),
+    quality: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Quality", dbField: "quality", maxLength: 20 }),
+    voltage: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Voltage", dbField: "voltage" }),
+    current: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Current", dbField: "amperage" }),
+    power: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Power", dbField: "kw" }),
+    energy: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Energy", dbField: "energy" }),
+    frequency: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Frequency", dbField: "frequency" }),
+    powerfactor: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Powerfactor", dbField: "powerfactor" }),
+    temperature: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Temperature", dbField: "temperature" }),
+    kwh: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Kwh", dbField: "kwh" }),
+    kw: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Kw", dbField: "kw" }),
+    v: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "V", dbField: "v" }),
+    a: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "A", dbField: "a" }),
+    dpf: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Dpf", dbField: "dpf" }),
+    dpfchannel: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Dpfchannel", dbField: "dpfchannel" }),
+    kwpeak: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Kwpeak", dbField: "kwpeak" }),
+    kvarh: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Kvarh", dbField: "kvarh" }),
+    kvah: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Kvah", dbField: "kvah" }),
+    phaseavoltage: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Phaseavoltage", dbField: "phaseavoltage" }),
+    phasebvoltage: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Phasebvoltage", dbField: "phasebvoltage" }),
+    phasecvoltage: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Phasecvoltage", dbField: "phasecvoltage" }),
+    phaseacurrent: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Phaseacurrent", dbField: "phaseacurrent" }),
+    phasebcurrent: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Phasebcurrent", dbField: "phasebcurrent" }),
+    phaseccurrent: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Phaseccurrent", dbField: "phaseccurrent" }),
+    phaseapower: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Phaseapower", dbField: "phaseapower" }),
+    phasebpower: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Phasebpower", dbField: "phasebpower" }),
+    phasecpower: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Phasecpower", dbField: "phasecpower" }),
+    deviceIp: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Device Ip", dbField: "device_ip", maxLength: 50 }),
+    port: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Port", dbField: "port" }),
+    powerFactor: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Power Factor", dbField: "power_factor" }),
+    phaseAVoltage: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase A Voltage", dbField: "phase_a_voltage" }),
+    phaseBVoltage: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase B Voltage", dbField: "phase_b_voltage" }),
+    phaseCVoltage: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase C Voltage", dbField: "phase_c_voltage" }),
+    phaseACurrent: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase A Current", dbField: "phase_a_current" }),
+    phaseBCurrent: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase B Current", dbField: "phase_b_current" }),
+    phaseCCurrent: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase C Current", dbField: "phase_c_current" }),
+    phaseAPower: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase A Power", dbField: "phase_a_power" }),
+    phaseBPower: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase B Power", dbField: "phase_b_power" }),
+    phaseCPower: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase C Power", dbField: "phase_c_power" }),
+    lineToLineVoltageAb: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Line To Line Voltage Ab", dbField: "line_to_line_voltage_ab" }),
+    lineToLineVoltageBc: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Line To Line Voltage Bc", dbField: "line_to_line_voltage_bc" }),
+    lineToLineVoltageCa: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Line To Line Voltage Ca", dbField: "line_to_line_voltage_ca" }),
+    totalActivePower: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Total Active Power", dbField: "total_active_power" }),
+    totalReactivePower: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Total Reactive Power", dbField: "total_reactive_power" }),
+    totalApparentPower: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Total Apparent Power", dbField: "total_apparent_power" }),
+    totalActiveEnergyWh: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Total Active Energy Wh", dbField: "total_active_energy_wh" }),
+    totalReactiveEnergyVarh: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Total Reactive Energy Varh", dbField: "total_reactive_energy_varh" }),
+    totalApparentEnergyVah: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Total Apparent Energy Vah", dbField: "total_apparent_energy_vah" }),
+    frequencyHz: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Frequency Hz", dbField: "frequency_hz" }),
+    temperatureC: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Temperature C", dbField: "temperature_c" }),
+    humidity: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Humidity", dbField: "humidity" }),
+    neutralCurrent: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Neutral Current", dbField: "neutral_current" }),
+    phaseAPowerFactor: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase A Power Factor", dbField: "power_factor_phase_a" }),
+    phaseBPowerFactor: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase B Power Factor", dbField: "power_factor_phase_b" }),
+    phaseCPowerFactor: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase C Power Factor", dbField: "power_factor_phase_c" }),
+    voltageThd: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Voltage Thd", dbField: "total_thdv" }),
+    currentThd: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Thd", dbField: "current_thd" }),
+    maxDemandKw: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Max Demand Kw", dbField: "max_demand_kw" }),
+    maxDemandKvar: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Max Demand Kvar", dbField: "max_demand_kvar" }),
+    maxDemandKva: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Max Demand Kva", dbField: "max_demand_kva" }),
+    voltageUnbalance: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Voltage Unbalance", dbField: "voltage_unbalance" }),
+    currentUnbalance: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Unbalance", dbField: "current_unbalance" }),
+    communicationStatus: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Communication Status", dbField: "communication_status", maxLength: 20 }),
+    deviceModel: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Device Model", dbField: "device_model", maxLength: 100 }),
+    firmwareVersion: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Firmware Version", dbField: "firmware_version", maxLength: 100 }),
+    serial_number: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Serial Number", dbField: "serial_number", maxLength: 100 }),
+    alarmStatus: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Alarm Status", dbField: "alarm_status", maxLength: 20 }),
+    dataQuality: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Data Quality", dbField: "data_quality", maxLength: 20 }),
+    rawBasic: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Raw Basic", dbField: "raw_basic" }),
+    rawExtended: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Raw Extended", dbField: "raw_extended" }),
+    importActiveEnergyWh: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Import Active Energy Wh", dbField: "import_active_energy_wh" }),
+    exportActiveEnergyWh: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Export Active Energy Wh", dbField: "export_active_energy_wh" }),
+    importReactiveEnergyVarh: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Import Reactive Energy Varh", dbField: "import_reactive_energy_varh" }),
+    exportReactiveEnergyVarh: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Export Reactive Energy Varh", dbField: "export_reactive_energy_varh" }),
+    groundCurrent: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Ground Current", dbField: "ground_current" }),
+    voltageThdPhaseA: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Voltage Thd Phase A", dbField: "phase_thdv_a" }),
+    voltageThdPhaseB: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Voltage Thd Phase B", dbField: "phase_thdv_b" }),
+    voltageThdPhaseC: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Voltage Thd Phase C", dbField: "phase_thdv_c" }),
+    currentThdPhaseA: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Thd Phase A", dbField: "current_thd_phase_a" }),
+    currentThdPhaseB: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Thd Phase B", dbField: "current_thd_phase_b" }),
+    currentThdPhaseC: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Thd Phase C", dbField: "current_thd_phase_c" }),
+    voltageHarmonic_3: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Voltage Harmonic 3", dbField: "voltage_harmonic_3" }),
+    voltageHarmonic_5: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Voltage Harmonic 5", dbField: "voltage_harmonic_5" }),
+    voltageHarmonic_7: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Voltage Harmonic 7", dbField: "voltage_harmonic_7" }),
+    currentHarmonic_3: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Harmonic 3", dbField: "current_harmonic_3" }),
+    currentHarmonic_5: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Harmonic 5", dbField: "current_harmonic_5" }),
+    currentHarmonic_7: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Harmonic 7", dbField: "current_harmonic_7" }),
+    currentDemandKw: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Demand Kw", dbField: "current_demand_kw" }),
+    currentDemandKvar: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Demand Kvar", dbField: "current_demand_kvar" }),
+    currentDemandKva: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Demand Kva", dbField: "current_demand_kva" }),
+    predictedDemandKw: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Predicted Demand Kw", dbField: "predicted_demand_kw" }),
+    voltageFlicker: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Voltage Flicker", dbField: "voltage_flicker" }),
+    frequencyDeviation: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Frequency Deviation", dbField: "frequency_deviation" }),
+    phaseSequence: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase Sequence", dbField: "phase_sequence", maxLength: 10 }),
+    phaseRotation: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Phase Rotation", dbField: "phase_rotation", maxLength: 10 }),
+    powerDirection: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Power Direction", dbField: "power_direction", maxLength: 10 }),
+    reactiveDirection: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Reactive Direction", dbField: "reactive_direction", maxLength: 12 }),
+    lastCommunication: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.DATE, default: "", required: false, label: "Last Communication", dbField: "last_communication" }),
+    manufacturerCode: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Manufacturer Code", dbField: "manufacturer_code" }),
+    deviceTime: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.DATE, default: "", required: false, label: "Device Time", dbField: "device_time" }),
+    syncStatus: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Sync Status", dbField: "sync_status", maxLength: 20 }),
+    timeSource: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Time Source", dbField: "time_source", maxLength: 20 }),
+    eventCounter: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Event Counter", dbField: "event_counter" }),
+    lastEvent: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Last Event", dbField: "last_event" }),
+    currentTransformerRatio: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Current Transformer Ratio", dbField: "current_transformer_ratio" }),
+    voltageTransformerRatio: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Voltage Transformer Ratio", dbField: "voltage_transformer_ratio" }),
+    pulseConstant: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Pulse Constant", dbField: "pulse_constant" }),
+    status: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Status", dbField: "status", maxLength: 20 }),
+    unitOfMeasurement: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.STRING, default: "", required: false, label: "Unit Of Measurement", dbField: "unit_of_measurement", maxLength: 20 }),
+    meterId: (0, import_SchemaDefinition5.field)({ type: import_SchemaDefinition5.FieldTypes.NUMBER, default: 0, required: false, label: "Meter Id", dbField: "meter_id" })
+  },
+  entityFields: {
+    meter_reading_id: (0, import_SchemaDefinition5.field)({ name: "meter_reading_id", type: import_SchemaDefinition5.FieldTypes.STRING, default: null, readOnly: true, label: "Id", dbField: "meter_reading_id" }),
+    createdat: (0, import_SchemaDefinition5.field)({ name: "createdat", type: import_SchemaDefinition5.FieldTypes.DATE, default: null, readOnly: true, label: "Createdat", dbField: "created_at" }),
+    tenantId: (0, import_SchemaDefinition5.field)({ name: "tenantId", type: import_SchemaDefinition5.FieldTypes.NUMBER, default: null, readOnly: true, label: "Tenant Id", dbField: "tenant_id" })
+  },
+  relationships: {
+    meter: (0, import_SchemaDefinition5.relationship)({ type: import_SchemaDefinition5.RelationshipTypes.BELONGS_TO, model: "Meter", foreignKey: "meter_id", autoLoad: false })
+  },
+  validation: {}
+});
+
+// worker/routes/meterElementSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition6 = __toESM(require_SchemaDefinition());
+var meterElementsSchema = (0, import_SchemaDefinition6.defineSchema)({
+  entityName: "MeterElement",
+  tableName: "meter_element",
+  description: "Meter element entity for managing individual elements within a meter",
+  customListColumns: {},
+  formFields: {
+    element: (0, import_SchemaDefinition6.field)({ type: import_SchemaDefinition6.FieldTypes.STRING, default: "", required: true, label: "Element", dbField: "element", maxLength: 255, placeholder: "Enter element value", enumValues: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"], showOn: ["form"] }),
+    name: (0, import_SchemaDefinition6.field)({ type: import_SchemaDefinition6.FieldTypes.STRING, default: "", required: true, label: "Name", dbField: "name", maxLength: 255, placeholder: "Enter element name", showOn: ["list", "form"] })
+  },
+  entityFields: {
+    meter_element_id: (0, import_SchemaDefinition6.field)({ name: "meter_element_id", type: import_SchemaDefinition6.FieldTypes.NUMBER, default: null, readOnly: true, label: "ID", dbField: "meter_element_id" }),
+    meter_id: (0, import_SchemaDefinition6.field)({ name: "meter_id", type: import_SchemaDefinition6.FieldTypes.NUMBER, default: null, readOnly: true, label: "Meter ID", dbField: "meter_id" }),
+    tenant_id: (0, import_SchemaDefinition6.field)({ name: "tenant_id", type: import_SchemaDefinition6.FieldTypes.NUMBER, default: null, readOnly: false, label: "Tenant ID", dbField: "tenant_id" }),
+    created_at: (0, import_SchemaDefinition6.field)({ name: "created_at", type: import_SchemaDefinition6.FieldTypes.DATE, default: null, readOnly: true, label: "Created At", dbField: "created_at" }),
+    updated_at: (0, import_SchemaDefinition6.field)({ name: "updated_at", type: import_SchemaDefinition6.FieldTypes.DATE, default: null, readOnly: true, label: "Updated At", dbField: "updated_at" })
+  },
+  validation: {}
+});
+
+// worker/routes/reportSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition7 = __toESM(require_SchemaDefinition());
+var reportSchema = (0, import_SchemaDefinition7.defineSchema)({
+  entityName: "Report",
+  tableName: "report",
+  description: "Scheduled report configuration for automated email delivery",
+  formMaxWidth: "600px",
+  formTabs: [
+    (0, import_SchemaDefinition7.tab)({
+      name: "General",
+      order: 1,
+      sections: [
+        (0, import_SchemaDefinition7.section)({
+          name: "Details",
+          order: 1,
+          flex: 1,
+          fields: [
+            (0, import_SchemaDefinition7.field)({ name: "name", order: 1, type: import_SchemaDefinition7.FieldTypes.STRING, default: "", required: true, label: "Report Name", dbField: "name", minLength: 1, maxLength: 255, placeholder: "Monthly Usage Report", filterable: ["main"], showOn: ["list", "form"] }),
+            (0, import_SchemaDefinition7.field)({ name: "type", order: 2, type: import_SchemaDefinition7.FieldTypes.SELECT, default: "meter_readings", required: true, label: "Report Type", dbField: "type", enumValues: ["meter_readings", "usage_summary", "daily_summary"], enumLabels: { "meter_readings": "Meter Readings", "usage_summary": "Usage Summary", "daily_summary": "Daily Summary" }, filterable: ["true"], showOn: ["list", "form"] })
+          ]
+        }),
+        (0, import_SchemaDefinition7.section)({
+          name: "Status",
+          order: 2,
+          maxWidth: "150px",
+          fields: [
+            (0, import_SchemaDefinition7.field)({ name: "active", order: 1, type: import_SchemaDefinition7.FieldTypes.BOOLEAN, default: true, required: false, label: "Active", dbField: "active", filterable: ["true"], showOn: ["list", "form"] })
+          ]
+        })
+      ]
+    }),
+    (0, import_SchemaDefinition7.tab)({
+      name: "Schedule",
+      order: 2,
+      sections: [
+        (0, import_SchemaDefinition7.section)({ name: "Execution Schedule", order: 1, flex: 1, fields: [
+          (0, import_SchemaDefinition7.field)({
+            name: "schedule",
+            order: 1,
+            type: "custom",
+            default: "0 9 * * *",
+            required: true,
+            label: "Schedule",
+            dbField: "schedule",
+            showOn: ["form"],
+            customField: true,
+            helpText: "When this report should be sent"
+          })
+        ] })
+      ]
+    }),
+    (0, import_SchemaDefinition7.tab)({
+      name: "Recipients",
+      order: 3,
+      sections: [
+        (0, import_SchemaDefinition7.section)({ name: "Email Recipients", order: 1, flex: 1, fields: [
+          (0, import_SchemaDefinition7.field)({ name: "recipients", order: 1, type: import_SchemaDefinition7.FieldTypes.STRING, default: [], required: true, label: "Email Recipients", dbField: "recipients", placeholder: "user@example.com", helpText: "Add email addresses to receive the report", showOn: ["form"], customField: true })
+        ] })
+      ]
+    }),
+    (0, import_SchemaDefinition7.tab)({
+      name: "Meters & Elements",
+      order: 5,
+      sections: [
+        (0, import_SchemaDefinition7.section)({ name: "Select Meters and Elements", order: 1, flex: 1, fields: [
+          (0, import_SchemaDefinition7.field)({ name: "meter_ids", order: 1, type: "custom", label: "Meters and Elements", required: false, default: [], showOn: ["form"], customField: true }),
+          (0, import_SchemaDefinition7.field)({ name: "element_ids", order: 2, type: "custom", label: "Selected Elements", required: false, default: [], showOn: ["form"], customField: true })
+        ] })
+      ]
+    }),
+    (0, import_SchemaDefinition7.tab)({
+      name: "Registers",
+      order: 6,
+      sections: [
+        (0, import_SchemaDefinition7.section)({ name: "Select Registers", order: 1, flex: 1, fields: [
+          (0, import_SchemaDefinition7.field)({ name: "register_ids", order: 1, type: import_SchemaDefinition7.FieldTypes.OBJECT, label: "Registers", required: false, default: [], showOn: ["form"], dbField: "register_ids", description: "Selected register field names" })
+        ] })
+      ]
+    }),
+    (0, import_SchemaDefinition7.tab)({
+      name: "Formatting",
+      order: 7,
+      sections: [
+        (0, import_SchemaDefinition7.section)({ name: "Output Format", order: 1, flex: 1, fields: [
+          (0, import_SchemaDefinition7.field)({ name: "html_format", order: 1, type: import_SchemaDefinition7.FieldTypes.BOOLEAN, label: "Enable HTML Formatting", required: false, default: false, showOn: ["form"] })
+        ] })
+      ]
+    })
+  ]
+});
+
+// worker/routes/dashboardSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var { defineSchema: defineSchema10, field: field10, tab: tab10, section: section10, FieldTypes: FieldTypes10 } = require_SchemaDefinition();
+var dashboardSchema = defineSchema10({
+  entityName: "Dashboard",
+  tableName: "dashboard",
+  description: "Dashboard card configuration for displaying aggregated meter reading data",
+  customListColumns: {},
+  formTabs: [
+    tab10({
+      name: "Card Configuration",
+      order: 1,
+      sections: [
+        section10({
+          name: "Basic Information",
+          order: 1,
+          minWidth: "350px",
+          fields: [
+            field10({ name: "card_name", order: 1, type: FieldTypes10.STRING, default: "", required: true, label: "Card Name", dbField: "card_name", minLength: 1, maxLength: 255, placeholder: "Enter card name", showOn: ["list", "form"] }),
+            field10({ name: "card_description", order: 2, type: FieldTypes10.STRING, default: "", required: false, label: "Description", dbField: "card_description", maxLength: 1e3, placeholder: "Enter card description", showOn: ["form"] }),
+            field10({ name: "meter_element_id", order: 3, type: FieldTypes10.NUMBER, default: null, required: true, label: "Meter Element", dbField: "meter_element_id", min: 1, showOn: ["list", "form"], validate: true, validationFields: ["name"] }),
+            field10({ name: "meter_id", order: 4, type: FieldTypes10.NUMBER, default: null, required: true, label: "Meter", dbField: "meter_id", min: 1, showOn: ["form"], validate: true, validationFields: ["name"] })
+          ]
+        }),
+        section10({ name: "Data Selection", order: 2, fields: [
+          field10({ name: "selected_columns", order: 1, type: FieldTypes10.OBJECT, default: [], required: true, label: "Selected Power Columns", dbField: "selected_columns", showOn: ["form"], description: "Select which power columns to display on this card" })
+        ] }),
+        section10({ name: "Time Frame", order: 3, fields: [
+          field10({ name: "time_frame_type", order: 1, type: FieldTypes10.STRING, default: "last_month", required: true, label: "Time Frame Type", dbField: "time_frame_type", enumValues: ["custom", "last_month", "this_month_to_date", "since_installation"], showOn: ["list", "form"] }),
+          field10({ name: "custom_start_date", order: 2, type: FieldTypes10.DATE, default: null, required: false, label: "Custom Start Date", dbField: "custom_start_date", placeholder: "Select start date", showOn: ["form"], description: 'Required when Time Frame Type is "custom"' }),
+          field10({ name: "custom_end_date", order: 3, type: FieldTypes10.DATE, default: null, required: false, label: "Custom End Date", dbField: "custom_end_date", placeholder: "Select end date", showOn: ["form"], description: 'Required when Time Frame Type is "custom"' })
+        ] }),
+        section10({ name: "Visualization", order: 4, fields: [
+          field10({ name: "visualization_type", order: 1, type: FieldTypes10.STRING, default: "line", required: true, label: "Visualization Type", dbField: "visualization_type", enumValues: ["pie", "line", "candlestick", "bar", "area"], showOn: ["list", "form"] }),
+          field10({ name: "grouping_type", order: 2, type: FieldTypes10.STRING, default: "daily", required: true, label: "Data Grouping", dbField: "grouping_type", enumValues: ["total", "hourly", "daily", "weekly", "monthly"], showOn: ["list", "form"], description: "How to group the aggregated data" })
+        ] }),
+        section10({ name: "Grid Layout", order: 5, fields: [
+          field10({ name: "grid_x", order: 1, type: FieldTypes10.NUMBER, default: null, required: false, label: "Grid X Position", dbField: "grid_x", showOn: ["form"] }),
+          field10({ name: "grid_y", order: 2, type: FieldTypes10.NUMBER, default: null, required: false, label: "Grid Y Position", dbField: "grid_y", showOn: ["form"] }),
+          field10({ name: "grid_w", order: 3, type: FieldTypes10.NUMBER, default: null, required: false, label: "Grid Width", dbField: "grid_w", showOn: ["form"] }),
+          field10({ name: "grid_h", order: 4, type: FieldTypes10.NUMBER, default: null, required: false, label: "Grid Height", dbField: "grid_h", showOn: ["form"] })
+        ] })
+      ]
+    }),
+    tab10({
+      name: "Additional Info",
+      order: 2,
+      sectionOrientation: "vertical",
+      sections: [
+        section10({ name: "Audit", order: 1, fields: [
+          field10({ name: "created_at", order: 1, type: FieldTypes10.DATE, default: null, readOnly: true, label: "Created At", dbField: "created_at", showOn: ["form"] }),
+          field10({ name: "updated_at", order: 2, type: FieldTypes10.DATE, default: null, readOnly: true, label: "Updated At", dbField: "updated_at", showOn: ["form"] })
+        ] })
+      ]
+    })
+  ],
+  formFields: {
+    card_name: field10({ type: FieldTypes10.STRING, default: "", required: true, label: "Card Name", dbField: "card_name", minLength: 1, maxLength: 255, showOn: ["list", "form"] }),
+    card_description: field10({ type: FieldTypes10.STRING, default: "", required: false, label: "Description", dbField: "card_description", maxLength: 1e3, showOn: ["form"] }),
+    meter_element_id: field10({ type: FieldTypes10.NUMBER, default: null, required: true, label: "Meter Element", dbField: "meter_element_id", min: 1, showOn: ["list", "form"], validate: true }),
+    meter_id: field10({ type: FieldTypes10.NUMBER, default: null, required: true, label: "Meter", dbField: "meter_id", min: 1, showOn: ["form"], validate: true }),
+    selected_columns: field10({ type: FieldTypes10.OBJECT, default: [], required: true, label: "Selected Power Columns", dbField: "selected_columns", showOn: ["form"] }),
+    time_frame_type: field10({ type: FieldTypes10.STRING, default: "last_month", required: true, label: "Time Frame Type", dbField: "time_frame_type", enumValues: ["custom", "last_month", "this_month_to_date", "since_installation"], showOn: ["list", "form"] }),
+    custom_start_date: field10({ type: FieldTypes10.DATE, default: null, required: false, label: "Custom Start Date", dbField: "custom_start_date", showOn: ["form"] }),
+    custom_end_date: field10({ type: FieldTypes10.DATE, default: null, required: false, label: "Custom End Date", dbField: "custom_end_date", showOn: ["form"] }),
+    visualization_type: field10({ type: FieldTypes10.STRING, default: "line", required: true, label: "Visualization Type", dbField: "visualization_type", enumValues: ["pie", "line", "candlestick", "bar", "area"], showOn: ["list", "form"] }),
+    grouping_type: field10({ type: FieldTypes10.STRING, default: "daily", required: true, label: "Data Grouping", dbField: "grouping_type", enumValues: ["total", "hourly", "daily", "weekly", "monthly"], showOn: ["list", "form"] }),
+    grid_x: field10({ type: FieldTypes10.NUMBER, default: null, required: false, label: "Grid X Position", dbField: "grid_x", showOn: ["form"] }),
+    grid_y: field10({ type: FieldTypes10.NUMBER, default: null, required: false, label: "Grid Y Position", dbField: "grid_y", showOn: ["form"] }),
+    grid_w: field10({ type: FieldTypes10.NUMBER, default: null, required: false, label: "Grid Width", dbField: "grid_w", showOn: ["form"] }),
+    grid_h: field10({ type: FieldTypes10.NUMBER, default: null, required: false, label: "Grid Height", dbField: "grid_h", showOn: ["form"] })
+  },
+  entityFields: {
+    dashboard_id: field10({ name: "dashboard_id", type: FieldTypes10.NUMBER, default: null, readOnly: true, label: "ID", dbField: "dashboard_id" }),
+    tenant_id: field10({ name: "tenant_id", type: FieldTypes10.NUMBER, default: 0, readOnly: false, label: "Tenant ID", dbField: "tenant_id" }),
+    created_by_users_id: field10({ name: "created_by_users_id", type: FieldTypes10.NUMBER, default: null, readOnly: true, label: "Created By User ID", dbField: "created_by_users_id" }),
+    created_at: field10({ name: "created_at", type: FieldTypes10.DATE, default: null, readOnly: true, label: "Created At", dbField: "created_at" }),
+    updated_at: field10({ name: "updated_at", type: FieldTypes10.DATE, default: null, readOnly: true, label: "Updated At", dbField: "updated_at" }),
+    grid_x: field10({ name: "grid_x", type: FieldTypes10.NUMBER, default: null, readOnly: false, label: "Grid X Position", dbField: "grid_x" }),
+    grid_y: field10({ name: "grid_y", type: FieldTypes10.NUMBER, default: null, readOnly: false, label: "Grid Y Position", dbField: "grid_y" }),
+    grid_w: field10({ name: "grid_w", type: FieldTypes10.NUMBER, default: null, readOnly: false, label: "Grid Width", dbField: "grid_w" }),
+    grid_h: field10({ name: "grid_h", type: FieldTypes10.NUMBER, default: null, readOnly: false, label: "Grid Height", dbField: "grid_h" })
+  },
+  validation: {}
+});
+
+// worker/routes/authLogsSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition8 = __toESM(require_SchemaDefinition());
+var authLogsSchema = (0, import_SchemaDefinition8.defineSchema)({
+  entityName: "AuthLogs",
+  tableName: "auth_logs",
+  description: "Authentication logs entity for tracking login and auth events",
+  customListColumns: {},
+  formFields: {
+    userId: (0, import_SchemaDefinition8.field)({ type: import_SchemaDefinition8.FieldTypes.NUMBER, default: 0, required: true, label: "User ID", dbField: "user_id" }),
+    eventType: (0, import_SchemaDefinition8.field)({ type: import_SchemaDefinition8.FieldTypes.STRING, default: "", required: true, label: "Event Type", dbField: "event_type", maxLength: 50 }),
+    status: (0, import_SchemaDefinition8.field)({ type: import_SchemaDefinition8.FieldTypes.STRING, default: "", required: true, label: "Status", dbField: "status", maxLength: 20 }),
+    ipAddress: (0, import_SchemaDefinition8.field)({ type: import_SchemaDefinition8.FieldTypes.STRING, default: "", required: false, label: "IP Address", dbField: "ip_address" }),
+    userAgent: (0, import_SchemaDefinition8.field)({ type: import_SchemaDefinition8.FieldTypes.STRING, default: "", required: false, label: "User Agent", dbField: "user_agent" }),
+    details: (0, import_SchemaDefinition8.field)({ type: import_SchemaDefinition8.FieldTypes.JSON, default: {}, required: false, label: "Details", dbField: "details" })
+  },
+  entityFields: {
+    authLogsId: (0, import_SchemaDefinition8.field)({ name: "auth_logs_id", type: import_SchemaDefinition8.FieldTypes.NUMBER, default: null, readOnly: true, label: "Auth Logs ID", dbField: "auth_logs_id" }),
+    createdAt: (0, import_SchemaDefinition8.field)({ type: import_SchemaDefinition8.FieldTypes.DATE, default: null, readOnly: true, label: "Created At", dbField: "created_at" })
+  },
+  relationships: {
+    user: (0, import_SchemaDefinition8.relationship)({ type: import_SchemaDefinition8.RelationshipTypes.BELONGS_TO, model: "User", foreignKey: "user_id", autoLoad: false })
+  },
+  validation: {}
+});
+
+// worker/routes/emailTemplatesSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition9 = __toESM(require_SchemaDefinition());
+var emailTemplatesSchema = (0, import_SchemaDefinition9.defineSchema)({
+  entityName: "EmailTemplates",
+  tableName: "email_templates",
+  description: "EmailTemplates entity",
+  customListColumns: {},
+  formFields: {
+    name: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.STRING, default: "", required: true, label: "Name", dbField: "name", maxLength: 255 }),
+    subject: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.STRING, default: "", required: true, label: "Subject", dbField: "subject", maxLength: 500 }),
+    content: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.STRING, default: "", required: true, label: "Content", dbField: "content" }),
+    category: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.STRING, default: "", required: true, label: "Category", dbField: "category", maxLength: 50 }),
+    variables: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.OBJECT, default: null, required: false, label: "Variables", dbField: "variables" }),
+    isdefault: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.BOOLEAN, default: false, required: false, label: "Is Default", dbField: "isdefault" }),
+    isactive: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.BOOLEAN, default: true, required: false, label: "Is Active", dbField: "isactive" }),
+    usagecount: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.NUMBER, default: 0, required: false, label: "Usage Count", dbField: "usagecount" }),
+    lastused: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.DATE, default: "", required: false, label: "Last Used", dbField: "lastused" }),
+    createdby: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.NUMBER, default: 0, required: false, label: "Created By", dbField: "createdby" })
+  },
+  entityFields: {
+    id: (0, import_SchemaDefinition9.field)({ name: "email_template_id", type: import_SchemaDefinition9.FieldTypes.NUMBER, default: null, readOnly: true, label: "Id", dbField: "email_template_id" }),
+    createdat: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.DATE, default: null, readOnly: true, label: "Created At", dbField: "createdat" }),
+    updatedat: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.DATE, default: null, readOnly: true, label: "Updated At", dbField: "updatedat" }),
+    tenantId: (0, import_SchemaDefinition9.field)({ type: import_SchemaDefinition9.FieldTypes.NUMBER, default: null, readOnly: true, label: "Tenant ID", dbField: "tenant_id" })
+  },
+  validation: {}
+});
+
+// worker/routes/notificationSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition10 = __toESM(require_SchemaDefinition());
+var notificationSchema = (0, import_SchemaDefinition10.defineSchema)({
+  entityName: "Notification",
+  tableName: "notification",
+  description: "System notifications for meter health alerts",
+  entityFields: {
+    id: (0, import_SchemaDefinition10.field)({ name: "id", type: import_SchemaDefinition10.FieldTypes.STRING, label: "ID", dbField: "notification_id", readOnly: true }),
+    tenant_id: (0, import_SchemaDefinition10.field)({ name: "tenant_id", type: import_SchemaDefinition10.FieldTypes.STRING, label: "Tenant", dbField: "tenant_id", readOnly: true }),
+    users_id: (0, import_SchemaDefinition10.field)({ name: "users_id", type: import_SchemaDefinition10.FieldTypes.STRING, label: "User", dbField: "users_id", readOnly: true }),
+    meter_id: (0, import_SchemaDefinition10.field)({ name: "meter_id", type: import_SchemaDefinition10.FieldTypes.STRING, label: "Meter ID", dbField: "meter_id", readOnly: true }),
+    meter_element_id: (0, import_SchemaDefinition10.field)({ name: "meter_element_id", type: import_SchemaDefinition10.FieldTypes.STRING, label: "Element ID", dbField: "meter_element_id", readOnly: true })
+  },
+  formTabs: [
+    (0, import_SchemaDefinition10.tab)({
+      name: "Details",
+      order: 1,
+      sections: [
+        (0, import_SchemaDefinition10.section)({
+          name: "Notification",
+          order: 1,
+          flex: 1,
+          fields: [
+            (0, import_SchemaDefinition10.field)({
+              name: "severity",
+              order: 1,
+              type: import_SchemaDefinition10.FieldTypes.SELECT,
+              default: "warning",
+              required: false,
+              label: "Severity",
+              dbField: "severity",
+              readOnly: true,
+              filterable: ["main"],
+              showOn: ["list"],
+              enumValues: ["info", "warning", "error"],
+              enumLabels: { info: "Info", warning: "Warning", error: "Error" }
+            }),
+            (0, import_SchemaDefinition10.field)({
+              name: "notification_type",
+              order: 2,
+              type: import_SchemaDefinition10.FieldTypes.SELECT,
+              default: "stale",
+              required: false,
+              label: "Type",
+              dbField: "notification_type",
+              readOnly: true,
+              filterable: ["main"],
+              showOn: ["list"],
+              enumValues: ["stale", "all_zero", "error_status"],
+              enumLabels: { stale: "No Readings", all_zero: "Zero Readings", error_status: "Error" }
+            }),
+            (0, import_SchemaDefinition10.field)({ name: "title", order: 3, type: import_SchemaDefinition10.FieldTypes.STRING, default: "", required: false, label: "Title", dbField: "title", readOnly: true, showOn: ["list"] }),
+            (0, import_SchemaDefinition10.field)({ name: "description", order: 4, type: import_SchemaDefinition10.FieldTypes.STRING, default: "", required: false, label: "Details", dbField: "description", readOnly: true, showOn: ["list"] }),
+            (0, import_SchemaDefinition10.field)({ name: "created_at", order: 5, type: import_SchemaDefinition10.FieldTypes.DATE, default: null, required: false, label: "Time", dbField: "created_at", readOnly: true, showOn: ["list"] })
+          ]
+        })
+      ]
+    })
+  ]
+});
+
+// worker/routes/notificationSettingsSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition11 = __toESM(require_SchemaDefinition());
+var notificationSettingsSchema = (0, import_SchemaDefinition11.defineSchema)({
+  entityName: "NotificationSettings",
+  tableName: "notification_settings",
+  description: "Configuration for automated meter health checks and notifications",
+  formMaxWidth: "600px",
+  entityFields: {
+    id: (0, import_SchemaDefinition11.field)({ name: "id", type: import_SchemaDefinition11.FieldTypes.STRING, label: "ID", dbField: "notification_settings_id", readOnly: true }),
+    updated_at: (0, import_SchemaDefinition11.field)({ name: "updated_at", type: import_SchemaDefinition11.FieldTypes.DATE, label: "Last Updated", dbField: "updated_at", readOnly: true })
+  },
+  formTabs: [
+    (0, import_SchemaDefinition11.tab)({
+      name: "Settings",
+      order: 1,
+      sections: [
+        (0, import_SchemaDefinition11.section)({
+          name: "Health Check",
+          order: 1,
+          flex: 1,
+          fields: [
+            (0, import_SchemaDefinition11.field)({
+              name: "enabled",
+              order: 1,
+              type: import_SchemaDefinition11.FieldTypes.BOOLEAN,
+              default: true,
+              required: false,
+              label: "Enable automatic health checks",
+              dbField: "enabled",
+              showOn: ["form"]
+            }),
+            (0, import_SchemaDefinition11.field)({
+              name: "health_check_cron",
+              order: 2,
+              type: import_SchemaDefinition11.FieldTypes.STRING,
+              default: "0 * * * *",
+              required: false,
+              label: "Health Check Schedule (cron)",
+              dbField: "health_check_cron",
+              showOn: ["form"],
+              description: 'Cron expression controlling how often meters are checked. Default: "0 * * * *" (every hour)'
+            }),
+            (0, import_SchemaDefinition11.field)({
+              name: "stale_threshold_hours",
+              order: 3,
+              type: import_SchemaDefinition11.FieldTypes.NUMBER,
+              default: 2,
+              required: false,
+              label: "Stale Threshold (hours)",
+              dbField: "stale_threshold_hours",
+              min: 1,
+              max: 168,
+              showOn: ["form"],
+              description: "A meter is flagged as stale when no reading has been received within this many hours."
+            }),
+            (0, import_SchemaDefinition11.field)({
+              name: "daily_email_cron",
+              order: 4,
+              type: import_SchemaDefinition11.FieldTypes.STRING,
+              default: "0 9 * * *",
+              required: false,
+              label: "Daily Email Summary Schedule (cron)",
+              dbField: "daily_email_cron",
+              showOn: ["form"],
+              description: 'Cron expression for the daily email summary. Default: "0 9 * * *" (9 am daily)'
+            })
+          ]
+        })
+      ]
+    })
+  ]
+});
+
+// worker/routes/notificationRuleSchema.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var import_SchemaDefinition12 = __toESM(require_SchemaDefinition());
+var notificationRuleSchema = (0, import_SchemaDefinition12.defineSchema)({
+  entityName: "NotificationRule",
+  tableName: "notification_rule",
+  description: "Custom notification rules for meter monitoring and alerting",
+  formMaxWidth: "700px",
+  formTabs: [
+    (0, import_SchemaDefinition12.tab)({
+      name: "General",
+      order: 1,
+      sections: [
+        (0, import_SchemaDefinition12.section)({
+          name: "Rule Details",
+          order: 1,
+          flex: 1,
+          fields: [
+            (0, import_SchemaDefinition12.field)({
+              name: "name",
+              order: 1,
+              type: import_SchemaDefinition12.FieldTypes.STRING,
+              default: "",
+              required: true,
+              label: "Rule Name",
+              dbField: "name",
+              minLength: 1,
+              maxLength: 255,
+              placeholder: "No readings for 24 hours",
+              filterable: ["main"],
+              showOn: ["list", "form"]
+            }),
+            (0, import_SchemaDefinition12.field)({
+              name: "description",
+              order: 2,
+              type: import_SchemaDefinition12.FieldTypes.STRING,
+              default: "",
+              required: false,
+              label: "Description",
+              dbField: "description",
+              maxLength: 500,
+              placeholder: "Alert when meter has no readings in the specified period",
+              showOn: ["form"]
+            }),
+            (0, import_SchemaDefinition12.field)({
+              name: "rule_type",
+              order: 3,
+              type: import_SchemaDefinition12.FieldTypes.SELECT,
+              default: "custom",
+              required: true,
+              label: "Rule Type",
+              dbField: "rule_type",
+              enumValues: ["custom", "meter_no_reading", "meter_zero_reading", "demand_threshold"],
+              enumLabels: {
+                "custom": "Custom",
+                "meter_no_reading": "No Reading in Period",
+                "meter_zero_reading": "Zero Readings",
+                "demand_threshold": "Demand Threshold"
+              },
+              filterable: ["true"],
+              showOn: ["list", "form"]
+            }),
+            (0, import_SchemaDefinition12.field)({
+              name: "demand_threshold",
+              order: 4,
+              type: import_SchemaDefinition12.FieldTypes.NUMBER,
+              default: null,
+              required: false,
+              label: "Demand Threshold (kW)",
+              dbField: "demand_threshold",
+              helpText: "Alert when demand exceeds this threshold in kW",
+              showOn: ["form"],
+              showIf: {
+                fieldName: "rule_type",
+                value: "demand_threshold"
+              }
+            })
+          ]
+        }),
+        (0, import_SchemaDefinition12.section)({
+          name: "Status",
+          order: 2,
+          maxWidth: "150px",
+          fields: [
+            (0, import_SchemaDefinition12.field)({
+              name: "active",
+              order: 1,
+              type: import_SchemaDefinition12.FieldTypes.BOOLEAN,
+              default: true,
+              required: false,
+              label: "Active",
+              dbField: "active",
+              filterable: ["true"],
+              showOn: ["list", "form"]
+            })
+          ]
+        })
+      ]
+    }),
+    (0, import_SchemaDefinition12.tab)({
+      name: "Schedule",
+      order: 2,
+      sections: [
+        (0, import_SchemaDefinition12.section)({
+          name: "Execution Schedule",
+          order: 1,
+          flex: 1,
+          fields: [
+            (0, import_SchemaDefinition12.field)({
+              name: "schedule_cron",
+              order: 1,
+              type: "custom",
+              default: "0 8 * * *",
+              required: true,
+              label: "Schedule",
+              dbField: "schedule_cron",
+              helpText: "When this rule should run",
+              showOn: ["form"],
+              customField: true
+            }),
+            (0, import_SchemaDefinition12.field)({
+              name: "threshold_hours",
+              order: 2,
+              type: import_SchemaDefinition12.FieldTypes.NUMBER,
+              default: 24,
+              required: false,
+              label: "Threshold Hours",
+              dbField: "threshold_hours",
+              helpText: 'For "no reading" rules: hours without readings before alert',
+              showOn: ["form"]
+            })
+          ]
+        })
+      ]
+    }),
+    (0, import_SchemaDefinition12.tab)({
+      name: "Recipients",
+      order: 3,
+      sections: [
+        (0, import_SchemaDefinition12.section)({
+          name: "Email Recipients",
+          order: 1,
+          flex: 1,
+          fields: [
+            (0, import_SchemaDefinition12.field)({
+              name: "recipients",
+              order: 1,
+              type: "custom",
+              default: [],
+              required: false,
+              label: "Notification Recipients",
+              dbField: "recipients",
+              helpText: "Select users and their email preferences",
+              showOn: ["form"],
+              customField: true
+            })
+          ]
+        })
+      ]
+    }),
+    (0, import_SchemaDefinition12.tab)({
+      name: "Meters",
+      order: 4,
+      sections: [
+        (0, import_SchemaDefinition12.section)({
+          name: "Monitored Meters",
+          order: 1,
+          flex: 1,
+          fields: [
+            (0, import_SchemaDefinition12.field)({
+              name: "meter_elements",
+              order: 1,
+              type: "custom",
+              default: [],
+              required: false,
+              label: "Select Meter Elements to Monitor",
+              dbField: "meter_elements",
+              helpText: "Choose which meter elements this rule applies to. Leave empty to monitor all.",
+              showOn: ["form"],
+              customField: true
+            }),
+            (0, import_SchemaDefinition12.field)({
+              name: "register_ids",
+              order: 2,
+              type: import_SchemaDefinition12.FieldTypes.OBJECT,
+              default: [],
+              required: false,
+              label: "Registers",
+              dbField: "register_ids",
+              helpText: "Select specific register field names to monitor (optional)",
+              showOn: ["form"],
+              description: "Selected register field names"
+            })
+          ]
+        })
+      ]
+    })
+  ],
+  listColumns: [
+    (0, import_SchemaDefinition12.field)({
+      name: "name",
+      order: 1,
+      type: import_SchemaDefinition12.FieldTypes.STRING,
+      label: "Rule Name",
+      dbField: "name",
+      showOn: ["list"],
+      width: "25%"
+    }),
+    (0, import_SchemaDefinition12.field)({
+      name: "rule_type",
+      order: 2,
+      type: import_SchemaDefinition12.FieldTypes.SELECT,
+      label: "Type",
+      dbField: "rule_type",
+      enumValues: ["custom", "meter_no_reading", "meter_zero_reading", "demand_threshold"],
+      enumLabels: {
+        "custom": "Custom",
+        "meter_no_reading": "No Reading",
+        "meter_zero_reading": "Zero Reading",
+        "demand_threshold": "Demand Threshold"
+      },
+      showOn: ["list"],
+      width: "15%"
+    }),
+    (0, import_SchemaDefinition12.field)({
+      name: "schedule_cron",
+      order: 3,
+      type: import_SchemaDefinition12.FieldTypes.STRING,
+      label: "Schedule",
+      dbField: "schedule_cron",
+      showOn: ["list"],
+      width: "20%"
+    }),
+    (0, import_SchemaDefinition12.field)({
+      name: "active",
+      order: 4,
+      type: import_SchemaDefinition12.FieldTypes.BOOLEAN,
+      label: "Active",
+      dbField: "active",
+      showOn: ["list"],
+      width: "10%"
+    })
+  ],
+  filters: [
+    (0, import_SchemaDefinition12.field)({
+      name: "rule_type",
+      type: import_SchemaDefinition12.FieldTypes.SELECT,
+      label: "Type",
+      dbField: "rule_type",
+      enumValues: ["custom", "meter_no_reading", "meter_zero_reading", "demand_threshold"],
+      enumLabels: {
+        "custom": "Custom",
+        "meter_no_reading": "No Reading Alert",
+        "meter_zero_reading": "Zero Reading Alert",
+        "demand_threshold": "Demand Threshold Alert"
+      }
+    }),
+    (0, import_SchemaDefinition12.field)({
+      name: "active",
+      type: import_SchemaDefinition12.FieldTypes.BOOLEAN,
+      label: "Status",
+      dbField: "active"
+    })
+  ]
+});
+
+// worker/routes/schema.ts
 var app12 = new Hono2();
+app12.use("*", authenticateToken);
 var schemas = {
-  meter: {
-    entityName: "Meter",
-    tableName: "meter",
-    primaryKey: "meter_id",
-    description: "Meters for energy monitoring",
-    formFields: {
-      name: { type: "text", label: "Name", required: true, maxLength: 255 },
-      serial_number: { type: "text", label: "Serial Number", maxLength: 100 },
-      ip: { type: "text", label: "IP Address", maxLength: 45 },
-      port: { type: "number", label: "Port" },
-      protocol: { type: "select", label: "Protocol", options: ["modbus", "bacnet", "snmp"] },
-      location_id: { type: "select", label: "Location", foreignKey: "location.location_id" },
-      device_id: { type: "select", label: "Device", foreignKey: "device.device_id" },
-      active: { type: "boolean", label: "Active", default: true },
-      notes: { type: "textarea", label: "Notes" }
-    },
-    entityFields: {
-      meter_id: { type: "integer", primaryKey: true },
-      tenant_id: { type: "integer" },
-      name: { type: "text" },
-      serial_number: { type: "text" },
-      ip: { type: "text" },
-      port: { type: "integer" },
-      protocol: { type: "text" },
-      location_id: { type: "integer" },
-      device_id: { type: "integer" },
-      active: { type: "boolean" },
-      notes: { type: "text" },
-      created_at: { type: "timestamp" },
-      updated_at: { type: "timestamp" }
-    }
-  },
-  location: {
-    entityName: "Location",
-    tableName: "location",
-    primaryKey: "location_id",
-    description: "Physical locations / buildings",
-    formFields: {
-      name: { type: "text", label: "Name", required: true, maxLength: 255 },
-      street: { type: "text", label: "Street", maxLength: 255 },
-      street2: { type: "text", label: "Street 2", maxLength: 255 },
-      city: { type: "text", label: "City", maxLength: 100 },
-      state: { type: "text", label: "State", maxLength: 50 },
-      zip: { type: "text", label: "Zip", maxLength: 20 },
-      country: { type: "text", label: "Country", maxLength: 100 }
-    },
-    entityFields: {
-      location_id: { type: "integer", primaryKey: true },
-      tenant_id: { type: "integer" },
-      name: { type: "text" },
-      street: { type: "text" },
-      street2: { type: "text" },
-      city: { type: "text" },
-      state: { type: "text" },
-      zip: { type: "text" },
-      country: { type: "text" },
-      created_at: { type: "timestamp" },
-      updated_at: { type: "timestamp" }
-    }
-  },
-  contact: {
-    entityName: "Contact",
-    tableName: "contact",
-    primaryKey: "contact_id",
-    description: "Contacts associated with locations or tenants",
-    formFields: {
-      name: { type: "text", label: "Name", required: true, maxLength: 255 },
-      email: { type: "email", label: "Email", maxLength: 255 },
-      phone: { type: "text", label: "Phone", maxLength: 20 },
-      title: { type: "text", label: "Title", maxLength: 100 },
-      location_id: { type: "select", label: "Location", foreignKey: "location.location_id" }
-    },
-    entityFields: {
-      contact_id: { type: "integer", primaryKey: true },
-      tenant_id: { type: "integer" },
-      name: { type: "text" },
-      email: { type: "text" },
-      phone: { type: "text" },
-      title: { type: "text" },
-      location_id: { type: "integer" },
-      created_at: { type: "timestamp" },
-      updated_at: { type: "timestamp" }
-    }
-  },
-  device: {
-    entityName: "Device",
-    tableName: "device",
-    primaryKey: "device_id",
-    description: "Physical devices (BACnet/Modbus controllers)",
-    formFields: {
-      name: { type: "text", label: "Name", required: true, maxLength: 255 },
-      type: { type: "text", label: "Type", maxLength: 100 },
-      manufacturer: { type: "text", label: "Manufacturer", maxLength: 100 },
-      model: { type: "text", label: "Model", maxLength: 100 },
-      location: { type: "text", label: "Location", maxLength: 255 },
-      status: { type: "select", label: "Status", options: ["active", "inactive", "maintenance"] }
-    },
-    entityFields: {
-      device_id: { type: "integer", primaryKey: true },
-      tenant_id: { type: "integer" },
-      name: { type: "text" },
-      type: { type: "text" },
-      manufacturer: { type: "text" },
-      model: { type: "text" },
-      location: { type: "text" },
-      status: { type: "text" },
-      metadata: { type: "jsonb" },
-      created_at: { type: "timestamp" },
-      updated_at: { type: "timestamp" }
-    }
-  },
-  user: {
-    entityName: "User",
-    tableName: "users",
-    primaryKey: "users_id",
-    description: "System users",
-    formFields: {
-      name: { type: "text", label: "Name", required: true, maxLength: 255 },
-      email: { type: "email", label: "Email", required: true, maxLength: 255 },
-      phone: { type: "text", label: "Phone", maxLength: 20 },
-      role: { type: "select", label: "Role", options: ["admin", "Manager", "Technician", "Viewer"] },
-      active: { type: "boolean", label: "Active", default: true }
-    },
-    entityFields: {
-      users_id: { type: "integer", primaryKey: true },
-      tenant_id: { type: "integer" },
-      name: { type: "text" },
-      email: { type: "text" },
-      phone: { type: "text" },
-      role: { type: "text" },
-      active: { type: "boolean" },
-      permissions: { type: "jsonb" },
-      created_at: { type: "timestamp" },
-      updated_at: { type: "timestamp" }
-    }
-  },
-  meter_reading: {
-    entityName: "MeterReading",
-    tableName: "meter_reading",
-    primaryKey: "meter_reading_id",
-    description: "Meter reading data points",
-    formFields: {},
-    entityFields: {
-      meter_reading_id: { type: "integer", primaryKey: true },
-      tenant_id: { type: "integer" },
-      meter_id: { type: "integer" },
-      meter_element_id: { type: "integer" },
-      active_energy: { type: "numeric" },
-      power: { type: "numeric" },
-      voltage_a_n: { type: "numeric" },
-      current: { type: "numeric" },
-      frequency: { type: "numeric" },
-      power_factor: { type: "numeric" },
-      created_at: { type: "timestamp" }
-    }
-  },
+  meter: meterSchema,
+  location: locationSchema,
+  contact: contactSchema,
+  device: deviceSchema,
+  user: userSchema,
+  tenant: tenantSchema,
+  meter_reading: meterReadingSchema,
   meterReadings: { $ref: "meter_reading" },
-  meterElements: {
-    entityName: "MeterElement",
-    tableName: "meter_element",
-    primaryKey: "meter_element_id",
-    description: "Meter element assignments",
-    formFields: {
-      name: { type: "text", label: "Name", required: true },
-      element: { type: "text", label: "Element", required: true }
-    },
-    entityFields: {
-      meter_element_id: { type: "integer", primaryKey: true },
-      meter_id: { type: "integer" },
-      tenant_id: { type: "integer" },
-      name: { type: "text" },
-      element: { type: "text" }
-    }
-  },
-  tenant: {
-    entityName: "Tenant",
-    tableName: "tenant",
-    primaryKey: "tenant_id",
-    description: "Tenant / organization",
-    formFields: {
-      name: { type: "text", label: "Name", required: true }
-    },
-    entityFields: {
-      tenant_id: { type: "integer", primaryKey: true },
-      name: { type: "text" },
-      api_key: { type: "uuid" },
-      active: { type: "boolean" }
-    }
-  },
-  emailTemplates: {
-    entityName: "EmailTemplate",
-    tableName: "email_template",
-    primaryKey: "email_template_id",
-    description: "Email notification templates",
-    formFields: {
-      name: { type: "text", label: "Name", required: true },
-      subject: { type: "text", label: "Subject", required: true },
-      content: { type: "textarea", label: "Content", required: true },
-      category: { type: "select", label: "Category", options: ["meter_readings", "meter_errors", "maintenance", "general"] }
-    },
-    entityFields: {
-      email_template_id: { type: "integer", primaryKey: true },
-      tenant_id: { type: "integer" },
-      name: { type: "text" },
-      subject: { type: "text" },
-      content: { type: "text" },
-      category: { type: "text" },
-      variables: { type: "jsonb" },
-      isactive: { type: "boolean" },
-      isdefault: { type: "boolean" },
-      usagecount: { type: "integer" }
-    }
-  },
-  report: {
-    entityName: "Report",
-    tableName: "report",
-    primaryKey: "report_id",
-    description: "Scheduled reports",
-    formFields: {
-      name: { type: "text", label: "Name", required: true },
-      type: { type: "text", label: "Type", required: true },
-      schedule: { type: "text", label: "Schedule (cron)", required: true },
-      recipients: { type: "array", label: "Recipients", required: true }
-    },
-    entityFields: {
-      report_id: { type: "integer", primaryKey: true },
-      name: { type: "text" },
-      type: { type: "text" },
-      schedule: { type: "text" },
-      recipients: { type: "jsonb" },
-      config: { type: "jsonb" },
-      enabled: { type: "boolean" }
-    }
-  }
+  meterElements: meterElementsSchema,
+  report: reportSchema,
+  dashboard: dashboardSchema,
+  authLogs: authLogsSchema,
+  emailTemplates: emailTemplatesSchema,
+  notification: notificationSchema,
+  notification_settings: notificationSettingsSchema,
+  notification_rule: notificationRuleSchema
 };
 function resolveSchema(key) {
   const schema = schemas[key];
@@ -19729,10 +18161,11 @@ app12.get("/", (c) => {
   try {
     const availableSchemas = Object.keys(schemas).filter((k) => !schemas[k].$ref).map((entityName) => {
       const schema = schemas[entityName];
+      const json = schema.toJSON();
       return {
-        entityName: schema.entityName,
-        tableName: schema.tableName,
-        description: schema.description,
+        entityName: json.entityName,
+        tableName: json.tableName,
+        description: json.description,
         endpoint: `/api/schema/${entityName}`
       };
     });
@@ -19744,11 +18177,7 @@ app12.get("/", (c) => {
       }
     });
   } catch (error3) {
-    return c.json({
-      success: false,
-      message: "Failed to fetch schema list",
-      error: error3.message
-    }, 500);
+    return c.json({ success: false, message: "Failed to fetch schema list", error: error3.message }, 500);
   }
 });
 app12.get("/:entity", (c) => {
@@ -19756,19 +18185,11 @@ app12.get("/:entity", (c) => {
     const entity = c.req.param("entity");
     const schema = resolveSchema(entity);
     if (!schema) {
-      return c.json({
-        success: false,
-        message: `Schema not found for entity: ${entity}`,
-        availableEntities: Object.keys(schemas)
-      }, 404);
+      return c.json({ success: false, message: `Schema not found for entity: ${entity}`, availableEntities: Object.keys(schemas) }, 404);
     }
-    return c.json({ success: true, data: schema });
+    return c.json({ success: true, data: schema.toJSON() });
   } catch (error3) {
-    return c.json({
-      success: false,
-      message: "Failed to fetch schema",
-      error: error3.message
-    }, 500);
+    return c.json({ success: false, message: "Failed to fetch schema", error: error3.message }, 500);
   }
 });
 app12.post("/:entity/validate", async (c) => {
@@ -19776,33 +18197,13 @@ app12.post("/:entity/validate", async (c) => {
     const entity = c.req.param("entity");
     const schema = resolveSchema(entity);
     if (!schema) {
-      return c.json({
-        success: false,
-        message: `Schema not found for entity: ${entity}`
-      }, 404);
+      return c.json({ success: false, message: `Schema not found for entity: ${entity}` }, 404);
     }
     const data = await c.req.json();
-    const errors = {};
-    if (schema.formFields) {
-      for (const [field, def] of Object.entries(schema.formFields)) {
-        if (def.required && (data[field] === void 0 || data[field] === null || data[field] === "")) {
-          errors[field] = `${def.label || field} is required`;
-        }
-      }
-    }
-    return c.json({
-      success: true,
-      data: {
-        isValid: Object.keys(errors).length === 0,
-        errors
-      }
-    });
+    const result = schema.validate(data);
+    return c.json({ success: true, data: result });
   } catch (error3) {
-    return c.json({
-      success: false,
-      message: "Failed to validate data",
-      error: error3.message
-    }, 500);
+    return c.json({ success: false, message: "Failed to validate data", error: error3.message }, 500);
   }
 });
 var schema_default = app12;
@@ -19812,36 +18213,35 @@ init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
 var app13 = new Hono2();
-app13.use("*", authenticateToken);
-var POWER_COLUMNS = [
-  "active_energy",
-  "active_energy_export",
-  "apparent_energy",
-  "apparent_energy_export",
-  "apparent_power",
-  "apparent_power_phase_a",
-  "apparent_power_phase_b",
-  "apparent_power_phase_c",
-  "current",
-  "current_line_a",
-  "current_line_b",
-  "current_line_c",
+var VALID_METER_READING_COLUMNS = /* @__PURE__ */ new Set([
+  "kwh",
+  "mwh",
+  "kvah",
+  "kvah_export",
+  "kva",
+  "phase_kva_a",
+  "phase_kva_b",
+  "phase_kva_c",
+  "amperage",
+  "phase_amperage_a",
+  "phase_amperage_b",
+  "phase_amperage_c",
   "frequency",
-  "maximum_demand_real",
-  "power",
-  "power_factor",
-  "power_factor_phase_a",
-  "power_factor_phase_b",
-  "power_factor_phase_c",
-  "power_phase_a",
-  "power_phase_b",
-  "power_phase_c",
-  "reactive_energy",
-  "reactive_energy_export",
-  "reactive_power",
-  "reactive_power_phase_a",
-  "reactive_power_phase_b",
-  "reactive_power_phase_c",
+  "peak_kw",
+  "kw",
+  "pf",
+  "pf_a",
+  "pf_b",
+  "pf_c",
+  "phase_kw_a",
+  "phase_kw_b",
+  "phase_kw_c",
+  "kvarh",
+  "kvarh_export",
+  "kvar",
+  "phase_kvar_a",
+  "phase_kvar_b",
+  "phase_kvar_c",
   "voltage_a_b",
   "voltage_a_n",
   "voltage_b_c",
@@ -19850,11 +18250,12 @@ var POWER_COLUMNS = [
   "voltage_c_n",
   "voltage_p_n",
   "voltage_p_p",
-  "voltage_thd",
-  "voltage_thd_phase_a",
-  "voltage_thd_phase_b",
-  "voltage_thd_phase_c"
-];
+  "total_thdv",
+  "phase_thdv_a",
+  "phase_thdv_b",
+  "phase_thdv_c"
+]);
+app13.use("*", authenticateToken);
 app13.get("/cards", requirePermission("dashboard:read"), async (c) => {
   try {
     const qs = c.req.query();
@@ -19869,20 +18270,23 @@ app13.get("/cards", requirePermission("dashboard:read"), async (c) => {
       where.card_name = qs.search;
     }
     const result = await findAll(c.env, {
-      table: "dashboard_card",
-      primaryKey: "dashboard_card_id",
+      table: "dashboard",
+      primaryKey: "dashboard_id",
       tenantId,
       page,
       limit,
       where,
       search: qs.search || void 0,
-      searchFields: ["card_name"]
+      searchFields: ["card_name"],
+      sortBy: qs.sortBy,
+      sortOrder: qs.sortOrder
     });
+    console.log("[Dashboard] GET /cards - Raw database rows:", result.rows.map((c2) => ({ id: c2.dashboard_id, grid_x: c2.grid_x, grid_y: c2.grid_y })));
     const items = result.rows.map((card, index) => {
       const cardIndex = (page - 1) * limit + index;
       return {
         ...card,
-        dashboard_id: card.dashboard_card_id || card.id,
+        dashboard_id: card.dashboard_id || card.id,
         grid_x: card.grid_x ?? 0,
         grid_y: card.grid_y ?? cardIndex * 520,
         grid_w: card.grid_w ?? 500,
@@ -19900,7 +18304,7 @@ app13.get("/cards", requirePermission("dashboard:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching cards:", error3);
+    logError("Error fetching cards", error3);
     return c.json({ success: false, message: "Failed to fetch dashboard cards" }, 500);
   }
 });
@@ -19908,13 +18312,13 @@ app13.get("/cards/:id", requirePermission("dashboard:read"), async (c) => {
   try {
     const tenantId = c.get("tenantId");
     if (!tenantId) return c.json({ success: false, message: "User must have a valid tenant_id" }, 400);
-    const card = await findById(c.env, "dashboard_card", "dashboard_card_id", c.req.param("id"), tenantId);
+    const card = await findById(c.env, "dashboard", "dashboard_id", c.req.param("id"), tenantId);
     if (!card) return c.json({ success: false, message: "Dashboard card not found" }, 404);
     return c.json({
       success: true,
       data: {
         ...card,
-        dashboard_id: card.dashboard_card_id,
+        dashboard_id: card.dashboard_id,
         grid_x: card.grid_x ?? 0,
         grid_y: card.grid_y ?? 0,
         grid_w: card.grid_w ?? 500,
@@ -19922,7 +18326,7 @@ app13.get("/cards/:id", requirePermission("dashboard:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching card:", error3);
+    logError("Error fetching card", error3);
     return c.json({ success: false, message: "Failed to fetch dashboard card" }, 500);
   }
 });
@@ -19930,27 +18334,66 @@ app13.get("/cards/:id/data", requirePermission("dashboard:read"), async (c) => {
   try {
     const tenantId = c.get("tenantId");
     if (!tenantId) return c.json({ success: false, message: "User must have a valid tenant_id" }, 400);
-    const card = await findById(c.env, "dashboard_card", "dashboard_card_id", c.req.param("id"), tenantId);
+    const card = await findById(c.env, "dashboard", "dashboard_id", c.req.param("id"), tenantId);
     if (!card) return c.json({ success: false, message: "Dashboard card not found" }, 404);
-    const selectedColumns = Array.isArray(card.selected_columns) ? card.selected_columns : [];
+    let rawColumns = card.selected_columns;
+    if (typeof rawColumns === "string") {
+      try {
+        rawColumns = JSON.parse(rawColumns);
+      } catch {
+        rawColumns = [];
+      }
+    }
+    const selectedColumns = (Array.isArray(rawColumns) ? rawColumns : []).map((col) => columnNameMapping[col.toLowerCase()] || col.toLowerCase()).filter((col) => VALID_METER_READING_COLUMNS.has(col)).filter((col, idx, arr) => arr.indexOf(col) === idx);
     if (selectedColumns.length === 0) {
-      return c.json({ success: true, data: { card_id: card.dashboard_card_id, aggregated_values: {}, grouped_data: [] } });
+      return c.json({ success: true, data: { card_id: card.dashboard_id, aggregated_values: {}, grouped_data: [] } });
     }
     const now = /* @__PURE__ */ new Date();
-    let startDate = new Date(now);
-    startDate.setDate(startDate.getDate() - 30);
-    if (card.custom_start_date) startDate = new Date(card.custom_start_date);
-    const endDate = card.custom_end_date ? new Date(card.custom_end_date) : now;
-    const aggCols = selectedColumns.map((col) => `AVG("${col}") as "avg_${col}", MIN("${col}") as "min_${col}", MAX("${col}") as "max_${col}"`).join(", ");
-    const aggSql = `SELECT ${aggCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4`;
+    let startDate;
+    const timeFrameType = card.time_frame_type || "last_month";
+    if (timeFrameType === "today") {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (timeFrameType === "this_month_to_date") {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (timeFrameType === "yearly") {
+      startDate = new Date(now.getFullYear(), 0, 1);
+    } else if (timeFrameType === "since_installation") {
+      startDate = /* @__PURE__ */ new Date("2000-01-01");
+    } else if (timeFrameType === "custom" && card.custom_start_date) {
+      startDate = new Date(card.custom_start_date);
+    } else {
+      startDate = new Date(now);
+      startDate.setMonth(startDate.getMonth() - 1);
+    }
+    const endDate = timeFrameType === "custom" && card.custom_end_date ? new Date(card.custom_end_date) : now;
+    const rawAggType = (card.aggregation_type || "avg").toLowerCase();
+    const aggFn = rawAggType === "min" ? "MIN" : rawAggType === "max" ? "MAX" : "AVG";
+    const aggColsForAgg = selectedColumns.map((col) => `${aggFn}("${col}") as "${col}", AVG("${col}") as "avg_${col}", MIN("${col}") as "min_${col}", MAX("${col}") as "max_${col}"`).join(", ");
+    const aggSql = `SELECT ${aggColsForAgg} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4`;
+    console.log("[Dashboard] aggSql:", aggSql);
+    console.log("[Dashboard] aggSql params:", [tenantId, card.meter_element_id, startDate, endDate]);
     const aggResult = await query(c.env, aggSql, [tenantId, card.meter_element_id, startDate, endDate]);
-    const groupCols = selectedColumns.map((col) => `AVG("${col}") as "${col}"`).join(", ");
-    const groupSql = `SELECT DATE(created_at) as date, ${groupCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 GROUP BY DATE(created_at) ORDER BY DATE(created_at)`;
+    const groupCols = selectedColumns.map((col) => `${aggFn}("${col}") as "${col}"`).join(", ");
+    const groupingType = card.grouping_type || "daily";
+    let groupSql;
+    if (groupingType === "total") {
+      groupSql = `SELECT ${groupCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4`;
+    } else if (groupingType === "hourly") {
+      groupSql = `SELECT DATE(created_at) as date, EXTRACT(HOUR FROM created_at) as hour, ${groupCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 GROUP BY DATE(created_at), EXTRACT(HOUR FROM created_at) ORDER BY date, hour`;
+    } else if (groupingType === "weekly") {
+      groupSql = `SELECT DATE_TRUNC('week', created_at) as week_start, ${groupCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 GROUP BY DATE_TRUNC('week', created_at) ORDER BY week_start`;
+    } else if (groupingType === "monthly") {
+      groupSql = `SELECT DATE_TRUNC('month', created_at) as month_start, ${groupCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 GROUP BY DATE_TRUNC('month', created_at) ORDER BY month_start`;
+    } else {
+      groupSql = `SELECT DATE(created_at) as date, ${groupCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 GROUP BY DATE(created_at) ORDER BY date`;
+    }
+    console.log("[Dashboard] groupSql:", groupSql);
+    console.log("[Dashboard] groupSql params:", [tenantId, card.meter_element_id, startDate, endDate]);
     const groupResult = await query(c.env, groupSql, [tenantId, card.meter_element_id, startDate, endDate]);
     return c.json({
       success: true,
       data: {
-        card_id: card.dashboard_card_id,
+        card_id: card.dashboard_id,
         card_name: card.card_name,
         meter_element_id: card.meter_element_id,
         time_frame: {
@@ -19966,7 +18409,7 @@ app13.get("/cards/:id/data", requirePermission("dashboard:read"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error fetching aggregated data:", error3);
+    logError("Error fetching aggregated data", error3);
     return c.json({ success: false, message: "Failed to fetch aggregated card data" }, 500);
   }
 });
@@ -19983,26 +18426,23 @@ app13.post("/cards", requirePermission("dashboard:create"), async (c) => {
     if (body.meter_element_id) {
       const me = await findById(c.env, "meter_element", "meter_element_id", body.meter_element_id);
       if (!me) return c.json({ success: false, message: "Meter element not found", errors: [{ field: "meter_element_id", message: "Meter element does not exist" }] }, 400);
-      if (me.meter_id !== body.meter_id) {
+      if (Number(me.meter_id) !== Number(body.meter_id)) {
         return c.json({ success: false, message: "Validation failed", errors: [{ field: "meter_element_id", message: "Meter element does not belong to the selected meter" }] }, 400);
       }
     }
     if (!body.selected_columns || Array.isArray(body.selected_columns) && body.selected_columns.length === 0) {
       return c.json({ success: false, message: "Validation failed", errors: [{ field: "selected_columns", message: "At least one power column must be selected" }] }, 400);
     }
-    const invalidCols = (body.selected_columns || []).filter((col) => !POWER_COLUMNS.includes(col));
-    if (invalidCols.length > 0) {
-      return c.json({ success: false, message: "Validation failed", errors: [{ field: "selected_columns", message: `Invalid columns: ${invalidCols.join(", ")}` }] }, 400);
-    }
     const existingCards = await findAll(c.env, {
-      table: "dashboard_card",
-      primaryKey: "dashboard_card_id",
+      table: "dashboard",
+      primaryKey: "dashboard_id",
       tenantId,
       limit: 1e3
     });
     const nextIndex = existingCards.rows.length;
     const cardData = {
       ...body,
+      selected_columns: Array.isArray(body.selected_columns) ? JSON.stringify(body.selected_columns) : body.selected_columns,
       tenant_id: tenantId,
       created_by_users_id: user?.users_id,
       grid_x: body.grid_x !== void 0 ? body.grid_x : 0,
@@ -20010,16 +18450,16 @@ app13.post("/cards", requirePermission("dashboard:create"), async (c) => {
       grid_w: body.grid_w !== void 0 ? body.grid_w : 500,
       grid_h: body.grid_h !== void 0 ? body.grid_h : 500
     };
-    const card = await create(c.env, "dashboard_card", cardData);
+    const card = await create(c.env, "dashboard", cardData);
     return c.json({
       success: true,
       data: {
         ...card,
-        dashboard_id: card.dashboard_card_id
+        dashboard_id: card.dashboard_id
       }
     }, 201);
   } catch (error3) {
-    console.error("Error creating card:", error3);
+    logError("Error creating card", error3);
     return c.json({ success: false, message: "Failed to create dashboard card" }, 500);
   }
 });
@@ -20027,26 +18467,28 @@ app13.put("/cards/:id", requirePermission("dashboard:update"), async (c) => {
   try {
     const tenantId = c.get("tenantId");
     if (!tenantId) return c.json({ success: false, message: "User must have a valid tenant_id" }, 400);
-    const card = await findById(c.env, "dashboard_card", "dashboard_card_id", c.req.param("id"), tenantId);
+    const card = await findById(c.env, "dashboard", "dashboard_id", c.req.param("id"), tenantId);
     if (!card) return c.json({ success: false, message: "Dashboard card not found" }, 404);
     const body = await c.req.json();
+    console.log("[Dashboard] PUT /cards/:id - Request body:", body);
     if (body.selected_columns !== void 0) {
       if (!Array.isArray(body.selected_columns) || body.selected_columns.length === 0) {
         return c.json({ success: false, message: "Validation failed", errors: [{ field: "selected_columns", message: "At least one power column must be selected" }] }, 400);
       }
-      const invalidCols = body.selected_columns.filter((col) => !POWER_COLUMNS.includes(col));
-      if (invalidCols.length > 0) {
-        return c.json({ success: false, message: "Validation failed", errors: [{ field: "selected_columns", message: `Invalid columns: ${invalidCols.join(", ")}` }] }, 400);
-      }
     }
     delete body.tenant_id;
     delete body.created_by_users_id;
-    const updated = await update(c.env, "dashboard_card", "dashboard_card_id", c.req.param("id"), body);
+    if (Array.isArray(body.selected_columns)) {
+      body.selected_columns = JSON.stringify(body.selected_columns);
+    }
+    console.log("[Dashboard] PUT /cards/:id - Body after processing:", body);
+    const updated = await update(c.env, "dashboard", "dashboard_id", c.req.param("id"), body);
+    console.log("[Dashboard] PUT /cards/:id - Updated result:", updated);
     return c.json({
       success: true,
       data: {
         ...updated,
-        dashboard_id: updated.dashboard_card_id,
+        dashboard_id: updated.dashboard_id,
         grid_x: updated.grid_x ?? 0,
         grid_y: updated.grid_y ?? 0,
         grid_w: updated.grid_w ?? 500,
@@ -20054,20 +18496,20 @@ app13.put("/cards/:id", requirePermission("dashboard:update"), async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error updating card:", error3);
-    return c.json({ success: false, message: "Failed to update dashboard card" }, 500);
+    logError("Error updating card", error3);
+    return c.json({ success: false, message: "Failed to update dashboard card", error: error3.message }, 500);
   }
 });
 app13.delete("/cards/:id", requirePermission("dashboard:delete"), async (c) => {
   try {
     const tenantId = c.get("tenantId");
     if (!tenantId) return c.json({ success: false, message: "User must have a valid tenant_id" }, 400);
-    const card = await findById(c.env, "dashboard_card", "dashboard_card_id", c.req.param("id"), tenantId);
+    const card = await findById(c.env, "dashboard", "dashboard_id", c.req.param("id"), tenantId);
     if (!card) return c.json({ success: false, message: "Dashboard card not found" }, 404);
-    await remove(c.env, "dashboard_card", "dashboard_card_id", c.req.param("id"));
+    await remove(c.env, "dashboard", "dashboard_id", c.req.param("id"));
     return c.json({ success: true, message: "Dashboard card deleted successfully" });
   } catch (error3) {
-    console.error("Error deleting card:", error3);
+    logError("Error deleting card", error3);
     return c.json({ success: false, message: "Failed to delete dashboard card" }, 500);
   }
 });
@@ -20080,14 +18522,33 @@ app13.get("/cards/:id/readings", requirePermission("dashboard:read"), async (c) 
     const pageSize = Math.min(500, Math.max(1, parseInt(qs.pageSize || "50") || 50));
     const sortBy = qs.sortBy || "created_at";
     const sortOrder = (qs.sortOrder || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
-    const card = await findById(c.env, "dashboard_card", "dashboard_card_id", c.req.param("id"), tenantId);
+    const card = await findById(c.env, "dashboard", "dashboard_id", c.req.param("id"), tenantId);
     if (!card) return c.json({ success: false, message: "Dashboard card not found" }, 404);
     const now = /* @__PURE__ */ new Date();
-    let startDate = new Date(now);
-    startDate.setDate(startDate.getDate() - 30);
-    if (card.custom_start_date) startDate = new Date(card.custom_start_date);
-    const endDate = card.custom_end_date ? new Date(card.custom_end_date) : now;
-    const selectedColumns = Array.isArray(card.selected_columns) ? card.selected_columns : [];
+    let startDate;
+    const timeFrameType = card.time_frame_type || "last_month";
+    if (timeFrameType === "today") {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (timeFrameType === "this_month_to_date") {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (timeFrameType === "since_installation") {
+      startDate = /* @__PURE__ */ new Date("2000-01-01");
+    } else if (timeFrameType === "custom" && card.custom_start_date) {
+      startDate = new Date(card.custom_start_date);
+    } else {
+      startDate = new Date(now);
+      startDate.setMonth(startDate.getMonth() - 1);
+    }
+    const endDate = timeFrameType === "custom" && card.custom_end_date ? new Date(card.custom_end_date) : now;
+    let rawCols = card.selected_columns;
+    if (typeof rawCols === "string") {
+      try {
+        rawCols = JSON.parse(rawCols);
+      } catch {
+        rawCols = [];
+      }
+    }
+    const selectedColumns = (Array.isArray(rawCols) ? rawCols : []).map((col) => columnNameMapping[col.toLowerCase()] || col.toLowerCase()).filter((col) => VALID_METER_READING_COLUMNS.has(col)).filter((col, idx, arr) => arr.indexOf(col) === idx);
     const columnsList = ["meter_reading_id", "created_at", ...selectedColumns];
     const validSortColumns = ["meter_reading_id", "created_at", "updated_at", "meter_id", "meter_element_id", ...selectedColumns];
     const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : "created_at";
@@ -20099,6 +18560,8 @@ app13.get("/cards/:id/readings", requirePermission("dashboard:read"), async (c) 
     const total = parseInt(countResult.rows[0]?.total || "0");
     const totalPages = Math.ceil(total / pageSize);
     const sql = `SELECT ${columnsList.map((col) => `"${col}"`).join(", ")} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 ORDER BY "${safeSortBy}" ${sortOrder} LIMIT $5 OFFSET $6`;
+    console.log("[Dashboard] readings sql:", sql);
+    console.log("[Dashboard] readings params:", [tenantId, card.meter_element_id, startDate, endDate, pageSize, (page - 1) * pageSize]);
     const result = await query(c.env, sql, [tenantId, card.meter_element_id, startDate, endDate, pageSize, (page - 1) * pageSize]);
     return c.json({
       success: true,
@@ -20106,7 +18569,7 @@ app13.get("/cards/:id/readings", requirePermission("dashboard:read"), async (c) 
         items: result.rows,
         pagination: { page, pageSize, total, totalPages, hasMore: page < totalPages },
         metadata: {
-          card_id: card.dashboard_card_id,
+          card_id: card.dashboard_id,
           card_name: card.card_name,
           meter_element_id: card.meter_element_id,
           time_frame: { type: card.time_frame_type || "last_30_days", start: startDate.toISOString(), end: endDate.toISOString() },
@@ -20117,7 +18580,7 @@ app13.get("/cards/:id/readings", requirePermission("dashboard:read"), async (c) 
       }
     });
   } catch (error3) {
-    console.error("Error fetching meter readings:", error3);
+    logError("Error fetching meter readings", error3);
     return c.json({ success: false, message: "Failed to fetch meter readings" }, 500);
   }
 });
@@ -20128,18 +18591,28 @@ app13.get("/cards/:id/readings/export", requirePermission("dashboard:read"), asy
     const qs = c.req.query();
     const sortBy = qs.sortBy || "created_at";
     const sortOrder = (qs.sortOrder || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
-    const card = await findById(c.env, "dashboard_card", "dashboard_card_id", c.req.param("id"), tenantId);
+    const card = await findById(c.env, "dashboard", "dashboard_id", c.req.param("id"), tenantId);
     if (!card) return c.json({ success: false, message: "Dashboard card not found" }, 404);
     const now = /* @__PURE__ */ new Date();
     let startDate = new Date(now);
     startDate.setDate(startDate.getDate() - 30);
     if (card.custom_start_date) startDate = new Date(card.custom_start_date);
     const endDate = card.custom_end_date ? new Date(card.custom_end_date) : now;
-    const selectedColumns = Array.isArray(card.selected_columns) ? card.selected_columns : [];
+    let rawColsExp = card.selected_columns;
+    if (typeof rawColsExp === "string") {
+      try {
+        rawColsExp = JSON.parse(rawColsExp);
+      } catch {
+        rawColsExp = [];
+      }
+    }
+    const selectedColumns = (Array.isArray(rawColsExp) ? rawColsExp : []).map((col) => columnNameMapping[col.toLowerCase()] || col.toLowerCase()).filter((col) => VALID_METER_READING_COLUMNS.has(col)).filter((col, idx, arr) => arr.indexOf(col) === idx);
     const columnsList = ["meter_reading_id", "created_at", ...selectedColumns];
     const validSortColumns = ["meter_reading_id", "created_at", ...selectedColumns];
     const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : "created_at";
     const sql = `SELECT ${columnsList.map((col) => `"${col}"`).join(", ")} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 ORDER BY "${safeSortBy}" ${sortOrder}`;
+    console.log("[Dashboard] export sql:", sql);
+    console.log("[Dashboard] export params:", [tenantId, card.meter_element_id, startDate, endDate]);
     const result = await query(c.env, sql, [tenantId, card.meter_element_id, startDate, endDate]);
     const escapeCSV = /* @__PURE__ */ __name((v) => {
       if (v === null || v === void 0) return "";
@@ -20171,11 +18644,11 @@ app13.get("/cards/:id/readings/export", requirePermission("dashboard:read"), asy
       }
     });
   } catch (error3) {
-    console.error("Error exporting meter readings:", error3);
+    logError("Error exporting meter readings", error3);
     return c.json({ success: false, message: "Failed to export meter readings" }, 500);
   }
 });
-app13.get("/meters", requirePermission("dashboard:read"), async (c) => {
+app13.get("/meters", authenticateToken, async (c) => {
   try {
     const tenantId = c.get("tenantId");
     if (!tenantId) return c.json({ success: false, message: "User must have a valid tenant_id" }, 400);
@@ -20186,19 +18659,21 @@ app13.get("/meters", requirePermission("dashboard:read"), async (c) => {
     );
     return c.json({ success: true, data: result.rows });
   } catch (error3) {
-    console.error("Error fetching meters:", error3);
+    logError("Error fetching meters", error3);
     return c.json({ success: false, message: "Failed to fetch meters" }, 500);
   }
 });
-app13.get("/meters/:meterId/elements", requirePermission("dashboard:read"), async (c) => {
+app13.get("/meters/:meterId/elements", authenticateToken, async (c) => {
   try {
     const tenantId = c.get("tenantId");
     if (!tenantId) return c.json({ success: false, message: "User must have a valid tenant_id" }, 400);
     const meterId = parseInt(c.req.param("meterId"));
     if (isNaN(meterId)) return c.json({ success: false, message: "Invalid meter ID" }, 400);
+    console.log("[DASHBOARD] GET /meters/:meterId/elements - meterId:", meterId, "tenantId from context:", tenantId, "type:", typeof tenantId);
     const meterResult = await query(c.env, "SELECT meter_id, tenant_id FROM meter WHERE meter_id = $1", [meterId]);
     if (meterResult.rows.length === 0) return c.json({ success: false, message: "Meter not found" }, 404);
-    if (meterResult.rows[0].tenant_id !== tenantId) return c.json({ success: false, message: "You do not have permission to access this meter" }, 403);
+    console.log("[DASHBOARD] Meter found - meterResult.tenant_id:", meterResult.rows[0].tenant_id, "type:", typeof meterResult.rows[0].tenant_id, "user tenantId:", tenantId, "type:", typeof tenantId);
+    if (Number(meterResult.rows[0].tenant_id) !== Number(tenantId)) return c.json({ success: false, message: "You do not have permission to access this meter" }, 403);
     const result = await query(
       c.env,
       "SELECT meter_element_id, meter_id, element, name FROM meter_element WHERE meter_id = $1 AND tenant_id = $2 ORDER BY element ASC",
@@ -20206,37 +18681,141 @@ app13.get("/meters/:meterId/elements", requirePermission("dashboard:read"), asyn
     );
     return c.json({ success: true, data: result.rows });
   } catch (error3) {
-    console.error("Error fetching meter elements:", error3);
+    logError("Error fetching meter elements", error3);
     return c.json({ success: false, message: "Failed to fetch meter elements" }, 500);
   }
 });
+var columnNameMapping = {
+  // Energy totals (old -> new mapping support backwards compatibility)
+  "kwh": "kwh",
+  "kvarh": "kvarh",
+  "kvah": "kvah",
+  "active_energy": "kwh",
+  "reactive_energy": "kvarh",
+  "apparent_energy": "kvah",
+  "active_energy_export": "mwh",
+  "reactive_energy_export": "kvarh_export",
+  "apparent_energy_export": "kvah_export",
+  "mwh": "mwh",
+  "kvarh_export": "kvarh_export",
+  "kvah_export": "kvah_export",
+  // Power
+  "kw": "kw",
+  "kvar": "kvar",
+  "kva": "kva",
+  "total_active_power": "kw",
+  "total_reactive_power": "kvar",
+  "total_apparent_power": "kva",
+  "power": "kw",
+  "reactive_power": "kvar",
+  "apparent_power": "kva",
+  // Phase power
+  "phase_a_power": "phase_kw_a",
+  "phase_b_power": "phase_kw_b",
+  "phase_c_power": "phase_kw_c",
+  "power_phase_a": "phase_kw_a",
+  "power_phase_b": "phase_kw_b",
+  "power_phase_c": "phase_kw_c",
+  "phase_kw_a": "phase_kw_a",
+  "phase_kw_b": "phase_kw_b",
+  "phase_kw_c": "phase_kw_c",
+  "apparent_power_phase_a": "phase_kva_a",
+  "apparent_power_phase_b": "phase_kva_b",
+  "apparent_power_phase_c": "phase_kva_c",
+  "phase_kva_a": "phase_kva_a",
+  "phase_kva_b": "phase_kva_b",
+  "phase_kva_c": "phase_kva_c",
+  "reactive_power_phase_a": "phase_kvar_a",
+  "reactive_power_phase_b": "phase_kvar_b",
+  "reactive_power_phase_c": "phase_kvar_c",
+  "phase_kvar_a": "phase_kvar_a",
+  "phase_kvar_b": "phase_kvar_b",
+  "phase_kvar_c": "phase_kvar_c",
+  // Current
+  "ia": "phase_amperage_a",
+  "ib": "phase_amperage_b",
+  "ic": "phase_amperage_c",
+  "phase_a_current": "phase_amperage_a",
+  "phase_b_current": "phase_amperage_b",
+  "phase_c_current": "phase_amperage_c",
+  "current": "amperage",
+  "current_line_a": "phase_amperage_a",
+  "current_line_b": "phase_amperage_b",
+  "current_line_c": "phase_amperage_c",
+  "amperage": "amperage",
+  "phase_amperage_a": "phase_amperage_a",
+  "phase_amperage_b": "phase_amperage_b",
+  "phase_amperage_c": "phase_amperage_c",
+  // Voltage
+  "va": "voltage_a_n",
+  "vb": "voltage_b_n",
+  "vc": "voltage_c_n",
+  "vab": "voltage_a_b",
+  "vbc": "voltage_b_c",
+  "vca": "voltage_c_a",
+  "phase_a_voltage": "voltage_a_n",
+  "phase_b_voltage": "voltage_b_n",
+  "phase_c_voltage": "voltage_c_n",
+  "voltage_a_n": "voltage_a_n",
+  "voltage_b_n": "voltage_b_n",
+  "voltage_c_n": "voltage_c_n",
+  "voltage_a_b": "voltage_a_b",
+  "voltage_b_c": "voltage_b_c",
+  "voltage_c_a": "voltage_c_a",
+  "voltage_p_n": "voltage_p_n",
+  "voltage_p_p": "voltage_p_p",
+  // Power factor
+  "pf": "pf",
+  "power_factor": "pf",
+  "power_factor_phase_a": "pf_a",
+  "power_factor_phase_b": "pf_b",
+  "power_factor_phase_c": "pf_c",
+  "pf_a": "pf_a",
+  "pf_b": "pf_b",
+  "pf_c": "pf_c",
+  // Other
+  "hz": "frequency",
+  "frequency": "frequency",
+  "maximum_demand_real": "peak_kw",
+  "peak_kw": "peak_kw",
+  "voltage_thd": "total_thdv",
+  "voltage_thd_phase_a": "phase_thdv_a",
+  "voltage_thd_phase_b": "phase_thdv_b",
+  "voltage_thd_phase_c": "phase_thdv_c",
+  "total_thdv": "total_thdv",
+  "phase_thdv_a": "phase_thdv_a",
+  "phase_thdv_b": "phase_thdv_b",
+  "phase_thdv_c": "phase_thdv_c"
+};
 app13.get("/power-columns", requirePermission("dashboard:read"), async (c) => {
   try {
-    const result = await query(
-      c.env,
-      `SELECT column_name FROM information_schema.columns
-       WHERE table_name = 'meter_reading'
-         AND data_type IN ('numeric', 'double precision', 'real', 'integer', 'bigint')
-         AND column_name NOT IN ('meter_reading_id', 'tenant_id', 'meter_id', 'meter_element_id')
-       ORDER BY ordinal_position`
-    );
-    const columns = result.rows.length > 0 ? result.rows.map((r) => ({
-      name: r.column_name,
-      label: r.column_name.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-      type: "numeric"
-    })) : POWER_COLUMNS.map((col) => ({
-      name: col,
-      label: col.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-      type: "numeric"
-    }));
+    const meterId = c.req.query("deviceId");
+    if (!meterId) {
+      return c.json({ success: false, message: "deviceId parameter is required" }, 400);
+    }
+    const sql = `
+      SELECT DISTINCT r.name
+      FROM register r
+      JOIN device_register dr ON r.register_id = dr.register_id
+      JOIN meter m ON m.device_id = dr.device_id
+      WHERE m.meter_id = $1
+      ORDER BY r.name ASC
+    `;
+    console.log("[Dashboard] power-columns sql:", sql);
+    console.log("[Dashboard] power-columns params:", [meterId]);
+    const result = await query(c.env, sql, [meterId]);
+    const columns = result.rows.map((r) => {
+      const label = r.name.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      return { name: r.name, label, type: "numeric" };
+    });
     return c.json({
       success: true,
       data: columns,
       meta: { count: columns.length }
     });
   } catch (error3) {
-    console.error("Error discovering power columns:", error3);
-    return c.json({ success: false, message: "Failed to discover power columns" }, 500);
+    logError("Error fetching power columns", error3);
+    return c.json({ success: false, message: "Failed to fetch power columns" }, 500);
   }
 });
 app13.get("/power-columns/cache/invalidate", requirePermission("dashboard:admin"), (c) => {
@@ -20293,9 +18872,9 @@ app14.get("/meters", async (c) => {
         me.name,
         CASE
           WHEN me.meter_element_id IS NOT NULL THEN
-            CONCAT(COALESCE(m.name, 'Unknown Meter'), '    ', COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, 'Unknown'))
+            CONCAT('(', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, 'Unknown'))
           ELSE
-            COALESCE(m.name, 'Unknown Meter')
+            COALESCE(m.name, 'Unknown Meter/Element')
         END as favorite_name,
         CASE WHEN f.favorite_id IS NOT NULL THEN true ELSE false END as is_favorited,
         f.favorite_id
@@ -20308,13 +18887,13 @@ app14.get("/meters", async (c) => {
         AND f.tenant_id = $1
         AND f.users_id = $2
       WHERE m.tenant_id = $1
-      ORDER BY m.name ASC, me.element ASC
+      ORDER BY me.element ASC
     `;
     const result = await query(c.env, sql, [tenant_id, users_id]);
     const meters = transformMetersWithElements(result.rows);
     return c.json({ success: true, data: meters });
   } catch (error3) {
-    console.error("Error fetching meters with elements:", error3);
+    logError("Error fetching meters with elements:", error3);
     return c.json({ success: false, message: "Failed to fetch meters with elements", error: error3.message }, 500);
   }
 });
@@ -20340,7 +18919,7 @@ app14.get("/", async (c) => {
         me.name as element_name,
         CASE
           WHEN me.meter_element_id IS NOT NULL THEN
-            CONCAT(COALESCE(m.name, 'Unknown Meter'), '    ', COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, 'Unknown'))
+            CONCAT(COALESCE(m.name, 'Unknown Meter'), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, 'Unknown'))
           ELSE
             COALESCE(m.name, 'Unknown Meter')
         END as favorite_name
@@ -20358,7 +18937,7 @@ app14.get("/", async (c) => {
     const result = await query(c.env, sql, params);
     return c.json({ success: true, data: result.rows });
   } catch (error3) {
-    console.error("Error fetching favorites:", error3);
+    logError("Error fetching favorites:", error3);
     return c.json({ success: false, message: "Failed to fetch favorites", error: error3.message }, 500);
   }
 });
@@ -20378,7 +18957,7 @@ app14.put("/order", async (c) => {
     });
     return c.json({ success: true, message: "Favorite order updated successfully" });
   } catch (error3) {
-    console.error("Error updating favorite order:", error3);
+    logError("Error updating favorite order:", error3);
     return c.json({ success: false, message: "Failed to update favorite order", error: error3.message }, 500);
   }
 });
@@ -20413,7 +18992,7 @@ app14.post("/", async (c) => {
     );
     return c.json({ success: true, message: "Favorite created successfully", data: result.rows[0] }, 201);
   } catch (error3) {
-    console.error("Error creating favorite:", error3);
+    logError("Error creating favorite:", error3);
     return c.json({ success: false, message: "Failed to create favorite", error: error3.message }, 500);
   }
 });
@@ -20434,7 +19013,7 @@ app14.delete("/:favoriteId", async (c) => {
     }
     return c.json({ success: true, message: "Favorite deleted successfully", data: result.rows[0] });
   } catch (error3) {
-    console.error("Error deleting favorite:", error3);
+    logError("Error deleting favorite:", error3);
     return c.json({ success: false, message: "Failed to delete favorite", error: error3.message }, 500);
   }
 });
@@ -20460,7 +19039,7 @@ function validateEmailList(emails) {
 __name(validateEmailList, "validateEmailList");
 app15.post("/", async (c) => {
   try {
-    const { name, type, schedule, recipients, config: config2 } = await c.req.json();
+    const { name, type, schedule, recipients, config: config2, active, meter_ids, element_ids, register_ids, html_format } = await c.req.json();
     const errors = [];
     if (!name || typeof name !== "string" || name.trim().length === 0) errors.push("Report name is required");
     else if (name.length > 255) errors.push("Report name must not exceed 255 characters");
@@ -20478,10 +19057,23 @@ app15.post("/", async (c) => {
     const now = /* @__PURE__ */ new Date();
     const result = await query(
       c.env,
-      `INSERT INTO public.report (name, type, schedule, recipients, config, enabled, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING report_id, name, type, schedule, recipients, config, enabled, created_at, updated_at`,
-      [name.trim(), type.trim(), schedule.trim(), JSON.stringify(recipients), JSON.stringify(config2 || {}), true, now, now]
+      `INSERT INTO public.report (name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING report_id, name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at`,
+      [
+        name.trim(),
+        type.trim(),
+        schedule.trim(),
+        recipients,
+        config2 || {},
+        active !== false,
+        meter_ids || [],
+        element_ids || [],
+        register_ids || [],
+        html_format || false,
+        now,
+        now
+      ]
     );
     if (result.rows.length === 0) {
       return c.json({ success: false, message: "Failed to create report" }, 500);
@@ -20490,7 +19082,7 @@ app15.post("/", async (c) => {
   } catch (error3) {
     if (error3.code === "23505") return c.json({ success: false, message: "Report name already exists" }, 409);
     if (error3.code === "23502") return c.json({ success: false, message: "Missing required fields" }, 400);
-    console.error("Error creating report:", error3);
+    logError("Error creating report:", error3);
     return c.json({ success: false, message: "Failed to create report" }, 500);
   }
 });
@@ -20506,7 +19098,7 @@ app15.get("/", async (c) => {
     const total = parseInt(countResult.rows[0].total, 10);
     const result = await query(
       c.env,
-      `SELECT report_id, name, type, schedule, recipients, config, active, created_at, updated_at
+      `SELECT report_id, name, type, schedule, recipients, config, active , created_at, updated_at
        FROM public.report ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
@@ -20521,7 +19113,7 @@ app15.get("/", async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error retrieving reports:", error3);
+    logError("Error retrieving reports:", error3);
     return c.json({ success: false, message: "Failed to retrieve reports" }, 500);
   }
 });
@@ -20538,7 +19130,7 @@ app15.get("/:id", async (c) => {
     if (result.rows.length === 0) return c.json({ success: false, message: "Report not found" }, 404);
     return c.json({ success: true, data: result.rows[0] });
   } catch (error3) {
-    console.error("Error retrieving report:", error3);
+    logError("Error retrieving report:", error3);
     return c.json({ success: false, message: "Failed to retrieve report" }, 500);
   }
 });
@@ -20548,7 +19140,7 @@ app15.put("/:id", async (c) => {
     if (isNaN(Number(id))) return c.json({ success: false, message: "Invalid report ID format" }, 400);
     const existing = await query(c.env, "SELECT report_id FROM public.report WHERE report_id = $1", [id]);
     if (existing.rows.length === 0) return c.json({ success: false, message: "Report not found" }, 404);
-    const { name, type, schedule, recipients, config: config2 } = await c.req.json();
+    const { name, type, schedule, recipients, config: config2, active, meter_ids, element_ids, register_ids, html_format } = await c.req.json();
     const updates = [];
     const values = [];
     let paramCount = 1;
@@ -20576,13 +19168,38 @@ app15.put("/:id", async (c) => {
       const emailValidation = validateEmailList(recipients);
       if (!emailValidation.isValid) return c.json({ success: false, message: "Validation failed", errors: [`Invalid emails: ${emailValidation.invalidEmails.join(", ")}`] }, 400);
       updates.push(`recipients = $${paramCount}`);
-      values.push(JSON.stringify(recipients));
+      values.push(recipients);
       paramCount++;
     }
     if (config2 !== void 0) {
       if (typeof config2 !== "object" || config2 === null) return c.json({ success: false, message: "Validation failed", errors: ["Config must be an object"] }, 400);
       updates.push(`config = $${paramCount}`);
-      values.push(JSON.stringify(config2));
+      values.push(config2);
+      paramCount++;
+    }
+    if (active !== void 0) {
+      updates.push(`active = $${paramCount}`);
+      values.push(active);
+      paramCount++;
+    }
+    if (meter_ids !== void 0) {
+      updates.push(`meter_ids = $${paramCount}`);
+      values.push(meter_ids);
+      paramCount++;
+    }
+    if (element_ids !== void 0) {
+      updates.push(`element_ids = $${paramCount}`);
+      values.push(element_ids);
+      paramCount++;
+    }
+    if (register_ids !== void 0) {
+      updates.push(`register_ids = $${paramCount}`);
+      values.push(register_ids);
+      paramCount++;
+    }
+    if (html_format !== void 0) {
+      updates.push(`html_format = $${paramCount}`);
+      values.push(html_format);
       paramCount++;
     }
     if (updates.length === 0) {
@@ -20595,14 +19212,14 @@ app15.put("/:id", async (c) => {
     values.push(id);
     const result = await query(
       c.env,
-      `UPDATE public.report SET ${updates.join(", ")} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, active, created_at, updated_at`,
+      `UPDATE public.report SET ${updates.join(", ")} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at`,
       values
     );
     if (result.rows.length === 0) return c.json({ success: false, message: "Failed to update report" }, 500);
     return c.json({ success: true, data: result.rows[0] });
   } catch (error3) {
     if (error3.code === "23505") return c.json({ success: false, message: "Report name already exists" }, 409);
-    console.error("Error updating report:", error3);
+    logError("Error updating report:", error3);
     return c.json({ success: false, message: "Failed to update report" }, 500);
   }
 });
@@ -20615,7 +19232,7 @@ app15.delete("/:id", async (c) => {
     await query(c.env, "DELETE FROM public.report WHERE report_id = $1", [id]);
     return c.json({ success: true, message: "Report deleted successfully" });
   } catch (error3) {
-    console.error("Error deleting report:", error3);
+    logError("Error deleting report:", error3);
     return c.json({ success: false, message: "Failed to delete report" }, 500);
   }
 });
@@ -20625,11 +19242,11 @@ app15.patch("/:id/toggle", async (c) => {
     if (isNaN(Number(id))) return c.json({ success: false, message: "Invalid report ID format" }, 400);
     const getResult = await query(c.env, "SELECT report_id, name, active FROM public.report WHERE report_id = $1", [id]);
     if (getResult.rows.length === 0) return c.json({ success: false, message: "Report not found" }, 404);
-    const newEnabled = !getResult.rows[0].active;
+    const newActive = !getResult.rows[0].active;
     const result = await query(
       c.env,
       "UPDATE public.report SET active = $1, updated_at = $2 WHERE report_id = $3 RETURNING report_id, name, active, updated_at",
-      [newEnabled, /* @__PURE__ */ new Date(), id]
+      [newActive, /* @__PURE__ */ new Date(), id]
     );
     if (result.rows.length === 0) return c.json({ success: false, message: "Failed to toggle report status" }, 500);
     return c.json({
@@ -20637,12 +19254,12 @@ app15.patch("/:id/toggle", async (c) => {
       data: {
         id: result.rows[0].report_id,
         name: result.rows[0].name,
-        enabled: result.rows[0].enabled,
+        active: result.rows[0].active,
         updated_at: result.rows[0].updated_at
       }
     });
   } catch (error3) {
-    console.error("Error toggling report status:", error3);
+    logError("Error toggling report status:", error3);
     return c.json({ success: false, message: "Failed to toggle report status" }, 500);
   }
 });
@@ -20693,7 +19310,7 @@ app15.get("/:id/history", async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error retrieving report history:", error3);
+    logError("Error retrieving report history:", error3);
     return c.json({ success: false, message: "Failed to retrieve report history" }, 500);
   }
 });
@@ -20716,19 +19333,516 @@ app15.get("/:id/history/:historyId/emails", async (c) => {
     );
     return c.json({ success: true, data: { emails: result.rows } });
   } catch (error3) {
-    console.error("Error retrieving email logs:", error3);
+    logError("Error retrieving email logs:", error3);
     return c.json({ success: false, message: "Failed to retrieve email logs" }, 500);
   }
 });
 var reports_default = app15;
 
-// worker/routes/emailLogs.ts
+// worker/routes/notifications.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
 var app16 = new Hono2();
 app16.use("*", authenticateToken);
-app16.get("/search", async (c) => {
+app16.get("/count", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const userId = c.get("user").users_id;
+    const result = await query(
+      c.env,
+      `SELECT COUNT(*) as count FROM public.notification
+       WHERE tenant_id = $1 AND (users_id IS NULL OR users_id = $2)`,
+      [tenantId, userId]
+    );
+    const count3 = parseInt(result.rows[0].count, 10);
+    return c.json({ success: true, data: { count: count3 } });
+  } catch (error3) {
+    logError("Error counting notifications:", error3);
+    return c.json({ success: false, message: "Failed to count notifications" }, 500);
+  }
+});
+app16.get("/", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const userId = c.get("user").users_id;
+    const qs = c.req.query();
+    const limit = Math.min(parseInt(qs.limit || "100") || 100, 200);
+    const offset = parseInt(qs.offset || "0") || 0;
+    const result = await query(
+      c.env,
+      `SELECT notification_id, tenant_id, users_id, meter_id, meter_element_id,
+              notification_type, severity, title, description, created_at
+       FROM public.notification
+       WHERE tenant_id = $1 AND (users_id IS NULL OR users_id = $2)
+       ORDER BY created_at DESC
+       LIMIT $3 OFFSET $4`,
+      [tenantId, userId, limit, offset]
+    );
+    const countResult = await query(
+      c.env,
+      `SELECT COUNT(*) as count FROM public.notification
+       WHERE tenant_id = $1 AND (users_id IS NULL OR users_id = $2)`,
+      [tenantId, userId]
+    );
+    const total = parseInt(countResult.rows[0].count, 10);
+    const notifications = result.rows.map((row) => ({
+      ...row,
+      id: String(row.notification_id)
+    }));
+    return c.json({ success: true, data: { notifications, total, limit, offset } });
+  } catch (error3) {
+    logError("Error fetching notifications:", error3);
+    return c.json({ success: false, message: "Failed to fetch notifications" }, 500);
+  }
+});
+app16.post("/", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const body = await c.req.json();
+    const {
+      meter_id,
+      meter_element_id,
+      notification_type,
+      severity = "warning",
+      title: title2,
+      description,
+      users_id
+    } = body;
+    if (!notification_type || !title2) {
+      return c.json({ success: false, message: "notification_type and title are required" }, 400);
+    }
+    const result = await query(
+      c.env,
+      `INSERT INTO public.notification
+         (tenant_id, users_id, meter_id, meter_element_id, notification_type, severity, title, description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING notification_id, tenant_id, users_id, meter_id, meter_element_id,
+                 notification_type, severity, title, description, created_at`,
+      [
+        tenantId,
+        users_id || null,
+        meter_id || null,
+        meter_element_id || null,
+        notification_type,
+        severity,
+        title2,
+        description || null
+      ]
+    );
+    const row = result.rows[0];
+    return c.json(
+      { success: true, data: { notification: { ...row, id: String(row.notification_id) } } },
+      201
+    );
+  } catch (error3) {
+    logError("Error creating notification:", error3);
+    return c.json({ success: false, message: "Failed to create notification" }, 500);
+  }
+});
+app16.delete("/:id", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const id = c.req.param("id");
+    if (isNaN(Number(id))) {
+      return c.json({ success: false, message: "Invalid notification ID" }, 400);
+    }
+    const result = await query(
+      c.env,
+      `DELETE FROM public.notification WHERE notification_id = $1 AND tenant_id = $2`,
+      [id, tenantId]
+    );
+    if ((result.rowCount ?? 0) === 0) {
+      return c.json({ success: false, message: "Notification not found" }, 404);
+    }
+    return c.json({ success: true, message: "Notification deleted" });
+  } catch (error3) {
+    logError("Error deleting notification:", error3);
+    return c.json({ success: false, message: "Failed to delete notification" }, 500);
+  }
+});
+app16.delete("/", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const userId = c.get("user").users_id;
+    const result = await query(
+      c.env,
+      `DELETE FROM public.notification
+       WHERE tenant_id = $1 AND (users_id IS NULL OR users_id = $2)`,
+      [tenantId, userId]
+    );
+    const deletedCount = result.rowCount ?? 0;
+    return c.json({ success: true, data: { deleted_count: deletedCount } });
+  } catch (error3) {
+    logError("Error deleting all notifications:", error3);
+    return c.json({ success: false, message: "Failed to delete notifications" }, 500);
+  }
+});
+var notifications_default = app16;
+
+// worker/routes/notificationRules.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var app17 = new Hono2();
+app17.use("*", authenticateToken);
+app17.get("/", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const qs = c.req.query();
+    const limit = Math.min(parseInt(qs.limit || "100") || 100, 200);
+    const offset = parseInt(qs.offset || "0") || 0;
+    const active = qs.active ? qs.active === "true" : void 0;
+    let whereClause = "WHERE tenant_id = $1";
+    const params = [tenantId];
+    let paramIndex = 2;
+    if (active !== void 0) {
+      whereClause += ` AND active = $${paramIndex}`;
+      params.push(active);
+      paramIndex++;
+    }
+    const result = await query(
+      c.env,
+      `SELECT notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_at, updated_at
+       FROM public.notification_rule
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...params, limit, offset]
+    );
+    const countResult = await query(
+      c.env,
+      `SELECT COUNT(*) as count FROM public.notification_rule ${whereClause}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0].count, 10);
+    const rules = result.rows.map((row) => ({
+      ...row,
+      id: String(row.notification_rule_id)
+    }));
+    return c.json({ success: true, data: { rules, total, limit, offset } });
+  } catch (error3) {
+    logError("Error fetching notification rules:", error3);
+    return c.json({ success: false, message: "Failed to fetch notification rules" }, 500);
+  }
+});
+app17.get("/:id", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const id = c.req.param("id");
+    if (isNaN(Number(id))) {
+      return c.json({ success: false, message: "Invalid rule ID" }, 400);
+    }
+    const ruleResult = await query(
+      c.env,
+      `SELECT notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_at, updated_at
+       FROM public.notification_rule
+       WHERE notification_rule_id = $1 AND tenant_id = $2`,
+      [id, tenantId]
+    );
+    if (ruleResult.rows.length === 0) {
+      return c.json({ success: false, message: "Rule not found" }, 404);
+    }
+    const rule = ruleResult.rows[0];
+    const recipientsResult = await query(
+      c.env,
+      `SELECT notification_rule_recipient_id, users_id, receive_email, email_address
+       FROM public.notification_rule_recipient
+       WHERE notification_rule_id = $1`,
+      [id]
+    );
+    const metersResult = await query(
+      c.env,
+      `SELECT notification_rule_meter_id, meter_id, meter_element_id
+       FROM public.notification_rule_meter
+       WHERE notification_rule_id = $1`,
+      [id]
+    );
+    return c.json({
+      success: true,
+      data: {
+        rule: {
+          ...rule,
+          id: String(rule.notification_rule_id),
+          recipients: recipientsResult.rows,
+          meters: metersResult.rows
+        }
+      }
+    });
+  } catch (error3) {
+    logError("Error fetching notification rule:", error3);
+    return c.json({ success: false, message: "Failed to fetch notification rule" }, 500);
+  }
+});
+app17.post("/", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const userId = c.get("user").users_id;
+    const body = await c.req.json();
+    const {
+      name,
+      description,
+      rule_type = "custom",
+      enabled = true,
+      threshold_hours,
+      demand_threshold,
+      schedule_cron = "0 * * * *",
+      recipients = [],
+      meter_elements = []
+    } = body;
+    if (!name) {
+      return c.json({ success: false, message: "Rule name is required" }, 400);
+    }
+    const ruleResult = await query(
+      c.env,
+      `INSERT INTO public.notification_rule
+       (tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_at, updated_at`,
+      [tenantId, name, description || null, rule_type, true, threshold_hours || null, demand_threshold || null, schedule_cron, userId]
+    );
+    const rule = ruleResult.rows[0];
+    const ruleId = rule.notification_rule_id;
+    for (const recipient of recipients) {
+      await query(
+        c.env,
+        `INSERT INTO public.notification_rule_recipient
+         (notification_rule_id, users_id, receive_email, email_address)
+         VALUES ($1, $2, $3, $4)`,
+        [ruleId, recipient.users_id, recipient.receive_email !== false, recipient.email_address || null]
+      );
+    }
+    for (const me of meter_elements) {
+      await query(
+        c.env,
+        `INSERT INTO public.notification_rule_meter
+         (notification_rule_id, meter_id, meter_element_id)
+         VALUES ($1, $2, $3)`,
+        [ruleId, me.meter_id, me.meter_element_id || null]
+      );
+    }
+    return c.json(
+      {
+        success: true,
+        data: {
+          rule: {
+            ...rule,
+            id: String(rule.notification_rule_id),
+            recipients,
+            meters: meter_elements
+          }
+        }
+      },
+      201
+    );
+  } catch (error3) {
+    logError("Error creating notification rule:", error3);
+    return c.json({ success: false, message: "Failed to create notification rule" }, 500);
+  }
+});
+app17.put("/:id", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    const {
+      name,
+      description,
+      active,
+      threshold_hours,
+      demand_threshold,
+      schedule_cron,
+      recipients = [],
+      meter_elements = []
+    } = body;
+    if (isNaN(Number(id))) {
+      return c.json({ success: false, message: "Invalid rule ID" }, 400);
+    }
+    const updateResult = await query(
+      c.env,
+      `UPDATE public.notification_rule
+       SET name = COALESCE($1, name),
+           description = COALESCE($2, description),
+           active = COALESCE($3, active),
+           threshold_hours = COALESCE($4, threshold_hours),
+           demand_threshold = COALESCE($5, demand_threshold),
+           schedule_cron = COALESCE($6, schedule_cron),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE notification_rule_id = $7 AND tenant_id = $8
+       RETURNING notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_at, updated_at`,
+      [name || null, description || null, active !== void 0 ? active : null, threshold_hours || null, demand_threshold || null, schedule_cron || null, id, tenantId]
+    );
+    if (updateResult.rows.length === 0) {
+      return c.json({ success: false, message: "Rule not found" }, 404);
+    }
+    await query(c.env, "DELETE FROM public.notification_rule_recipient WHERE notification_rule_id = $1", [id]);
+    for (const recipient of recipients) {
+      await query(
+        c.env,
+        `INSERT INTO public.notification_rule_recipient
+         (notification_rule_id, users_id, receive_email, email_address)
+         VALUES ($1, $2, $3, $4)`,
+        [id, recipient.users_id, recipient.receive_email !== false, recipient.email_address || null]
+      );
+    }
+    await query(c.env, "DELETE FROM public.notification_rule_meter WHERE notification_rule_id = $1", [id]);
+    for (const me of meter_elements) {
+      await query(
+        c.env,
+        `INSERT INTO public.notification_rule_meter
+         (notification_rule_id, meter_id, meter_element_id)
+         VALUES ($1, $2, $3)`,
+        [id, me.meter_id, me.meter_element_id || null]
+      );
+    }
+    return c.json({ success: true, data: { rule: updateResult.rows[0] } });
+  } catch (error3) {
+    logError("Error updating notification rule:", error3);
+    return c.json({ success: false, message: "Failed to update notification rule" }, 500);
+  }
+});
+app17.delete("/:id", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const id = c.req.param("id");
+    if (isNaN(Number(id))) {
+      return c.json({ success: false, message: "Invalid rule ID" }, 400);
+    }
+    const result = await query(
+      c.env,
+      `DELETE FROM public.notification_rule WHERE notification_rule_id = $1 AND tenant_id = $2`,
+      [id, tenantId]
+    );
+    if ((result.rowCount ?? 0) === 0) {
+      return c.json({ success: false, message: "Rule not found" }, 404);
+    }
+    return c.json({ success: true, message: "Notification rule deleted" });
+  } catch (error3) {
+    logError("Error deleting notification rule:", error3);
+    return c.json({ success: false, message: "Failed to delete notification rule" }, 500);
+  }
+});
+var notificationRules_default = app17;
+
+// worker/routes/notificationHistory.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var app18 = new Hono2();
+app18.use("*", authenticateToken);
+app18.get("/", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const qs = c.req.query();
+    const limit = Math.min(parseInt(qs.limit || "50") || 50, 200);
+    const offset = parseInt(qs.offset || "0") || 0;
+    const meterId = qs.meter_id ? parseInt(qs.meter_id) : void 0;
+    let whereClause = "WHERE tenant_id = $1";
+    const params = [tenantId];
+    let paramIndex = 2;
+    if (meterId) {
+      whereClause += ` AND meter_id = $${paramIndex}`;
+      params.push(meterId);
+      paramIndex++;
+    }
+    const result = await query(
+      c.env,
+      `SELECT notification_history_id, tenant_id, notification_rule_id, users_id, meter_id, title, description, status, sent_at, created_at
+       FROM public.notification_history
+       ${whereClause}
+       ORDER BY sent_at DESC
+       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...params, limit, offset]
+    );
+    const countResult = await query(
+      c.env,
+      `SELECT COUNT(*) as count FROM public.notification_history ${whereClause}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0].count, 10);
+    const history = result.rows.map((row) => ({
+      ...row,
+      id: String(row.notification_history_id)
+    }));
+    return c.json({ success: true, data: { history, total, limit, offset } });
+  } catch (error3) {
+    logError("Error fetching notification history:", error3);
+    return c.json({ success: false, message: "Failed to fetch notification history" }, 500);
+  }
+});
+app18.get("/meter/:meterId", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const meterId = c.req.param("meterId");
+    if (isNaN(Number(meterId))) {
+      return c.json({ success: false, message: "Invalid meter ID" }, 400);
+    }
+    const result = await query(
+      c.env,
+      `SELECT notification_history_id, notification_rule_id, title, description, status, sent_at
+       FROM public.notification_history
+       WHERE tenant_id = $1 AND meter_id = $2 AND sent_at >= NOW() - INTERVAL '24 hours'
+       ORDER BY sent_at DESC`,
+      [tenantId, meterId]
+    );
+    return c.json({
+      success: true,
+      data: {
+        notifications: result.rows.map((row) => ({
+          ...row,
+          id: String(row.notification_history_id)
+        }))
+      }
+    });
+  } catch (error3) {
+    logError("Error fetching meter notification history:", error3);
+    return c.json({ success: false, message: "Failed to fetch meter notification history" }, 500);
+  }
+});
+app18.post("/", async (c) => {
+  try {
+    const tenantId = c.get("tenantId");
+    const body = await c.req.json();
+    const {
+      notification_rule_id,
+      users_id,
+      meter_id,
+      title: title2,
+      description,
+      status = "sent"
+    } = body;
+    if (!title2) {
+      return c.json({ success: false, message: "Title is required" }, 400);
+    }
+    const result = await query(
+      c.env,
+      `INSERT INTO public.notification_history
+       (tenant_id, notification_rule_id, users_id, meter_id, title, description, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING notification_history_id, tenant_id, notification_rule_id, users_id, meter_id, title, description, status, sent_at, created_at`,
+      [tenantId, notification_rule_id || null, users_id || null, meter_id || null, title2, description || null, status]
+    );
+    return c.json(
+      {
+        success: true,
+        data: { history: { ...result.rows[0], id: String(result.rows[0].notification_history_id) } }
+      },
+      201
+    );
+  } catch (error3) {
+    logError("Error recording notification history:", error3);
+    return c.json({ success: false, message: "Failed to record notification history" }, 500);
+  }
+});
+var notificationHistory_default = app18;
+
+// worker/routes/emailLogs.ts
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var app19 = new Hono2();
+app19.use("*", authenticateToken);
+app19.get("/search", async (c) => {
   try {
     const { recipient, page: pageStr, limit: limitStr } = c.req.query();
     if (!recipient || recipient.trim().length === 0) {
@@ -20759,11 +19873,11 @@ app16.get("/search", async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error searching email logs:", error3);
+    logError("Error searching email logs:", error3);
     return c.json({ success: false, message: "Failed to search email logs" }, 500);
   }
 });
-app16.get("/export", async (c) => {
+app19.get("/export", async (c) => {
   try {
     const { format = "csv", reportId, startDate, endDate } = c.req.query();
     if (format && !["csv", "json"].includes(format)) {
@@ -20817,19 +19931,19 @@ app16.get("/export", async (c) => {
       }
     });
   } catch (error3) {
-    console.error("Error exporting email logs:", error3);
+    logError("Error exporting email logs:", error3);
     return c.json({ success: false, message: "Failed to export email logs" }, 500);
   }
 });
-var emailLogs_default = app16;
+var emailLogs_default = app19;
 
 // worker/routes/aiSearch.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
-var app17 = new Hono2();
-app17.use("*", authenticateToken);
-app17.post("/", async (c) => {
+var app20 = new Hono2();
+app20.use("*", authenticateToken);
+app20.post("/", async (c) => {
   try {
     const body = await c.req.json();
     const { query: searchQuery, limit = 20, offset = 0 } = body;
@@ -20911,110 +20025,84 @@ app17.post("/", async (c) => {
     return c.json({ success: false, error: { code: "INTERNAL_ERROR", message: "An error occurred while processing your search" } }, 500);
   }
 });
-var aiSearch_default = app17;
+var aiSearch_default = app20;
 
 // worker/routes/registers.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
-var app18 = new Hono2();
-app18.use("*", authenticateToken);
-app18.get("/", async (c) => {
+var app21 = new Hono2();
+app21.use("*", authenticateToken);
+app21.get("/", async (c) => {
   try {
     const result = await query(
       c.env,
-      `SELECT register_id, number, name, unit, field_name FROM register ORDER BY number ASC`
+      `SELECT register_id, number, name, unit, field_name, description FROM register ORDER BY number ASC`
     );
     return c.json({ success: true, data: result.rows });
   } catch (error3) {
-    console.error("Error fetching registers:", error3);
+    logError("Error fetching registers:", error3);
     return c.json({ success: false, message: "Failed to fetch registers" }, 500);
   }
 });
-var registers_default = app18;
-
-// worker/routes/deviceRegisters.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-var app19 = new Hono2();
-app19.use("*", authenticateToken);
-app19.get("/", async (c) => {
-  try {
-    const deviceId = c.req.param("deviceId");
-    const deviceResult = await query(
-      c.env,
-      "SELECT device_id FROM device WHERE device_id = $1",
-      [deviceId]
-    );
-    if (deviceResult.rows.length === 0) {
-      return c.json({ success: false, message: "Device not found" }, 404);
-    }
-    const result = await query(
-      c.env,
-      `SELECT dr.device_register_id, dr.device_id, dr.register_id,
-              r.register, r.name, r.unit, r.field_name
-       FROM device_register dr
-       JOIN register r ON dr.register_id = r.register_id
-       WHERE dr.device_id = $1
-       ORDER BY r.register ASC`,
-      [deviceId]
-    );
-    const data = result.rows.map((row) => ({
-      device_register_id: row.device_register_id,
-      register_id: row.register_id,
-      device_id: row.device_id,
-      register: {
-        id: row.device_register_id,
-        register: row.register,
-        name: row.name,
-        unit: row.unit,
-        field_name: row.field_name
-      }
-    }));
-    return c.json({ success: true, data });
-  } catch (error3) {
-    console.error("Error fetching device registers:", error3);
-    return c.json({ success: false, message: "Failed to fetch device registers" }, 500);
-  }
-});
-var deviceRegisters_default = app19;
+var registers_default = app21;
 
 // worker/routes/upload.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
-var app20 = new Hono2();
-app20.use("*", authenticateToken);
-app20.post("/image", requirePermission("settings:update"), async (c) => {
+var app22 = new Hono2();
+app22.use("*", authenticateToken);
+app22.post("/image", requirePermission("settings:update"), async (c) => {
   return c.json({
     success: false,
     message: "File uploads are not yet supported on this deployment. Use R2 storage integration for production file uploads."
   }, 501);
 });
-app20.delete("/image/:filename", requirePermission("settings:update"), async (c) => {
+app22.delete("/image/:filename", requirePermission("settings:update"), async (c) => {
   return c.json({
     success: false,
     message: "File deletion is not yet supported on this deployment."
   }, 501);
 });
-var upload_default = app20;
+var upload_default = app22;
 
 // worker/index.ts
-var app21 = new Hono2();
-app21.use("*", async (c, next) => {
-  const allowedOrigins = c.env.FRONTEND_URL ? c.env.FRONTEND_URL.split(",") : ["http://localhost:5173"];
-  const origin = c.req.header("origin") || "";
-  const isAllowed = !origin || allowedOrigins.includes(origin);
-  return cors({
-    origin: isAllowed ? origin : allowedOrigins[0],
-    credentials: true,
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-API-Key"],
-    exposeHeaders: ["Content-Range", "X-Content-Range"]
-  })(c, next);
+var app23 = new Hono2();
+function getAllowedOrigins(env3) {
+  const frontendUrl = env3.FRONTEND_URL || "https://meteritpro.com";
+  return frontendUrl.split(",").map((s) => s.trim());
+}
+__name(getAllowedOrigins, "getAllowedOrigins");
+app23.use("*", cors({
+  origin: /* @__PURE__ */ __name((origin, c) => {
+    const allowedOrigins = getAllowedOrigins(c.env);
+    if (!origin) {
+      return allowedOrigins[0];
+    }
+    const isAllowed = allowedOrigins.includes(origin);
+    return isAllowed ? origin : allowedOrigins[0];
+  }, "origin"),
+  credentials: true,
+  allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-API-Key"],
+  exposeHeaders: ["Content-Range", "X-Content-Range"]
+}));
+app23.onError((err, c) => {
+  console.error("[WORKER] Unhandled error:", err);
+  console.error("[WORKER] Error type:", err?.constructor?.name);
+  console.error("[WORKER] Error message:", err?.message);
+  const response = c.json({ success: false, message: "Internal server error" }, 500);
+  const frontendUrl = c.env.FRONTEND_URL || "https://meteritpro.com";
+  const allowedOrigins = frontendUrl.split(",").map((s) => s.trim());
+  const origin = c.req.header("origin");
+  if (origin && allowedOrigins.includes(origin)) {
+    response.headers.set("Access-Control-Allow-Origin", origin);
+    response.headers.set("Access-Control-Allow-Credentials", "true");
+  }
+  return response;
 });
-app21.get("/api/health", async (c) => {
+app23.get("/api/health", async (c) => {
   try {
     const result = await query(c.env, "SELECT NOW()");
     return c.json({
@@ -21032,38 +20120,234 @@ app21.get("/api/health", async (c) => {
     }, 500);
   }
 });
-app21.route("/api/auth", auth_default);
-app21.route("/api/users", users_default);
-app21.route("/api/meters", meters_default);
-app21.route("/api/location", locations_default);
-app21.route("/api/contacts", contacts_default);
-app21.route("/api/device", devices_default);
-app21.route("/api/meterreadings", meterReadings_default);
-app21.route("/api/settings", settings_default);
-app21.route("/api/templates", templates_default);
-app21.route("/api/emails", emails_default);
-app21.route("/api/sync", sync_default);
-app21.route("/api/schema", schema_default);
-app21.route("/api/dashboard", dashboard_default);
-app21.route("/api/favorites", favorites_default);
-app21.route("/api/ai/search", aiSearch_default);
-app21.route("/api/reports", reports_default);
-app21.route("/api/email-logs", emailLogs_default);
-app21.route("/api/registers", registers_default);
-app21.route("/api/upload", upload_default);
-app21.route("/api/meters/:meterId/elements", meterElements_default);
-app21.route("/api/devices/:deviceId/registers", deviceRegisters_default);
-app21.all("*", (c) => {
+app23.get("/swagger", (c) => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>MeterIt Pro Client API Documentation</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css">
+        <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/favicon-16x16.png" sizes="16x16" />
+        <style>
+          html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+          }
+          *,
+          *:before,
+          *:after {
+            box-sizing: inherit;
+          }
+          body {
+            margin: 0;
+            background: #fafafa;
+          }
+        </style>
+      </head>
+      <body>
+        <div id="swagger-ui"></div>
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-bundle.js"><\/script>
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-standalone-preset.js"><\/script>
+        <script>
+          window.onload = function() {
+            window.ui = SwaggerUIBundle({
+              urls: [ { url: "/swagger/spec.json", name: "MeterIt Pro Client API" } ],
+              dom_id: '#swagger-ui',
+              deepLinking: true,
+              presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIStandalonePreset
+              ],
+              plugins: [
+                SwaggerUIBundle.plugins.DownloadUrl
+              ],
+              layout: "StandaloneLayout"
+            });
+          };
+        <\/script>
+      </body>
+    </html>
+  `;
+  return c.html(html);
+});
+app23.get("/swagger/spec.json", (c) => {
+  const spec = {
+    openapi: "3.0.0",
+    info: {
+      title: "MeterIt Pro Client API",
+      version: "1.0.0",
+      description: "Cloudflare Workers-based API for MeterIt Pro"
+    },
+    servers: [
+      { url: "https://meteritpro.com/api", description: "Production" },
+      { url: "http://localhost:8787/api", description: "Local development" }
+    ],
+    paths: {
+      "/health": {
+        get: {
+          summary: "Health check",
+          tags: ["Health"],
+          responses: { 200: { description: "OK" } }
+        }
+      },
+      "/auth/login": {
+        post: {
+          summary: "User login",
+          tags: ["Auth"],
+          responses: { 200: { description: "Login successful" }, 401: { description: "Invalid credentials" } }
+        }
+      },
+      "/users/me": {
+        get: {
+          summary: "Get current user",
+          tags: ["Users"],
+          responses: { 200: { description: "User data" }, 401: { description: "Unauthorized" } }
+        }
+      },
+      "/meters": {
+        get: {
+          summary: "List meters",
+          tags: ["Meters"],
+          responses: { 200: { description: "List of meters" }, 401: { description: "Unauthorized" } }
+        }
+      },
+      "/sync/connect": {
+        post: {
+          summary: "Connect sync client",
+          tags: ["Sync"],
+          responses: { 200: { description: "Connected" }, 401: { description: "Invalid credentials" } }
+        }
+      }
+    }
+  };
+  return c.json(spec);
+});
+app23.route("/api/auth", auth_default);
+app23.route("/api/users", users_default);
+app23.route("/api/meters", meters_default);
+app23.route("/api/location", locations_default);
+app23.route("/api/contacts", contacts_default);
+app23.route("/api/device", devices_default);
+app23.route("/api/meterreadings", meterReadings_default);
+app23.route("/api/settings", settings_default);
+app23.route("/api/templates", templates_default);
+app23.route("/api/emails", emails_default);
+app23.route("/api/sync", sync_default);
+app23.route("/api/schema", schema_default);
+app23.route("/api/dashboard", dashboard_default);
+app23.route("/api/favorites", favorites_default);
+app23.route("/api/ai/search", aiSearch_default);
+app23.route("/api/reports", reports_default);
+app23.route("/api/notifications", notifications_default);
+app23.route("/api/notification-rules", notificationRules_default);
+app23.route("/api/notification-history", notificationHistory_default);
+app23.route("/api/email-logs", emailLogs_default);
+app23.route("/api/registers", registers_default);
+app23.route("/api/upload", upload_default);
+app23.route("/api/meters/:meterId/elements", meterElements_default);
+app23.get("/api/devices/:deviceId/registers", authenticateToken, async (c) => {
+  const deviceId = c.req.param("deviceId");
+  console.log("[direct-route] Device registers direct route - deviceId:", deviceId);
+  if (!deviceId) {
+    return c.json({ success: false, message: "Device ID is required" }, 400);
+  }
+  try {
+    const deviceResult = await query(
+      c.env,
+      "SELECT device_id FROM device WHERE device_id = $1",
+      [deviceId]
+    );
+    if (deviceResult.rows.length === 0) {
+      return c.json({ success: false, message: "Device not found" }, 404);
+    }
+    const result = await query(
+      c.env,
+      `SELECT dr.device_register_id, dr.device_id, dr.register_id,
+              r.register, r.name, r.unit, r.field_name, r.description
+       FROM device_register dr
+       JOIN register r ON dr.register_id = r.register_id
+       WHERE dr.device_id = $1
+       ORDER BY r.register ASC`,
+      [deviceId]
+    );
+    const data = result.rows.map((row) => ({
+      device_register_id: row.device_register_id,
+      register_id: row.register_id,
+      device_id: row.device_id,
+      register: {
+        id: row.device_register_id,
+        register: row.register,
+        name: row.name,
+        unit: row.unit,
+        field_name: row.field_name,
+        description: row.description
+      }
+    }));
+    return c.json({ success: true, data });
+  } catch (error3) {
+    console.error("[direct-route] Error fetching device registers:", error3);
+    return c.json({ success: false, message: "Failed to fetch device registers" }, 500);
+  }
+});
+app23.get("/api/meters/:meterId/registers", authenticateToken, async (c) => {
+  const meterId = c.req.param("meterId");
+  console.log("[meter-registers] Fetching registers for meter:", meterId);
+  if (!meterId) {
+    return c.json({ success: false, message: "Meter ID is required" }, 400);
+  }
+  try {
+    const meterResult = await query(
+      c.env,
+      "SELECT device_id FROM meter WHERE meter_id = $1",
+      [meterId]
+    );
+    if (meterResult.rows.length === 0) {
+      return c.json({ success: false, message: "Meter not found" }, 404);
+    }
+    const deviceId = meterResult.rows[0].device_id;
+    if (!deviceId) {
+      return c.json({ success: true, data: [] });
+    }
+    const result = await query(
+      c.env,
+      `SELECT dr.device_register_id as id, dr.device_id, dr.register_id,
+              r.register, r.name, r.unit, r.field_name
+       FROM device_register dr
+       JOIN register r ON dr.register_id = r.register_id
+       WHERE dr.device_id = $1
+       ORDER BY r.register ASC`,
+      [deviceId]
+    );
+    const data = result.rows.map((row) => ({
+      id: row.id,
+      device_id: row.device_id,
+      register_id: row.register_id,
+      register: {
+        id: row.id,
+        register: row.register,
+        name: row.name,
+        unit: row.unit,
+        field_name: row.field_name
+      }
+    }));
+    return c.json({ success: true, data });
+  } catch (error3) {
+    console.error("[meter-registers] Error fetching meter registers:", error3);
+    return c.json({ success: false, message: "Failed to fetch meter registers" }, 500);
+  }
+});
+app23.all("*", (c) => {
   return c.json({ success: false, message: "Route not found" }, 404);
 });
-var index_default = app21;
+var index_default = app23;
 export {
   index_default as default
 };
 /*! Bundled license information:
-
-safe-buffer/index.js:
-  (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
 
 bcryptjs/dist/bcrypt.js:
   (**

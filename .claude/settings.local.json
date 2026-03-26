@@ -59,7 +59,8 @@
       "Bash(tasklist:*)",
       "Bash(taskkill /F /PID 28940 /T)",
       "Bash(jq .data.items[].device_id)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx wrangler:*)"
     ]
   }
 }

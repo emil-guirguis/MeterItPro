@@ -20,10 +20,10 @@ export interface MeterReading {
   tenant_id?: number;
   created_at?: string;
   meter_element_id?: number;
-  power?: number;
-  active_energy?: number;
-  power_factor?: number;
-  current?: number;
+  kw?: number;
+  kwh?: number;
+  pf?: number;
+  amperage?: number;
   voltage_p_n?: number;
   [key: string]: any;
 }

@@ -261,12 +261,12 @@ export class MeterReadingValidator {
     }
 
     // Check current
-    if (reading.current_line_a !== null && reading.current_line_a !== undefined) {
-      if (reading.current_line_a < REALISTIC_RANGES.current.min || reading.current_line_a > REALISTIC_RANGES.current.max) {
+    if (reading.phase_amperage_a !== null && reading.phase_amperage_a !== undefined) {
+      if (reading.phase_amperage_a < REALISTIC_RANGES.current.min || reading.phase_amperage_a > REALISTIC_RANGES.current.max) {
         warnings.push({
           code: 'UNREALISTIC_CURRENT',
-          message: `Current ${reading.current_line_a}A is outside typical range (${REALISTIC_RANGES.current.min}-${REALISTIC_RANGES.current.max}A)`,
-          field: 'current_line_a',
+          message: `Current ${reading.phase_amperage_a}A is outside typical range (${REALISTIC_RANGES.current.min}-${REALISTIC_RANGES.current.max}A)`,
+          field: 'phase_amperage_a',
         });
       }
     }
@@ -353,8 +353,8 @@ export class MeterReadingValidator {
     // Check for suspiciously perfect round numbers across multiple fields
     const roundNumberCount = [
       reading.voltage_p_n,
-      reading.current_line_a,
-      reading.power,
+      reading.phase_amperage_a,
+      reading.kw,
       reading.frequency,
     ].filter((val) => val !== null && val !== undefined && MOCK_DATA_PATTERNS.perfectRound.test(String(val))).length;
 
@@ -368,8 +368,8 @@ export class MeterReadingValidator {
     // Check for all zeros (common mock pattern)
     const allZeros = [
       reading.voltage_p_n === 0,
-      reading.current_line_a === 0,
-      reading.power === 0,
+      reading.phase_amperage_a === 0,
+      reading.kw === 0,
       reading.frequency === 0,
     ].filter(Boolean).length;
 
@@ -391,8 +391,8 @@ export class MeterReadingValidator {
 
     const nullCount = [
       reading.voltage_p_n,
-      reading.current_line_a,
-      reading.power,
+      reading.phase_amperage_a,
+      reading.kw,
       reading.frequency,
       reading.power_factor,
     ].filter((val) => val === null || val === undefined).length;
@@ -414,10 +414,10 @@ export class MeterReadingValidator {
   private hasRealMeasurements(reading: MeterReadingEntity): boolean {
     return (
       (reading.voltage_p_n !== null && reading.voltage_p_n !== undefined) ||
-      (reading.current_line_a !== null && reading.current_line_a !== undefined) ||
-      (reading.power !== null && reading.power !== undefined) ||
+      (reading.phase_amperage_a !== null && reading.phase_amperage_a !== undefined) ||
+      (reading.kw !== null && reading.kw !== undefined) ||
       (reading.frequency !== null && reading.frequency !== undefined) ||
-      (reading.active_energy !== null && reading.active_energy !== undefined) ||
+      (reading.kwh !== null && reading.kwh !== undefined) ||
       (reading.power_factor !== null && reading.power_factor !== undefined)
     );
   }
