@@ -3,7 +3,7 @@
  *
  * Displays a comprehensive meter reading view with:
  * - Meter information (driver, description, serial number)
- * - Total consumption and generation metrics
+ * - Total consumption metrics
  * - Phase-based electrical measurements table
  * - Frequency display
  * - Consumption graphs
@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import { useMeterSelection } from '../../contexts/MeterSelectionContext';
 import { useAuth } from '../../hooks/useAuth';
 import { ConsumptionGraph } from './ConsumptionGraph';
+import { DemandGraph } from './DemandGraph';
 import './DetailedMeterReadingView.css';
 
 interface MeterInfo {
@@ -24,9 +25,9 @@ interface MeterInfo {
 interface MeterReadingData {
   // Energy totals
   activeEnergyTotal: number;
-  reactiveEnergyTotal: number;
-  activeEnergyExport: number;
-  reactiveEnergyExport: number;
+
+  // Demand
+  maximumDemandReal: number;
 
   // Phase voltages (line-to-neutral)
   voltagePhaseA: number;
@@ -84,7 +85,7 @@ interface DetailedMeterReadingViewProps {
 }
 
 type TimePeriod = 'today' | 'weekly' | 'monthly' | 'yearly';
-type GraphType = 'consumption' | 'demand' | 'ghg';
+type GraphType = 'consumption' | 'demand';
 
 export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> = ({
   meterInfo,
@@ -188,14 +189,7 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
             <span className="info-label">Reading Date</span>
             <span className="info-value"> {reading.timestamp ? new Date(reading.timestamp).toLocaleString() : 'N/A'}</span>
           </div>
-          {/* Frequency Display */}
-          <div className="info-row">
-            <div className="frequency-section">
-              <span className="frequency-label">Frequency</span>
-              <span className="frequency-value">{formatNumber(reading.frequency, 2)}</span>
-              <span className="frequency-unit">Hz</span>
-            </div>
-          </div>
+
 
           {/* View All Readings Button */}
           {onViewAllReadings && (
@@ -207,9 +201,8 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
           )}
         </div>
 
-        {/* Right: Total Consumption and Generation */}
+        {/* Right: Total Consumption and Maximum Demand Real */}
         <div className="energy-totals-card">
-          <h3 className="card-title">Total Consumption</h3>
           <div className="energy-row">
             <span className="energy-label">Active</span>
             <span className="energy-colon"></span>
@@ -217,24 +210,17 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
             <span className="energy-unit">kWh</span>
           </div>
           <div className="energy-row">
-            <span className="energy-label">Reactive</span>
+            <span className="energy-label">Demand</span>
             <span className="energy-colon"></span>
-            <span className="energy-value">{formatNumber(reading.reactiveEnergyTotal, 2)}</span>
-            <span className="energy-unit">kVArh</span>
+            <span className="energy-value">{formatNumber(reading.maximumDemandReal, 2)}</span>
+            <span className="energy-unit">kW</span>
           </div>
-
-          <h3 className="card-title">Total Generation</h3>
-          <div className="energy-row">
-            <span className="energy-label">Active</span>
-            <span className="energy-colon"></span>
-            <span className="energy-value">{formatNumber(reading.activeEnergyExport, 2)}</span>
-            <span className="energy-unit">kWh</span>
-          </div>
-          <div className="energy-row">
-            <span className="energy-label">Reactive</span>
-            <span className="energy-colon"></span>
-            <span className="energy-value">{formatNumber(reading.reactiveEnergyExport, 2)}</span>
-            <span className="energy-unit">kVArh</span>
+          {/* Frequency Display */}
+          <div className="frequency-row">
+            <span className="frequency-label">Frequency</span>
+            <span className="frequency-colon"></span>
+            <span className="frequency-value">{formatNumber(reading.frequency, 2)}</span>
+            <span className="frequency-unit">Hz</span>
           </div>
         </div>
       </div>
@@ -343,9 +329,17 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
               timePeriod={selectedTimePeriod}
               offset={offset}
             />
+          ) : selectedGraphType === 'demand' && selectedMeter && selectedElement && user?.client ? (
+            <DemandGraph
+              meterId={selectedMeter}
+              meterElementId={selectedElement}
+              tenantId={user.client}
+              timePeriod={selectedTimePeriod}
+              offset={offset}
+            />
           ) : (
             <div className="graph-placeholder">
-              <p>Unable to load consumption data</p>
+              <p>Unable to load chart data</p>
             </div>
           )}
 
@@ -418,13 +412,6 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
               onClick={() => setSelectedGraphType('demand')}
             >
               Demand
-            </button>
-            <button
-              type="button"
-              className={`graph-type-button ${selectedGraphType === 'ghg' ? 'graph-type-button--active' : ''}`}
-              onClick={() => setSelectedGraphType('ghg')}
-            >
-              GHG Emissions
             </button>
           </div>
         </div>

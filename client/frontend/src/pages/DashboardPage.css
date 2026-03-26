@@ -1,4 +1,5 @@
 /* ── Dashboard Layout ────────────────────────────────── */
+/*
 .dashboard-with-banner {
   position: relative;
   width: 100%;
@@ -23,6 +24,7 @@
   width: 100%;
   z-index: 8;
 }
+*/
 
 /* ── React Grid Layout base ──────────────────────────────── */
 .react-grid-layout {

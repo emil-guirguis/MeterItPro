@@ -13,10 +13,12 @@ import {
   Tooltip,
   Alert,
   Collapse,
+  TextField,
 } from '@mui/material';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import { BaseForm, FormContainer } from '@framework/components/form';
 import { CronField } from '@framework/components/formfield/CronField';
+import { DeviceRegisterChecklist } from '../../components/shared/DeviceRegisterChecklist';
 import { useNotificationRulesEnhanced } from './notificationRulesStore';
 import { favoritesService } from '../../services/favoritesService';
 import { useAuth } from '../../hooks/useAuth';
@@ -96,12 +98,6 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
       .finally(() => setMetersLoading(false));
   }, [auth.user?.client, auth.user?.users_id]);
 
-  // Mock users — replace with a real user fetch if needed
-  const availableUsers = [
-    { users_id: '1', name: 'Admin User', email: 'admin@example.com' },
-    { users_id: '2', name: 'Manager', email: 'manager@example.com' },
-  ];
-
   return (
     <FormContainer>
       {import.meta.env.DEV && rule?.notification_rule_id && (
@@ -162,52 +158,59 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
 
             // ── Recipients ──────────────────────────────────────────────────
             if (fieldName === 'recipients') {
+              const [emailInput, setEmailInput] = React.useState('');
+
+              const handleAddEmail = () => {
+                if (!emailInput.trim()) return;
+                const current: any[] = value || [];
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(emailInput.trim())) {
+                  return;
+                }
+                if (!current.find((r) => r.email_address === emailInput.trim())) {
+                  onChange([...current, { email_address: emailInput.trim(), receive_email: true }]);
+                  setEmailInput('');
+                }
+              };
+
               return (
                 <Stack spacing={2}>
-                  <FormControl fullWidth disabled={isDisabled}>
-                    <InputLabel>Add Recipient</InputLabel>
-                    <Select
-                      label="Add Recipient"
-                      defaultValue=""
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          const current: any[] = value || [];
-                          if (!current.find((r) => r.users_id === e.target.value)) {
-                            onChange([...current, { users_id: e.target.value, receive_email: true }]);
-                          }
-                        }
-                      }}
-                    >
-                      <MenuItem value="">Select a user...</MenuItem>
-                      {availableUsers.map((user) => (
-                        <MenuItem key={user.users_id} value={user.users_id}>
-                          {user.name} ({user.email})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <TextField
+                    fullWidth
+                    label="Add Email Address"
+                    placeholder="user@example.com"
+                    value={emailInput}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailInput(e.target.value)}
+                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddEmail();
+                      }
+                    }}
+                    disabled={isDisabled}
+                    error={!!error}
+                    helperText={error || 'Enter email and press Enter, or select from contacts/users below'}
+                    size="small"
+                  />
 
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {(value || []).map((recipient: any) => {
-                      const user = availableUsers.find((u) => u.users_id === recipient.users_id);
-                      return (
-                        <Chip
-                          key={recipient.users_id}
-                          label={user?.name || recipient.users_id}
-                          onDelete={() =>
-                            onChange((value || []).filter((r: any) => r.users_id !== recipient.users_id))
-                          }
-                        />
-                      );
-                    })}
+                    {(value || []).map((recipient: any, idx: number) => (
+                      <Chip
+                        key={idx}
+                        label={recipient.email_address || recipient.users_id}
+                        onDelete={() =>
+                          onChange((value || []).filter((_: any, i: number) => i !== idx))
+                        }
+                        disabled={isDisabled}
+                      />
+                    ))}
                   </Box>
 
                   {(!value || value.length === 0) && (
                     <Typography color="textSecondary" variant="body2">
-                      No recipients added yet
+                      No email recipients added yet
                     </Typography>
                   )}
-                  {error && <Typography color="error" variant="caption">{error}</Typography>}
                 </Stack>
               );
             }
@@ -283,6 +286,22 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
                   )}
                   {error && <Typography color="error" variant="caption">{error}</Typography>}
                 </Stack>
+              );
+            }
+
+            // ── Device Registers (optional filtering) ──────────────────────────
+            if (fieldName === 'register_ids') {
+              // Get the first meter_id from selected meter_elements
+              const selectedMeterElements: Array<{ meter_id: string; meter_element_id: string }> = rule?.meter_elements || [];
+              const deviceId = selectedMeterElements.length > 0 ? parseInt(selectedMeterElements[0].meter_id) : null;
+
+              return (
+                <DeviceRegisterChecklist
+                  deviceId={deviceId}
+                  value={Array.isArray(value) ? value : []}
+                  onChange={onChange}
+                  label="Registers (Optional)"
+                />
               );
             }
 

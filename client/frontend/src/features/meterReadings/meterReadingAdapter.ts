@@ -12,7 +12,7 @@ interface RawMeterReading {
   tenant_id?: number;
   meter_element_id?: number;
   created_at?: string;
-  
+
   // Meter info
   meter_name?: string;
   // meter_type?: string;
@@ -23,66 +23,61 @@ interface RawMeterReading {
   meter_notes?: string;
   element_name?: string;
   element_number?: number;
-  
+
   // Energy totals
-  active_energy?: number;
-  active_energy_export?: number;
-  reactive_energy?: number;
-  reactive_energy_export?: number;
-  apparent_energy?: number;
-  apparent_energy_export?: number;
-  
+  kwh?: number;
+
   // Phase voltages (line-to-neutral)
   voltage_a_n?: number;
   voltage_b_n?: number;
   voltage_c_n?: number;
   voltage_p_n?: number;
-  
+
   // Line voltages (line-to-line)
   voltage_a_b?: number;
   voltage_b_c?: number;
   voltage_c_a?: number;
   voltage_p_p?: number;
-  
+
   // Current
-  current?: number;
-  current_line_a?: number;
-  current_line_b?: number;
-  current_line_c?: number;
-  
+  amperage?: number;
+  phase_amperage_a?: number;
+  phase_amperage_b?: number;
+  phase_amperage_c?: number;
+
   // Power
-  power?: number;
-  power_phase_a?: number;
-  power_phase_b?: number;
-  power_phase_c?: number;
-  
+  kw?: number;
+  phase_kw_a?: number;
+  phase_kw_b?: number;
+  phase_kw_c?: number;
+
   // Apparent power
-  apparent_power?: number;
-  apparent_power_phase_a?: number;
-  apparent_power_phase_b?: number;
-  apparent_power_phase_c?: number;
-  
+  kva?: number;
+  phase_kva_a?: number;
+  phase_kva_b?: number;
+  phase_kva_c?: number;
+
   // Reactive power
-  reactive_power?: number;
-  reactive_power_phase_a?: number;
-  reactive_power_phase_b?: number;
-  reactive_power_phase_c?: number;
-  
+  kvar?: number;
+  phase_kvar_a?: number;
+  phase_kvar_b?: number;
+  phase_kvar_c?: number;
+
   // Power factor
-  power_factor?: number;
-  power_factor_phase_a?: number;
-  power_factor_phase_b?: number;
-  power_factor_phase_c?: number;
-  
+  pf?: number;
+  pf_a?: number;
+  pf_b?: number;
+  pf_c?: number;
+
   // Frequency
   frequency?: number;
-  
+
   // Other
-  maximum_demand_real?: number;
-  voltage_thd?: number;
-  voltage_thd_phase_a?: number;
-  voltage_thd_phase_b?: number;
-  voltage_thd_phase_c?: number;
+  peak_kw?: number;
+  total_thdv?: number;
+  phase_thdv_a?: number;
+  phase_thdv_b?: number;
+  phase_thdv_c?: number;
 }
 
 export interface MeterInfo {
@@ -94,10 +89,10 @@ export interface MeterInfo {
 export interface MeterReadingData {
   // Energy totals
   activeEnergyTotal: number;
-  reactiveEnergyTotal: number;
-  activeEnergyExport: number;
-  reactiveEnergyExport: number;
-  
+
+  // Demand
+  maximumDemandReal: number;
+
   // Phase voltages (line-to-neutral)
   voltagePhaseA: number;
   voltagePhaseB: number;
@@ -173,55 +168,55 @@ export function adaptMeterReading(raw: RawMeterReading): {
   // Transform reading data
   // Note: Values are divided by 1000 where appropriate to convert from W to kW, VA to kVA, etc.
   const reading: MeterReadingData = {
-    // Energy totals (already in kWh/kVArh from database)
-    activeEnergyTotal: toNumber(raw.active_energy, 0),
-    reactiveEnergyTotal: toNumber(raw.reactive_energy, 0),
-    activeEnergyExport: toNumber(raw.active_energy_export, 0),
-    reactiveEnergyExport: toNumber(raw.reactive_energy_export, 0),
-    
+    // Energy totals (already in kWh from database)
+    activeEnergyTotal: toNumber(raw.kwh, 0),
+
+    // Demand (already in kW from database)
+    maximumDemandReal: toNumber(raw.peak_kw, 0),
+
     // Phase voltages (line-to-neutral) - already in V
     voltagePhaseA: toNumber(raw.voltage_a_n, 0),
     voltagePhaseB: toNumber(raw.voltage_b_n, 0),
     voltagePhaseC: toNumber(raw.voltage_c_n, 0),
-    
+
     // Line voltages (line-to-line) - already in V
     voltageAB: toNumber(raw.voltage_a_b, 0),
     voltageBC: toNumber(raw.voltage_b_c, 0),
     voltageCA: toNumber(raw.voltage_c_a, 0),
-    
+
     // Current per phase - already in A
-    currentPhaseA: toNumber(raw.current_line_a, 0),
-    currentPhaseB: toNumber(raw.current_line_b, 0),
-    currentPhaseC: toNumber(raw.current_line_c, 0),
-    currentTotal: toNumber(raw.current, 0),
-    
+    currentPhaseA: toNumber(raw.phase_amperage_a, 0),
+    currentPhaseB: toNumber(raw.phase_amperage_b, 0),
+    currentPhaseC: toNumber(raw.phase_amperage_c, 0),
+    currentTotal: toNumber(raw.amperage, 0),
+
     // Active power - convert to kW if needed (assuming database stores in kW)
-    powerPhaseA: toNumber(raw.power_phase_a, 0),
-    powerPhaseB: toNumber(raw.power_phase_b, 0),
-    powerPhaseC: toNumber(raw.power_phase_c, 0),
-    powerTotal: toNumber(raw.power, 0),
-    
+    powerPhaseA: toNumber(raw.phase_kw_a, 0),
+    powerPhaseB: toNumber(raw.phase_kw_b, 0),
+    powerPhaseC: toNumber(raw.phase_kw_c, 0),
+    powerTotal: toNumber(raw.kw, 0),
+
     // Apparent power - convert to kVA if needed (assuming database stores in kVA)
-    apparentPowerPhaseA: toNumber(raw.apparent_power_phase_a, 0),
-    apparentPowerPhaseB: toNumber(raw.apparent_power_phase_b, 0),
-    apparentPowerPhaseC: toNumber(raw.apparent_power_phase_c, 0),
-    apparentPowerTotal: toNumber(raw.apparent_power, 0),
-    
+    apparentPowerPhaseA: toNumber(raw.phase_kva_a, 0),
+    apparentPowerPhaseB: toNumber(raw.phase_kva_b, 0),
+    apparentPowerPhaseC: toNumber(raw.phase_kva_c, 0),
+    apparentPowerTotal: toNumber(raw.kva, 0),
+
     // Reactive power - convert to kVAr if needed (assuming database stores in kVAr)
-    reactivePowerPhaseA: toNumber(raw.reactive_power_phase_a, 0),
-    reactivePowerPhaseB: toNumber(raw.reactive_power_phase_b, 0),
-    reactivePowerPhaseC: toNumber(raw.reactive_power_phase_c, 0),
-    reactivePowerTotal: toNumber(raw.reactive_power, 0),
-    
+    reactivePowerPhaseA: toNumber(raw.phase_kvar_a, 0),
+    reactivePowerPhaseB: toNumber(raw.phase_kvar_b, 0),
+    reactivePowerPhaseC: toNumber(raw.phase_kvar_c, 0),
+    reactivePowerTotal: toNumber(raw.kvar, 0),
+
     // Power factor (unitless, 0-1 or 0-100 scale)
-    powerFactorPhaseA: toNumber(raw.power_factor_phase_a, 0),
-    powerFactorPhaseB: toNumber(raw.power_factor_phase_b, 0),
-    powerFactorPhaseC: toNumber(raw.power_factor_phase_c, 0),
-    powerFactorTotal: toNumber(raw.power_factor, 0),
-    
+    powerFactorPhaseA: toNumber(raw.pf_a, 0),
+    powerFactorPhaseB: toNumber(raw.pf_b, 0),
+    powerFactorPhaseC: toNumber(raw.pf_c, 0),
+    powerFactorTotal: toNumber(raw.pf, 0),
+
     // Frequency - already in Hz
     frequency: toNumber(raw.frequency, 60),
-    
+
     // Timestamp
     timestamp: raw.created_at ? new Date(raw.created_at) : new Date(),
   };

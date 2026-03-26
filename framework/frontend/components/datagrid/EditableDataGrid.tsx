@@ -57,6 +57,10 @@ export interface EditableDataGridProps {
   toastMessage?: string;
   toastSeverity?: 'success' | 'error';
   onToastClose?: () => void;
+
+  // Visibility controls
+  hideAddButton?: boolean;
+  hideDeleteColumn?: boolean;
 }
 
 interface EditingCell {
@@ -86,6 +90,8 @@ export const EditableDataGrid: React.FC<EditableDataGridProps> = ({
   toastMessage = '',
   toastSeverity = 'success',
   onToastClose,
+  hideAddButton = false,
+  hideDeleteColumn = false,
 }) => {
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [editValue, setEditValue] = useState<string>('');
@@ -198,23 +204,25 @@ export const EditableDataGrid: React.FC<EditableDataGridProps> = ({
   return (
     <Box className="editable-data-grid">
       {/* Header with Add Button */}
-      <Box className="editable-data-grid__header">
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={onRowAdd}
-          disabled={loading}
-          className="editable-data-grid__add-button"
-        >
-          {addButtonLabel}
-        </Button>
-        {loading && (
-          <CircularProgress
-            size={24}
-            className="editable-data-grid__loading"
-          />
-        )}
-      </Box>
+      {!hideAddButton && (
+        <Box className="editable-data-grid__header">
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={onRowAdd}
+            disabled={loading || !onRowAdd}
+            className="editable-data-grid__add-button"
+          >
+            {addButtonLabel}
+          </Button>
+          {loading && (
+            <CircularProgress
+              size={24}
+              className="editable-data-grid__loading"
+            />
+          )}
+        </Box>
+      )}
 
       {/* Error State */}
       {error && (
@@ -250,19 +258,21 @@ export const EditableDataGrid: React.FC<EditableDataGridProps> = ({
                   {column.label}
                 </TableCell>
               ))}
-              <TableCell
-                style={{ width: '60px' }}
-                className="editable-data-grid__header-cell"
-              >
-                Actions
-              </TableCell>
+              {!hideDeleteColumn && (
+                <TableCell
+                  style={{ width: '60px' }}
+                  className="editable-data-grid__header-cell"
+                >
+                  Actions
+                </TableCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length + 1}
+                  colSpan={hideDeleteColumn ? columns.length : columns.length + 1}
                   align="center"
                   className="editable-data-grid__empty"
                 >
@@ -324,32 +334,35 @@ export const EditableDataGrid: React.FC<EditableDataGridProps> = ({
                       )}
                     </TableCell>
                   ))}
-                  <TableCell
-                    align="center"
-                    className="editable-data-grid__actions-cell"
-                  >
-                    {row._isUnsaved ? (
-                      <IconButton
-                        size="small"
-                        onClick={() => onRowSave?.(rowIndex)}
-                        className="editable-data-grid__save-button"
-                        title="Save row"
-                        color="success"
-                      >
-                        <SaveIcon fontSize="small" />
-                      </IconButton>
-                    ) : (
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteClick(rowIndex)}
-                        className="editable-data-grid__delete-button"
-                        title="Delete row"
-                        color="error"
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                  </TableCell>
+                  {!hideDeleteColumn && (
+                    <TableCell
+                      align="center"
+                      className="editable-data-grid__actions-cell"
+                    >
+                      {row._isUnsaved ? (
+                        <IconButton
+                          size="small"
+                          onClick={() => onRowSave?.(rowIndex)}
+                          className="editable-data-grid__save-button"
+                          title="Save row"
+                          color="success"
+                        >
+                          <SaveIcon fontSize="small" />
+                        </IconButton>
+                      ) : (
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteClick(rowIndex)}
+                          className="editable-data-grid__delete-button"
+                          title="Delete row"
+                          color="error"
+                          disabled={!onRowDelete}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  )}
                 </TableRow>
                 );
               })

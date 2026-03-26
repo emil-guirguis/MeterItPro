@@ -68,7 +68,7 @@ export const reportSchema = defineSchema({
       order: 6,
       sections: [
         section({ name: 'Select Registers', order: 1, flex: 1, fields: [
-          field({ name: 'register_ids', order: 1, type: 'custom', label: 'Registers', required: false, default: [], showOn: ['form'], customField: true }),
+          field({ name: 'register_ids', order: 1, type: FieldTypes.OBJECT, label: 'Registers', required: false, default: [], showOn: ['form'], dbField: 'register_ids', description: 'Selected register field names' }),
         ] }),
       ],
     }),

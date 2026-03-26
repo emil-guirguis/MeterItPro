@@ -1,6 +1,7 @@
 import React from 'react';
 import { BaseForm, FormContainer } from '@framework/components/form';
 import { CronField } from '@framework/components/formfield/CronField';
+import { DeviceRegisterChecklist } from '../../components/shared/DeviceRegisterChecklist';
 import { useReportsEnhanced } from './reportsStore';
 import { RecipientsField, MeterElementSelector, RegisterSelector } from './components';
 import type { Report } from './types';
@@ -89,14 +90,17 @@ export const ReportForm: React.FC<ReportFormProps> = ({
               );
             }
 
-            // Custom rendering for register_ids field
+            // Custom rendering for register_ids field (stores field_names as JSONB array)
             if (fieldName === 'register_ids') {
+              // Get the first meter_id from the report as the device context
+              const deviceId = report?.meter_ids?.[0] ? parseInt(report.meter_ids[0]) : null;
+
               return (
-                <RegisterSelector
-                  value={value || []}
-                  error={error}
-                  isDisabled={isDisabled}
+                <DeviceRegisterChecklist
+                  deviceId={deviceId}
+                  value={Array.isArray(value) ? value : []}
                   onChange={onChange}
+                  label="Registers"
                 />
               );
             }

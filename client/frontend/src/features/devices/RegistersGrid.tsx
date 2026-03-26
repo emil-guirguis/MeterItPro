@@ -9,6 +9,7 @@ export interface Register {
   name: string;
   unit: string;
   field_name: string;
+  description?: string;
 }
 
 export interface DeviceRegister {
@@ -38,6 +39,7 @@ export const RegistersGrid: React.FC<RegistersGridProps> = ({
   const columns: GridColumn[] = [
     { key: 'register', label: 'Register', editable: false, type: 'text' },
     { key: 'name', label: 'Name', editable: false, type: 'text' },
+    { key: 'description', label: 'Description', editable: false, type: 'text' },
     { key: 'unit', label: 'Unit', editable: false, type: 'text' },
     { key: 'field_name', label: 'Field Name', editable: false, type: 'text' },
   ];
@@ -72,6 +74,7 @@ export const RegistersGrid: React.FC<RegistersGridProps> = ({
     name: dr.register?.name || '',
     unit: dr.register?.unit || '',
     field_name: dr.register?.field_name || '',
+    description: dr.register?.description || '',
   }));
 
   console.log('RegistersGrid render:', {
@@ -92,7 +95,8 @@ export const RegistersGrid: React.FC<RegistersGridProps> = ({
         error={error}
         onRetry={loadRegisters}
         emptyMessage="No registers associated with this device"
-        // No onRowAdd, onRowDelete, or onCellChange handlers = read-only mode
+        hideAddButton={true}
+        hideDeleteColumn={true}
       />
     </div>
   );

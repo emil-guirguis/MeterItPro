@@ -280,6 +280,7 @@ class DashboardService {
   }
 
   // Get total active energy from all active meters
+  /*
   async getTotalActiveEnergy(): Promise<number> {
     try {
       const response: AxiosResponse<{ success: boolean; data: { total_active_energy: number } }> =
@@ -302,6 +303,7 @@ class DashboardService {
       return 0;
     }
   }
+  */
 }
 
 // Export singleton instance

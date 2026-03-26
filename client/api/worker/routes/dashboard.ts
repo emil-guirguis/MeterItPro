@@ -12,15 +12,15 @@ import { logError } from '../errorHandler';
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
 const VALID_METER_READING_COLUMNS = new Set([
-  'active_energy','active_energy_export','apparent_energy','apparent_energy_export',
-  'apparent_power','apparent_power_phase_a','apparent_power_phase_b','apparent_power_phase_c',
-  'current','current_line_a','current_line_b','current_line_c','frequency',
-  'maximum_demand_real','power','power_factor','power_factor_phase_a','power_factor_phase_b',
-  'power_factor_phase_c','power_phase_a','power_phase_b','power_phase_c',
-  'reactive_energy','reactive_energy_export','reactive_power','reactive_power_phase_a',
-  'reactive_power_phase_b','reactive_power_phase_c','voltage_a_b','voltage_a_n',
+  'kwh','mwh','kvah','kvah_export',
+  'kva','phase_kva_a','phase_kva_b','phase_kva_c',
+  'amperage','phase_amperage_a','phase_amperage_b','phase_amperage_c','frequency',
+  'peak_kw','kw','pf','pf_a','pf_b',
+  'pf_c','phase_kw_a','phase_kw_b','phase_kw_c',
+  'kvarh','kvarh_export','kvar','phase_kvar_a',
+  'phase_kvar_b','phase_kvar_c','voltage_a_b','voltage_a_n',
   'voltage_b_c','voltage_b_n','voltage_c_a','voltage_c_n','voltage_p_n','voltage_p_p',
-  'voltage_thd','voltage_thd_phase_a','voltage_thd_phase_b','voltage_thd_phase_c',
+  'total_thdv','phase_thdv_a','phase_thdv_b','phase_thdv_c',
 ]);
 
 app.use('*', authenticateToken);
@@ -548,50 +548,66 @@ app.get('/meters/:meterId/elements', authenticateToken, async (c) => {
 
 // Mapping of register names to actual meter_reading column names
 const columnNameMapping: Record<string, string> = {
-  // Energy totals
-  'kwh': 'active_energy',
-  'kvarh': 'reactive_energy',
-  'kvah': 'apparent_energy',
-  'active_energy': 'active_energy',
-  'reactive_energy': 'reactive_energy',
-  'apparent_energy': 'apparent_energy',
-  'active_energy_export': 'active_energy_export',
-  'reactive_energy_export': 'reactive_energy_export',
-  'apparent_energy_export': 'apparent_energy_export',
+  // Energy totals (old -> new mapping support backwards compatibility)
+  'kwh': 'kwh',
+  'kvarh': 'kvarh',
+  'kvah': 'kvah',
+  'active_energy': 'kwh',
+  'reactive_energy': 'kvarh',
+  'apparent_energy': 'kvah',
+  'active_energy_export': 'mwh',
+  'reactive_energy_export': 'kvarh_export',
+  'apparent_energy_export': 'kvah_export',
+  'mwh': 'mwh',
+  'kvarh_export': 'kvarh_export',
+  'kvah_export': 'kvah_export',
   // Power
-  'kw': 'power',
-  'kvar': 'reactive_power',
-  'kva': 'apparent_power',
-  'total_active_power': 'power',
-  'total_reactive_power': 'reactive_power',
-  'total_apparent_power': 'apparent_power',
-  'power': 'power',
-  'reactive_power': 'reactive_power',
-  'apparent_power': 'apparent_power',
+  'kw': 'kw',
+  'kvar': 'kvar',
+  'kva': 'kva',
+  'total_active_power': 'kw',
+  'total_reactive_power': 'kvar',
+  'total_apparent_power': 'kva',
+  'power': 'kw',
+  'reactive_power': 'kvar',
+  'apparent_power': 'kva',
   // Phase power
-  'phase_a_power': 'power_phase_a',
-  'phase_b_power': 'power_phase_b',
-  'phase_c_power': 'power_phase_c',
-  'power_phase_a': 'power_phase_a',
-  'power_phase_b': 'power_phase_b',
-  'power_phase_c': 'power_phase_c',
-  'apparent_power_phase_a': 'apparent_power_phase_a',
-  'apparent_power_phase_b': 'apparent_power_phase_b',
-  'apparent_power_phase_c': 'apparent_power_phase_c',
-  'reactive_power_phase_a': 'reactive_power_phase_a',
-  'reactive_power_phase_b': 'reactive_power_phase_b',
-  'reactive_power_phase_c': 'reactive_power_phase_c',
+  'phase_a_power': 'phase_kw_a',
+  'phase_b_power': 'phase_kw_b',
+  'phase_c_power': 'phase_kw_c',
+  'power_phase_a': 'phase_kw_a',
+  'power_phase_b': 'phase_kw_b',
+  'power_phase_c': 'phase_kw_c',
+  'phase_kw_a': 'phase_kw_a',
+  'phase_kw_b': 'phase_kw_b',
+  'phase_kw_c': 'phase_kw_c',
+  'apparent_power_phase_a': 'phase_kva_a',
+  'apparent_power_phase_b': 'phase_kva_b',
+  'apparent_power_phase_c': 'phase_kva_c',
+  'phase_kva_a': 'phase_kva_a',
+  'phase_kva_b': 'phase_kva_b',
+  'phase_kva_c': 'phase_kva_c',
+  'reactive_power_phase_a': 'phase_kvar_a',
+  'reactive_power_phase_b': 'phase_kvar_b',
+  'reactive_power_phase_c': 'phase_kvar_c',
+  'phase_kvar_a': 'phase_kvar_a',
+  'phase_kvar_b': 'phase_kvar_b',
+  'phase_kvar_c': 'phase_kvar_c',
   // Current
-  'ia': 'current_line_a',
-  'ib': 'current_line_b',
-  'ic': 'current_line_c',
-  'phase_a_current': 'current_line_a',
-  'phase_b_current': 'current_line_b',
-  'phase_c_current': 'current_line_c',
-  'current': 'current',
-  'current_line_a': 'current_line_a',
-  'current_line_b': 'current_line_b',
-  'current_line_c': 'current_line_c',
+  'ia': 'phase_amperage_a',
+  'ib': 'phase_amperage_b',
+  'ic': 'phase_amperage_c',
+  'phase_a_current': 'phase_amperage_a',
+  'phase_b_current': 'phase_amperage_b',
+  'phase_c_current': 'phase_amperage_c',
+  'current': 'amperage',
+  'current_line_a': 'phase_amperage_a',
+  'current_line_b': 'phase_amperage_b',
+  'current_line_c': 'phase_amperage_c',
+  'amperage': 'amperage',
+  'phase_amperage_a': 'phase_amperage_a',
+  'phase_amperage_b': 'phase_amperage_b',
+  'phase_amperage_c': 'phase_amperage_c',
   // Voltage
   'va': 'voltage_a_n',
   'vb': 'voltage_b_n',
@@ -611,19 +627,27 @@ const columnNameMapping: Record<string, string> = {
   'voltage_p_n': 'voltage_p_n',
   'voltage_p_p': 'voltage_p_p',
   // Power factor
-  'pf': 'power_factor',
-  'power_factor': 'power_factor',
-  'power_factor_phase_a': 'power_factor_phase_a',
-  'power_factor_phase_b': 'power_factor_phase_b',
-  'power_factor_phase_c': 'power_factor_phase_c',
+  'pf': 'pf',
+  'power_factor': 'pf',
+  'power_factor_phase_a': 'pf_a',
+  'power_factor_phase_b': 'pf_b',
+  'power_factor_phase_c': 'pf_c',
+  'pf_a': 'pf_a',
+  'pf_b': 'pf_b',
+  'pf_c': 'pf_c',
   // Other
   'hz': 'frequency',
   'frequency': 'frequency',
-  'maximum_demand_real': 'maximum_demand_real',
-  'voltage_thd': 'voltage_thd',
-  'voltage_thd_phase_a': 'voltage_thd_phase_a',
-  'voltage_thd_phase_b': 'voltage_thd_phase_b',
-  'voltage_thd_phase_c': 'voltage_thd_phase_c',
+  'maximum_demand_real': 'peak_kw',
+  'peak_kw': 'peak_kw',
+  'voltage_thd': 'total_thdv',
+  'voltage_thd_phase_a': 'phase_thdv_a',
+  'voltage_thd_phase_b': 'phase_thdv_b',
+  'voltage_thd_phase_c': 'phase_thdv_c',
+  'total_thdv': 'total_thdv',
+  'phase_thdv_a': 'phase_thdv_a',
+  'phase_thdv_b': 'phase_thdv_b',
+  'phase_thdv_c': 'phase_thdv_c',
 };
 
 // GET /power-columns - Get all registers associated with a device via meterId
@@ -674,6 +698,7 @@ app.get('/power-columns/cache/stats', requirePermission('dashboard:read'), (c) =
 });
 
 // GET /total-active-energy - Sum of active_energy from latest reading of each active meter element
+/*
 app.get('/total-active-energy', requirePermission('dashboard:read'), async (c) => {
   try {
     const tenantId = c.get('tenantId');
@@ -714,8 +739,10 @@ app.get('/total-active-energy', requirePermission('dashboard:read'), async (c) =
     return c.json({ success: false, message: 'Failed to fetch total active energy' }, 500);
   }
 });
+*/
 
 // GET /total-power - Sum of power from latest reading of each active meter element
+/*
 app.get('/total-power', requirePermission('dashboard:read'), async (c) => {
   try {
     const tenantId = c.get('tenantId');
@@ -756,5 +783,6 @@ app.get('/total-power', requirePermission('dashboard:read'), async (c) => {
     return c.json({ success: false, message: 'Failed to fetch total power' }, 500);
   }
 });
+*/
 
 export default app;

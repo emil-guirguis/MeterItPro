@@ -10,9 +10,10 @@ export interface NotificationRule {
   tenant_id: string;
   name: string;
   description?: string;
-  rule_type: 'custom' | 'meter_no_reading' | 'meter_zero_reading';
+  rule_type: 'custom' | 'meter_no_reading' | 'meter_zero_reading' | 'demand_threshold';
   active: boolean;
   threshold_hours?: number;
+  demand_threshold?: number;
   schedule_cron: string;
   created_at: string;
   updated_at: string;
@@ -39,8 +40,9 @@ export interface NotificationRuleDetail extends NotificationRule {
 export interface CreateNotificationRuleRequest {
   name: string;
   description?: string;
-  rule_type?: 'custom' | 'meter_no_reading' | 'meter_zero_reading';
+  rule_type?: 'custom' | 'meter_no_reading' | 'meter_zero_reading' | 'demand_threshold';
   threshold_hours?: number;
+  demand_threshold?: number;
   schedule_cron: string;
   recipients: Array<{
     users_id: string;

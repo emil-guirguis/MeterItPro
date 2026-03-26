@@ -1,0 +1,43 @@
+-- Fix register table with correct data
+-- This migration restores the correct register information after previous corruption
+
+UPDATE register SET name = 'kWh', unit = 'kWh', field_name = 'kwh', description = 'Total kWh' WHERE register_id = 20;
+UPDATE register SET name = 'MWh', unit = 'MWh', field_name = 'mwh', description = 'Active Energy Export' WHERE register_id = 21;
+UPDATE register SET name = 'kVAh', unit = 'kVAh', field_name = 'kvah', description = 'Apparent Energy' WHERE register_id = 22;
+UPDATE register SET name = 'kVAh Export', unit = 'kVAh', field_name = 'kvah_export', description = 'Apparent Energy Export' WHERE register_id = 23;
+UPDATE register SET name = 'kVA', unit = 'kVA', field_name = 'kva', description = 'Apparent Power' WHERE register_id = 24;
+UPDATE register SET name = 'A Phase KVA', unit = 'kVA', field_name = 'phase_kva_a', description = 'Apparent Power Phase A' WHERE register_id = 25;
+UPDATE register SET name = 'B Phase KVA', unit = 'kVA', field_name = 'phase_kva_b', description = 'Apparent Power Phase B' WHERE register_id = 26;
+UPDATE register SET name = 'C Phase KVA', unit = 'kVA', field_name = 'phase_kva_c', description = 'Apparent Power Phase C' WHERE register_id = 27;
+UPDATE register SET name = 'Amperage', unit = 'A', field_name = 'amperage', description = 'Current' WHERE register_id = 28;
+UPDATE register SET name = 'A Phase Amperage', unit = 'A', field_name = 'phase_amperage_a', description = 'Current Line A' WHERE register_id = 29;
+UPDATE register SET name = 'B Phase Amperage', unit = 'A', field_name = 'phase_amperage_b', description = 'Current Line B' WHERE register_id = 30;
+UPDATE register SET name = 'C Phase Amperage', unit = 'A', field_name = 'phase_amperage_c', description = 'Current Line C' WHERE register_id = 31;
+UPDATE register SET name = 'Frequency', unit = 'Hz', field_name = 'frequency', description = 'Frequency' WHERE register_id = 32;
+UPDATE register SET name = 'Peak Demand kW', unit = 'kW', field_name = 'peak_kw', description = 'Peak Demand' WHERE register_id = 33;
+UPDATE register SET name = 'Demand kW', unit = 'kW', field_name = 'kw', description = 'Demand' WHERE register_id = 34;
+UPDATE register SET name = 'Power Factor', unit = '', field_name = 'power_factor', description = 'Power Factor' WHERE register_id = 35;
+UPDATE register SET name = 'PF A', unit = '', field_name = 'pf_a', description = 'Power Factor Phase A' WHERE register_id = 36;
+UPDATE register SET name = 'PF B', unit = '', field_name = 'pf_b', description = 'Power Factor Phase B' WHERE register_id = 37;
+UPDATE register SET name = 'PF C', unit = '', field_name = 'pf_c', description = 'Power Factor Phase C' WHERE register_id = 38;
+UPDATE register SET name = 'A Phase kW', unit = 'kW', field_name = 'phase_kw_a', description = 'Power Phase A' WHERE register_id = 39;
+UPDATE register SET name = 'B Phase kW', unit = 'kW', field_name = 'phase_kw_b', description = 'Power Phase B' WHERE register_id = 40;
+UPDATE register SET name = 'C Phase kW', unit = 'kW', field_name = 'phase_kw_c', description = 'Power Phase C' WHERE register_id = 41;
+UPDATE register SET name = 'kvarh', unit = 'kvarh', field_name = 'kvarh', description = 'Reactive Energy' WHERE register_id = 42;
+UPDATE register SET name = 'kvarh 2', unit = 'kvarh', field_name = 'kvarh_2', description = 'Reactive Energy' WHERE register_id = 43;
+UPDATE register SET name = 'kvar', unit = 'kvar', field_name = 'kvar', description = 'Reactive Power' WHERE register_id = 44;
+UPDATE register SET name = 'A Phase kvar', unit = 'kvar', field_name = 'phase_kvar_a', description = 'Reactive Power Phase A' WHERE register_id = 45;
+UPDATE register SET name = 'B Phase kvar', unit = 'kvar', field_name = 'phase_kvar_b', description = 'Reactive Power Phase B' WHERE register_id = 46;
+UPDATE register SET name = 'C Phase kvar', unit = 'kvar', field_name = 'phase_kvar_c', description = 'Reactive Power Phase C' WHERE register_id = 47;
+UPDATE register SET name = 'Voltage A-B', unit = 'V', field_name = 'voltage_a_b', description = 'Voltage A B' WHERE register_id = 48;
+UPDATE register SET name = 'Voltage A-N', unit = 'V', field_name = 'voltage_a_n', description = 'Voltage A N' WHERE register_id = 49;
+UPDATE register SET name = 'Voltage B-C', unit = 'V', field_name = 'voltage_b_c', description = 'Voltage B C' WHERE register_id = 50;
+UPDATE register SET name = 'Voltage B-N', unit = 'V', field_name = 'voltage_b_n', description = 'Voltage B N' WHERE register_id = 51;
+UPDATE register SET name = 'Voltage C-A', unit = 'V', field_name = 'voltage_c_a', description = 'Voltage C A' WHERE register_id = 52;
+UPDATE register SET name = 'Voltage C-N', unit = 'V', field_name = 'voltage_c_n', description = 'Voltage C N' WHERE register_id = 53;
+UPDATE register SET name = 'Voltage P-N', unit = 'V', field_name = 'voltage_p_n', description = 'Voltage P N' WHERE register_id = 54;
+UPDATE register SET name = 'Voltage P-P', unit = 'V', field_name = 'voltage_p_p', description = 'Voltage P P' WHERE register_id = 55;
+UPDATE register SET name = 'Total THDV', unit = '', field_name = 'total_thdv', description = 'Voltage Thd' WHERE register_id = 56;
+UPDATE register SET name = 'A Phase THDV', unit = '', field_name = 'phase_thdv_a', description = 'Voltage Thd Phase A' WHERE register_id = 57;
+UPDATE register SET name = 'B Phase THDV', unit = '', field_name = 'phase_thdv_b', description = 'Voltage Thd Phase B' WHERE register_id = 58;
+UPDATE register SET name = 'C Phase THDV', unit = '', field_name = 'phase_thdv_c', description = 'Voltage Thd Phase C' WHERE register_id = 59;

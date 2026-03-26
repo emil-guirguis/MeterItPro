@@ -26,56 +26,51 @@ export interface MeterReading {
   tenant_id: number;
   created_at: string | Date;
   sync_status?: string | null;
-  
+
   // Meter and element info (from joins)
   meter_name?: string | null;
   element_name?: string | null;
   element_number?: number | null;
-  
+
   // Energy metrics
-  active_energy?: number | null;
-  active_energy_export?: number | null;
-  apparent_energy?: number | null;
-  apparent_energy_export?: number | null;
-  reactive_energy?: number | null;
-  reactive_energy_export?: number | null;
-  
+  kwh?: number | null;
+
   // Power metrics
-  power?: number | null;
-  power_phase_a?: number | null;
-  power_phase_b?: number | null;
-  power_phase_c?: number | null;
-  apparent_power?: number | null;
-  reactive_power?: number | null;
-  
+  kw?: number | null;
+  phase_kw_a?: number | null;
+  phase_kw_b?: number | null;
+  phase_kw_c?: number | null;
+  kva?: number | null;
+  kvar?: number | null;
+
   // Current metrics
-  current?: number | null;
-  current_line_a?: number | null;
-  current_line_b?: number | null;
-  current_line_c?: number | null;
-  
+  amperage?: number | null;
+  phase_amperage_a?: number | null;
+  phase_amperage_b?: number | null;
+  phase_amperage_c?: number | null;
+
   // Voltage metrics
   voltage_a_n?: number | null;
   voltage_b_n?: number | null;
   voltage_c_n?: number | null;
   voltage_p_n?: number | null;
-  
+
   // Power factor metrics
-  power_factor?: number | null;
-  power_factor_phase_a?: number | null;
-  power_factor_phase_b?: number | null;
-  power_factor_phase_c?: number | null;
-  
+  pf?: number | null;
+  pf_a?: number | null;
+  pf_b?: number | null;
+  pf_c?: number | null;
+
   // Other metrics
   frequency?: number | null;
-  maximum_demand_real?: number | null;
-  voltage_thd?: number | null;
-  
+  peak_kw?: number | null;
+  total_thdv?: number | null;
+
   // Sync/system fields
   meter_element_id?: number | null;
   is_synchronized?: boolean | null;
   retry_count?: number | null;
-  
+
   // Additional fields
   [key: string]: any;
 }
@@ -115,8 +110,8 @@ export const meterReadingColumns: ColumnDefinition<MeterReading>[] = [
   },
   
   {
-    key: 'active_energy' as keyof MeterReading,
-    label: getColumnLabel('active_energy', 'Active Energy (kWh)'),
+    key: 'kwh' as keyof MeterReading,
+    label: getColumnLabel('kwh', 'Energy (kWh)'),
     sortable: true,
     responsive: 'hide-mobile',
     render: (value) => {
@@ -125,19 +120,19 @@ export const meterReadingColumns: ColumnDefinition<MeterReading>[] = [
       return React.createElement('span', { className: 'font-mono' }, energy.toFixed(2));
     },
   },
-  
+
   {
-    key: 'power' as keyof MeterReading,
-    label: getColumnLabel('power', 'Power (kW)'),
+    key: 'kw' as keyof MeterReading,
+    label: getColumnLabel('kw', 'Power (kW)'),
     sortable: true,
     responsive: 'hide-mobile',
     render: (value) => {
       const power = value as number | null;
       if (power === null || power === undefined) return React.createElement('span', { className: 'text-muted' }, '—');
-      return React.createElement('span', { className: 'font-mono' }, (power / 1000).toFixed(2));
+      return React.createElement('span', { className: 'font-mono' }, power.toFixed(2));
     },
   },
-  
+
   {
     key: 'voltage_p_n' as keyof MeterReading,
     label: getColumnLabel('voltage_p_n', 'Voltage (V)'),
@@ -149,10 +144,10 @@ export const meterReadingColumns: ColumnDefinition<MeterReading>[] = [
       return React.createElement('span', { className: 'font-mono' }, voltage.toFixed(1));
     },
   },
-  
+
   {
-    key: 'current' as keyof MeterReading,
-    label: getColumnLabel('current', 'Current (A)'),
+    key: 'amperage' as keyof MeterReading,
+    label: getColumnLabel('amperage', 'Current (A)'),
     sortable: true,
     responsive: 'hide-tablet',
     render: (value) => {
@@ -184,30 +179,30 @@ export const meterReadingStats: StatDefinition<MeterReading>[] = [
     value: (items) => Array.isArray(items) ? items.length : 0,
   },
   {
-    label: `Total ${registerMappingService.getRegisterName('active_energy')}`,
+    label: `Total ${registerMappingService.getRegisterName('kwh')}`,
     value: (items) => {
       if (!Array.isArray(items)) return '0.00';
-      const total = items.reduce((sum, item) => sum + (item.active_energy || 0), 0);
+      const total = items.reduce((sum, item) => sum + (item.kwh || 0), 0);
       return total.toFixed(2);
     },
   },
   {
-    label: `Avg ${registerMappingService.getRegisterName('power')}`,
+    label: `Avg ${registerMappingService.getRegisterName('kw')}`,
     value: (items) => {
       if (!Array.isArray(items)) return '0.00';
-      const validItems = items.filter(item => item.power !== null && item.power !== undefined);
+      const validItems = items.filter(item => item.kw !== null && item.kw !== undefined);
       if (validItems.length === 0) return '0.00';
-      const avg = validItems.reduce((sum, item) => sum + ((item.power || 0) / 1000), 0) / validItems.length;
+      const avg = validItems.reduce((sum, item) => sum + (item.kw || 0), 0) / validItems.length;
       return avg.toFixed(2);
     },
   },
   {
-    label: `Avg ${registerMappingService.getRegisterName('power_factor')}`,
+    label: `Avg ${registerMappingService.getRegisterName('pf')}`,
     value: (items) => {
       if (!Array.isArray(items)) return '0.00';
-      const validItems = items.filter(item => item.power_factor !== null && item.power_factor !== undefined);
+      const validItems = items.filter(item => item.pf !== null && item.pf !== undefined);
       if (validItems.length === 0) return '0.00';
-      const avg = validItems.reduce((sum, item) => sum + (item.power_factor || 0), 0) / validItems.length;
+      const avg = validItems.reduce((sum, item) => sum + (item.pf || 0), 0) / validItems.length;
       return avg.toFixed(2);
     },
   },
@@ -221,22 +216,22 @@ export const meterReadingExportConfig: ExportConfig<MeterReading> = {
   headers: [
     'Meter ID',
     'Reading Time',
-    registerMappingService.getRegisterName('active_energy'),
-    registerMappingService.getRegisterName('power'),
+    registerMappingService.getRegisterName('kwh'),
+    registerMappingService.getRegisterName('kw'),
     registerMappingService.getRegisterName('voltage_p_n'),
-    registerMappingService.getRegisterName('current'),
-    registerMappingService.getRegisterName('power_factor'),
+    registerMappingService.getRegisterName('amperage'),
+    registerMappingService.getRegisterName('pf'),
     registerMappingService.getRegisterName('frequency'),
     'Sync Status',
   ],
   mapRow: (reading: MeterReading) => [
     reading.meter_id?.toString() || '',
     new Date(reading.created_at).toISOString().replace('T', ' ').substring(0, 19),
-    reading.active_energy?.toString() || '',
-    (reading.power ? reading.power / 1000 : 0).toFixed(2),
+    reading.kwh?.toString() || '',
+    reading.kw?.toFixed(2) || '',
     reading.voltage_p_n?.toString() || '',
-    reading.current?.toString() || '',
-    reading.power_factor?.toString() || '',
+    reading.amperage?.toString() || '',
+    reading.pf?.toString() || '',
     reading.frequency?.toString() || '',
     reading.sync_status || '',
   ],

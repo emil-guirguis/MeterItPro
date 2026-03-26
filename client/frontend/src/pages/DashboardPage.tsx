@@ -7,7 +7,7 @@ import { ExpandedCardModal as FrameworkExpandedCardModal } from '@framework/dash
 import { Visualization } from '@framework/dashboards/components/Visualization';
 import type { DashboardCard as FrameworkDashboardCardType } from '@framework/dashboards/types';
 import { dashboardService, type DashboardCard as DashboardCardType, type AggregatedData } from '../services/dashboardService';
-import { DashboardBanner } from '../features/dashboard/DashboardBanner';
+// import { DashboardBanner } from '../features/dashboard/DashboardBanner';
 import './DashboardPage.css';
 
 // Context for passing card data and handlers to ClientDashboardCard.
@@ -593,10 +593,10 @@ export const DashboardPage: React.FC = () => {
           expandedCard={expandedCard as any}
           onCloseExpandedCard={handleCloseExpandedCard}
         />
-        <DashboardBanner
+        {/* <DashboardBanner
           cardDataMap={cardDataMap}
           cards={cards}
-        />
+        /> */}
       </div>
       <FrameworkDashboardCardModal
         isOpen={showModal}

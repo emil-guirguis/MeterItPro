@@ -11,17 +11,24 @@ app.use('*', authenticateToken);
 app.get('/', async (c) => {
   try {
     const deviceId = c.req.param('deviceId');
+    console.log('[deviceRegisters] Fetching registers for deviceId:', deviceId, 'Full path:', c.req.path);
+
+    if (!deviceId) {
+      console.error('[deviceRegisters] No deviceId in params');
+      return c.json({ success: false, message: 'Device ID is required' }, 400);
+    }
 
     const deviceResult = await query(c.env,
       'SELECT device_id FROM device WHERE device_id = $1', [deviceId]
     );
+    console.log('[deviceRegisters] Device query result:', deviceResult.rows.length, 'rows');
     if (deviceResult.rows.length === 0) {
       return c.json({ success: false, message: 'Device not found' }, 404);
     }
 
     const result = await query(c.env,
       `SELECT dr.device_register_id, dr.device_id, dr.register_id,
-              r.register, r.name, r.unit, r.field_name
+              r.register, r.name, r.unit, r.field_name, r.description
        FROM device_register dr
        JOIN register r ON dr.register_id = r.register_id
        WHERE dr.device_id = $1
@@ -39,6 +46,7 @@ app.get('/', async (c) => {
         name: row.name,
         unit: row.unit,
         field_name: row.field_name,
+        description: row.description,
       },
     }));
 

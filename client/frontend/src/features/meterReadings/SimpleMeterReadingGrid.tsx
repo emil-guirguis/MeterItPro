@@ -1,4 +1,5 @@
 import React from 'react';
+import { registerMappingService } from '../../services/registerMappingService';
 import './SimpleMeterReadingGrid.css';
 
 interface MeterReading {
@@ -7,10 +8,10 @@ interface MeterReading {
   tenant_id?: number;
   created_at?: string;
   meter_element_id?: number;
-  power?: number;
-  active_energy?: number;
-  power_factor?: number;
-  current?: number;
+  kw?: number;
+  kwh?: number;
+  pf?: number;
+  amperage?: number;
   voltage_p_n?: number;
   [key: string]: any;
 }
@@ -81,35 +82,30 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
   // Filter to only show important columns
   const importantColumns = [
     'created_at',
-    'active_energy',
+    'kwh',
     'calculated_kwh',
-    'active_energy_export',
-    'apparent_energy',
-    'apparent_energy_export',
-    'apparent_power',
-    'apparent_power_phase_a',
-    'apparent_power_phase_b',
-    'apparent_power_phase_c',
-    'current',
-    'current_line_a',
-    'current_line_b',
-    'current_line_c',
+    'kva',
+    'phase_kva_a',
+    'phase_kva_b',
+    'phase_kva_c',
+    'amperage',
+    'phase_amperage_a',
+    'phase_amperage_b',
+    'phase_amperage_c',
     'frequency',
-    'maximum_demand_real',
-    'power',
-    'power_factor',
-    'power_factor_phase_a',
-    'power_factor_phase_b',
-    'power_factor_phase_c',
-    'power_phase_a',
-    'power_phase_b',
-    'power_phase_c',
-    'reactive_energy',
-    'reactive_energy_export',
-    'reactive_power',
-    'reactive_power_phase_a',
-    'reactive_power_phase_b',
-    'reactive_power_phase_c',
+    'peak_kw',
+    'kw',
+    'pf',
+    'pf_a',
+    'pf_b',
+    'pf_c',
+    'phase_kw_a',
+    'phase_kw_b',
+    'phase_kw_c',
+    'kvar',
+    'phase_kvar_a',
+    'phase_kvar_b',
+    'phase_kvar_c',
     'voltage_a_b',
     'voltage_a_n',
     'voltage_b_c',
@@ -118,10 +114,10 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
     'voltage_c_n',
     'voltage_p_n',
     'voltage_p_p',
-    'voltage_thd',
-    'voltage_thd_phase_a',
-    'voltage_thd_phase_b',
-    'voltage_thd_phase_c',
+    'total_thdv',
+    'phase_thdv_a',
+    'phase_thdv_b',
+    'phase_thdv_c',
   ];
 
   const columns = importantColumns.filter(col => allKeys.has(col));
@@ -149,16 +145,21 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
     if (col === 'created_at') return 'Timestamp';
     if (col === 'calculated_kwh') return 'Calc. kWh';
 
-    // Convert snake_case to camelCase
+    // Try to get the register name from the mapping service
+    const registerName = registerMappingService.getRegisterName(col);
+    const unit = registerMappingService.getRegisterUnit(col);
+
+    if (registerName && unit) {
+      return `${registerName} (${unit})`;
+    } else if (registerName) {
+      return registerName;
+    }
+
+    // Fallback: Convert snake_case to Title Case
     return col
       .split('_')
-      .map((word, index) => {
-        if (index === 0) {
-          return word.charAt(0).toUpperCase() + word.slice(1);
-        }
-        return word.charAt(0).toUpperCase() + word.slice(1);
-      })
-      .join('');
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   return (

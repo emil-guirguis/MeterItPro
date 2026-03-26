@@ -74,7 +74,7 @@ describe('ReadingDataTable', () => {
           'Total Consumption': {
             Voltage: createMockMetric(),
           },
-          'Total Generation': {
+          'Reactive Power': {
             Voltage: createMockMetric(),
           },
         },
@@ -108,9 +108,6 @@ describe('ReadingDataTable', () => {
           'Total Consumption': {
             Voltage: createMockMetric(),
           },
-          'Total Generation': {
-            Voltage: createMockMetric(),
-          },
           'Reactive Power': {
             Voltage: createMockMetric(),
           },
@@ -120,7 +117,6 @@ describe('ReadingDataTable', () => {
       render(<ReadingDataTable reading={reading} />);
 
       expect(screen.getByText('Total Consumption')).toBeInTheDocument();
-      expect(screen.getByText('Total Generation')).toBeInTheDocument();
       expect(screen.getByText('Reactive Power')).toBeInTheDocument();
     });
   });
@@ -132,7 +128,7 @@ describe('ReadingDataTable', () => {
           'Total Consumption': {
             Voltage: createMockMetric(),
           },
-          'Total Generation': {
+          'Reactive Power': {
             Voltage: createMockMetric(),
           },
         },
@@ -619,7 +615,7 @@ describe('ReadingDataTable', () => {
             Current: createMockMetric({ unit: 'A' }),
             Power: createMockMetric({ unit: 'kW' }),
           },
-          'Total Generation': {
+          'Reactive Power': {
             Voltage: createMockMetric({ unit: 'V' }),
             Current: createMockMetric({ unit: 'A' }),
           },

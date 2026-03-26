@@ -1,0 +1,30 @@
+.demand-graph-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.demand-graph-inner {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.demand-graph-loading,
+.demand-graph-error {
+  padding: 20px;
+  text-align: center;
+  border-radius: 4px;
+}
+
+.demand-graph-loading {
+  background-color: #f0f0f0;
+  color: #666;
+  font-size: 14px;
+}
+
+.demand-graph-error {
+  background-color: #fee;
+  color: #c33;
+  border: 1px solid #fcc;
+}

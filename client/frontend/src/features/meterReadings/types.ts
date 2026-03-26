@@ -15,7 +15,7 @@ export interface GraphDataPoint {
 
 /**
  * MeterElement represents a logical grouping within a meter
- * (e.g., Total Consumption, Total Generation)
+ * (e.g., Total Consumption)
  */
 export interface MeterElement {
   id: string;
@@ -51,7 +51,7 @@ export interface ReadingMetric {
 
 /**
  * ReadingSection represents a logical section of reading values
- * (e.g., Total Consumption, Total Generation)
+ * (e.g., Total Consumption)
  */
 export interface ReadingSection {
   name: string;
@@ -82,7 +82,7 @@ export interface MeterReadingFormState {
   lastReading: MeterReading | null;
   graphData: GraphDataPoint[];
   selectedTimePeriod: 'today' | 'weekly' | 'monthly' | 'yearly';
-  selectedGraphType: 'consumption' | 'demand' | 'ghg_emissions';
+  selectedGraphType: 'consumption' | 'demand' ;
   isLoading: boolean;
   error: Error | null;
 }

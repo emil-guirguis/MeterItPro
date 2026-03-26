@@ -142,6 +142,38 @@
   text-align: left;
 }
 
+.frequency-row {
+  display: grid;
+  grid-template-columns: 80px 10px 120px 60px;
+  align-items: center;
+  font-size: 14px;
+  padding: 4px 0;
+}
+
+.frequency-label {
+  color: #333;
+  text-align: left;
+}
+
+.frequency-colon {
+  color: #333;
+  text-align: center;
+}
+
+.frequency-value {
+  font-weight: 600;
+  color: #333;
+  text-align: right;
+  padding-right: 8px;
+  font-size: 16px;
+}
+
+.frequency-unit {
+  color: #333;
+  font-size: 13px;
+  text-align: left;
+}
+
 /* Phase Data Table */
 .phase-data-section {
   margin-bottom: 20px;
@@ -225,44 +257,6 @@
   color: #333;
   font-weight: 500;
 }
-
-/* Frequency Display */
-.frequency-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.frequency-label {
-  font-weight: 600;
-  color: #333;
-  font-size: 15px;
-}
-
-.frequency-colon {
-  color: #333;
-}
-
-.frequency-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #2e7d32;
-  font-family: 'Courier New', monospace;
-  background-color: #fff;
-  padding: 8px 16px;
-  border-radius: 4px;
-}
-
-.frequency-unit {
-  font-weight: 600;
-  color: #2e7d32;
-  font-size: 14px;
-}
-
 /* Consumption Graphs Section */
 .consumption-graphs-section {
   background-color: #fff;

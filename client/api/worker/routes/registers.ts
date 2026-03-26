@@ -9,7 +9,7 @@ app.use('*', authenticateToken);
 app.get('/', async (c) => {
   try {
     const result = await query(c.env,
-      `SELECT register_id, number, name, unit, field_name FROM register ORDER BY number ASC`
+      `SELECT register_id, number, name, unit, field_name, description FROM register ORDER BY number ASC`
     );
     return c.json({ success: true, data: result.rows });
   } catch (error: any) {

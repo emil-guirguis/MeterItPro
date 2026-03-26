@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useMeterSelection } from '../../contexts/MeterSelectionContext';
 import { SimpleMeterReadingGrid } from './SimpleMeterReadingGrid';
 import { MeterReadingExportButtons } from '../../components/MeterReadingExportButtons';
+import { registerMappingService } from '../../services/registerMappingService';
 import './MeterReadingList.css';
 
 interface MeterReadingListProps {
@@ -19,6 +20,15 @@ export const MeterReadingList: React.FC<MeterReadingListProps> = ({
   const meterReadings = useMeterReadingsEnhanced();
   const auth = useAuth();
   const { selectedMeter, selectedElement, selectedMeterName, selectedElementName, selectedElementNumber } = useMeterSelection();
+
+  /**
+   * Initialize register mapping service on component mount
+   */
+  React.useEffect(() => {
+    registerMappingService.initialize().catch((err) => {
+      console.warn('Failed to initialize register mapping service:', err);
+    });
+  }, []);
 
   /**
    * Check for missing tenantId

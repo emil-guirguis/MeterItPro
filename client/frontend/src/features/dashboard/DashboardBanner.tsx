@@ -1,3 +1,4 @@
+/*
 import React, { useState, useEffect } from 'react';
 import FlashOnIcon from '@mui/icons-material/FlashOn';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -113,3 +114,4 @@ export const DashboardBanner: React.FC<DashboardBannerProps> = ({
 };
 
 export default DashboardBanner;
+*/

@@ -23,6 +23,7 @@ import {
   useMediaQuery
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import { DeviceRegisterChecklist } from '../../../../client/frontend/src/components/shared/DeviceRegisterChecklist';
 import './DashboardCardModal.css';
 
 export interface DashboardCardModalProps {
@@ -366,44 +367,6 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
             {errors.meter_element_id && <FormHelperText error>{errors.meter_element_id}</FormHelperText>}
           </FormControl>
 
-          {/* Power Columns Multi-Select */}
-          <FormControl fullWidth error={!!errors.selected_columns} disabled={submitting || loading}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-              Registers
-            </Typography>
-            {!powerColumns || powerColumns.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">
-                No power columns available
-              </Typography>
-            ) : (
-              <Box sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                p: 1.5,
-                backgroundColor: theme.palette.mode === 'light' ? '#f5f5f5' : '#fafafa',
-                borderRadius: 1,
-              }}>
-                {powerColumns && powerColumns.map((column, index) => (
-                  <FormControlLabel
-                    key={`${column.name}-${index}`}
-                    control={
-                      <Checkbox
-                        name="selected_columns"
-                        value={column.name}
-                        checked={formData.selected_columns.includes(column.name)}
-                        onChange={handleFieldChange}
-                        disabled={submitting || loading}
-                        size="small"
-                      />
-                    }
-                    label={<Typography variant="body2">{column.label || column.name}</Typography>}
-                    sx={{ m: 0 }}
-                  />
-                ))}
-              </Box>
-            )}
-            {errors.selected_columns && <FormHelperText error>{errors.selected_columns}</FormHelperText>}
-          </FormControl>
 
           {/* Time Frame Type Selector */}
           <FormControl fullWidth disabled={submitting || loading}>
@@ -477,7 +440,36 @@ export const DashboardCardModal: React.FC<DashboardCardModalProps> = ({
               <MenuItem value="candlestick">Candlestick Chart</MenuItem>
             </Select>
           </FormControl>
+          
         </Box>
+                  {/* Device Register Checklist */}
+          <Box sx={{ mt: 1 }}>
+            <DeviceRegisterChecklist
+              deviceId={selectedMeterId}
+              value={(formData.selected_columns || []).map(id => parseInt(id))}
+              onChange={(ids) => {
+                setFormData(prev => ({
+                  ...prev,
+                  selected_columns: ids.map(id => id.toString())
+                }));
+                if (errors.selected_columns) {
+                  setErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.selected_columns;
+                    return newErrors;
+                  });
+                }
+              }}
+              disabled={submitting || loading || !selectedMeterId}
+              label="Registers"
+            />
+            {errors.selected_columns && (
+              <FormHelperText error sx={{ mt: 1 }}>
+                {errors.selected_columns}
+              </FormHelperText>
+            )}
+          </Box>
+
       </DialogContent>
 
       <DialogActions sx={{ p: 2, gap: 1 }}>
