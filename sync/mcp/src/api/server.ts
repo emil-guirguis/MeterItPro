@@ -188,7 +188,7 @@ export class LocalApiServer {
         }
 
         const apiKey = tenantResult.rows[0].api_key;
-        const clientApiUrl = process.env.CLIENT_API_URL || 'http://localhost:3001';
+        const clientApiUrl = process.env.CLIENT_API_URL || 'https://meteritpro.com/api';
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);

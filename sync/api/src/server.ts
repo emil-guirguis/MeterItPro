@@ -273,7 +273,7 @@ app.get('/api/health/remote-api', async (_req, res) => {
     }
 
     const apiKey = tenantResult.rows[0].api_key;
-    const clientApiUrl = process.env.CLIENT_API_URL || 'http://localhost:3001';
+    const clientApiUrl = process.env.CLIENT_API_URL || 'https://meteritpro.com/api';
 
     // Make a health check request to the client API
     const controller = new AbortController();
@@ -907,7 +907,7 @@ app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
       return res.status(400).json({ success: false, message: 'No tenant or API key configured' });
     }
     const apiKey: string = tenantResult.rows[0].api_key;
-    const clientApiUrl = process.env.CLIENT_API_URL || 'http://localhost:3001/api';
+    const clientApiUrl = process.env.CLIENT_API_URL || 'https://meteritpro.com/api';
     const batchSize = parseInt(process.env.UPLOAD_BATCH_SIZE || '100', 10);
 
     // Fetch pending readings

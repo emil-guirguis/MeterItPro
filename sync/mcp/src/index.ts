@@ -182,7 +182,7 @@ class SyncMcpServer {
 
       // Create API client for uploads
       const apiClient = new ClientSystemApiClient({
-        apiUrl: process.env.CLIENT_API_URL || 'http://localhost:3001/api',
+        apiUrl: process.env.CLIENT_API_URL || 'https://meteritpro.com/api',
         apiKey: apiKey,
         timeout: parseInt(process.env.API_TIMEOUT || '30000', 10),
         maxRetries: parseInt(process.env.MAX_RETRIES || '5', 10),

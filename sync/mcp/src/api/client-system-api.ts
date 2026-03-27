@@ -304,7 +304,7 @@ export class ClientSystemApiClient {
  */
 export function createApiClientFromEnv(): ClientSystemApiClient {
   const config: ApiClientConfig = {
-    apiUrl: process.env.CLIENT_API_URL || 'http://localhost:3001/api',
+    apiUrl: process.env.CLIENT_API_URL || 'https://meteritpro.com/api',
     apiKey: process.env.CLIENT_API_KEY || '',
     timeout: parseInt(process.env.API_TIMEOUT || '30000', 10),
     maxRetries: parseInt(process.env.MAX_RETRIES || '5', 10),

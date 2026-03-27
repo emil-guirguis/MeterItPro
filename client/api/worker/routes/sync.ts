@@ -41,7 +41,7 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
               kva, phase_kva_a, phase_kva_b, phase_kva_c,
               amperage, phase_amperage_a, phase_amperage_b, phase_amperage_c,
               frequency, peak_kw, kw, power_factor,
-              power_factor_phase_a, power_factor_phase_b, power_factor_phase_c,
+              pf_a, pf_b, pf_c,
               phase_kw_a, phase_kw_b, phase_kw_c,
               kvarh, reactive_energy_export, kvar,
               phase_kvar_a, phase_kvar_b, phase_kvar_c,
