@@ -1,0 +1,99 @@
+.merseg-root {
+  width: 100%;
+}
+
+.merseg-paper {
+  overflow: hidden;
+}
+
+.merseg-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* Column widths */
+.merseg-col-meter     { width: 26%; }
+.merseg-col-elements  { width: 30%; }
+.merseg-col-registers { width: 36%; }
+.merseg-col-actions   { width: 6%; }
+
+.merseg-header-row th {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mui-palette-text-secondary, #666);
+  background-color: var(--mui-palette-action-hover, #f5f5f5);
+  padding: 8px 12px;
+}
+
+.merseg-row:last-child td {
+  border-bottom: none;
+}
+
+.merseg-cell {
+  padding: 8px !important;
+  vertical-align: top !important;
+}
+
+.merseg-cell--action {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+/* Empty state */
+.merseg-empty-cell {
+  text-align: center !important;
+  padding: 24px !important;
+  color: var(--mui-palette-text-secondary, #888);
+  font-style: italic;
+}
+
+/* Chips */
+.merseg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.merseg-chip {
+  max-width: 160px;
+}
+
+.merseg-chip--all {
+  background-color: var(--mui-palette-action-selected, #e8f4ff) !important;
+  font-weight: 600;
+}
+
+/* Placeholder text */
+.merseg-placeholder {
+  font-style: italic;
+  color: var(--mui-palette-text-disabled, #aaa);
+  font-size: 0.875rem;
+}
+
+.merseg-placeholder--error {
+  color: var(--mui-palette-error-main, #d32f2f);
+}
+
+/* Loading spinner */
+.merseg-spinner {
+  display: block !important;
+  margin: 4px auto;
+}
+
+/* Delete button */
+.merseg-delete-btn {
+  color: var(--mui-palette-action-active, #666) !important;
+}
+
+.merseg-delete-btn:hover {
+  color: var(--mui-palette-error-main, #d32f2f) !important;
+}
+
+/* Error message below grid */
+.merseg-error {
+  display: block;
+  margin-top: 4px;
+}

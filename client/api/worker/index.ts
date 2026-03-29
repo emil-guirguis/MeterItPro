@@ -320,14 +320,21 @@ app.get('/api/meters/:meterId/registers', authenticateToken, async (c) => {
       return c.json({ success: true, data: [] });
     }
 
-    // Get registers for the device associated with this meter
+    // Get registers for the device associated with this meter.
+    // Also includes computed registers (register = 0) from the register table
+    // regardless of device_register assignment, as they apply to all devices.
     const result = await query(c.env,
       `SELECT dr.device_register_id as id, dr.device_id, dr.register_id,
               r.register, r.name, r.unit, r.field_name
        FROM device_register dr
        JOIN register r ON dr.register_id = r.register_id
        WHERE dr.device_id = $1
-       ORDER BY r.register ASC`,
+       UNION
+       SELECT NULL as id, NULL as device_id, r.register_id,
+              r.register, r.name, r.unit, r.field_name
+       FROM register r
+       WHERE r.register = 0
+       ORDER BY register ASC`,
       [deviceId]
     );
 

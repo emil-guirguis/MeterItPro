@@ -54,6 +54,15 @@ export const reportSchema = defineSchema({
       ],
     }),
     tab({
+      name: 'Meter Selections',
+      order: 4,
+      sections: [
+        section({ name: 'Meters, Elements & Registers', order: 1, flex: 1, fields: [
+          field({ name: 'meter_selections', order: 1, type: FieldTypes.OBJECT, default: [], required: false, label: 'Meter Selections', dbField: 'meter_selections', showOn: ['form'], customField: true }),
+        ] }),
+      ],
+    }),
+    tab({
       name: 'Meters & Elements',
       order: 5,
       sections: [

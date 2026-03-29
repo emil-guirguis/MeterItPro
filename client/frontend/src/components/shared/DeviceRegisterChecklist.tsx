@@ -20,8 +20,8 @@ export interface DeviceRegister {
 
 interface DeviceRegisterChecklistProps {
   deviceId: number | null;
-  value: number[];
-  onChange: (ids: number[]) => void;
+  value: string[];
+  onChange: (ids: string[]) => void;
   disabled?: boolean;
   label?: string;
 }

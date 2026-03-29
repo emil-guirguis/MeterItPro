@@ -1,4 +1,8 @@
 /* ── Dashboard Layout ────────────────────────────────── */
+.dashboard-with-banner {
+  width: 100%;
+}
+
 /*
 .dashboard-with-banner {
   position: relative;
@@ -104,26 +108,9 @@
   min-height: 500px;
 }
 
-/* ── Individual card size ────────────────────────────────── */
+/* ── Individual card style ───────────────────────────────── */
 .react-grid-item {
-  width: 580px !important;
-  height: 460px !important;
   border-radius: 12px;
   background: transparent;
   box-shadow: none;
-}
-
-/* ── Responsive ──────────────────────────────────────────── */
-@media (max-width: 1024px) {
-  .react-grid-item {
-    width: 500px !important;
-    height: 420px !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .react-grid-item {
-    width: 100% !important;
-    height: 500px !important;
-  }
 }

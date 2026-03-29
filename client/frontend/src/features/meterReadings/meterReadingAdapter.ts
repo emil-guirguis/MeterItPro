@@ -152,16 +152,16 @@ const toNumber = (value: any, fallback: number = 0): number => {
 /**
  * Transform raw meter reading data from API to component format
  */
-export function adaptMeterReading(raw: RawMeterReading): {
+export function adaptMeterReading(raw: RawMeterReading, favoriteName?: string): {
   meterInfo: MeterInfo;
   reading: MeterReadingData;
 } {
   // Extract meter info
   const meterInfo: MeterInfo = {
     driver: raw.meter_protocol || 'Unknown Driver',
-    description: raw.meter_name && raw.element_number && raw.element_name
+    description: favoriteName || (raw.meter_name && raw.element_number && raw.element_name
       ? `${raw.meter_name} (${String(raw.element_number).trim()}) ${raw.element_name}`
-      : raw.meter_name || raw.meter_notes || 'No Description',
+      : raw.meter_name || raw.meter_notes || 'No Description'),
     serialNumber: raw.serial_number || 'N/A',
   };
   

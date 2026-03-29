@@ -10,7 +10,7 @@
  * - DashboardGrid: Responsive grid layout
  * - DashboardWidget: Widget container with loading/error states
  * - StatCard: Statistics display component
- * - DashboardCardModal: Modal for creating/editing cards
+ * - DashboardCardForm: Form for creating/editing cards
  * - ExpandedCardModal: Fullscreen card view modal
  * - Visualization: Generic chart component
  */
@@ -20,7 +20,7 @@ export * from './DashboardPage';
 
 // Card components
 export * from './DashboardCard';
-export * from './DashboardCardModal';
+export * from './DashboardCardForm';
 export * from './ExpandedCardModal';
 
 // Layout components

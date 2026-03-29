@@ -76,8 +76,21 @@ export const notificationRuleSchema = defineSchema({
                 value: 'demand_threshold',
               },
             }),
+            field({
+              name: 'meter_selections',
+              order: 5,
+              type: FieldTypes.OBJECT,
+              default: null,
+              required: false,
+              label: 'Meter',
+              dbField: 'meter_selections',
+              helpText: 'Select the meter, element and registers to monitor',
+              showOn: ['form'],
+              customField: true,
+            }),
           ],
         }),
+
         section({
           name: 'Status',
           order: 2,
@@ -96,6 +109,7 @@ export const notificationRuleSchema = defineSchema({
             }),
           ],
         }),
+
       ],
     }),
     tab({
@@ -154,43 +168,6 @@ export const notificationRuleSchema = defineSchema({
               helpText: 'Select users and their email preferences',
               showOn: ['form'],
               customField: true,
-            }),
-          ],
-        }),
-      ],
-    }),
-    tab({
-      name: 'Meters',
-      order: 4,
-      sections: [
-        section({
-          name: 'Monitored Meters',
-          order: 1,
-          flex: 1,
-          fields: [
-            field({
-              name: 'meter_elements',
-              order: 1,
-              type: 'custom',
-              default: [],
-              required: false,
-              label: 'Select Meter Elements to Monitor',
-              dbField: 'meter_elements',
-              helpText: 'Choose which meter elements this rule applies to. Leave empty to monitor all.',
-              showOn: ['form'],
-              customField: true,
-            }),
-            field({
-              name: 'register_ids',
-              order: 2,
-              type: FieldTypes.OBJECT,
-              default: [],
-              required: false,
-              label: 'Registers',
-              dbField: 'register_ids',
-              helpText: 'Select specific register field names to monitor (optional)',
-              showOn: ['form'],
-              description: 'Selected register field names',
             }),
           ],
         }),

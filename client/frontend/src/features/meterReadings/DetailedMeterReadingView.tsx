@@ -204,13 +204,13 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
         {/* Right: Total Consumption and Maximum Demand Real */}
         <div className="energy-totals-card">
           <div className="energy-row">
-            <span className="energy-label">Active</span>
+            <span className="energy-label">Total kWh</span>
             <span className="energy-colon"></span>
             <span className="energy-value">{formatNumber(reading.activeEnergyTotal, 2)}</span>
             <span className="energy-unit">kWh</span>
           </div>
           <div className="energy-row">
-            <span className="energy-label">Demand</span>
+            <span className="energy-label">Peak Demand</span>
             <span className="energy-colon"></span>
             <span className="energy-value">{formatNumber(reading.maximumDemandReal, 2)}</span>
             <span className="energy-unit">kW</span>

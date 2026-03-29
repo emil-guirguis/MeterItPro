@@ -61,7 +61,8 @@
       "Bash(jq .data.items[].device_id)",
       "Bash(cat:*)",
       "Bash(npx wrangler:*)",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''scripts'''',{}\\), indent=2\\)\\)\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''scripts'''',{}\\), indent=2\\)\\)\")",
+      "Bash(/c/Projects/MeterItPro/COMPONENT_INTEGRATION_SUMMARY.md:*)"
     ]
   }
 }

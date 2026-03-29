@@ -6,7 +6,7 @@
   flex-shrink: 0;
 }
 
-.meters-header {
+.metersHeader {
   display: flex;
   align-items: center;
   padding: 8px 12px;
@@ -19,7 +19,6 @@
   margin: 0;
   font-size: 14px;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
   color: #333;
 }
@@ -78,7 +77,7 @@
     flex-direction: column;
   }
 
-  .meters-header {
+  .metersHeader {
     padding: 8px 12px;
     gap: 6px;
     display: flex;

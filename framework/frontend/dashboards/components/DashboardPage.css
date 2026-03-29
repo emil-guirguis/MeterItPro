@@ -3,7 +3,7 @@
 .dashboard-page {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100%;
   width: 100%;
   background-color: #f1f5f9;
 }
@@ -213,9 +213,7 @@
 
 /* ── Cards Grid ───────────────────────────────────────────── */
 .dashboard-page__cards-grid {
-  flex: 1;
   padding: 1.5rem;
-  overflow-y: auto;
 }
 
 .dashboard-page__card-wrapper {

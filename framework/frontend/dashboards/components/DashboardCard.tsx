@@ -393,9 +393,13 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
           </Box>
         ) : data ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 1, minHeight: 0 }}>
-            {/* Chart */}
+            {/* Chart — click to expand */}
             {VisualizationComponent && (
-              <Box sx={{ flex: 1, minHeight: 240, display: 'flex', alignItems: 'stretch' }}>
+              <Box
+                sx={{ flex: 1, minHeight: 0, cursor: 'pointer' }}
+                onClick={onExpand ? (e) => { e.stopPropagation(); onExpand(card); } : undefined}
+                title="Click to expand"
+              >
                 <VisualizationComponent
                   type={currentVisualization}
                   data={
@@ -404,38 +408,11 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
                       : data.aggregated_values
                   }
                   columns={selectedColumns}
-                  height={280}
+                  seriesLabels={(data as any).series_labels}
                 />
               </Box>
             )}
 
-            {/* Stats chips */}
-            {selectedColumns.length > 0 && (
-              <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', flexShrink: 0 }}>
-                {selectedColumns.map((column: string) => (
-                  <Box
-                    key={column}
-                    sx={{
-                      flex: 1,
-                      minWidth: 70,
-                      background: 'linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)',
-                      border: '1px solid #bfdbfe',
-                      borderRadius: '8px',
-                      px: 1.25,
-                      py: 0.75,
-                      textAlign: 'center',
-                    }}
-                  >
-                    <Typography sx={{ color: '#64748b', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: '2px' }}>
-                      {aggregationType === 'min' ? 'Min' : aggregationType === 'max' ? 'Max' : 'Avg'}
-                    </Typography>
-                    <Typography sx={{ color: '#1d4ed8', fontWeight: 700, fontSize: '1rem', lineHeight: 1 }}>
-                      {formatNumber(data.aggregated_values[`${aggregationType}_${column}`])}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            )}
           </Box>
         ) : (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>

@@ -6,6 +6,7 @@ import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
+import { formatSqlForDebug } from '../../../../framework/backend/shared/utils';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -45,21 +46,16 @@ app.get('/', requirePermission('meter:read'), async (c) => {
 
     // Get total count
     const countSql = `SELECT COUNT(*) as count FROM meter_reading ${whereClause}`;
-    console.log('[MeterReadings] Count SQL:', countSql);
-    console.log('[MeterReadings] Count Params:', filterParams);
+    console.log('[MeterReadings] Count SQL:\n' + formatSqlForDebug(countSql, filterParams));
 
     const countResult = await query(c.env, countSql, filterParams);
     const total = parseInt(countResult.rows?.[0]?.count || '0');
 
     // Get paginated data
-    const dataSql = `
-      SELECT * FROM meter_reading
-      ${whereClause} ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}
-    `;
+    const dataSql = `SELECT * FROM meter_reading ${whereClause} ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
     const dataParams = [...filterParams, pageSize, skip];
 
-    console.log('[MeterReadings] Data SQL:', dataSql);
-    console.log('[MeterReadings] Data Params:', dataParams);
+    console.log('[MeterReadings] Data SQL:\n' + formatSqlForDebug(dataSql, dataParams));
 
     const result = await query(c.env, dataSql, dataParams);
     const items = result.rows || [];
@@ -185,16 +181,10 @@ app.get('/last', requirePermission('meter:read'), async (c) => {
       return c.json({ success: false, message: 'meterId and meterElementId are required' }, 400);
     }
 
-    const sql = `
-      SELECT * FROM meter_reading
-      WHERE tenant_id = $1
-        AND meter_id = $2
-        AND meter_element_id = $3
-      ORDER BY created_at DESC
-      LIMIT 1
-    `;
+    const sql = `SELECT mr.*, m.serial_number FROM meter_reading mr LEFT JOIN meter m ON mr.meter_id = m.meter_id WHERE mr.tenant_id = $1 AND mr.meter_id = $2 AND mr.meter_element_id = $3 ORDER BY mr.created_at DESC LIMIT 1`;
 
     const params = [tenantId, parseInt(meterId), parseInt(meterElementId)];
+    console.log('[MeterReadings] Last Reading SQL:\n' + formatSqlForDebug(sql, params));
     const result = await query(c.env, sql, params);
     const reading = result.rows && result.rows.length > 0 ? result.rows[0] : null;
 

@@ -50,6 +50,10 @@ export interface AggregatedData {
     [key: string]: any;
   }>;
   grouping_type?: string;
+  selected_columns?: string[];
+  column_units?: Record<string, string>;
+  meter_element_labels?: Record<number, string>;
+  series_labels?: Record<string, string>;
   daily_values?: Array<{
     date: string;
     [key: string]: any;
@@ -187,10 +191,11 @@ class DashboardService {
   }
 
   // Get aggregated data for a dashboard card
-  async getCardData(id: number): Promise<AggregatedData> {
+  async getCardData(id: number, options?: { start_date?: string; end_date?: string }): Promise<AggregatedData> {
     try {
-      const response: AxiosResponse<{ success: boolean; data: AggregatedData }> = 
-        await this.apiClient.get(`/dashboard/cards/${id}/data`);
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const response: AxiosResponse<{ success: boolean; data: AggregatedData }> =
+        await this.apiClient.get(`/dashboard/cards/${id}/data`, { params: { tz, ...options } });
       return response.data.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {

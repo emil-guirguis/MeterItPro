@@ -8,6 +8,7 @@ import { query, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { logError } from '../errorHandler';
+import { formatSqlForDebug } from '../../../../framework/backend/shared/utils';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -21,10 +22,20 @@ const VALID_METER_READING_COLUMNS = new Set([
   'phase_kvar_b','phase_kvar_c','voltage_a_b','voltage_a_n',
   'voltage_b_c','voltage_b_n','voltage_c_a','voltage_c_n','voltage_p_n','voltage_p_p',
   'total_thdv','phase_thdv_a','phase_thdv_b','phase_thdv_c',
+  'calculated_kwh',
 ]);
 
 app.use('*', authenticateToken);
 
+/** Parse meter_selections from DB text back to array */
+function parseMeterSelections(raw: any): any[] | null {
+  if (!raw) return null;
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw); } catch { return null; }
+  }
+  return null;
+}
 
 // GET /cards - Retrieve all dashboard cards for the tenant
 app.get('/cards', requirePermission('dashboard:read'), async (c) => {
@@ -67,6 +78,7 @@ app.get('/cards', requirePermission('dashboard:read'), async (c) => {
         grid_y: card.grid_y ?? cardIndex * 520,
         grid_w: card.grid_w ?? 500,
         grid_h: card.grid_h ?? 500,
+        meter_selections: parseMeterSelections(card.meter_selections),
       };
     });
 
@@ -95,6 +107,11 @@ app.get('/cards/:id', requirePermission('dashboard:read'), async (c) => {
     const card = await findById(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), tenantId);
     if (!card) return c.json({ success: false, message: 'Dashboard card not found' }, 404);
 
+    console.log('[Dashboard] GET /cards/:id - Card data:', {
+      card_id: card.dashboard_id,
+      meter_selections: parseMeterSelections(card.meter_selections),
+    });
+
     return c.json({
       success: true,
       data: {
@@ -104,6 +121,7 @@ app.get('/cards/:id', requirePermission('dashboard:read'), async (c) => {
         grid_y: card.grid_y ?? 0,
         grid_w: card.grid_w ?? 500,
         grid_h: card.grid_h ?? 500,
+        meter_selections: parseMeterSelections(card.meter_selections),
       },
     });
   } catch (error: any) {
@@ -118,15 +136,65 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
     const tenantId = c.get('tenantId');
     if (!tenantId) return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
 
+    const tz = c.req.query('tz') || 'UTC';
+
     const card = await findById(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), tenantId);
     if (!card) return c.json({ success: false, message: 'Dashboard card not found' }, 404);
 
-    // Parse selected_columns — DB may return as array (jsonb) or string (text)
-    let rawColumns = card.selected_columns;
-    if (typeof rawColumns === 'string') {
-      try { rawColumns = JSON.parse(rawColumns); } catch { rawColumns = []; }
+    // Parse meter_selections JSONB
+    const rawMs = parseMeterSelections(card.meter_selections);
+
+    console.log('[Dashboard] GET /cards/:id/data - Card loaded:', {
+      card_name: card.card_name,
+      meter_selections: rawMs,
+    });
+
+    // Derive selected columns and meter/element IDs from meter_selections
+    let rawColumns: string[] = [];
+    let meter_id: number | null = null;
+    let meter_element_ids: number[] = [];
+    let meter_element_id: number | null = null;
+
+    if (Array.isArray(rawMs) && rawMs.length > 0) {
+      // Collect meter_id, meter_element_ids, and register_field_names across all rows
+      rawMs.forEach((row: any) => {
+        // Get meter_id from first row (should be same for all rows)
+        if (!meter_id && row.meter_id) {
+          meter_id = row.meter_id;
+        }
+        // Collect all meter_element_ids (new format: array; legacy format: single value)
+        if (Array.isArray(row.meter_element_ids)) {
+          row.meter_element_ids.forEach((id: number) => { if (id) meter_element_ids.push(id); });
+        } else if (row.meter_element_id) {
+          meter_element_ids.push(row.meter_element_id);
+        }
+        // Collect all register_field_names across all rows, excluding '*'
+        if (Array.isArray(row.register_field_names)) {
+          row.register_field_names.forEach((fn: string) => {
+            if (fn && fn !== '*') rawColumns.push(fn);
+          });
+        }
+      });
+
+      // Use first meter_element_id if available (or could use IN clause for multiple)
+      meter_element_id = meter_element_ids.length > 0 ? meter_element_ids[0] : null;
+
+      console.log('[Dashboard] GET /cards/:id/data - Extracted from meter_selections:', {
+        meter_selections_raw: rawMs,
+        extracted_meter_id: meter_id,
+        extracted_meter_element_ids: meter_element_ids,
+        using_meter_element_id: meter_element_id,
+      });
+    } else {
+      // Legacy fallback
+      let legacy = card.selected_columns;
+      if (typeof legacy === 'string') { try { legacy = JSON.parse(legacy); } catch { legacy = []; } }
+      if (Array.isArray(legacy)) rawColumns = legacy;
+
+      console.log('[Dashboard] GET /cards/:id/data - Using legacy selected_columns:', legacy);
     }
-    const selectedColumns: string[] = (Array.isArray(rawColumns) ? rawColumns : [])
+
+    const selectedColumns: string[] = rawColumns
       .map((col: string) => columnNameMapping[col.toLowerCase()] || col.toLowerCase())
       .filter((col: string) => VALID_METER_READING_COLUMNS.has(col))
       .filter((col, idx, arr) => arr.indexOf(col) === idx);
@@ -135,70 +203,151 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
       return c.json({ success: true, data: { card_id: card.dashboard_id, aggregated_values: {}, grouped_data: [] } });
     }
 
-    // Calculate time frame based on time_frame_type
+    // Calculate time frame — query params override the card's stored settings
     const now = new Date();
     let startDate: Date;
-    const timeFrameType = card.time_frame_type || 'last_month';
-    if (timeFrameType === 'today') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (timeFrameType === 'this_month_to_date') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else if (timeFrameType === 'yearly') {
-      startDate = new Date(now.getFullYear(), 0, 1);
-    } else if (timeFrameType === 'since_installation') {
-      startDate = new Date('2000-01-01');
-    } else if (timeFrameType === 'custom' && card.custom_start_date) {
-      startDate = new Date(card.custom_start_date);
+    let endDate: Date;
+    const overrideStart = c.req.query('start_date');
+    const overrideEnd   = c.req.query('end_date');
+    if (overrideStart && overrideEnd) {
+      startDate = new Date(overrideStart);
+      endDate   = new Date(overrideEnd);
     } else {
-      // last_month default
-      startDate = new Date(now);
-      startDate.setMonth(startDate.getMonth() - 1);
+      const timeFrameType = card.time_frame_type || 'last_month';
+      if (timeFrameType === 'today') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      } else if (timeFrameType === 'this_month_to_date') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      } else if (timeFrameType === 'yearly') {
+        startDate = new Date(now.getFullYear(), 0, 1);
+      } else if (timeFrameType === 'since_installation') {
+        startDate = new Date('2000-01-01');
+      } else if (timeFrameType === 'custom' && card.custom_start_date) {
+        startDate = new Date(card.custom_start_date);
+      } else {
+        startDate = new Date(now);
+        startDate.setMonth(startDate.getMonth() - 1);
+      }
+      endDate = (timeFrameType === 'custom' && card.custom_end_date) ? new Date(card.custom_end_date) : now;
     }
-    const endDate = (timeFrameType === 'custom' && card.custom_end_date) ? new Date(card.custom_end_date) : now;
 
     // Aggregation type — used for both aggregated_values and grouped_data
     const rawAggType = (card.aggregation_type || 'avg').toLowerCase();
-    const aggFn = rawAggType === 'min' ? 'MIN' : rawAggType === 'max' ? 'MAX' : 'AVG';
+    const isNoAgg = rawAggType === 'none';
+    const aggFn = rawAggType === 'min' ? 'MIN' : rawAggType === 'max' ? 'MAX' : rawAggType === 'sum' ? 'SUM' : 'AVG';
 
-    // Aggregate values - return values with selected column names that match visualization expectations
-    const aggColsForAgg = selectedColumns.map((col: string) => `${aggFn}("${col}") as "${col}", AVG("${col}") as "avg_${col}", MIN("${col}") as "min_${col}", MAX("${col}") as "max_${col}"`).join(', ');
-    const aggSql = `SELECT ${aggColsForAgg} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4`;
-    console.log('[Dashboard] aggSql:', aggSql);
-    console.log('[Dashboard] aggSql params:', [tenantId, card.meter_element_id, startDate, endDate]);
-    const aggResult = await query(c.env, aggSql, [tenantId, card.meter_element_id, startDate, endDate]);
+    // Build WHERE clause and params based on what's set in meter_selections
+    // Always join with meter_element and meter to ensure only active meters are included
+    let whereClause: string;
+    let aggParams: any[];
+    const fromClause = 'FROM meter_reading mr JOIN meter_element me ON mr.meter_element_id = me.meter_element_id JOIN meter m ON me.meter_id = m.meter_id';
 
-    // Grouped data — respect grouping_type and aggregation_type
-    const groupCols = selectedColumns.map((col: string) => `${aggFn}("${col}") as "${col}"`).join(', ');
+    // Build WHERE conditions based on what's in meter_selections
+    let whereConditions = ['mr.tenant_id = $1', 'm.active = true'];
+    aggParams = [tenantId];
+    let paramIndex = 2;
+
+    if (meter_id) {
+      whereConditions.push(`m.meter_id = $${paramIndex}`);
+      aggParams.push(meter_id);
+      paramIndex++;
+    }
+
+    if (meter_element_ids.length > 0) {
+      const placeholders = meter_element_ids.map((_, i) => `$${paramIndex + i}`).join(', ');
+      whereConditions.push(`mr.meter_element_id IN (${placeholders})`);
+      aggParams.push(...meter_element_ids);
+      paramIndex += meter_element_ids.length;
+    }
+
+    // Add date range
+    whereConditions.push(`mr.created_at >= $${paramIndex}`);
+    whereConditions.push(`mr.created_at <= $${paramIndex + 1}`);
+    aggParams.push(startDate, endDate);
+
+    whereClause = 'WHERE ' + whereConditions.join(' AND ');
+
+    // Determine aggregation function and grouping
+    // When aggregation is 'none', use SUM as default (makes sense for consumption readings)
+    const groupAggFn = isNoAgg ? 'SUM' : aggFn;
+    const groupCols = selectedColumns.map((col: string) => `${groupAggFn}("mr"."${col}") as "${col}"`).join(', ');
     const groupingType = card.grouping_type || 'daily';
+
+    // Always include meter_id, meter_element_id, and element label fields in the results
+    const meterCols = `mr.meter_id as meter_id, mr.meter_element_id as meter_element_id, m.name as meter_name, me.element as element_label, me.name as element_name`;
+
+    // Build both queries with the same grouping structure
+    let aggSql: string;
     let groupSql: string;
+
     if (groupingType === 'total') {
-      groupSql = `SELECT ${groupCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4`;
+      // For 'total' grouping, just aggregate without time grouping
+      aggSql = `SELECT ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY mr.meter_id, mr.meter_element_id, m.name, me.element, me.name`;
+      groupSql = aggSql;
     } else if (groupingType === 'hourly') {
-      groupSql = `SELECT DATE(created_at) as date, EXTRACT(HOUR FROM created_at) as hour, ${groupCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 GROUP BY DATE(created_at), EXTRACT(HOUR FROM created_at) ORDER BY date, hour`;
+      const dateHourCols = `DATE(mr.created_at AT TIME ZONE '${tz}') as date, EXTRACT(HOUR FROM mr.created_at AT TIME ZONE '${tz}') as hour`;
+      aggSql = `SELECT ${dateHourCols}, ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY DATE(mr.created_at AT TIME ZONE '${tz}'), EXTRACT(HOUR FROM mr.created_at AT TIME ZONE '${tz}'), mr.meter_id, mr.meter_element_id, m.name, me.element, me.name ORDER BY date, hour`;
+      groupSql = aggSql;
     } else if (groupingType === 'weekly') {
-      groupSql = `SELECT DATE_TRUNC('week', created_at) as week_start, ${groupCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 GROUP BY DATE_TRUNC('week', created_at) ORDER BY week_start`;
+      const weekCols = `DATE_TRUNC('week', mr.created_at AT TIME ZONE '${tz}')::date as week_start`;
+      aggSql = `SELECT ${weekCols}, ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY DATE_TRUNC('week', mr.created_at AT TIME ZONE '${tz}'), mr.meter_id, mr.meter_element_id, m.name, me.element, me.name ORDER BY week_start`;
+      groupSql = aggSql;
     } else if (groupingType === 'monthly') {
-      groupSql = `SELECT DATE_TRUNC('month', created_at) as month_start, ${groupCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 GROUP BY DATE_TRUNC('month', created_at) ORDER BY month_start`;
+      const monthCols = `DATE_TRUNC('month', mr.created_at AT TIME ZONE '${tz}')::date as month_start`;
+      aggSql = `SELECT ${monthCols}, ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY DATE_TRUNC('month', mr.created_at AT TIME ZONE '${tz}'), mr.meter_id, mr.meter_element_id, m.name, me.element, me.name ORDER BY month_start`;
+      groupSql = aggSql;
     } else {
       // daily (default)
-      groupSql = `SELECT DATE(created_at) as date, ${groupCols} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 GROUP BY DATE(created_at) ORDER BY date`;
+      const dateCols = `DATE(mr.created_at AT TIME ZONE '${tz}') as date`;
+      aggSql = `SELECT ${dateCols}, ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY DATE(mr.created_at AT TIME ZONE '${tz}'), mr.meter_id, mr.meter_element_id, m.name, me.element, me.name ORDER BY date`;
+      groupSql = aggSql;
     }
-    console.log('[Dashboard] groupSql:', groupSql);
-    console.log('[Dashboard] groupSql params:', [tenantId, card.meter_element_id, startDate, endDate]);
-    const groupResult = await query(c.env, groupSql, [tenantId, card.meter_element_id, startDate, endDate]);
+
+    console.log('[Dashboard] aggSql:\n' + formatSqlForDebug(aggSql, aggParams));
+    const aggResult = await query(c.env, aggSql, aggParams);
+
+    console.log('[Dashboard] groupSql:\n' + formatSqlForDebug(groupSql, aggParams));
+    const groupResult = await query(c.env, groupSql, aggParams);
+
+    // Build a label map: { meter_element_id -> display label }
+    const meter_element_labels: Record<number, string> = {};
+    for (const row of groupResult.rows) {
+      const eid = row.meter_element_id;
+      if (eid && !meter_element_labels[eid]) {
+        const rest = row.element_label ? `${row.element_label} - ${row.element_name}` : row.element_name;
+        meter_element_labels[eid] = row.meter_name
+          ? `${row.meter_name} - ${rest}`
+          : (rest || `Element ${eid}`);
+      }
+    }
+
+    // Fetch units for selected columns from register table
+    const column_units: Record<string, string> = {};
+    if (selectedColumns.length > 0) {
+      const placeholders = selectedColumns.map((_, i) => `$${i + 1}`).join(', ');
+      const unitSql = `SELECT field_name, unit FROM register WHERE field_name IN (${placeholders})`;
+      console.log('[Dashboard] unitSql:\n' + formatSqlForDebug(unitSql, selectedColumns));
+      const unitResult = await query(c.env, unitSql, selectedColumns);
+      for (const row of unitResult.rows) {
+        if (row.unit) column_units[row.field_name] = row.unit;
+      }
+    }
 
     return c.json({
       success: true,
       data: {
         card_id: card.dashboard_id,
         card_name: card.card_name,
-        meter_element_id: card.meter_element_id,
+        meter_element_id: meter_element_id,
+        meter_selections: rawMs,
         time_frame: {
           type: card.time_frame_type || 'last_30_days',
           start: startDate.toISOString(),
           end: endDate.toISOString(),
         },
         selected_columns: selectedColumns,
+        column_units,
+        meter_element_labels,
         aggregated_values: aggResult.rows[0] || {},
         grouped_data: groupResult.rows,
         grouping_type: card.grouping_type || 'daily',
@@ -219,6 +368,10 @@ app.post('/cards', requirePermission('dashboard:create'), async (c) => {
     if (!tenantId) return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
 
     const body = await c.req.json();
+    console.log('[Dashboard] POST /cards - Request body:', {
+      card_name: body.card_name,
+      meter_selections: body.meter_selections,
+    });
 
     // Validate meter belongs to tenant
     if (body.meter_id) {
@@ -235,12 +388,7 @@ app.post('/cards', requirePermission('dashboard:create'), async (c) => {
       }
     }
 
-    // Validate selected columns
-    if (!body.selected_columns || (Array.isArray(body.selected_columns) && body.selected_columns.length === 0)) {
-      return c.json({ success: false, message: 'Validation failed', errors: [{ field: 'selected_columns', message: 'At least one power column must be selected' }] }, 400);
-    }
-
-    // Determine grid position
+    // Determine grid position — scan for first available space (left-to-right, top-to-bottom)
     const existingCards = await findAll(c.env, {
       table: 'dashboard',
       primaryKey: 'dashboard_id',
@@ -248,17 +396,54 @@ app.post('/cards', requirePermission('dashboard:create'), async (c) => {
       limit: 1000,
     });
 
-    const nextIndex = existingCards.rows.length;
+    const GRID_COLS = 12;
+    const newW = body.grid_w ?? 6;
+    const newH = body.grid_h ?? 9;
 
-    const cardData = {
-      ...body,
-      selected_columns: Array.isArray(body.selected_columns) ? JSON.stringify(body.selected_columns) : body.selected_columns,
+    let gridX = 0;
+    let gridY = 0;
+
+    if (existingCards.rows.length > 0) {
+      const layout = existingCards.rows.map((c: any) => ({
+        x: c.grid_x ?? 0,
+        y: c.grid_y ?? 0,
+        w: c.grid_w ?? 4,
+        h: c.grid_h ?? 8,
+      }));
+
+      outer: for (let tryY = 0; tryY <= 200; tryY++) {
+        for (let tryX = 0; tryX <= GRID_COLS - newW; tryX++) {
+          const overlaps = layout.some(item =>
+            tryX < item.x + item.w && tryX + newW > item.x &&
+            tryY < item.y + item.h && tryY + newH > item.y
+          );
+          if (!overlaps) {
+            gridX = tryX;
+            gridY = tryY;
+            break outer;
+          }
+        }
+      }
+    }
+
+    const cardData: Record<string, any> = {
+      card_name: body.card_name,
+      card_description: body.card_description || null,
+      time_frame_type: body.time_frame_type,
+      visualization_type: body.visualization_type,
+      grouping_type: body.grouping_type || 'daily',
+      aggregation_type: body.aggregation_type || 'none',
+      custom_start_date: body.custom_start_date || null,
+      custom_end_date: body.custom_end_date || null,
+      meter_selections: body.meter_selections !== undefined
+        ? (typeof body.meter_selections === 'string' ? body.meter_selections : JSON.stringify(body.meter_selections))
+        : null,
       tenant_id: tenantId,
       created_by_users_id: user?.users_id,
-      grid_x: body.grid_x !== undefined ? body.grid_x : 0,
-      grid_y: body.grid_y !== undefined ? body.grid_y : nextIndex * 520,
-      grid_w: body.grid_w !== undefined ? body.grid_w : 500,
-      grid_h: body.grid_h !== undefined ? body.grid_h : 500,
+      grid_x: gridX,
+      grid_y: gridY,
+      grid_w: newW,
+      grid_h: newH,
     };
 
     const card = await create(c.env, 'dashboard', cardData);
@@ -287,25 +472,32 @@ app.put('/cards/:id', requirePermission('dashboard:update'), async (c) => {
 
     const body = await c.req.json();
 
-    console.log('[Dashboard] PUT /cards/:id - Request body:', body);
+    console.log('[Dashboard] PUT /cards/:id - Request body:', {
+      card_name: body.card_name,
+      meter_selections: body.meter_selections,
+    });
 
-    // Validate selected columns if provided
-    if (body.selected_columns !== undefined) {
-      if (!Array.isArray(body.selected_columns) || body.selected_columns.length === 0) {
-        return c.json({ success: false, message: 'Validation failed', errors: [{ field: 'selected_columns', message: 'At least one power column must be selected' }] }, 400);
-      }
+    const updateData: Record<string, any> = {};
+    if (body.card_name !== undefined)          updateData.card_name = body.card_name;
+    if (body.card_description !== undefined)   updateData.card_description = body.card_description;
+    if (body.time_frame_type !== undefined)    updateData.time_frame_type = body.time_frame_type;
+    if (body.visualization_type !== undefined) updateData.visualization_type = body.visualization_type;
+    if (body.grouping_type !== undefined)      updateData.grouping_type = body.grouping_type;
+    if (body.aggregation_type !== undefined)   updateData.aggregation_type = body.aggregation_type;
+    if (body.custom_start_date !== undefined) updateData.custom_start_date = body.custom_start_date || null;
+    if (body.custom_end_date !== undefined)   updateData.custom_end_date = body.custom_end_date || null;
+    if (body.grid_x !== undefined)            updateData.grid_x = body.grid_x;
+    if (body.grid_y !== undefined)            updateData.grid_y = body.grid_y;
+    if (body.grid_w !== undefined)            updateData.grid_w = body.grid_w;
+    if (body.grid_h !== undefined)            updateData.grid_h = body.grid_h;
+    if (body.meter_selections !== undefined) {
+      updateData.meter_selections = typeof body.meter_selections === 'string'
+        ? body.meter_selections
+        : JSON.stringify(body.meter_selections);
     }
 
-    // Remove protected fields
-    delete body.tenant_id;
-    delete body.created_by_users_id;
-
-    if (Array.isArray(body.selected_columns)) {
-      body.selected_columns = JSON.stringify(body.selected_columns);
-    }
-
-    console.log('[Dashboard] PUT /cards/:id - Body after processing:', body);
-    const updated = await update(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), body);
+    console.log('[Dashboard] PUT /cards/:id - updateData:', updateData);
+    const updated = await update(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), updateData);
     console.log('[Dashboard] PUT /cards/:id - Updated result:', updated);
 
     return c.json({
@@ -317,6 +509,7 @@ app.put('/cards/:id', requirePermission('dashboard:update'), async (c) => {
         grid_y: updated.grid_y ?? 0,
         grid_w: updated.grid_w ?? 500,
         grid_h: updated.grid_h ?? 500,
+        meter_selections: parseMeterSelections(updated.meter_selections),
       },
     });
   } catch (error: any) {
@@ -381,23 +574,80 @@ app.get('/cards/:id/readings', requirePermission('dashboard:read'), async (c) =>
       .map((col: string) => columnNameMapping[col.toLowerCase()] || col.toLowerCase())
       .filter((col: string) => VALID_METER_READING_COLUMNS.has(col))
       .filter((col, idx, arr) => arr.indexOf(col) === idx);
-    const columnsList = ['meter_reading_id', 'created_at', ...selectedColumns];
+    const columnsList = ['meter_reading_id', 'created_at', 'meter_id', 'meter_element_id', ...selectedColumns];
     const validSortColumns = ['meter_reading_id', 'created_at', 'updated_at', 'meter_id', 'meter_element_id', ...selectedColumns];
     const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'created_at';
 
+    // Extract meter_id and meter_element_ids from meter_selections
+    const readingsRawMs = parseMeterSelections(card.meter_selections);
+    let readingsMeterIdVal: number | null = null;
+    let readingsMeterElementIds: number[] = [];
+
+    if (Array.isArray(readingsRawMs) && readingsRawMs.length > 0) {
+      // Collect meter_id and meter_element_ids across all rows
+      readingsRawMs.forEach((row: any) => {
+        if (!readingsMeterIdVal && row.meter_id) {
+          readingsMeterIdVal = row.meter_id;
+        }
+        if (row.meter_element_id) {
+          readingsMeterElementIds.push(row.meter_element_id);
+        }
+      });
+    }
+
+    // Use first meter_element_id if available
+    const readingsMeterElementId = readingsMeterElementIds.length > 0 ? readingsMeterElementIds[0] : null;
+
+    console.log('[Dashboard] GET /cards/:id/readings - Extracted from meter_selections:', {
+      meter_selections_raw: readingsRawMs,
+      extracted_meter_id: readingsMeterIdVal,
+      extracted_meter_element_ids: readingsMeterElementIds,
+      using_meter_element_id: readingsMeterElementId,
+    });
+
+    // Build WHERE clause and params based on what's set in meter_selections
+    // Always join with meter_element and meter to ensure only active meters are included
+    let whereClause: string;
+    let params: any[];
+    const fromClause = 'FROM meter_reading mr JOIN meter_element me ON mr.meter_element_id = me.meter_element_id JOIN meter m ON me.meter_id = m.meter_id';
+
+    // Build WHERE conditions based on what's in meter_selections
+    let whereConditions = ['mr.tenant_id = $1', 'm.active = true'];
+    params = [tenantId];
+    let paramIndex = 2;
+
+    if (readingsMeterIdVal) {
+      whereConditions.push(`m.meter_id = $${paramIndex}`);
+      params.push(readingsMeterIdVal);
+      paramIndex++;
+    }
+
+    if (readingsMeterElementId) {
+      whereConditions.push(`mr.meter_element_id = $${paramIndex}`);
+      params.push(readingsMeterElementId);
+      paramIndex++;
+    }
+
+    // Add date range
+    whereConditions.push(`mr.created_at >= $${paramIndex}`);
+    whereConditions.push(`mr.created_at <= $${paramIndex + 1}`);
+    params.push(startDate, endDate);
+
+    whereClause = 'WHERE ' + whereConditions.join(' AND ');
+
     // Count
-    const countResult = await query(c.env,
-      'SELECT COUNT(*) as total FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4',
-      [tenantId, card.meter_element_id, startDate, endDate]
-    );
+    const countSql = `SELECT COUNT(*) as total ${fromClause} ${whereClause}`;
+    const countResult = await query(c.env, countSql, params);
     const total = parseInt(countResult.rows[0]?.total || '0');
     const totalPages = Math.ceil(total / pageSize);
 
-    // Data
-    const sql = `SELECT ${columnsList.map((col) => `"${col}"`).join(', ')} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 ORDER BY "${safeSortBy}" ${sortOrder} LIMIT $5 OFFSET $6`;
-    console.log('[Dashboard] readings sql:', sql);
-    console.log('[Dashboard] readings params:', [tenantId, card.meter_element_id, startDate, endDate, pageSize, (page - 1) * pageSize]);
-    const result = await query(c.env, sql, [tenantId, card.meter_element_id, startDate, endDate, pageSize, (page - 1) * pageSize]);
+    // Data - adjust column references for joined tables
+    const adjustedColumnsList = columnsList.map((col: string) => col === 'meter_reading_id' ? 'mr.meter_reading_id' : col === 'created_at' ? 'mr.created_at' : col === 'meter_id' ? 'mr.meter_id' : col === 'meter_element_id' ? 'mr.meter_element_id' : `"mr"."${col}"`);
+    const pageParams = [...params, pageSize, (page - 1) * pageSize];
+    const paramCount = params.length;
+    const sql = `SELECT ${adjustedColumnsList.join(', ')} ${fromClause} ${whereClause} ORDER BY ${safeSortBy === 'meter_reading_id' || safeSortBy === 'created_at' || safeSortBy === 'meter_id' || safeSortBy === 'meter_element_id' || safeSortBy === 'updated_at' ? (safeSortBy === 'updated_at' ? '"mr"."updated_at"' : `mr.${safeSortBy}`) : `"mr"."${safeSortBy}"`} ${sortOrder} LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
+    console.log('[Dashboard] readings sql:\n' + formatSqlForDebug(sql, pageParams));
+    const result = await query(c.env, sql, pageParams);
 
     return c.json({
       success: true,
@@ -407,7 +657,7 @@ app.get('/cards/:id/readings', requirePermission('dashboard:read'), async (c) =>
         metadata: {
           card_id: card.dashboard_id,
           card_name: card.card_name,
-          meter_element_id: card.meter_element_id,
+          meter_element_id: readingsMeterElementId,
           time_frame: { type: card.time_frame_type || 'last_30_days', start: startDate.toISOString(), end: endDate.toISOString() },
           selected_columns: selectedColumns,
           sort_by: safeSortBy,
@@ -446,14 +696,72 @@ app.get('/cards/:id/readings/export', requirePermission('dashboard:read'), async
       .map((col: string) => columnNameMapping[col.toLowerCase()] || col.toLowerCase())
       .filter((col: string) => VALID_METER_READING_COLUMNS.has(col))
       .filter((col, idx, arr) => arr.indexOf(col) === idx);
-    const columnsList = ['meter_reading_id', 'created_at', ...selectedColumns];
-    const validSortColumns = ['meter_reading_id', 'created_at', ...selectedColumns];
+    const columnsList = ['meter_reading_id', 'created_at', 'meter_id', 'meter_element_id', ...selectedColumns];
+    const validSortColumns = ['meter_reading_id', 'created_at', 'meter_id', 'meter_element_id', ...selectedColumns];
     const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'created_at';
 
-    const sql = `SELECT ${columnsList.map((col) => `"${col}"`).join(', ')} FROM meter_reading WHERE tenant_id = $1 AND meter_element_id = $2 AND created_at >= $3 AND created_at <= $4 ORDER BY "${safeSortBy}" ${sortOrder}`;
-    console.log('[Dashboard] export sql:', sql);
-    console.log('[Dashboard] export params:', [tenantId, card.meter_element_id, startDate, endDate]);
-    const result = await query(c.env, sql, [tenantId, card.meter_element_id, startDate, endDate]);
+    // Extract meter_id and meter_element_ids from meter_selections
+    const exportRawMs = parseMeterSelections(card.meter_selections);
+    let exportMeterIdVal: number | null = null;
+    let exportMeterElementIds: number[] = [];
+
+    if (Array.isArray(exportRawMs) && exportRawMs.length > 0) {
+      // Collect meter_id and meter_element_ids across all rows
+      exportRawMs.forEach((row: any) => {
+        if (!exportMeterIdVal && row.meter_id) {
+          exportMeterIdVal = row.meter_id;
+        }
+        if (row.meter_element_id) {
+          exportMeterElementIds.push(row.meter_element_id);
+        }
+      });
+    }
+
+    // Use first meter_element_id if available
+    const exportMeterElementId = exportMeterElementIds.length > 0 ? exportMeterElementIds[0] : null;
+
+    console.log('[Dashboard] GET /cards/:id/readings/export - Extracted from meter_selections:', {
+      meter_selections_raw: exportRawMs,
+      extracted_meter_id: exportMeterIdVal,
+      extracted_meter_element_ids: exportMeterElementIds,
+      using_meter_element_id: exportMeterElementId,
+    });
+
+    // Build WHERE clause and params based on what's set in meter_selections
+    // Always join with meter_element and meter to ensure only active meters are included
+    let whereClause: string;
+    let exportParams: any[];
+    const fromClause = 'FROM meter_reading mr JOIN meter_element me ON mr.meter_element_id = me.meter_element_id JOIN meter m ON me.meter_id = m.meter_id';
+
+    // Build WHERE conditions based on what's in meter_selections
+    let whereConditions = ['mr.tenant_id = $1', 'm.active = true'];
+    exportParams = [tenantId];
+    let paramIndex = 2;
+
+    if (exportMeterIdVal) {
+      whereConditions.push(`m.meter_id = $${paramIndex}`);
+      exportParams.push(exportMeterIdVal);
+      paramIndex++;
+    }
+
+    if (exportMeterElementId) {
+      whereConditions.push(`mr.meter_element_id = $${paramIndex}`);
+      exportParams.push(exportMeterElementId);
+      paramIndex++;
+    }
+
+    // Add date range
+    whereConditions.push(`mr.created_at >= $${paramIndex}`);
+    whereConditions.push(`mr.created_at <= $${paramIndex + 1}`);
+    exportParams.push(startDate, endDate);
+
+    whereClause = 'WHERE ' + whereConditions.join(' AND ');
+
+    // Adjust column references for joined tables
+    const adjustedExportColumnsList = columnsList.map((col: string) => col === 'meter_reading_id' ? 'mr.meter_reading_id' : col === 'created_at' ? 'mr.created_at' : col === 'meter_id' ? 'mr.meter_id' : col === 'meter_element_id' ? 'mr.meter_element_id' : `"mr"."${col}"`);
+    const sql = `SELECT ${adjustedExportColumnsList.join(', ')} ${fromClause} ${whereClause} ORDER BY ${safeSortBy === 'meter_reading_id' || safeSortBy === 'created_at' || safeSortBy === 'meter_id' || safeSortBy === 'meter_element_id' ? `mr.${safeSortBy}` : `"mr"."${safeSortBy}"`} ${sortOrder}`;
+    console.log('[Dashboard] export sql:\n' + formatSqlForDebug(sql, exportParams));
+    const result = await query(c.env, sql, exportParams);
 
     // Build CSV
     const escapeCSV = (v: any) => {
@@ -466,7 +774,7 @@ app.get('/cards/:id/readings/export', requirePermission('dashboard:read'), async
     const metadata = [
       ['Meter Reading Export'],
       ['Card Name', card.card_name],
-      ['Meter Element ID', card.meter_element_id],
+      ['Meter Element ID', exportMeterElementId],
       ['Time Frame', `${startDate.toISOString()} to ${endDate.toISOString()}`],
       ['Export Date', new Date().toISOString()],
       ['Total Records', result.rows.length],
@@ -503,7 +811,7 @@ app.get('/meters', authenticateToken, async (c) => {
 
     const result = await query(
       c.env,
-      'SELECT meter_id as id, name FROM meter WHERE tenant_id = $1 ORDER BY name ASC',
+      'SELECT meter_id as id, name FROM meter WHERE tenant_id = $1 AND active = true ORDER BY name ASC',
       [tenantId]
     );
 
@@ -667,8 +975,7 @@ app.get('/power-columns', requirePermission('dashboard:read'), async (c) => {
       ORDER BY r.name ASC
     `;
 
-    console.log('[Dashboard] power-columns sql:', sql);
-    console.log('[Dashboard] power-columns params:', [meterId]);
+    console.log('[Dashboard] power-columns sql:\n' + formatSqlForDebug(sql, [meterId]));
 
     const result = await query(c.env, sql, [meterId]);
     const columns = result.rows.map((r: any) => {

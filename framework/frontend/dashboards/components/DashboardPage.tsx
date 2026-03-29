@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
 import type { DashboardCard as DashboardCardType, AggregatedData } from '../types/dashboard';
@@ -22,8 +22,12 @@ export interface DashboardPageProps {
   layout: Layout[];
   /** Whether layout is being saved */
   savingLayout?: boolean;
-  /** Callback when layout changes */
+  /** Callback when layout changes (local state only — do not save to DB here) */
   onLayoutChange: (newLayout: Layout[]) => void;
+  /** Callback when a card drag ends — use this to persist position */
+  onDragStop?: (layout: Layout[]) => void;
+  /** Callback when a card resize ends — use this to persist size */
+  onResizeStop?: (layout: Layout[]) => void;
   /** Callback to create a new card */
   onCreateCard: (e: React.MouseEvent) => void;
   /** Callback to refresh all cards */
@@ -62,6 +66,10 @@ export interface DashboardPageProps {
   onModalSuccess?: (card: DashboardCardType) => void;
   /** Callback to close expanded card modal */
   onCloseExpandedCard?: () => void;
+  /** Render function for the expanded card visualization */
+  renderVisualization?: (data: any, columns: string[], height: number, seriesLabels?: Record<string, string>) => React.ReactNode;
+  /** Callback when user changes the date range in the expanded modal */
+  onExpandedDateRangeChange?: (start: string, end: string) => void;
 }
 
 /**
@@ -85,7 +93,7 @@ export interface DashboardPageProps {
  *   onExpandCard={handleExpandCard}
  *   onCardRefresh={handleCardRefresh}
  *   CardComponent={DashboardCard}
- *   ModalComponent={DashboardCardModal}
+ *   ModalComponent={DashboardCardForm}
  *   ExpandedModalComponent={ExpandedCardModal}
  * />
  * ```
@@ -97,6 +105,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   layout,
   savingLayout = false,
   onLayoutChange,
+  onDragStop,
+  onResizeStop,
   onCreateCard,
   onRefresh,
   onEditCard,
@@ -116,26 +126,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onModalClose,
   onModalSuccess,
   onCloseExpandedCard,
+  renderVisualization,
+  onExpandedDateRangeChange,
 }) => {
-  const [localLayout, setLocalLayout] = useState<Layout[]>(layout);
-  const [prevCardIds, setPrevCardIds] = useState<string[]>(layout.map(l => l.i));
-
-  // Sync localLayout when layout prop changes (detect new/removed cards)
-  useEffect(() => {
-    const currentCardIds = layout.map(l => l.i);
-    const cardCountChanged = currentCardIds.length !== prevCardIds.length;
-    const newCardsAdded = currentCardIds.some(id => !prevCardIds.includes(id));
-    const cardsRemoved = prevCardIds.some(id => !currentCardIds.includes(id));
-
-    if (cardCountChanged || newCardsAdded || cardsRemoved) {
-      setLocalLayout(layout);
-      setPrevCardIds(currentCardIds);
-    }
-  }, [layout]);
-
-  // Handle layout change
+  // Let parent be the single source of truth for layout
   const handleLayoutChange = useCallback((newLayout: Layout[]) => {
-    setLocalLayout(newLayout);
     onLayoutChange(newLayout);
   }, [onLayoutChange]);
 
@@ -153,7 +148,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             onClick={onCreateCard}
             title="Create a new dashboard card"
           >
-            ➕ Create Card
+            ➕ Create Dashboard
           </button>
           <button
             type="button"
@@ -217,9 +212,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         /* Cards Grid */
         <ResponsiveGridLayout
           className="dashboard-page__cards-grid"
-          layout={localLayout}
-          layouts={{ lg: localLayout }}
+          layout={layout}
+          layouts={{ lg: layout, md: layout, sm: layout, xs: layout, xxs: layout }}
           onLayoutChange={handleLayoutChange}
+          onDragStop={(layout) => onDragStop?.(layout)}
+          onResizeStop={(layout) => onResizeStop?.(layout)}
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
           cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
           rowHeight={60}
@@ -261,6 +258,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           card={expandedCard}
           data={expandedCardData}
           onClose={onCloseExpandedCard}
+          renderVisualization={renderVisualization}
+          onDateRangeChange={onExpandedDateRangeChange}
         />
       )}
     </div>

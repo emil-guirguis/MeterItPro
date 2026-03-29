@@ -2,13 +2,78 @@ import React, { useState, useEffect, useCallback, useContext, createContext, use
 import type { Layout } from 'react-grid-layout';
 import { DashboardPage as FrameworkDashboardPage } from '@framework/dashboards/components/DashboardPage';
 import { DashboardCard as FrameworkDashboardCard } from '@framework/dashboards/components/DashboardCard';
-import { DashboardCardModal as FrameworkDashboardCardModal } from '@framework/dashboards/components/DashboardCardModal';
+import { DashboardCardForm as FrameworkDashboardCardForm } from '@framework/dashboards/components/DashboardCardForm';
 import { ExpandedCardModal as FrameworkExpandedCardModal } from '@framework/dashboards/components/ExpandedCardModal';
 import { Visualization } from '@framework/dashboards/components/Visualization';
 import type { DashboardCard as FrameworkDashboardCardType } from '@framework/dashboards/types';
 import { dashboardService, type DashboardCard as DashboardCardType, type AggregatedData } from '../services/dashboardService';
 // import { DashboardBanner } from '../features/dashboard/DashboardBanner';
 import './DashboardPage.css';
+
+/** Pivot grouped_data rows by meter_element_id so each time bucket becomes one row with per-element columns. */
+/** Build a display label for a column, appending unit in parentheses if available. */
+function colLabel(col: string, units?: Record<string, string>): string {
+  const unit = units?.[col];
+  const name = col.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return unit ? `${name} (${unit})` : name;
+}
+
+function pivotByMeterElement(data: AggregatedData): AggregatedData {
+  const { grouped_data, meter_element_labels, selected_columns, column_units } = data;
+  if (!grouped_data || !meter_element_labels) return data;
+  const elementIds = Object.keys(meter_element_labels).map(Number);
+  const cols = selected_columns || [];
+
+  // For single element, still build series_labels with units
+  if (elementIds.length <= 1) {
+    if (column_units && Object.keys(column_units).length > 0) {
+      const series_labels: Record<string, string> = {};
+      for (const col of cols) {
+        series_labels[col] = colLabel(col, column_units);
+      }
+      return { ...data, series_labels };
+    }
+    return data;
+  }
+
+  const getTimeKey = (row: Record<string, any>): string => {
+    const parts: any[] = [];
+    if (row.date !== undefined) parts.push(row.date);
+    if (row.hour !== undefined) parts.push(row.hour);
+    if (row.week_start !== undefined) parts.push(row.week_start);
+    if (row.month_start !== undefined) parts.push(row.month_start);
+    return parts.length ? parts.join('|') : 'total';
+  };
+
+  const pivotMap = new Map<string, Record<string, any>>();
+  for (const row of grouped_data) {
+    const key = getTimeKey(row);
+    if (!pivotMap.has(key)) {
+      const base: Record<string, any> = {};
+      if (row.date !== undefined) base.date = row.date;
+      if (row.hour !== undefined) base.hour = row.hour;
+      if (row.week_start !== undefined) base.week_start = row.week_start;
+      if (row.month_start !== undefined) base.month_start = row.month_start;
+      pivotMap.set(key, base);
+    }
+    const pivotRow = pivotMap.get(key)!;
+    for (const col of cols) {
+      pivotRow[`${col}_${row.meter_element_id}`] = row[col];
+    }
+  }
+
+  const pivotedColumns = elementIds.flatMap(id => cols.map(col => `${col}_${id}`));
+  const series_labels: Record<string, string> = {};
+  for (const id of elementIds) {
+    const label = meter_element_labels[id] || `Element ${id}`;
+    for (const col of cols) {
+      const unit = column_units?.[col];
+      series_labels[`${col}_${id}`] = unit ? `${label} (${unit})` : label;
+    }
+  }
+
+  return { ...data, grouped_data: Array.from(pivotMap.values()), selected_columns: pivotedColumns, series_labels };
+}
 
 // Context for passing card data and handlers to ClientDashboardCard.
 // This allows ClientDashboardCard to live outside DashboardPage (stable component identity)
@@ -103,6 +168,7 @@ export const DashboardPage: React.FC = () => {
   const [meterElements, setMeterElements] = useState<Array<{ id: number; name: string; element?: string }>>([]);
   const [powerColumns, setPowerColumns] = useState<Array<{ name: string; label: string; type?: string }>>([]);
   const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
   const isInitialLoadRef = React.useRef(true);
 
   // Keep a ref to cards so handlers can read current state without stale closures
@@ -116,7 +182,8 @@ export const DashboardPage: React.FC = () => {
     try {
       setCardLoadingMap(prev => ({ ...prev, [cardId]: true }));
       setCardErrorMap(prev => ({ ...prev, [cardId]: null }));
-      const data = await dashboardService.getCardData(cardId);
+      const raw = await dashboardService.getCardData(cardId);
+      const data = pivotByMeterElement(raw);
       setCardDataMap(prev => ({ ...prev, [cardId]: data }));
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch card data';
@@ -142,45 +209,65 @@ export const DashboardPage: React.FC = () => {
         console.log(`📊 [DashboardPage] Card ${c.dashboard_id}: grid_x=${c.grid_x}, grid_y=${c.grid_y}, grid_w=${c.grid_w}, grid_h=${c.grid_h}`);
       });
 
-      // Ensure all cards have reasonable dimensions (grid: 12 cols, so w should be 2-12, h should be reasonable)
-      const cardsWithDefaults = response.items.map((card, index) => ({
+      const GRID_COLS = 12;
+      const DEFAULT_W = 6;
+      const DEFAULT_H = 9;
+
+      // Normalise dimensions — old records may have pixel values (500×500)
+      const normalised = response.items.map((card) => ({
         ...card,
-        grid_x: card.grid_x ?? 0,
-        grid_y: card.grid_y ?? (index * 520),
-        // If grid_w is too small (like 1), reset to default - this handles cards that were corrupted by layout saves
-        grid_w: (card.grid_w && card.grid_w > 2 && card.grid_w <= 12) ? card.grid_w : 4,
-        grid_h: (card.grid_h && card.grid_h > 2 && card.grid_h <= 20) ? card.grid_h : 8,
+        grid_w: (card.grid_w != null && card.grid_w >= 1 && card.grid_w <= 12) ? card.grid_w : DEFAULT_W,
+        grid_h: (card.grid_h != null && card.grid_h >= 1 && card.grid_h <= 30) ? card.grid_h : DEFAULT_H,
+        grid_x: (card.grid_x != null && card.grid_x >= 0 && card.grid_x <= 11) ? card.grid_x : 0,
+        grid_y: (card.grid_y != null && card.grid_y >= 0 && card.grid_y <= 200) ? card.grid_y : -1,
       }));
-      console.log('📊 [DashboardPage] Cards with defaults:', cardsWithDefaults);
-      setCards(cardsWithDefaults);
 
-      // Fix corrupted grid dimensions in database (where grid_w or grid_h are too small)
-      console.log('🔧 [DashboardPage] Checking for corrupted dimensions...');
-      const corruptedCards = response.items.filter(c => (c.grid_w && c.grid_w <= 2) || (c.grid_h && c.grid_h <= 2));
-      console.log(`🔧 [DashboardPage] Found ${corruptedCards.length} corrupted card(s)`, corruptedCards);
+      // Detect cards with invalid positions that need re-layout
+      const needsLayout = normalised.some(c => c.grid_y === -1);
+      // Also detect all cards piled at (0,0) — means positions were never set properly
+      const allAtOrigin = normalised.length > 1 && normalised.every(c => c.grid_x === 0 && c.grid_y === 0);
 
-      for (const originalCard of corruptedCards) {
-        const correctedCard = cardsWithDefaults.find(c => c.dashboard_id === originalCard.dashboard_id);
-        if (correctedCard) {
-          try {
-            console.log(`🔧 [DashboardPage] Fixing card ${originalCard.dashboard_id}: ${originalCard.grid_w}x${originalCard.grid_h} -> ${correctedCard.grid_w}x${correctedCard.grid_h}`);
-            const result = await dashboardService.updateDashboardCard(originalCard.dashboard_id, {
-              grid_w: correctedCard.grid_w,
-              grid_h: correctedCard.grid_h,
-            });
-            console.log(`✅ [DashboardPage] Card ${originalCard.dashboard_id} fixed, result:`, result);
-          } catch (err) {
-            console.error(`❌ [DashboardPage] Failed to fix card ${originalCard.dashboard_id}:`, err);
+      let cardsWithDefaults: typeof normalised;
+
+      if (needsLayout || allAtOrigin) {
+        // Auto-arrange: place cards in a grid pattern (left-to-right, top-to-bottom)
+        const placed: { x: number; y: number; w: number; h: number }[] = [];
+        cardsWithDefaults = normalised.map((card) => {
+          const w = card.grid_w;
+          const h = card.grid_h;
+          let gridX = 0, gridY = 0, found = false;
+          for (let tryY = 0; tryY <= 200 && !found; tryY++) {
+            for (let tryX = 0; tryX <= GRID_COLS - w && !found; tryX++) {
+              const overlaps = placed.some(p =>
+                tryX < p.x + p.w && tryX + w > p.x &&
+                tryY < p.y + p.h && tryY + h > p.y
+              );
+              if (!overlaps) {
+                gridX = tryX;
+                gridY = tryY;
+                found = true;
+              }
+            }
           }
-        }
+          placed.push({ x: gridX, y: gridY, w, h });
+          // Save corrected position to DB
+          dashboardService.updateDashboardCard(card.dashboard_id, {
+            grid_x: gridX, grid_y: gridY, grid_w: w, grid_h: h,
+          }).catch(() => {});
+          return { ...card, grid_x: gridX, grid_y: gridY };
+        });
+      } else {
+        cardsWithDefaults = normalised;
       }
 
-      const newLayout: Layout[] = cardsWithDefaults.map((card, index) => ({
+      setCards(cardsWithDefaults);
+
+      const newLayout: Layout[] = cardsWithDefaults.map((card) => ({
         i: card.dashboard_id.toString(),
-        x: card.grid_x ?? 0,
-        y: card.grid_y ?? (index * 10),
-        w: cardsWithDefaults[index].grid_w,
-        h: cardsWithDefaults[index].grid_h,
+        x: card.grid_x,
+        y: card.grid_y,
+        w: card.grid_w,
+        h: card.grid_h,
         static: false,
       }));
       setLayout(newLayout);
@@ -250,7 +337,7 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
-  // Handle create card button click
+  // Handle create dashboard button click
   const handleCreateCard = (e: React.MouseEvent) => {
     e.preventDefault();
     setEditingCard(null);
@@ -258,18 +345,19 @@ export const DashboardPage: React.FC = () => {
   };
 
   // Handle edit card
-  const handleEditCard = async (card: DashboardCardType) => {
+  const handleEditCard = (card: DashboardCardType) => {
     setEditingCard(card);
-    if (card.meter_id) {
-      await fetchMeterElements(card.meter_id);
-    }
     setShowModal(true);
+    if (card.meter_id) {
+      fetchMeterElements(card.meter_id);
+    }
   };
 
   // Handle modal close
   const handleModalClose = () => {
     setShowModal(false);
     setEditingCard(null);
+    setModalError(null);
   };
 
   // Handle modal success
@@ -282,8 +370,8 @@ export const DashboardPage: React.FC = () => {
       // Ensure card has reasonable default dimensions (grid: 12 cols, h: reasonable rows)
       const cardWithDefaults = {
         ...card,
-        grid_w: (card.grid_w && card.grid_w > 0 && card.grid_w <= 12) ? card.grid_w : 4,
-        grid_h: (card.grid_h && card.grid_h > 0 && card.grid_h <= 20) ? card.grid_h : 8,
+        grid_w: (card.grid_w != null && card.grid_w >= 1 && card.grid_w <= 12) ? card.grid_w : 6,
+        grid_h: (card.grid_h != null && card.grid_h >= 1 && card.grid_h <= 30) ? card.grid_h : 9,
       };
 
       console.log('📝 Creating new card:', cardWithDefaults.dashboard_id, cardWithDefaults.card_name);
@@ -294,50 +382,15 @@ export const DashboardPage: React.FC = () => {
       });
 
       setLayout(prev => {
-        const newW = cardWithDefaults.grid_w;
-        const newH = cardWithDefaults.grid_h;
-        const gridCols = 12;
-        const gap = 0; // 0 column gap between cards
-
-        console.log('Finding placement for card w:', newW, 'h:', newH);
-
-        // Try to find available space (left-to-right, top-to-bottom)
-        let bestX = 0;
-        let bestY = 0;
-        let placed = false;
-
-        // Scan for available space with gap consideration
-        for (let tryY = 0; tryY <= 50; tryY++) {
-          for (let tryX = 0; tryX <= gridCols - newW; tryX++) {
-            // Check for conflicts with gap
-            const conflicts = prev.some(item =>
-              !(tryX + newW + gap <= item.x || tryX >= item.x + item.w + gap ||
-                tryY + newH + gap <= item.y || tryY >= item.y + item.h + gap)
-            );
-
-            if (!conflicts) {
-              bestX = tryX;
-              bestY = tryY;
-              placed = true;
-              break;
-            }
-          }
-          if (placed) break;
-        }
-
         const newLayoutItem = {
           i: cardWithDefaults.dashboard_id.toString(),
-          x: bestX,
-          y: bestY,
-          w: newW,
-          h: newH,
+          x: cardWithDefaults.grid_x ?? 0,
+          y: cardWithDefaults.grid_y ?? 0,
+          w: cardWithDefaults.grid_w,
+          h: cardWithDefaults.grid_h,
           static: false,
         };
-        console.log('New layout item placed at x:', bestX, 'y:', bestY);
-
-        const updated = [...prev, newLayoutItem];
-        console.log('📍 After setLayout, layout count:', updated.length);
-        return updated;
+        return [...prev, newLayoutItem];
       });
 
       console.log('🔄 Fetching data for card:', cardWithDefaults.dashboard_id);
@@ -347,55 +400,41 @@ export const DashboardPage: React.FC = () => {
     handleModalClose();
   };
 
-  // Handle layout change - save to database
-  const handleLayoutChange = async (newLayout: Layout[]) => {
-    console.log('🔄 [Layout] handleLayoutChange called with', newLayout.length, 'items, isInitialLoad:', isInitialLoadRef.current);
-    console.log('🔄 [Layout] Current cardsRef.current:', cardsRef.current);
-
-    if (isInitialLoadRef.current) {
-      console.log('🔄 [Layout] Skipping layout change during initial load');
-      return;
-    }
-
-    console.log('🔄 [Layout] Layout change detected, updating state');
-    // Update local state
+  // Handle layout change - update local state only (no DB save)
+  const handleLayoutChange = (newLayout: Layout[]) => {
+    if (isInitialLoadRef.current) return;
+    console.log('📐 [handleLayoutChange] called:', newLayout.map(l => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
     setLayout(newLayout);
+  };
 
-    // Save layout changes to database (position only, not size)
-    try {
-      // Save position for all cards in the new layout
-      for (const layoutItem of newLayout) {
-        const cardId = parseInt(layoutItem.i);
-        // Only save position (x, y), not size (w, h) - size should be configured separately
-        const updates = {
-          grid_x: layoutItem.x,
-          grid_y: layoutItem.y,
-        };
-
-        try {
-          console.log(`📍 [Layout] Saving position for card ${cardId}:`, updates);
-          const result = await dashboardService.updateDashboardCard(cardId, updates);
-          console.log(`✅ [Layout] API returned for card ${cardId}:`, {
-            grid_x: result?.grid_x,
-            grid_y: result?.grid_y,
-            grid_w: result?.grid_w,
-            grid_h: result?.grid_h
-          });
-
-          // Update cards state with new position
-          setCards(prev =>
-            prev.map(card =>
-              card.dashboard_id === cardId
-                ? { ...card, ...updates }
-                : card
-            )
-          );
-        } catch (error) {
-          console.error(`❌ [Layout] Failed to save position for card ${cardId}:`, error);
-        }
+  // Save position to DB when drag ends
+  const handleDragStop = async (newLayout: Layout[]) => {
+    for (const layoutItem of newLayout) {
+      const cardId = parseInt(layoutItem.i);
+      const updates = { grid_x: layoutItem.x, grid_y: layoutItem.y };
+      try {
+        await dashboardService.updateDashboardCard(cardId, updates);
+        setCards(prev => prev.map(c => c.dashboard_id === cardId ? { ...c, ...updates } : c));
+      } catch (error) {
+        console.error(`❌ [Layout] Failed to save position for card ${cardId}:`, error);
       }
-    } catch (error) {
-      console.error('❌ [Layout] Error handling layout change:', error);
+    }
+  };
+
+  // Save size to DB when resize ends
+  const handleResizeStop = async (newLayout: Layout[]) => {
+    console.log('🔧 [ResizeStop] fired, layout items:', newLayout.length, newLayout.map(l => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h })));
+    for (const layoutItem of newLayout) {
+      const cardId = parseInt(layoutItem.i);
+      const updates = { grid_x: layoutItem.x, grid_y: layoutItem.y, grid_w: layoutItem.w, grid_h: layoutItem.h };
+      console.log(`🔧 [ResizeStop] Saving card ${cardId}:`, updates);
+      try {
+        const result = await dashboardService.updateDashboardCard(cardId, updates);
+        console.log(`✅ [ResizeStop] Card ${cardId} saved:`, result);
+        setCards(prev => prev.map(c => c.dashboard_id === cardId ? { ...c, ...updates } : c));
+      } catch (error) {
+        console.error(`❌ [ResizeStop] Failed to save size for card ${cardId}:`, error);
+      }
     }
   };
 
@@ -444,8 +483,8 @@ export const DashboardPage: React.FC = () => {
   const handleExpandCard = async (card: DashboardCardType) => {
     setExpandedCard(card);
     try {
-      const data = await dashboardService.getCardData(card.dashboard_id);
-      setExpandedCardData(data);
+      const raw = await dashboardService.getCardData(card.dashboard_id);
+      setExpandedCardData(pivotByMeterElement(raw));
     } catch (err) {
       console.error('Error fetching expanded card data:', err);
       setExpandedCardData(null);
@@ -456,6 +495,17 @@ export const DashboardPage: React.FC = () => {
   const handleCloseExpandedCard = () => {
     setExpandedCard(null);
     setExpandedCardData(null);
+  };
+
+  // Handle date range change in expanded modal
+  const handleExpandedDateRangeChange = async (start: string, end: string) => {
+    if (!expandedCard) return;
+    try {
+      const raw = await dashboardService.getCardData(expandedCard.dashboard_id, { start_date: start, end_date: end });
+      setExpandedCardData(pivotByMeterElement(raw));
+    } catch (err) {
+      console.error('Error fetching expanded card data with date range:', err);
+    }
   };
 
   // Handle error close
@@ -541,6 +591,7 @@ export const DashboardPage: React.FC = () => {
   const handleDirectSubmit = useCallback(async (data: any) => {
     try {
       setModalLoading(true);
+      setModalError(null);
       let result;
       if (editingCard) {
         result = await dashboardService.updateDashboardCard(editingCard.dashboard_id, data);
@@ -550,6 +601,7 @@ export const DashboardPage: React.FC = () => {
       handleModalSuccess(result as any);
     } catch (err) {
       console.error('Error saving card:', err);
+      setModalError(err instanceof Error ? err.message : 'Failed to save dashboard card');
     } finally {
       setModalLoading(false);
     }
@@ -578,6 +630,8 @@ export const DashboardPage: React.FC = () => {
           error={error}
           layout={layout}
           onLayoutChange={handleLayoutChange}
+          onDragStop={handleDragStop}
+          onResizeStop={handleResizeStop}
           onCreateCard={handleCreateCard}
           onRefresh={handleGlobalRefresh}
           onEditCard={handleEditCard as any}
@@ -592,22 +646,30 @@ export const DashboardPage: React.FC = () => {
           expandedCardData={expandedCardData}
           expandedCard={expandedCard as any}
           onCloseExpandedCard={handleCloseExpandedCard}
+          onExpandedDateRangeChange={handleExpandedDateRangeChange}
+          renderVisualization={(data, columns, height, seriesLabels) => (
+            <Visualization
+              type={(expandedCard as any)?.visualization_type || 'line'}
+              data={data}
+              columns={columns}
+              height={height}
+              seriesLabels={seriesLabels}
+            />
+          )}
         />
         {/* <DashboardBanner
           cardDataMap={cardDataMap}
           cards={cards}
         /> */}
       </div>
-      <FrameworkDashboardCardModal
+      <FrameworkDashboardCardForm
         isOpen={showModal}
         card={editingCard}
         meters={meters}
-        meterElements={meterElements}
-        powerColumns={powerColumns}
         loading={modalLoading}
+        error={modalError}
         onClose={handleModalClose}
         onSubmit={handleDirectSubmit}
-        onMeterSelect={fetchMeterElements}
       />
     </DashboardContext.Provider>
   );

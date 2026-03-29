@@ -448,6 +448,10 @@ async executeCycle(
             this.logger.error(`Invalid register number at index ${idx} - field: ${register.field_name} - value: ${register.register}`);
             return undefined;
           }
+          if (relative === 0) {
+            this.logger.info(`Skipping register ${register.field_name} (register number 0 — calculated field)`);
+            return undefined;
+          }
 
           const fullInstance = baseOffset + relative;
 

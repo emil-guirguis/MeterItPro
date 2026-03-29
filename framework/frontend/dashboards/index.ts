@@ -20,7 +20,7 @@ export * from './hooks';
 // Components - Reusable UI components
 export { DashboardPage } from './components/DashboardPage';
 export { DashboardCard } from './components/DashboardCard';
-export { DashboardCardModal } from './components/DashboardCardModal';
+export { DashboardCardForm } from './components/DashboardCardForm';
 export { ExpandedCardModal } from './components/ExpandedCardModal';
 export { DashboardGrid } from './components/DashboardGrid';
 export { DashboardWidget } from './components/DashboardWidget';

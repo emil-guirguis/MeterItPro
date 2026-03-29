@@ -99,9 +99,9 @@ export const MeterReadingManagementPage: React.FC = () => {
             meterId,
             elementId
           );
-          
+
           console.log('[MeterReadingManagementPage] Raw reading received:', rawReading);
-          const adaptedData = adaptMeterReading(rawReading);
+          const adaptedData = adaptMeterReading(rawReading, elementName || undefined);
           console.log('[MeterReadingManagementPage] Adapted reading:', adaptedData);
           
           setDetailedReading(adaptedData);

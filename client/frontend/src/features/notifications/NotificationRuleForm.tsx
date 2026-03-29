@@ -2,10 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Box,
   Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Stack,
   Typography,
   CircularProgress,
@@ -18,18 +14,10 @@ import {
 import BugReportIcon from '@mui/icons-material/BugReport';
 import { BaseForm, FormContainer } from '@framework/components/form';
 import { CronField } from '@framework/components/formfield/CronField';
-import { DeviceRegisterChecklist } from '../../components/shared/DeviceRegisterChecklist';
+import { MeterElementRegisterSelectorGrid } from '../../components/shared/MeterElementRegisterSelectorGrid';
 import { useNotificationRulesEnhanced } from './notificationRulesStore';
-import { favoritesService } from '../../services/favoritesService';
-import { useAuth } from '../../hooks/useAuth';
+import apiClient from '../../services/apiClient';
 import type { NotificationRule } from '../../services/notificationRuleService';
-
-interface MeterElementOption {
-  key: string; // `${meter_id}:${meter_element_id}`
-  meter_id: string;
-  meter_element_id: string;
-  label: string; // same format as favorites: "Meter Name    A-Phase"
-}
 
 interface NotificationRuleFormProps {
   rule?: NotificationRule;
@@ -45,12 +33,21 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
   loading = false,
 }) => {
   const rulesStore = useNotificationRulesEnhanced();
-  const auth = useAuth();
 
-  const [meterOptions, setMeterOptions] = useState<MeterElementOption[]>([]);
-  const [metersLoading, setMetersLoading] = useState(true);
   const [debugRunning, setDebugRunning] = useState(false);
   const [debugResult, setDebugResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [emailInput, setEmailInput] = useState('');
+
+  const [meters, setMeters] = useState<Array<{ id: number; name: string }>>([]);
+
+  useEffect(() => {
+    apiClient.get('/meters', { params: { limit: 1000 } })
+      .then(res => {
+        const list = res.data?.data || res.data || [];
+        setMeters(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setMeters([]));
+  }, []);
 
   const handleDebugRun = async () => {
     if (!rule?.notification_rule_id) return;
@@ -70,33 +67,6 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
       setDebugRunning(false);
     }
   };
-
-  // Load meters with elements on mount (same source as sidebar/favorites)
-  useEffect(() => {
-    const tenantId = parseInt(auth.user?.client || '0', 10);
-    const userId = parseInt(auth.user?.users_id || '0', 10);
-    if (!tenantId || !userId) return;
-
-    setMetersLoading(true);
-    favoritesService
-      .getMetersWithElements(tenantId, userId)
-      .then(meters => {
-        const options: MeterElementOption[] = [];
-        for (const meter of meters) {
-          for (const el of meter.elements ?? []) {
-            options.push({
-              key: `${meter.id}:${el.meter_element_id}`,
-              meter_id: String(meter.id),
-              meter_element_id: String(el.meter_element_id),
-              label: el.favorite_name || `${meter.name}    ${el.element}-${el.name}`,
-            });
-          }
-        }
-        setMeterOptions(options);
-      })
-      .catch(err => console.error('[NotificationRuleForm] Failed to load meters:', err))
-      .finally(() => setMetersLoading(false));
-  }, [auth.user?.client, auth.user?.users_id]);
 
   return (
     <FormContainer>
@@ -158,8 +128,6 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
 
             // ── Recipients ──────────────────────────────────────────────────
             if (fieldName === 'recipients') {
-              const [emailInput, setEmailInput] = React.useState('');
-
               const handleAddEmail = () => {
                 if (!emailInput.trim()) return;
                 const current: any[] = value || [];
@@ -215,92 +183,16 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
               );
             }
 
-            // ── Meter elements ──────────────────────────────────────────────
-            if (fieldName === 'meter_elements') {
-              // Current value is array of { meter_id, meter_element_id }
-              const selected: Array<{ meter_id: string; meter_element_id: string }> = value || [];
-
-              const handleAdd = (key: string) => {
-                const opt = meterOptions.find(o => o.key === key);
-                if (!opt) return;
-                if (selected.find(s => s.meter_id === opt.meter_id && s.meter_element_id === opt.meter_element_id)) return;
-                onChange([...selected, { meter_id: opt.meter_id, meter_element_id: opt.meter_element_id }]);
-              };
-
-              const handleRemove = (meter_id: string, meter_element_id: string) => {
-                onChange(selected.filter(s => !(s.meter_id === meter_id && s.meter_element_id === meter_element_id)));
-              };
-
-              const getLabel = (meter_id: string, meter_element_id: string) =>
-                meterOptions.find(o => o.meter_id === meter_id && o.meter_element_id === meter_element_id)?.label
-                ?? `${meter_id}:${meter_element_id}`;
-
+            // ── Meter selector ──────────────────────────────────────────────
+            if (fieldName === 'meter_selections') {
+              const parsed = typeof value === 'string' ? JSON.parse(value || '[]') : (value || []);
               return (
-                <Stack spacing={2}>
-                  <FormControl fullWidth disabled={isDisabled || metersLoading}>
-                    <InputLabel>
-                      {metersLoading ? 'Loading meters…' : 'Add Meter Element'}
-                    </InputLabel>
-                    <Select
-                      label={metersLoading ? 'Loading meters…' : 'Add Meter Element'}
-                      value=""
-                      startAdornment={
-                        metersLoading ? <CircularProgress size={16} sx={{ mr: 1 }} /> : undefined
-                      }
-                      onChange={(e) => {
-                        if (e.target.value) handleAdd(e.target.value as string);
-                      }}
-                      renderValue={() => ''}
-                    >
-                      <MenuItem value="" disabled>Select a meter element…</MenuItem>
-                      {meterOptions.map(opt => (
-                        <MenuItem
-                          key={opt.key}
-                          value={opt.key}
-                          disabled={!!selected.find(
-                            s => s.meter_id === opt.meter_id && s.meter_element_id === opt.meter_element_id
-                          )}
-                          sx={{ fontFamily: 'monospace', fontSize: 13 }}
-                        >
-                          {opt.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {selected.map(s => (
-                      <Chip
-                        key={`${s.meter_id}:${s.meter_element_id}`}
-                        label={getLabel(s.meter_id, s.meter_element_id)}
-                        onDelete={() => handleRemove(s.meter_id, s.meter_element_id)}
-                        sx={{ fontFamily: 'monospace', fontSize: 12 }}
-                      />
-                    ))}
-                  </Box>
-
-                  {selected.length === 0 && (
-                    <Typography color="textSecondary" variant="body2">
-                      No meter elements selected — rule will apply to all active meters
-                    </Typography>
-                  )}
-                  {error && <Typography color="error" variant="caption">{error}</Typography>}
-                </Stack>
-              );
-            }
-
-            // ── Device Registers (optional filtering) ──────────────────────────
-            if (fieldName === 'register_ids') {
-              // Get the first meter_id from selected meter_elements
-              const selectedMeterElements: Array<{ meter_id: string; meter_element_id: string }> = rule?.meter_elements || [];
-              const deviceId = selectedMeterElements.length > 0 ? parseInt(selectedMeterElements[0].meter_id) : null;
-
-              return (
-                <DeviceRegisterChecklist
-                  deviceId={deviceId}
-                  value={Array.isArray(value) ? value : []}
-                  onChange={onChange}
-                  label="Registers (Optional)"
+                <MeterElementRegisterSelectorGrid
+                  meters={meters}
+                  value={parsed}
+                  onChange={(rows) => onChange(rows)}
+                  disabled={isDisabled}
+                  error={error}
                 />
               );
             }

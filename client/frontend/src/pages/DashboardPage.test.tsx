@@ -12,9 +12,9 @@ vi.mock('../services/dashboardService', () => ({
   }
 }));
 
-// Mock the DashboardCardModal component to avoid React hook issues
-vi.mock('../components/dashboard/DashboardCardModal', () => ({
-  DashboardCardModal: () => null
+// Mock the DashboardCardForm component to avoid React hook issues
+vi.mock('../components/dashboard/DashboardCardForm', () => ({
+  DashboardCardForm: () => null
 }));
 
 describe('DashboardPage', () => {
@@ -101,7 +101,7 @@ describe('DashboardPage', () => {
     });
   });
 
-  it('displays create card button', async () => {
+  it('displays create dashboard button', async () => {
     const mockDashboardService = dashboardServiceModule.dashboardService as any;
     mockDashboardService.getDashboardCards.mockResolvedValue({
       items: [],
@@ -114,7 +114,7 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      const createButtons = screen.getAllByText(/Create Card/);
+      const createButtons = screen.getAllByText(/Create Dashboard/);
       expect(createButtons.length).toBeGreaterThan(0);
     });
   });

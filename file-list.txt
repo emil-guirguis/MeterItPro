@@ -812,9 +812,9 @@ c:\Projects\MeterItPro/framework/frontend/components/validationfieldselect/Valid
 c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardCard.css
 c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardCard.test.tsx
 c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardCard.tsx
-c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardCardModal.css
-c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardCardModal.test.tsx
-c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardCardModal.tsx
+c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardCardForm.css
+c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardCardForm.test.tsx
+c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardCardForm.tsx
 c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardGrid.css
 c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardGrid.tsx
 c:\Projects\MeterItPro/framework/frontend/dashboards/components/DashboardPage.css

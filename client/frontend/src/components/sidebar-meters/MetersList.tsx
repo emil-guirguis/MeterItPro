@@ -58,7 +58,7 @@ export const MetersList: React.FC<MetersListProps> = ({
     <div className="meters-list">
       {/* Meters Header with Collapse Icon */}
       {sortedMeters.length > 0 && (
-        <div className="meters-header" onClick={() => setIsMetersCollapsed(!isMetersCollapsed)} style={{ cursor: 'pointer' }}>
+        <div className="metersHeader" onClick={() => setIsMetersCollapsed(!isMetersCollapsed)} style={{ cursor: 'pointer' }}>
           <h3 className="meters-title">Meter Readings</h3>
           <IconButton
             size="small"

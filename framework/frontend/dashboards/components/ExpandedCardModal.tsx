@@ -8,7 +8,12 @@ export interface ExpandedCardModalProps {
   error?: string | null;
   onClose: () => void;
   onRefresh?: () => void;
-  renderVisualization?: (data: any, columns: string[], height: number) => React.ReactNode;
+  onDateRangeChange?: (start: string, end: string) => void;
+  renderVisualization?: (data: any, columns: string[], height: number, seriesLabels?: Record<string, string>) => React.ReactNode;
+}
+
+function toDateInputValue(iso: string): string {
+  return iso ? iso.split('T')[0] : '';
 }
 
 export const ExpandedCardModal: React.FC<ExpandedCardModalProps> = ({
@@ -18,9 +23,25 @@ export const ExpandedCardModal: React.FC<ExpandedCardModalProps> = ({
   error = null,
   onClose,
   onRefresh,
+  onDateRangeChange,
   renderVisualization
 }) => {
   const [exporting, setExporting] = useState(false);
+  const [startInput, setStartInput] = useState('');
+  const [endInput, setEndInput] = useState('');
+
+  useEffect(() => {
+    if (data?.time_frame) {
+      setStartInput(toDateInputValue(data.time_frame.start));
+      setEndInput(toDateInputValue(data.time_frame.end));
+    }
+  }, [data?.time_frame?.start, data?.time_frame?.end]);
+
+  const handleApplyDates = () => {
+    if (startInput && endInput && onDateRangeChange) {
+      onDateRangeChange(startInput, endInput);
+    }
+  };
 
   // Handle Escape key press
   useEffect(() => {
@@ -165,8 +186,37 @@ export const ExpandedCardModal: React.FC<ExpandedCardModalProps> = ({
 
         {/* Metadata */}
         <div className="expanded-card-modal__metadata">
-          <span className="expanded-card-modal__time-frame">📅 {formatTimeFrame()}</span>
           <span className="expanded-card-modal__visualization">📊 {card.visualization_type || 'Chart'}</span>
+          <div className="expanded-card-modal__date-range">
+            <label className="expanded-card-modal__date-label">From</label>
+            <input
+              type="date"
+              className="expanded-card-modal__date-input"
+              value={startInput}
+              onChange={e => setStartInput(e.target.value)}
+              title="Start date"
+              aria-label="Start date"
+            />
+            <label className="expanded-card-modal__date-label">To</label>
+            <input
+              type="date"
+              className="expanded-card-modal__date-input"
+              value={endInput}
+              onChange={e => setEndInput(e.target.value)}
+              title="End date"
+              aria-label="End date"
+            />
+            {onDateRangeChange && (
+              <button
+                type="button"
+                className="expanded-card-modal__apply-btn"
+                onClick={handleApplyDates}
+                disabled={loading || !startInput || !endInput}
+              >
+                Apply
+              </button>
+            )}
+          </div>
           {onRefresh && (
             <button
               type="button"
@@ -218,8 +268,9 @@ export const ExpandedCardModal: React.FC<ExpandedCardModalProps> = ({
                 data.grouped_data && Array.isArray(data.grouped_data) && data.grouped_data.length > 0
                   ? data.grouped_data
                   : data.aggregated_values,
-                card.selected_columns || [],
-                600
+                data.selected_columns || card.selected_columns || [],
+                600,
+                data.series_labels
               )
             ) : (
               <div className="expanded-card-modal__no-renderer">

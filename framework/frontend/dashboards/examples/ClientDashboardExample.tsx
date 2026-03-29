@@ -15,7 +15,7 @@
 // import type { Layout } from 'react-grid-layout';
 // import { DashboardPage } from '../components/DashboardPage';
 // import { DashboardCard } from '../components/DashboardCard';
-// import { DashboardCardModal } from '../components/DashboardCardModal';
+// import { DashboardCardForm } from '../components/DashboardCardForm';
 // import { ExpandedCardModal } from '../components/ExpandedCardModal';
 // import { Visualization } from '../components/Visualization';
 // import type { DashboardCard as DashboardCardType, AggregatedData } from '../types/dashboard';
@@ -274,7 +274,7 @@
 //     }
 //   }, []);
 
-//   // Handle create card
+//   // Handle create dashboard button click
 //   const handleCreateCard = () => {
 //     setEditingCard(null);
 //     setShowModal(true);
@@ -406,7 +406,7 @@
 //       onCardRefresh={handleCardRefresh}
 //       onErrorClose={() => setError(null)}
 //       CardComponent={ClientDashboardCard}
-//       ModalComponent={DashboardCardModal}
+//       ModalComponent={DashboardCardForm}
 //       ExpandedModalComponent={ExpandedCardModal}
 //       showModal={showModal}
 //       editingCard={editingCard}

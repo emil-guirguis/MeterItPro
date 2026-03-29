@@ -10,13 +10,18 @@ import {
   Alert,
   CircularProgress,
   Stack,
-  FormHelperText
+  FormHelperText,
+  Tabs,
+  Tab
 } from '@mui/material';
 import { createReport, updateReport } from '../../services/reportingService';
 import type { Report } from '../../services/reportingService';
 import { validateCronExpression } from '../../utils/validationHelpers';
+import { MeterElementRegisterSelectorGrid } from '../shared/MeterElementRegisterSelectorGrid';
+import type { MeterRowValue } from '../shared/MeterElementRegisterSelectorGrid';
 import RecipientManager from './RecipientManager';
 import ScheduleSelector from './ScheduleSelector';
+import apiClient from '../../services/apiClient';
 
 interface ReportFormProps {
   report?: Report;
@@ -34,15 +39,28 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
   const [formData, setFormData] = useState({
     name: '',
     type: 'meter_readings',
-    schedule: '0 9 * * *', // Default: 9 AM daily
+    schedule: '0 9 * * *',
     recipients: [] as string[],
     config: {} as Record<string, any>,
     enabled: true
   });
 
+  const [meters, setMeters] = useState<Array<{ id: number; name: string }>>([]);
+  const [meterSelections, setMeterSelections] = useState<MeterRowValue[]>([]);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
+
+  useEffect(() => {
+    apiClient.get('/meters', { params: { limit: 1000 } })
+      .then(res => {
+        const list = res.data?.data || res.data || [];
+        setMeters(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setMeters([]));
+  }, []);
 
   useEffect(() => {
     if (report) {
@@ -54,6 +72,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
         config: report.config,
         enabled: report.enabled
       });
+
+      if (report.config?.meter_selections) {
+        setMeterSelections(report.config.meter_selections);
+      }
     }
   }, [report]);
 
@@ -95,13 +117,18 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
       setLoading(true);
       setSubmitError(null);
 
+      const reportConfig = {
+        ...formData.config,
+        meter_selections: meterSelections,
+      };
+
       if (report) {
         await updateReport(report.report_id, {
           name: formData.name,
           type: formData.type,
           schedule: formData.schedule,
           recipients: formData.recipients,
-          config: formData.config,
+          config: reportConfig,
           enabled: formData.enabled
         });
       } else {
@@ -110,7 +137,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
           type: formData.type,
           schedule: formData.schedule,
           recipients: formData.recipients,
-          config: formData.config,
+          config: reportConfig,
           enabled: true
         });
       }
@@ -127,30 +154,22 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, name: e.target.value });
-    if (errors.name) {
-      setErrors({ ...errors, name: '' });
-    }
+    if (errors.name) setErrors({ ...errors, name: '' });
   };
 
   const handleTypeChange = (e: any) => {
     setFormData({ ...formData, type: e.target.value });
-    if (errors.type) {
-      setErrors({ ...errors, type: '' });
-    }
+    if (errors.type) setErrors({ ...errors, type: '' });
   };
 
   const handleScheduleChange = (schedule: string) => {
     setFormData({ ...formData, schedule });
-    if (errors.schedule) {
-      setErrors({ ...errors, schedule: '' });
-    }
+    if (errors.schedule) setErrors({ ...errors, schedule: '' });
   };
 
   const handleRecipientsChange = (recipients: string[]) => {
     setFormData({ ...formData, recipients });
-    if (errors.recipients) {
-      setErrors({ ...errors, recipients: '' });
-    }
+    if (errors.recipients) setErrors({ ...errors, recipients: '' });
   };
 
   return (
@@ -161,60 +180,67 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
         </Alert>
       )}
 
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="fullWidth">
+          <Tab label="Basic Info" />
+          <Tab label="Meter Configuration" />
+          <Tab label="Recipients" />
+        </Tabs>
+      </Box>
+
       <Stack spacing={3}>
-        {/* Report Name */}
-        <TextField
-          label="Report Name"
-          value={formData.name}
-          onChange={handleNameChange}
-          error={!!errors.name}
-          helperText={errors.name}
-          fullWidth
-          disabled={loading}
-          placeholder="e.g., Monthly Usage Report"
-        />
+        {activeTab === 0 && (
+          <>
+            <TextField
+              label="Report Name"
+              value={formData.name}
+              onChange={handleNameChange}
+              error={!!errors.name}
+              helperText={errors.name}
+              fullWidth
+              disabled={loading}
+              placeholder="e.g., Monthly Usage Report"
+            />
 
-        {/* Report Type */}
-        <FormControl fullWidth error={!!errors.type} disabled={loading}>
-          <InputLabel>Report Type</InputLabel>
-          <Select
-            value={formData.type}
-            onChange={handleTypeChange}
-            label="Report Type"
-          >
-            {REPORT_TYPES.map((type) => (
-              <MenuItem key={type.value} value={type.value}>
-                {type.label}
-              </MenuItem>
-            ))}
-          </Select>
-          {errors.type && <FormHelperText>{errors.type}</FormHelperText>}
-        </FormControl>
+            <FormControl fullWidth error={!!errors.type} disabled={loading}>
+              <InputLabel>Report Type</InputLabel>
+              <Select value={formData.type} onChange={handleTypeChange} label="Report Type">
+                {REPORT_TYPES.map((type) => (
+                  <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+                ))}
+              </Select>
+              {errors.type && <FormHelperText>{errors.type}</FormHelperText>}
+            </FormControl>
 
-        {/* Schedule Selector */}
-        <ScheduleSelector
-          schedule={formData.schedule}
-          onChange={handleScheduleChange}
-          error={errors.schedule}
-          disabled={loading}
-        />
+            <ScheduleSelector
+              schedule={formData.schedule}
+              onChange={handleScheduleChange}
+              error={errors.schedule}
+              disabled={loading}
+            />
+          </>
+        )}
 
-        {/* Recipients Manager */}
-        <RecipientManager
-          recipients={formData.recipients}
-          onChange={handleRecipientsChange}
-          error={errors.recipients}
-          disabled={loading}
-        />
-
-        {/* Form Actions */}
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', pt: 2 }}>
-          <Button
-            onClick={onCancel}
+        {activeTab === 1 && (
+          <MeterElementRegisterSelectorGrid
+            meters={meters}
+            value={meterSelections}
+            onChange={setMeterSelections}
             disabled={loading}
-          >
-            Cancel
-          </Button>
+          />
+        )}
+
+        {activeTab === 2 && (
+          <RecipientManager
+            recipients={formData.recipients}
+            onChange={handleRecipientsChange}
+            error={errors.recipients}
+            disabled={loading}
+          />
+        )}
+
+        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', pt: 2 }}>
+          <Button onClick={onCancel} disabled={loading}>Cancel</Button>
           <Button
             type="submit"
             variant="contained"

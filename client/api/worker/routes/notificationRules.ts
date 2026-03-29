@@ -32,7 +32,7 @@ app.get('/', async (c) => {
 
     const result = await query(
       c.env,
-      `SELECT notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_at, updated_at
+      `SELECT notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, meter_selections, created_at, updated_at
        FROM public.notification_rule
        ${whereClause}
        ORDER BY created_at DESC
@@ -71,7 +71,7 @@ app.get('/:id', async (c) => {
 
     const ruleResult = await query(
       c.env,
-      `SELECT notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_at, updated_at
+      `SELECT notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, meter_selections, created_at, updated_at
        FROM public.notification_rule
        WHERE notification_rule_id = $1 AND tenant_id = $2`,
       [id, tenantId]
@@ -92,15 +92,6 @@ app.get('/:id', async (c) => {
       [id]
     );
 
-    // Get meters
-    const metersResult = await query(
-      c.env,
-      `SELECT notification_rule_meter_id, meter_id, meter_element_id
-       FROM public.notification_rule_meter
-       WHERE notification_rule_id = $1`,
-      [id]
-    );
-
     return c.json({
       success: true,
       data: {
@@ -108,7 +99,6 @@ app.get('/:id', async (c) => {
           ...rule,
           id: String(rule.notification_rule_id),
           recipients: recipientsResult.rows,
-          meters: metersResult.rows,
         },
       },
     });
@@ -128,12 +118,11 @@ app.post('/', async (c) => {
       name,
       description,
       rule_type = 'custom',
-      enabled = true,
       threshold_hours,
       demand_threshold,
       schedule_cron = '0 * * * *',
       recipients = [],
-      meter_elements = [],
+      meter_selections,
     } = body;
 
     if (!name) {
@@ -141,13 +130,17 @@ app.post('/', async (c) => {
     }
 
     // Create the rule
+    const meterSelectionsJson = meter_selections !== undefined
+      ? (typeof meter_selections === 'string' ? meter_selections : JSON.stringify(meter_selections))
+      : null;
+
     const ruleResult = await query(
       c.env,
       `INSERT INTO public.notification_rule
-       (tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_at, updated_at`,
-      [tenantId, name, description || null, rule_type, true, threshold_hours || null, demand_threshold || null, schedule_cron, userId]
+       (tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_by, meter_selections)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, meter_selections, created_at, updated_at`,
+      [tenantId, name, description || null, rule_type, true, threshold_hours || null, demand_threshold || null, schedule_cron, userId, meterSelectionsJson]
     );
 
     const rule = ruleResult.rows[0];
@@ -164,17 +157,6 @@ app.post('/', async (c) => {
       );
     }
 
-    // Add (meter_id, meter_element_id) pairs — meter_element_id may be null to mean "all elements"
-    for (const me of meter_elements) {
-      await query(
-        c.env,
-        `INSERT INTO public.notification_rule_meter
-         (notification_rule_id, meter_id, meter_element_id)
-         VALUES ($1, $2, $3)`,
-        [ruleId, me.meter_id, me.meter_element_id || null]
-      );
-    }
-
     return c.json(
       {
         success: true,
@@ -183,7 +165,6 @@ app.post('/', async (c) => {
             ...rule,
             id: String(rule.notification_rule_id),
             recipients,
-            meters: meter_elements,
           },
         },
       },
@@ -209,7 +190,7 @@ app.put('/:id', async (c) => {
       demand_threshold,
       schedule_cron,
       recipients = [],
-      meter_elements = [],
+      meter_selections,
     } = body;
 
     if (isNaN(Number(id))) {
@@ -217,6 +198,10 @@ app.put('/:id', async (c) => {
     }
 
     // Update the rule
+    const meterSelectionsJson = meter_selections !== undefined
+      ? (typeof meter_selections === 'string' ? meter_selections : JSON.stringify(meter_selections))
+      : null;
+
     const updateResult = await query(
       c.env,
       `UPDATE public.notification_rule
@@ -226,10 +211,11 @@ app.put('/:id', async (c) => {
            threshold_hours = COALESCE($4, threshold_hours),
            demand_threshold = COALESCE($5, demand_threshold),
            schedule_cron = COALESCE($6, schedule_cron),
+           meter_selections = $9,
            updated_at = CURRENT_TIMESTAMP
        WHERE notification_rule_id = $7 AND tenant_id = $8
-       RETURNING notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_at, updated_at`,
-      [name || null, description || null, active !== undefined ? active : null, threshold_hours || null, demand_threshold || null, schedule_cron || null, id, tenantId]
+       RETURNING notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, meter_selections, created_at, updated_at`,
+      [name || null, description || null, active !== undefined ? active : null, threshold_hours || null, demand_threshold || null, schedule_cron || null, id, tenantId, meterSelectionsJson]
     );
 
     if (updateResult.rows.length === 0) {
@@ -245,18 +231,6 @@ app.put('/:id', async (c) => {
          (notification_rule_id, users_id, receive_email, email_address)
          VALUES ($1, $2, $3, $4)`,
         [id, recipient.users_id, recipient.receive_email !== false, recipient.email_address || null]
-      );
-    }
-
-    // Update (meter_id, meter_element_id) pairs
-    await query(c.env, 'DELETE FROM public.notification_rule_meter WHERE notification_rule_id = $1', [id]);
-    for (const me of meter_elements) {
-      await query(
-        c.env,
-        `INSERT INTO public.notification_rule_meter
-         (notification_rule_id, meter_id, meter_element_id)
-         VALUES ($1, $2, $3)`,
-        [id, me.meter_id, me.meter_element_id || null]
       );
     }
 

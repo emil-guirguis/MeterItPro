@@ -1,602 +1,176 @@
-import React, { useEffect, useState } from 'react';
-// Dynamically import recharts to avoid bundling it into the main chunk.
-// This keeps the visualization code in a separate chunk that loads only when needed.
-let _recharts: any = null;
-
-function useRecharts() {
-  const [mod, setMod] = useState<any>(null);
-  useEffect(() => {
-    let mounted = true;
-    if (_recharts) {
-      setMod(_recharts);
-      return;
-    }
-    import('recharts').then((m) => {
-      _recharts = m;
-      if (mounted) setMod(m);
-    }).catch(() => {
-      // ignore
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-  return mod;
-}
+import React from 'react';
+import ApexChart from 'react-apexcharts';
 import type { VisualizationType } from '../types';
 import './Visualization.css';
 
-/**
- * Generic visualization data interface
- * Supports both single aggregation objects and time-series arrays
- */
 export interface VisualizationData {
   [key: string]: number | string;
 }
 
-/**
- * Generic visualization component props
- * Works with any data structure that can be transformed to chart format
- */
 export interface VisualizationProps {
-  /** Visualization type (pie, line, bar, area, candlestick) */
   type?: VisualizationType;
-  /** Data to visualize - can be single object or array of objects */
   data: VisualizationData | VisualizationData[];
-  /** Column names to display in the visualization */
   columns: string[];
-  /** Chart height in pixels */
   height?: number;
-  /** Optional title for the visualization */
   title?: string;
+  seriesLabels?: Record<string, string>;
 }
 
-// Color palette for charts
 const COLORS = [
-  '#0088FE',
-  '#00C49F',
-  '#FFBB28',
-  '#FF8042',
-  '#8884D8',
-  '#82CA9D',
-  '#FFC658',
-  '#FF7C7C',
+  '#0088FE', '#00C49F', '#FFBB28', '#FF8042',
+  '#8884D8', '#82CA9D', '#FFC658', '#FF7C7C',
 ];
 
-/**
- * Helper function to safely format numeric values
- */
-const formatValue = (value: unknown): string => {
-  if (typeof value === 'number') {
-    return value.toFixed(2);
-  }
-  return String(value);
-};
+function labelForKey(key: string): string {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
-/**
- * Pie Chart Visualization
- * Displays aggregated values as a pie chart
- * Best for showing proportions of different columns
- */
-const PieVisualization: React.FC<VisualizationProps> = ({
+function toArray(data: VisualizationData | VisualizationData[]): VisualizationData[] {
+  return Array.isArray(data) ? data : [data];
+}
+
+function getXKey(row: VisualizationData): string {
+  if ('hour' in row) return String(row.hour);
+  if ('date' in row) return String(row.date);
+  if ('week_start' in row) return String(row.week_start);
+  if ('month_start' in row) return String(row.month_start);
+  if ('label_key' in row) return String(row.label_key);
+  return '';
+}
+
+const baseOptions = (height: number): ApexCharts.ApexOptions => ({
+  chart: {
+    toolbar: { show: false },
+    animations: { enabled: false },
+    background: 'transparent',
+    parentHeightOffset: 0,
+  },
+  grid: {
+    borderColor: '#e2e8f0',
+    strokeDashArray: 4,
+    padding: { top: 0, right: 10, bottom: 0, left: 0 },
+  },
+  tooltip: { theme: 'light' },
+  legend: { show: false },
+  dataLabels: { enabled: false },
+});
+
+export const Visualization: React.FC<VisualizationProps> = ({
+  type = 'bar',
   data,
   columns,
   height = 300,
+  seriesLabels,
 }) => {
-  const recharts = useRecharts();
-  if (!recharts) {
-    return <div style={{ height }} className="visualization-empty">Loading chart...</div>;
+  if (!data || columns.length === 0 || (Array.isArray(data) && data.length === 0)) {
+    return <div className="visualization-empty"><p>No data available</p></div>;
   }
-  const { ResponsiveContainer, PieChart, Pie, Tooltip, Cell } = recharts;
-  // Handle array data - sum all values
-  let dataObj: VisualizationData;
-  if (Array.isArray(data)) {
-    if (data.length === 0) {
-      return (
-        <div className="visualization-empty">
-          <p>No data available</p>
-        </div>
-      );
-    }
-    // Sum all values across array elements
-    dataObj = {};
-    columns.forEach(col => {
-      dataObj[col] = data.reduce((sum, item) => sum + (Number(item[col]) || 0), 0);
+
+  const rows = toArray(data);
+  const isSingle = rows.length <= 1;
+
+  // ── Pie ──────────────────────────────────────────────────────────────────────
+  if (type === 'pie') {
+    const source = rows[0] ?? {};
+    const series = columns.map(c => {
+      const v = source[c];
+      return typeof v === 'number' ? v : parseFloat(String(v)) || 0;
     });
-  } else {
-    dataObj = data;
-  }
-
-  // Transform data for pie chart
-  const pieData = columns.map((column) => ({
-    name: column,
-    value: Number(dataObj[column]) || 0,
-  }));
-
-  // Filter out zero values
-  const filteredData = pieData.filter((item) => item.value > 0);
-
-  if (filteredData.length === 0) {
-    return (
-      <div className="visualization-empty">
-        <p>No data available</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="visualization-container">
-      <ResponsiveContainer width="100%" height={height}>
-        <PieChart>
-          <Pie
-            data={filteredData}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            label={({ name, value }: any) => `${name}: ${formatValue(value)}`}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="value"
-          >
-            {filteredData.map((_, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip formatter={formatValue} />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
-/**
- * Line Chart Visualization
- * Displays aggregated values as a line chart
- * Best for showing trends over time or comparing multiple values
- */
-const LineVisualization: React.FC<VisualizationProps> = ({
-  data,
-  columns,
-  height = 300,
-}) => {
-  const recharts = useRecharts();
-  if (!recharts) {
-    return <div style={{ height }} className="visualization-empty">Loading chart...</div>;
-  }
-  const { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend } = recharts;
-  // Handle empty data
-  if (!data || columns.length === 0) {
-    return (
-      <div className="visualization-empty">
-        <p>No data available</p>
-      </div>
-    );
-  }
-
-  // Check if data is an array (time-series data) or object (single aggregation)
-  const isTimeSeries = Array.isArray(data);
-  
-  let lineData;
-  if (isTimeSeries && data.length > 0) {
-    // Transform time-series data for line chart
-    lineData = data.map((point, index) => {
-      const pointData = point as Record<string, any>;
-      let label = '';
-      
-      // Build label based on available date/time fields
-      if (pointData.date && pointData.hour !== undefined) {
-        // Hourly data: show time only "20:00"
-        label = `${String(pointData.hour).padStart(2, '0')}:00`;
-      } else if (pointData.date) {
-        // Daily data: show date only "Jan 18"
-        const dateObj = new Date(pointData.date);
-        label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      } else if (pointData.week_start) {
-        // Weekly data: show week start date "Jan 13"
-        const dateObj = new Date(pointData.week_start);
-        label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      } else if (pointData.month_start) {
-        // Monthly data: show month only "January"
-        const dateObj = new Date(pointData.month_start);
-        label = dateObj.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      } else {
-        label = `Point ${index + 1}`;
-      }
-      
-      const dataPoint = { name: label } as Record<string, any>;
-      columns.forEach(col => {
-        dataPoint[col] = Number(pointData[col]) || 0;
-      });
-      return dataPoint;
-    });
-  } else if (Array.isArray(data) && data.length === 0) {
-    return (
-      <div className="visualization-empty">
-        <p>No data available</p>
-      </div>
-    );
-  } else {
-    // Transform single aggregation for line chart
-    lineData = [
-      {
-        name: 'Values',
-        ...Object.fromEntries(columns.map((col) => [col, Number((data as Record<string, any>)[col]) || 0])),
-      },
-    ];
-  }
-
-  return (
-    <div className="visualization-container">
-      <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={lineData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="name" 
-            angle={-45}
-            textAnchor="end"
-            height={80}
-            interval={Math.max(0, Math.floor(lineData.length / 10))}
-          />
-          <YAxis width={70} tickFormatter={(v) => Number(v).toLocaleString()} />
-          <Tooltip formatter={formatValue} />
-          <Legend />
-          {columns.map((column, index) => (
-            <Line
-              key={column}
-              type="monotone"
-              dataKey={column}
-              stroke={COLORS[index % COLORS.length]}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
-/**
- * Bar Chart Visualization
- * Displays aggregated values as a bar chart
- * Best for comparing values across different columns
- */
-const BarVisualization: React.FC<VisualizationProps> = ({
-  data,
-  columns,
-  height = 300,
-}) => {
-  const recharts = useRecharts();
-  if (!recharts) {
-    return <div style={{ height }} className="visualization-empty">Loading chart...</div>;
-  }
-  const { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, Legend } = recharts;
-  // Handle empty data
-  if (!data || columns.length === 0) {
-    return (
-      <div className="visualization-empty">
-        <p>No data available</p>
-      </div>
-    );
-  }
-
-  // Check if data is an array (time-series data) or object (single aggregation)
-  const isTimeSeries = Array.isArray(data);
-  
-  let barData;
-  if (isTimeSeries && data.length > 0) {
-    // Transform time-series data for bar chart
-    barData = data.map((point, index) => {
-      const pointData = point as Record<string, any>;
-      let label = '';
-      
-      // Build label based on available date/time fields
-      if (pointData.date && pointData.hour !== undefined) {
-        // Hourly data: show time only "20:00"
-        label = `${String(pointData.hour).padStart(2, '0')}:00`;
-      } else if (pointData.date) {
-        // Daily data: show date only "Jan 18"
-        const dateObj = new Date(pointData.date);
-        label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      } else if (pointData.week_start) {
-        // Weekly data: show week start date "Jan 13"
-        const dateObj = new Date(pointData.week_start);
-        label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      } else if (pointData.month_start) {
-        // Monthly data: show month only "January"
-        const dateObj = new Date(pointData.month_start);
-        label = dateObj.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      } else {
-        label = `Point ${index + 1}`;
-      }
-      
-      const dataPoint = { name: label } as Record<string, any>;
-      columns.forEach(col => {
-        dataPoint[col] = Number(pointData[col]) || 0;
-      });
-      return dataPoint;
-    });
-  } else if (Array.isArray(data) && data.length === 0) {
-    return (
-      <div className="visualization-empty">
-        <p>No data available</p>
-      </div>
-    );
-  } else {
-    // Transform single aggregation for bar chart
-    barData = [
-      {
-        name: 'Values',
-        ...Object.fromEntries(columns.map((col) => [col, Number((data as Record<string, any>)[col]) || 0])),
-      },
-    ];
-  }
-
-  return (
-    <div className="visualization-container">
-      <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={barData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="name"
-            angle={-45}
-            textAnchor="end"
-            height={80}
-            interval={Math.max(0, Math.floor(barData.length / 10))}
-          />
-          <YAxis width={70} tickFormatter={(v) => Number(v).toLocaleString()} />
-          <Tooltip formatter={formatValue} />
-          <Legend />
-          {columns.map((column, index) => (
-            <Bar
-              key={column}
-              dataKey={column}
-              fill={COLORS[index % COLORS.length]}
-              radius={[8, 8, 0, 0]}
-            />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
-/**
- * Area Chart Visualization
- * Displays aggregated values as an area chart
- * Best for showing cumulative trends or stacked values
- */
-const AreaVisualization: React.FC<VisualizationProps> = ({
-  data,
-  columns,
-  height = 300,
-}) => {
-  const recharts = useRecharts();
-  if (!recharts) {
-    return <div style={{ height }} className="visualization-empty">Loading chart...</div>;
-  }
-  const { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend } = recharts;
-
-  // Handle empty data
-  if (!data || columns.length === 0) {
-    return (
-      <div className="visualization-empty">
-        <p>No data available</p>
-      </div>
-    );
-  }
-
-  // Check if data is an array (time-series data) or object (single aggregation)
-  const isTimeSeries = Array.isArray(data);
-  
-  let areaData;
-  if (isTimeSeries && data.length > 0) {
-    // Transform time-series data for area chart
-    areaData = data.map((point, index) => {
-      const pointData = point as Record<string, any>;
-      let label = '';
-      
-      // Build label based on available date/time fields
-      if (pointData.date && pointData.hour !== undefined) {
-        // Hourly data: show time only "20:00"
-        label = `${String(pointData.hour).padStart(2, '0')}:00`;
-      } else if (pointData.date) {
-        // Daily data: show date only "Jan 18"
-        const dateObj = new Date(pointData.date);
-        label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      } else if (pointData.week_start) {
-        // Weekly data: show week start date "Jan 13"
-        const dateObj = new Date(pointData.week_start);
-        label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      } else if (pointData.month_start) {
-        // Monthly data: show month only "January"
-        const dateObj = new Date(pointData.month_start);
-        label = dateObj.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      } else {
-        label = `Point ${index + 1}`;
-      }
-      
-      const dataPoint = { name: label } as Record<string, any>;
-      columns.forEach(col => {
-        dataPoint[col] = Number(pointData[col]) || 0;
-      });
-      return dataPoint;
-    });
-  } else if (Array.isArray(data) && data.length === 0) {
-    return (
-      <div className="visualization-empty">
-        <p>No data available</p>
-      </div>
-    );
-  } else {
-    // Transform single aggregation for area chart
-    areaData = [
-      {
-        name: 'Values',
-        ...Object.fromEntries(columns.map((col) => [col, Number((data as Record<string, any>)[col]) || 0])),
-      },
-    ];
-  }
-
-  return (
-    <div className="visualization-container">
-      <ResponsiveContainer width="100%" height={height}>
-        <AreaChart data={areaData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-          <defs>
-            {columns.map((column, index) => (
-              <linearGradient key={`gradient-${column}`} id={`color-${column}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={COLORS[index % COLORS.length]} stopOpacity={0.8} />
-                <stop offset="95%" stopColor={COLORS[index % COLORS.length]} stopOpacity={0} />
-              </linearGradient>
-            ))}
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="name"
-            angle={-45}
-            textAnchor="end"
-            height={80}
-            interval={Math.max(0, Math.floor(areaData.length / 10))}
-          />
-          <YAxis width={70} tickFormatter={(v) => Number(v).toLocaleString()} />
-          <Tooltip formatter={formatValue} />
-          <Legend />
-          {columns.map((column, index) => (
-            <Area
-              key={column}
-              type="monotone"
-              dataKey={column}
-              stroke={COLORS[index % COLORS.length]}
-              fillOpacity={1}
-              fill={`url(#color-${column})`}
-            />
-          ))}
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
-/**
- * Candlestick Chart Visualization
- * Displays aggregated values as a candlestick chart
- * Best for showing high/low/open/close values (financial data)
- * For this implementation, we use a bar chart as a fallback
- * since Recharts doesn't have native candlestick support
- */
-const CandlestickVisualization: React.FC<VisualizationProps> = ({
-  data,
-  columns,
-  height = 300,
-}) => {
-  // Handle empty data
-  if (!data || columns.length === 0) {
-    return (
-      <div className="visualization-empty">
-        <p>No data available</p>
-      </div>
-    );
-  }
-
-  // Handle array data - use first element
-  let dataObj: VisualizationData;
-  if (Array.isArray(data)) {
-    if (data.length === 0) {
-      return (
-        <div className="visualization-empty">
-          <p>No data available</p>
-        </div>
-      );
-    }
-    dataObj = data[0];
-  } else {
-    dataObj = data;
-  }
-
-  // For candlestick, we expect data with specific columns: open, high, low, close
-  // If not available, we'll display a bar chart as fallback
-  const hasOHLC = ['open', 'high', 'low', 'close'].every((col) => col in dataObj);
-
-  if (hasOHLC) {
-    // Display candlestick-like data using bar chart
-    const candleData = [
-      {
-        name: 'OHLC',
-        open: Number(dataObj.open) || 0,
-        high: Number(dataObj.high) || 0,
-        low: Number(dataObj.low) || 0,
-        close: Number(dataObj.close) || 0,
-      },
-    ];
-
     return (
       <div className="visualization-container">
-        <ResponsiveContainer width="100%" height={height}>
-          <BarChart data={candleData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip formatter={formatValue} />
-            <Legend />
-            <Bar dataKey="open" fill={COLORS[0]} />
-            <Bar dataKey="high" fill={COLORS[1]} />
-            <Bar dataKey="low" fill={COLORS[2]} />
-            <Bar dataKey="close" fill={COLORS[3]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <ApexChart
+          type="pie"
+          series={series}
+          options={{
+            ...baseOptions(height),
+            labels: columns.map(labelForKey),
+            colors: COLORS,
+            legend: { show: true, position: 'bottom' },
+          }}
+          width="100%"
+          height={height}
+        />
       </div>
     );
   }
 
-  // Fallback: display as bar chart
-  return <BarVisualization data={data} type="bar" columns={columns} height={height} />;
+  // ── Time-series (line / bar / area) ─────────────────────────────────────────
+  const categories = rows.map(r => {
+    const x = getXKey(r);
+    // Format hour labels as AM/PM
+    if ('hour' in r) {
+      const h = parseInt(x);
+      return isNaN(h) ? x : (h === 0 ? '12AM' : h < 12 ? `${h}AM` : h === 12 ? '12PM' : `${h - 12}PM`);
+    }
+    // Strip time portion from ISO timestamps returned by DATE_TRUNC (weekly/monthly)
+    if (typeof x === 'string' && x.includes('T')) return x.split('T')[0];
+    return x;
+  });
+
+  const series: ApexAxisChartSeries = columns.map((col, i) => ({
+    name: seriesLabels?.[col] ?? labelForKey(col),
+    data: rows.map(r => {
+      const v = r[col];
+      if (v === null || v === undefined) return null;
+      const n = typeof v === 'number' ? v : parseFloat(String(v));
+      return isNaN(n) ? null : parseFloat(n.toFixed(4));
+    }),
+    color: COLORS[i % COLORS.length],
+  }));
+
+  const xaxis: ApexXAxis = {
+    categories,
+    labels: {
+      rotate: -45,
+      style: { fontSize: '11px', colors: '#64748b' },
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+  };
+
+  const yaxis: ApexYAxis = {
+    labels: {
+      style: { fontSize: '11px', colors: '#64748b' },
+      formatter: (v: number) => v == null ? '' : v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(2),
+    },
+  };
+
+  const stroke = type === 'area'
+    ? { curve: 'smooth' as const, width: 2 }
+    : type === 'line'
+    ? { curve: 'smooth' as const, width: 2 }
+    : { width: 0 };
+
+  const fill = type === 'area'
+    ? { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05 } }
+    : { opacity: 1 };
+
+  const plotOptions = type === 'bar'
+    ? { bar: { borderRadius: 4, columnWidth: '60%' } }
+    : {};
+
+  const apexType = type === 'candlestick' ? 'bar' : type;
+
+  return (
+    <div className="visualization-container">
+      <ApexChart
+        type={apexType as any}
+        series={series}
+        options={{
+          ...baseOptions(height),
+          xaxis,
+          yaxis,
+          stroke,
+          fill,
+          plotOptions,
+          colors: COLORS,
+          legend: series.length > 1 ? { show: true, position: 'bottom', fontSize: '12px' } : { show: false },
+        }}
+        width="100%"
+        height={height}
+      />
+    </div>
+  );
 };
 
-/**
- * Generic Visualization Component
- * Renders the appropriate visualization based on type
- * Works with generic data structures and supports multiple chart types
- */
-export const Visualization: React.FC<VisualizationProps> = ({
-  type,
-  data,
-  columns,
-  height = 300,
-}) => {
-  // Handle empty data
-  if (!data || columns.length === 0) {
-    return (
-      <div className="visualization-empty">
-        <p>No data available</p>
-      </div>
-    );
-  }
-
-  // Check if data is empty array
-  if (Array.isArray(data) && data.length === 0) {
-    return (
-      <div className="visualization-empty">
-        <p>No data available</p>
-      </div>
-    );
-  }
-
-  switch (type) {
-    case 'pie':
-      return <PieVisualization data={data} columns={columns} height={height} />;
-    case 'line':
-      return <LineVisualization data={data} columns={columns} height={height} />;
-    case 'bar':
-      return <BarVisualization data={data} columns={columns} height={height} />;
-    case 'area':
-      return <AreaVisualization data={data} columns={columns} height={height} />;
-    case 'candlestick':
-      return <CandlestickVisualization data={data} columns={columns} height={height} />;
-    default:
-      return (
-        <div className="visualization-empty">
-          <p>Unknown visualization type: {type}</p>
-        </div>
-      );
-  }
-};
+export default Visualization;
