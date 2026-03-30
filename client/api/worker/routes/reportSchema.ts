@@ -90,5 +90,12 @@ export const reportSchema = defineSchema({
         ] }),
       ],
     }),
+    tab({
+      name: 'History',
+      order: 8,
+      sections: [
+        section({ name: 'Execution History', order: 1, flex: 1, fields: [] }),
+      ],
+    }),
   ],
 });

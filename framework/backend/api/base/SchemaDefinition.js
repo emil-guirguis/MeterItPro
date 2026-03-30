@@ -91,6 +91,7 @@ function field(definition) {
     max: definition.max !== undefined ? definition.max : null,
     pattern: definition.pattern || null,
     showOn: definition.showOn || null,
+    showIf: definition.showIf || null,
     formGrouping: definition.formGrouping || null,
     validate: definition.validate || null,
     validationFields: definition.validationFields || null,

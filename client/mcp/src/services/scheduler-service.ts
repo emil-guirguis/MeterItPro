@@ -12,13 +12,18 @@ export interface Report {
   schedule: string;
   recipients: string[];
   config: Record<string, any>;
-  enabled: boolean;
+  active: boolean;
+  meter_selections: string | null;
   created_at: Date;
   updated_at: Date;
 }
 
 export class SchedulerService {
   private jobs: Map<string, cron.ScheduledTask> = new Map();
+  /** Tracks the cron expression each notification rule job was scheduled with. */
+  private notificationRuleCrons: Map<string, string> = new Map();
+  /** Tracks the cron expression each report job was scheduled with. */
+  private reportCrons: Map<string, string> = new Map();
   private reportExecutor: ReportExecutor;
   private notificationRuleAgent: NotificationRuleAgent;
 
@@ -35,15 +40,11 @@ export class SchedulerService {
     logger.info('Initializing SchedulerService...');
     
     try {
-      const reports = await this.loadActiveReports();
-      logger.info(`Loaded ${reports.length} active reports from database`);
-
-      for (const report of reports) {
-        await this.createJob(report);
-      }
-
+      await this.reconcileReports();
       await this.initializeHealthCheck();
       await this.initializeNotificationRules();
+      this.scheduleNotificationRuleReconcile();
+      this.scheduleReportReconcile();
 
       logger.info(`SchedulerService initialized with ${this.jobs.size} active jobs`);
     } catch (error) {
@@ -127,35 +128,11 @@ export class SchedulerService {
 
   /**
    * Load all active notification rules and create a cron job for each one.
-   * Each job calls NotificationRuleAgent.executeRule(rule) on its schedule.
    */
   private async initializeNotificationRules(): Promise<void> {
     try {
-      const rules = await this.notificationRuleAgent.loadActiveRules();
-      logger.info(`Loaded ${rules.length} active notification rules`);
-
-      for (const rule of rules) {
-        const jobKey = `notification_rule_${rule.notification_rule_id}`;
-
-        if (this.jobs.has(jobKey)) continue;
-
-        const cronExpr = this.isValidCronExpression(rule.schedule_cron)
-          ? rule.schedule_cron
-          : '0 * * * *';
-
-        try {
-          const task = cron.schedule(cronExpr, async () => {
-            logger.info(`Executing notification rule: ${rule.name} (${rule.notification_rule_id})`);
-            await this.notificationRuleAgent.executeRule(rule);
-          });
-          this.jobs.set(jobKey, task);
-          logger.info(`Scheduled notification rule "${rule.name}" with cron: ${cronExpr}`);
-        } catch (err) {
-          logger.warn(`Failed to schedule notification rule ${rule.notification_rule_id}`, {
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
-      }
+      const { added } = await this.reconcileNotificationRules();
+      logger.info(`Notification rules initialized: ${added} jobs scheduled`);
     } catch (error) {
       logger.error('Failed to initialize notification rules', {
         error: error instanceof Error ? error.message : String(error),
@@ -164,18 +141,106 @@ export class SchedulerService {
   }
 
   /**
+   * Schedule a periodic reconcile (every 5 minutes) that syncs running
+   * notification-rule jobs with the current state in the database.
+   * Handles rule creation, deletion, toggling active/inactive, and schedule changes.
+   */
+  private scheduleNotificationRuleReconcile(): void {
+    const RECONCILE_KEY = 'notification_rule_reconcile';
+    const task = cron.schedule('*/5 * * * *', async () => {
+      logger.debug('Reconciling notification rule jobs with database');
+      try {
+        await this.reconcileNotificationRules();
+      } catch (error) {
+        logger.error('Error reconciling notification rules', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+    this.jobs.set(RECONCILE_KEY, task);
+  }
+
+  /**
+   * Public method — synchronises running cron jobs with the current active rules
+   * in the database. Called by the reconcile loop and the debug endpoint.
+   */
+  async reconcileNotificationRules(): Promise<{ added: number; removed: number; updated: number }> {
+    const activeRules = await this.notificationRuleAgent.loadActiveRules();
+    const activeIds = new Set(activeRules.map(r => `notification_rule_${r.notification_rule_id}`));
+
+    let added = 0, removed = 0, updated = 0;
+
+    // Remove jobs for rules that are no longer active / were deleted
+    for (const key of this.jobs.keys()) {
+      if (!key.startsWith('notification_rule_')) continue;
+      if (key === 'notification_rule_reconcile') continue;
+      if (!activeIds.has(key)) {
+        const task = this.jobs.get(key)!;
+        task.stop();
+        this.jobs.delete(key);
+        this.notificationRuleCrons.delete(key);
+        logger.info(`Removed notification rule job: ${key}`);
+        removed++;
+      }
+    }
+
+    // Add or update jobs for active rules
+    for (const rule of activeRules) {
+      const jobKey = `notification_rule_${rule.notification_rule_id}`;
+      const cronExpr = this.isValidCronExpression(rule.schedule_cron)
+        ? rule.schedule_cron
+        : '0 * * * *';
+
+      const existingCron = this.notificationRuleCrons.get(jobKey);
+
+      if (this.jobs.has(jobKey) && existingCron === cronExpr) {
+        // Already running with the correct schedule — nothing to do
+        continue;
+      }
+
+      // Stop old job if the schedule changed
+      if (this.jobs.has(jobKey)) {
+        const old = this.jobs.get(jobKey)!;
+        old.stop();
+        this.jobs.delete(jobKey);
+        updated++;
+      } else {
+        added++;
+      }
+
+      try {
+        const task = cron.schedule(cronExpr, async () => {
+          logger.info(`Executing notification rule: ${rule.name} (${rule.notification_rule_id})`);
+          await this.notificationRuleAgent.executeRule(rule);
+        });
+        this.jobs.set(jobKey, task);
+        this.notificationRuleCrons.set(jobKey, cronExpr);
+        logger.info(`Scheduled notification rule "${rule.name}" [${rule.notification_rule_id}] cron: ${cronExpr}`);
+      } catch (err) {
+        logger.warn(`Failed to schedule notification rule ${rule.notification_rule_id}`, {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    if (added || removed || updated) {
+      logger.info(`Notification rule reconcile: +${added} added, -${removed} removed, ~${updated} updated`);
+    }
+    return { added, removed, updated };
+  }
+
+  /**
    * Load all active reports from the database
    */
   private async loadActiveReports(): Promise<Report[]> {
     try {
-      const query = `
-        SELECT report_id as id, name, type, schedule, recipients, config, active, created_at, updated_at
-        FROM report
-        WHERE active = true
-        ORDER BY created_at ASC
-      `;
-      
-      const result = await db.query<Report>(query);
+      const result = await db.query<Report>(
+        `SELECT report_id as id, name, type, schedule, recipients, config,
+                active, meter_selections, created_at, updated_at
+         FROM report
+         WHERE active = true
+         ORDER BY created_at ASC`
+      );
       return result.rows;
     } catch (error) {
       logger.error('Failed to load active reports', {
@@ -186,100 +251,86 @@ export class SchedulerService {
   }
 
   /**
-   * Create a cron job for a report
+   * Schedule a periodic reconcile (every 5 minutes) that syncs running
+   * report jobs with the current state in the database.
    */
-  private async createJob(report: Report): Promise<void> {
-    try {
-      // Validate cron expression
-      if (!this.isValidCronExpression(report.schedule)) {
-        logger.warn(`Invalid cron expression for report ${report.id}: ${report.schedule}`);
-        return;
-      }
-
-      // Check if job already exists
-      if (this.jobs.has(report.id)) {
-        logger.warn(`Job already exists for report ${report.id}, skipping creation`);
-        return;
-      }
-
-      // Create the cron job
+  private scheduleReportReconcile(): void {
+    const task = cron.schedule('*/5 * * * *', async () => {
+      logger.debug('Reconciling report jobs with database');
       try {
-        const task = cron.schedule(report.schedule, async () => {
+        await this.reconcileReports();
+      } catch (error) {
+        logger.error('Error reconciling reports', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+    this.jobs.set('report_reconcile', task);
+  }
+
+  /**
+   * Synchronises running report cron jobs with the current active reports
+   * in the database. Handles adds, removes, and schedule changes.
+   */
+  async reconcileReports(): Promise<{ added: number; removed: number; updated: number }> {
+    const activeReports = await this.loadActiveReports();
+    const activeIds = new Set(activeReports.map(r => `report_${r.id}`));
+
+    let added = 0, removed = 0, updated = 0;
+
+    // Remove jobs for reports that were deleted or deactivated
+    for (const key of this.jobs.keys()) {
+      if (!key.startsWith('report_') || key === 'report_reconcile') continue;
+      if (!activeIds.has(key)) {
+        this.jobs.get(key)!.stop();
+        this.jobs.delete(key);
+        this.reportCrons.delete(key);
+        logger.info(`Removed report job: ${key}`);
+        removed++;
+      }
+    }
+
+    // Add or update jobs for active reports
+    for (const report of activeReports) {
+      const jobKey = `report_${report.id}`;
+      const cronExpr = this.isValidCronExpression(report.schedule) ? report.schedule : '0 9 * * *';
+      const existingCron = this.reportCrons.get(jobKey);
+
+      if (this.jobs.has(jobKey) && existingCron === cronExpr) continue;
+
+      if (this.jobs.has(jobKey)) {
+        this.jobs.get(jobKey)!.stop();
+        this.jobs.delete(jobKey);
+        updated++;
+      } else {
+        added++;
+      }
+
+      try {
+        const task = cron.schedule(cronExpr, async () => {
           logger.info(`Executing scheduled report: ${report.name} (${report.id})`);
           try {
             await this.reportExecutor.execute(report);
-          } catch (error) {
+          } catch (err) {
             logger.error(`Failed to execute report ${report.id}`, {
-              error: error instanceof Error ? error.message : String(error),
+              error: err instanceof Error ? err.message : String(err),
             });
           }
         });
-
-        this.jobs.set(report.id, task);
-        logger.info(`Created cron job for report: ${report.name} (${report.id}) with schedule: ${report.schedule}`);
-      } catch (scheduleError) {
-        logger.warn(`Failed to schedule cron job for report ${report.id}: ${report.schedule}`, {
-          error: scheduleError instanceof Error ? scheduleError.message : String(scheduleError),
+        this.jobs.set(jobKey, task);
+        this.reportCrons.set(jobKey, cronExpr);
+        logger.info(`Scheduled report "${report.name}" [${report.id}] cron: ${cronExpr}`);
+      } catch (err) {
+        logger.warn(`Failed to schedule report ${report.id}`, {
+          error: err instanceof Error ? err.message : String(err),
         });
       }
-    } catch (error) {
-      logger.error(`Failed to create job for report ${report.id}`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
     }
-  }
 
-  /**
-   * Update a report's cron job (delete old, create new)
-   */
-  async updateJob(report: Report): Promise<void> {
-    try {
-      logger.info(`Updating job for report: ${report.name} (${report.id})`);
-      
-      // Delete existing job if it exists
-      if (this.jobs.has(report.id)) {
-        const task = this.jobs.get(report.id);
-        if (task) {
-          task.stop();
-        }
-        this.jobs.delete(report.id);
-        logger.info(`Stopped and removed old job for report ${report.id}`);
-      }
-
-      // Create new job if report is enabled
-      if (report.enabled) {
-        await this.createJob(report);
-      } else {
-        logger.info(`Report ${report.id} is disabled, not creating new job`);
-      }
-    } catch (error) {
-      logger.error(`Failed to update job for report ${report.id}`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
+    if (added || removed || updated) {
+      logger.info(`Report reconcile: +${added} added, -${removed} removed, ~${updated} updated`);
     }
-  }
-
-  /**
-   * Delete a report's cron job
-   */
-  async deleteJob(reportId: string): Promise<void> {
-    try {
-      if (this.jobs.has(reportId)) {
-        const task = this.jobs.get(reportId);
-        if (task) {
-          task.stop();
-        }
-        this.jobs.delete(reportId);
-        logger.info(`Deleted cron job for report: ${reportId}`);
-      }
-    } catch (error) {
-      logger.error(`Failed to delete job for report ${reportId}`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+    return { added, removed, updated };
   }
 
   /**
@@ -320,10 +371,31 @@ export class SchedulerService {
    * Immediately run a single notification rule by ID (used by the per-rule debug endpoint).
    */
   async runNotificationRule(ruleId: string): Promise<{ found: boolean }> {
-    const rules = await this.notificationRuleAgent.loadActiveRules();
-    const rule = rules.find(r => String(r.notification_rule_id) === String(ruleId));
+    const rule = await this.notificationRuleAgent.loadRuleById(ruleId);
     if (!rule) return { found: false };
     await this.notificationRuleAgent.executeRule(rule);
+    return { found: true };
+  }
+
+  /**
+   * Immediately run all active reports (used by the debug endpoint).
+   */
+  async runAllReports(): Promise<{ reports_executed: number }> {
+    const reports = await this.loadActiveReports();
+    for (const report of reports) {
+      await this.reportExecutor.execute(report);
+    }
+    return { reports_executed: reports.length };
+  }
+
+  /**
+   * Immediately run a single report by ID (used by the debug endpoint).
+   */
+  async runReport(reportId: string): Promise<{ found: boolean }> {
+    const reports = await this.loadActiveReports();
+    const report = reports.find(r => String(r.id) === String(reportId));
+    if (!report) return { found: false };
+    await this.reportExecutor.execute(report);
     return { found: true };
   }
 

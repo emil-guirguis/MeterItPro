@@ -23,6 +23,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import apiClient from '../../services/apiClient';
+import { useMetersList } from '../../hooks/useMetersList';
 import './MeterElementRegisterSelectorGrid.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -58,7 +59,8 @@ interface Register {
 }
 
 export interface MeterElementRegisterSelectorGridProps {
-  meters: Meter[];
+  /** Optional — when omitted the component fetches meters itself via useMetersList. */
+  meters?: Meter[];
   value: MeterRowValue[];
   onChange: (rows: MeterRowValue[]) => void;
   disabled?: boolean;
@@ -85,12 +87,15 @@ function getMeterId(m: Meter): number {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSelectorGridProps> = ({
-  meters,
+  meters: metersProp,
   value,
   onChange,
   disabled = false,
   error,
 }) => {
+  const { meters: fetchedMeters, loading: metersLoading } = useMetersList();
+  const meters = metersProp ?? fetchedMeters;
+
   const [elementsCache, setElementsCache] = useState<Record<number, MeterElement[]>>({});
   const [registersCache, setRegistersCache] = useState<Record<number, Register[]>>({});
   const [loadingEl, setLoadingEl] = useState<Record<number, boolean>>({});
@@ -349,12 +354,13 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
                   >
                     {/* ── Meter ── */}
                     <TableCell className="merseg-cell">
-                      <FormControl fullWidth size="small" disabled={disabled}>
+                      <FormControl fullWidth size="small" disabled={disabled || metersLoading}>
                         <Select
                           value={isAllMeters ? ALL : String(mid)}
                           onChange={e => handleMeterChange(row.id, e.target.value)}
                           displayEmpty
                           renderValue={v => {
+                            if (metersLoading) return <span className="merseg-placeholder">Loading meters…</span>;
                             if (!v) return <span className="merseg-placeholder">Select meter…</span>;
                             if (v === ALL) return 'All Meters';
                             const m = meters.find(m => String(getMeterId(m)) === v);

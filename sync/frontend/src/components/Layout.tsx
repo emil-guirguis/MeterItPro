@@ -37,7 +37,7 @@ export default function Layout() {
   const { tenantInfo } = useAppStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);

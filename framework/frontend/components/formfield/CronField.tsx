@@ -261,9 +261,6 @@ export const CronField: React.FC<CronFieldProps> = ({
         <Typography variant="body2" className="cron-field__summary-text">
           {summaryText}
         </Typography>
-        <Typography variant="caption" className="cron-field__preview">
-          <code>{cronPreview}</code>
-        </Typography>
       </Box>
 
       {showError && <FormHelperText error>{error}</FormHelperText>}

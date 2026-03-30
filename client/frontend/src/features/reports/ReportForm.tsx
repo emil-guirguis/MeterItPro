@@ -1,9 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Chip,
+  Typography,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Paper,
+} from '@mui/material';
 import { BaseForm, FormContainer } from '@framework/components/form';
 import { CronField } from '@framework/components/formfield/CronField';
 import { DeviceRegisterChecklist } from '../../components/shared/DeviceRegisterChecklist';
 import { useReportsEnhanced } from './reportsStore';
 import { RecipientsField, MeterElementSelector, RegisterSelector } from './components';
+import apiClient from '../../services/apiClient';
 import type { Report } from './types';
 import './ReportForm.css';
 
@@ -31,6 +44,19 @@ export const ReportForm: React.FC<ReportFormProps> = ({
 }) => {
   const reports = useReportsEnhanced();
 
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    if (!report?.report_id) return;
+    setHistoryLoading(true);
+    apiClient
+      .get(`/reports/${report.report_id}/history`)
+      .then((res) => setHistory(res.data?.data?.history || []))
+      .catch(() => setHistory([]))
+      .finally(() => setHistoryLoading(false));
+  }, [report?.report_id]);
+
   return (
     <FormContainer>
       <div className="form-container__content">
@@ -42,6 +68,59 @@ export const ReportForm: React.FC<ReportFormProps> = ({
           onLegacySubmit={onSubmit}
           loading={loading}
           showTabs={true}
+          renderTabContent={(tabName) => {
+            if (tabName !== 'History') return null;
+            if (!report?.report_id) {
+              return (
+                <Box sx={{ p: 3 }}>
+                  <Typography color="textSecondary">Save the report first to view its history.</Typography>
+                </Box>
+              );
+            }
+            if (historyLoading) {
+              return (
+                <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={16} />
+                  <Typography>Loading history...</Typography>
+                </Box>
+              );
+            }
+            if (history.length === 0) {
+              return (
+                <Box sx={{ p: 3 }}>
+                  <Typography color="textSecondary">No history yet. This report has not run yet.</Typography>
+                </Box>
+              );
+            }
+            return (
+              <Paper variant="outlined" sx={{ mx: 2, mt: 1 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Executed At</TableCell>
+                      <TableCell>Error</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {history.map((row: any) => (
+                      <TableRow key={row.report_history_id}>
+                        <TableCell>
+                          <Chip
+                            label={row.status}
+                            size="small"
+                            color={row.status === 'success' ? 'success' : row.status === 'failed' ? 'error' : 'default'}
+                          />
+                        </TableCell>
+                        <TableCell>{new Date(row.executed_at).toLocaleString()}</TableCell>
+                        <TableCell>{row.error_message || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Paper>
+            );
+          }}
           renderCustomField={(fieldName, fieldDef, value, error, isDisabled, onChange) => {
             // Custom rendering for schedule field
             if (fieldName === 'schedule') {

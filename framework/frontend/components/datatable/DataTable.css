@@ -203,6 +203,15 @@
   transition: background-color 0.2s ease;
 }
 
+.data-table__card--clickable {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.data-table__card--clickable:hover {
+  background: var(--color-primary-50, #eff6ff);
+}
+
 .data-table__row--clickable:hover {
   background: var(--color-primary-50, #eff6ff) !important;
   color: var(--color-text-primary, #111827) !important;

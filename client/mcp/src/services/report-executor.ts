@@ -7,6 +7,18 @@ export interface ReportData {
   [key: string]: any;
 }
 
+interface MeterSelection {
+  id: string;
+  meter_id: number | null;
+  meter_element_ids: number[] | null;
+  register_field_names: string[];
+}
+
+interface MeterElementPair {
+  meter_id: string;
+  meter_element_id: string;
+}
+
 export class ReportExecutor {
   private emailSender: EmailSender;
 
@@ -14,9 +26,8 @@ export class ReportExecutor {
     this.emailSender = new EmailSender();
   }
 
-  /**
-   * Execute a report: generate data, create history entry, and send emails
-   */
+  // ─── Public API ───────────────────────────────────────────────────────────────
+
   async execute(report: Report): Promise<void> {
     const executedAt = new Date();
     let historyId: string | null = null;
@@ -24,55 +35,25 @@ export class ReportExecutor {
     try {
       logger.info(`Starting execution of report: ${report.name} (${report.id})`);
 
-      // Generate report data based on type
       const reportData = await this.generateReportData(report);
       logger.info(`Generated report data for ${report.name}`, {
         reportId: report.id,
         dataSize: JSON.stringify(reportData).length,
       });
 
-      // Create report history entry with success status
-      historyId = await this.createHistoryEntry(
-        report.id,
-        executedAt,
-        'success',
-        null
-      );
-      logger.info(`Created history entry for report execution`, {
-        reportId: report.id,
-        historyId,
-      });
+      historyId = await this.createHistoryEntry(report.id, executedAt, 'success', null);
 
-      // Send emails to all recipients
-      await this.emailSender.sendReportEmails(
-        report,
-        reportData,
-        historyId,
-        executedAt
-      );
+      await this.emailSender.sendReportEmails(report, reportData, historyId, executedAt);
 
       logger.info(`Successfully executed report: ${report.name} (${report.id})`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error(`Failed to execute report: ${report.name} (${report.id})`, {
-        error: errorMessage,
-      });
+      logger.error(`Failed to execute report: ${report.name} (${report.id})`, { error: errorMessage });
 
-      // Create history entry with failed status and error message
       try {
-        historyId = await this.createHistoryEntry(
-          report.id,
-          executedAt,
-          'failed',
-          errorMessage
-        );
-        logger.info(`Created failed history entry for report`, {
-          reportId: report.id,
-          historyId,
-          error: errorMessage,
-        });
+        await this.createHistoryEntry(report.id, executedAt, 'failed', errorMessage);
       } catch (historyError) {
-        logger.error(`Failed to create history entry for failed report execution`, {
+        logger.error('Failed to create failed history entry', {
           reportId: report.id,
           error: historyError instanceof Error ? historyError.message : String(historyError),
         });
@@ -82,177 +63,244 @@ export class ReportExecutor {
     }
   }
 
+  // ─── Meter selection helpers ──────────────────────────────────────────────────
+
+  private parseMeterSelections(raw: any): MeterSelection[] | null {
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+      try { return JSON.parse(raw); } catch { return null; }
+    }
+    if (Array.isArray(raw)) return raw as MeterSelection[];
+    return null;
+  }
+
   /**
-   * Generate report data based on report type
+   * Returns (meter_id, meter_element_id) pairs from meter_selections.
+   * If no selections, returns all active (meter, element) pairs.
    */
-  private async generateReportData(report: Report): Promise<ReportData> {
-    try {
-      switch (report.type) {
-        case 'meter_readings':
-          return await this.generateMeterReadingsReport();
-        
-        case 'usage_summary':
-          return await this.generateUsageSummaryReport();
-        
-        case 'daily_summary':
-          return await this.generateDailySummaryReport();
-        
-        default:
-          logger.warn(`Unknown report type: ${report.type}, returning empty data`);
-          return { type: report.type, data: [] };
+  private async getMeterElementPairs(report: Report): Promise<MeterElementPair[]> {
+    const selections = this.parseMeterSelections(report.meter_selections);
+
+    if (selections && selections.length > 0) {
+      const pairs: MeterElementPair[] = [];
+      for (const sel of selections) {
+        if (!sel.meter_id) continue;
+        const meterId = String(sel.meter_id);
+
+        if (sel.meter_element_ids && sel.meter_element_ids.length > 0) {
+          for (const elId of sel.meter_element_ids) {
+            pairs.push({ meter_id: meterId, meter_element_id: String(elId) });
+          }
+        } else {
+          // Expand to all elements for this meter
+          const elements = await db.query<{ meter_element_id: string }>(
+            `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`,
+            [meterId]
+          );
+          for (const el of elements.rows) {
+            pairs.push({ meter_id: meterId, meter_element_id: el.meter_element_id });
+          }
+        }
       }
-    } catch (error) {
-      logger.error(`Failed to generate report data for type ${report.type}`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
+      return pairs;
+    }
+
+    // No specific meters — return all active (meter, element) pairs
+    const all = await db.query<{ meter_id: string; meter_element_id: string }>(
+      `SELECT m.meter_id, me.meter_element_id
+       FROM meter m
+       JOIN meter_element me ON me.meter_id = m.meter_id
+       WHERE m.active = true`
+    );
+    return all.rows;
+  }
+
+  /**
+   * Builds a SQL WHERE fragment and parameters for filtering to specific pairs.
+   * Returns null when no pairs are specified (query all).
+   */
+  private buildPairFilter(
+    pairs: MeterElementPair[],
+    startParamIdx: number
+  ): { sql: string; params: any[] } | null {
+    if (pairs.length === 0) return null;
+
+    const clauses = pairs.map((p, i) =>
+      `(r.meter_id = $${startParamIdx + i * 2} AND r.meter_element_id = $${startParamIdx + i * 2 + 1})`
+    );
+    const params = pairs.flatMap(p => [p.meter_id, p.meter_element_id]);
+    return { sql: `(${clauses.join(' OR ')})`, params };
+  }
+
+  // ─── Report generators ────────────────────────────────────────────────────────
+
+  private async generateReportData(report: Report): Promise<ReportData> {
+    switch (report.type) {
+      case 'meter_readings':
+        return this.generateMeterReadingsReport(report);
+      case 'usage_summary':
+        return this.generateUsageSummaryReport(report);
+      case 'daily_summary':
+        return this.generateDailySummaryReport(report);
+      default:
+        logger.warn(`Unknown report type: ${report.type}`);
+        return { type: report.type, data: [] };
     }
   }
 
   /**
-   * Generate meter readings report
+   * Meter readings report — raw readings for the past 24 hours, scoped to
+   * the configured meter/element selections.
    */
-  private async generateMeterReadingsReport(): Promise<ReportData> {
-    try {
-      const query = `
-        SELECT 
-          m.meter_id,
-          m.meter_element_id,
-          m.name,
-          m.tenant_id,
-          r.data_point,
-          r.value,
-          r.timestamp
-        FROM meter_reading r
-        JOIN meter m ON r.meter_id = m.meter_id
-        WHERE r.timestamp >= NOW() - INTERVAL '24 hours'
-        ORDER BY r.timestamp DESC
-        LIMIT 1000
-      `;
+  private async generateMeterReadingsReport(report: Report): Promise<ReportData> {
+    const pairs = await this.getMeterElementPairs(report);
+    const pairFilter = pairs.length > 0 ? this.buildPairFilter(pairs, 1) : null;
 
-      const result = await db.query(query);
-      
-      return {
-        type: 'meter_readings',
-        generatedAt: new Date().toISOString(),
-        recordCount: result.rows.length,
-        data: result.rows,
-      };
-    } catch (error) {
-      logger.error('Failed to generate meter readings report', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+    const whereClause = [
+      `r.created_at >= NOW() - INTERVAL '24 hours'`,
+      pairFilter?.sql,
+    ]
+      .filter(Boolean)
+      .join(' AND ');
+
+    const params = pairFilter?.params ?? [];
+
+    const result = await db.query(
+      `SELECT
+         m.name                          AS meter_name,
+         CONCAT(COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, '?')) AS element,
+         r.kwh,
+         r.kw,
+         r.kvar,
+         r.kvarh,
+         r.kva,
+         r.kvah,
+         r.power_factor,
+         r.amperage,
+         r.peak_kw,
+         r.created_at
+       FROM meter_reading r
+       JOIN meter m ON m.meter_id = r.meter_id
+       JOIN meter_element me ON me.meter_element_id = r.meter_element_id
+       WHERE ${whereClause}
+       ORDER BY r.created_at DESC
+       LIMIT 2000`,
+      params
+    );
+
+    return {
+      type: 'meter_readings',
+      generatedAt: new Date().toISOString(),
+      period: 'Last 24 hours',
+      recordCount: result.rows.length,
+      data: result.rows,
+    };
   }
 
   /**
-   * Generate usage summary report
+   * Usage summary — totals and averages per meter/element for the past 30 days.
    */
-  private async generateUsageSummaryReport(): Promise<ReportData> {
-    try {
-      const query = `
-        SELECT 
-          m.tenant_id,
-          COUNT(DISTINCT m.meter_id) as meter_count,
-          COUNT(r.id) as reading_count,
-          AVG(CAST(r.value AS FLOAT)) as avg_value,
-          MAX(CAST(r.value AS FLOAT)) as max_value,
-          MIN(CAST(r.value AS FLOAT)) as min_value,
-          MAX(r.timestamp) as last_reading
-        FROM meter m
-        LEFT JOIN meter_reading r ON m.meter_id = r.meter_id AND r.timestamp >= NOW() - INTERVAL '24 hours'
-        GROUP BY m.tenant_id
-        ORDER BY m.tenant_id
-      `;
+  private async generateUsageSummaryReport(report: Report): Promise<ReportData> {
+    const pairs = await this.getMeterElementPairs(report);
+    const pairFilter = pairs.length > 0 ? this.buildPairFilter(pairs, 1) : null;
 
-      const result = await db.query(query);
-      
-      return {
-        type: 'usage_summary',
-        generatedAt: new Date().toISOString(),
-        tenantCount: result.rows.length,
-        data: result.rows,
-      };
-    } catch (error) {
-      logger.error('Failed to generate usage summary report', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+    const whereClause = [
+      `r.created_at >= NOW() - INTERVAL '30 days'`,
+      pairFilter?.sql,
+    ]
+      .filter(Boolean)
+      .join(' AND ');
+
+    const params = pairFilter?.params ?? [];
+
+    const result = await db.query(
+      `SELECT
+         m.name                                                               AS meter_name,
+         CONCAT(COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, '?')) AS element,
+         COUNT(*)                                                             AS reading_count,
+         ROUND(SUM(r.kwh)::numeric, 2)                                       AS total_kwh,
+         ROUND(AVG(r.kw)::numeric, 2)                                        AS avg_kw,
+         ROUND(MAX(r.kw)::numeric, 2)                                        AS peak_kw,
+         ROUND(MIN(r.kw)::numeric, 2)                                        AS min_kw,
+         ROUND(AVG(r.power_factor)::numeric, 4)                              AS avg_pf,
+         MAX(r.created_at)                                                    AS last_reading_at
+       FROM meter_reading r
+       JOIN meter m ON m.meter_id = r.meter_id
+       JOIN meter_element me ON me.meter_element_id = r.meter_element_id
+       WHERE ${whereClause}
+       GROUP BY m.meter_id, m.name, me.meter_element_id, me.element, me.name
+       ORDER BY m.name, element`,
+      params
+    );
+
+    return {
+      type: 'usage_summary',
+      generatedAt: new Date().toISOString(),
+      period: 'Last 30 days',
+      meterCount: result.rows.length,
+      data: result.rows,
+    };
   }
 
   /**
-   * Generate daily summary report
+   * Daily summary — daily aggregated totals for the past 30 days.
    */
-  private async generateDailySummaryReport(): Promise<ReportData> {
-    try {
-      const query = `
-        SELECT 
-          DATE(r.timestamp) as date,
-          COUNT(DISTINCT m.meter_id) as active_meters,
-          COUNT(r.id) as reading_count,
-          AVG(CAST(r.value AS FLOAT)) as avg_value,
-          MAX(CAST(r.value AS FLOAT)) as max_value,
-          MIN(CAST(r.value AS FLOAT)) as min_value
-        FROM meter_reading r
-        JOIN meter m ON r.meter_id = m.meter_id
-        WHERE r.timestamp >= NOW() - INTERVAL '7 days'
-        GROUP BY DATE(r.timestamp)
-        ORDER BY DATE(r.timestamp) DESC
-      `;
+  private async generateDailySummaryReport(report: Report): Promise<ReportData> {
+    const pairs = await this.getMeterElementPairs(report);
+    const pairFilter = pairs.length > 0 ? this.buildPairFilter(pairs, 1) : null;
 
-      const result = await db.query(query);
-      
-      return {
-        type: 'daily_summary',
-        generatedAt: new Date().toISOString(),
-        dayCount: result.rows.length,
-        data: result.rows,
-      };
-    } catch (error) {
-      logger.error('Failed to generate daily summary report', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+    const whereClause = [
+      `r.created_at >= NOW() - INTERVAL '30 days'`,
+      pairFilter?.sql,
+    ]
+      .filter(Boolean)
+      .join(' AND ');
+
+    const params = pairFilter?.params ?? [];
+
+    const result = await db.query(
+      `SELECT
+         DATE(r.created_at)                                                    AS date,
+         m.name                                                                AS meter_name,
+         CONCAT(COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, '?')) AS element,
+         COUNT(*)                                                              AS reading_count,
+         ROUND(SUM(r.kwh)::numeric, 2)                                        AS total_kwh,
+         ROUND(AVG(r.kw)::numeric, 2)                                         AS avg_kw,
+         ROUND(MAX(r.kw)::numeric, 2)                                         AS peak_kw
+       FROM meter_reading r
+       JOIN meter m ON m.meter_id = r.meter_id
+       JOIN meter_element me ON me.meter_element_id = r.meter_element_id
+       WHERE ${whereClause}
+       GROUP BY DATE(r.created_at), m.meter_id, m.name, me.meter_element_id, me.element, me.name
+       ORDER BY date DESC, m.name, element`,
+      params
+    );
+
+    return {
+      type: 'daily_summary',
+      generatedAt: new Date().toISOString(),
+      period: 'Last 30 days',
+      dayCount: new Set(result.rows.map((r: any) => r.date)).size,
+      data: result.rows,
+    };
   }
 
-  /**
-   * Create a report history entry in the database
-   */
+  // ─── History ──────────────────────────────────────────────────────────────────
+
   private async createHistoryEntry(
     reportId: string,
     executedAt: Date,
     status: 'success' | 'failed',
     errorMessage: string | null
   ): Promise<string> {
-    try {
-      const query = `
-        INSERT INTO report_history (report_id, executed_at, status, error_message, created_at)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING report_history_id as id
-      `;
+    const result = await db.query<{ id: string }>(
+      `INSERT INTO report_history (report_id, executed_at, status, error_message, created_at)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING report_history_id as id`,
+      [reportId, executedAt, status, errorMessage, new Date()]
+    );
 
-      const result = await db.query<{ id: string }>(query, [
-        reportId,
-        executedAt,
-        status,
-        errorMessage,
-        new Date(),
-      ]);
-
-      if (result.rows.length === 0) {
-        throw new Error('Failed to create history entry: no rows returned');
-      }
-
-      return result.rows[0].id;
-    } catch (error) {
-      logger.error('Failed to create report history entry', {
-        reportId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+    if (result.rows.length === 0) throw new Error('Failed to create history entry');
+    return result.rows[0].id;
   }
 }

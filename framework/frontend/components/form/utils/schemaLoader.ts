@@ -32,6 +32,8 @@ export interface BackendFieldDefinition {
   max: number | null;
   pattern: string | null;
   showOn?: string[];
+  showIf?: { fieldName: string; value: any };
+  helpText?: string;
   validate?: boolean;
   validationFields?: string[];
   formGrouping?: {
@@ -223,6 +225,10 @@ function convertFieldDefinition(backendField: BackendFieldDefinition & { validat
     ...(backendField.disable != null && { disable: backendField.disable }),
     // Preserve showOn property for visibility control
     ...(backendField.showOn && { showOn: backendField.showOn }),
+    // Preserve showIf for conditional field visibility
+    ...(backendField.showIf && { showIf: backendField.showIf }),
+    // Preserve helpText for field descriptions
+    ...(backendField.helpText && { helpText: backendField.helpText }),
     // Preserve formGrouping for tab/section organization
     ...(backendField.formGrouping && { formGrouping: backendField.formGrouping }),
   };

@@ -18,7 +18,6 @@ import { Permission } from '../../types/auth';
 import { SidebarMetersSection } from '../sidebar-meters';
 import { useMeterSelection } from '../../contexts/MeterSelectionContext';
 import { NotificationBell } from '../notifications';
-
 // Application-specific icon mappings
 const appIconMappings = {
   'contacts': 'contacts',
@@ -111,15 +110,8 @@ const menuItems: MenuItem[] = [
         requiredPermission: Permission.LOCATION_READ
       },
       {
-        id: 'notifications',
-        label: 'Notifications',
-        icon: 'notifications',
-        path: '/notifications',
-        requiredPermission: Permission.NOTIFICATION_RULE_READ
-      },
-      {
         id: 'notification-rules',
-        label: 'Notification Rules',
+        label: 'Notifications',
         icon: 'notifications',
         path: '/notification-rules',
         requiredPermission: Permission.NOTIFICATION_RULE_READ
@@ -240,7 +232,8 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
       name: user.name,
       email: user.email
     } : undefined,
-    notificationComponent: user ? <NotificationBell /> : undefined,
+
+    notificationComponent: <NotificationBell />,
     onLogout: logout,
     checkPermission: (permission?: string) => permission ? checkPermission(permission) : true,
     responsive,

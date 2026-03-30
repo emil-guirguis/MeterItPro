@@ -11,12 +11,11 @@ const UserManagementPage = lazy(() => import('../features/users').then(m => ({ d
 const LocationManagementPage = lazy(() => import('../features/locations').then(m => ({ default: m.LocationManagementPage })));
 const ContactManagementPage = lazy(() => import('../features/contacts').then(m => ({ default: m.ContactManagementPage })));
 const DeviceManagementPage = lazy(() => import('../features/devices').then(m => ({ default: m.DeviceManagementPage })));
-const NotificationManagementPage = lazy(() => import('../features/notifications').then(m => ({ default: m.NotificationManagementPage })));
-const NotificationRulesPage = lazy(() => import('../features/notifications').then(m => ({ default: m.NotificationRulesPage })));
 import { Permission } from '../types/auth';
 const SettingsPage = lazy(() => import('../pages').then(m => ({ default: m.SettingsPage })));
 const MetersPage = lazy(() => import('../pages').then(m => ({ default: m.MetersPage })));
 const ReportsPage = lazy(() => import('../pages').then(m => ({ default: m.ReportsPage })));
+const NotificationRulesPage = lazy(() => import('../features/notifications').then(m => ({ default: m.NotificationRulesPage })));
 import ManagementForm from '../components/management/ManagementForm';
 
 // Unauthorized page
@@ -140,16 +139,6 @@ const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute>
               <ReportsPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Notifications Route */}
-        <Route
-          path="/notifications"
-          element={
-            <ProtectedRoute>
-              <NotificationManagementPage />
             </ProtectedRoute>
           }
         />

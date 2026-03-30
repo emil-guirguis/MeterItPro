@@ -164,7 +164,6 @@ export const DashboardPage: React.FC = () => {
   const [cardDataMap, setCardDataMap] = useState<Record<number, AggregatedData | null>>({});
   const [cardLoadingMap, setCardLoadingMap] = useState<Record<number, boolean>>({});
   const [cardErrorMap, setCardErrorMap] = useState<Record<number, string | null>>({});
-  const [meters, setMeters] = useState<Array<{ id: number; name: string }>>([]);
   const [meterElements, setMeterElements] = useState<Array<{ id: number; name: string; element?: string }>>([]);
   const [powerColumns, setPowerColumns] = useState<Array<{ name: string; label: string; type?: string }>>([]);
   const [modalLoading, setModalLoading] = useState(false);
@@ -291,18 +290,8 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     console.log('📊 [DashboardPage] Component mounted, loading cards...');
     fetchCards();
-    fetchMeters();
   }, [fetchCards]);
 
-  // Fetch meters for the modal
-  const fetchMeters = useCallback(async () => {
-    try {
-      const metersData = await dashboardService.getMetersByTenant();
-      setMeters(metersData);
-    } catch (err) {
-      console.error('Error fetching meters:', err);
-    }
-  }, []);
 
   // Fetch power columns for the modal
   const fetchPowerColumns = useCallback(async (deviceId: number) => {
@@ -665,7 +654,7 @@ export const DashboardPage: React.FC = () => {
       <FrameworkDashboardCardForm
         isOpen={showModal}
         card={editingCard}
-        meters={meters}
+
         loading={modalLoading}
         error={modalError}
         onClose={handleModalClose}

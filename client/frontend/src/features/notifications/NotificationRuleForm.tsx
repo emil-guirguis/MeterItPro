@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Chip,
@@ -10,6 +10,12 @@ import {
   Alert,
   Collapse,
   TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Paper,
 } from '@mui/material';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import { BaseForm, FormContainer } from '@framework/components/form';
@@ -37,17 +43,19 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
   const [debugRunning, setDebugRunning] = useState(false);
   const [debugResult, setDebugResult] = useState<{ success: boolean; message: string } | null>(null);
   const [emailInput, setEmailInput] = useState('');
-
-  const [meters, setMeters] = useState<Array<{ id: number; name: string }>>([]);
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
-    apiClient.get('/meters', { params: { limit: 1000 } })
-      .then(res => {
-        const list = res.data?.data || res.data || [];
-        setMeters(Array.isArray(list) ? list : []);
-      })
-      .catch(() => setMeters([]));
-  }, []);
+    if (!rule?.notification_rule_id) return;
+    setHistoryLoading(true);
+    apiClient
+      .get(`/notification-rules/${rule.notification_rule_id}/history`)
+      .then((res) => setHistory(res.data?.data?.history || []))
+      .catch(() => setHistory([]))
+      .finally(() => setHistoryLoading(false));
+  }, [rule?.notification_rule_id]);
+
 
   const handleDebugRun = async () => {
     if (!rule?.notification_rule_id) return;
@@ -108,6 +116,61 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
           onLegacySubmit={onSubmit}
           loading={loading}
           showTabs={true}
+          renderTabContent={(tabName) => {
+            if (tabName !== 'History') return null;
+            if (!rule?.notification_rule_id) {
+              return (
+                <Box sx={{ p: 3 }}>
+                  <Typography color="textSecondary">Save the rule first to view its history.</Typography>
+                </Box>
+              );
+            }
+            if (historyLoading) {
+              return (
+                <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={16} />
+                  <Typography>Loading history...</Typography>
+                </Box>
+              );
+            }
+            if (history.length === 0) {
+              return (
+                <Box sx={{ p: 3 }}>
+                  <Typography color="textSecondary">No history yet. This rule has not run yet.</Typography>
+                </Box>
+              );
+            }
+            return (
+              <Paper variant="outlined" sx={{ mx: 2, mt: 1 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Title</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Sent At</TableCell>
+                      <TableCell>Description</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {history.map((row: any) => (
+                      <TableRow key={row.notification_history_id}>
+                        <TableCell>{row.title}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={row.status}
+                            size="small"
+                            color={row.status === 'sent' ? 'success' : row.status === 'failed' ? 'error' : 'default'}
+                          />
+                        </TableCell>
+                        <TableCell>{new Date(row.sent_at).toLocaleString()}</TableCell>
+                        <TableCell>{row.description || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Paper>
+            );
+          }}
           renderCustomField={(fieldName, fieldDef, value, error, isDisabled, onChange) => {
             // ── Cron field ──────────────────────────────────────────────────
             if (fieldName === 'schedule_cron') {
@@ -188,7 +251,6 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
               const parsed = typeof value === 'string' ? JSON.parse(value || '[]') : (value || []);
               return (
                 <MeterElementRegisterSelectorGrid
-                  meters={meters}
                   value={parsed}
                   onChange={(rows) => onChange(rows)}
                   disabled={isDisabled}

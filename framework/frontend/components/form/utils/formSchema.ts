@@ -27,6 +27,10 @@ export interface FieldDefinition<TValue = any> {
   label?: string;
   /** Where to show field (e.g., ['form', 'list']) */
   showOn?: string[];
+  /** Conditionally show this field only when another field has a specific value */
+  showIf?: { fieldName: string; value: any };
+  /** Help text shown below the field */
+  helpText?: string;
   /** Form grouping for tab/section organization */
   formGrouping?: {
     tabName: string;

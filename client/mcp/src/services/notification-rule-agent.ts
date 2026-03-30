@@ -1,7 +1,14 @@
 import nodemailer from 'nodemailer';
 import { db } from '../database/client.js';
-import { logger } from '../utils/logger.js';
+import { logger, formatSqlForDebug } from '../utils/logger.js';
 import { config } from '../config.js';
+
+interface MeterSelection {
+  id: string;
+  meter_id: number | null;
+  meter_element_ids: number[] | null;
+  register_field_names: string[];
+}
 
 interface NotificationRule {
   notification_rule_id: string;
@@ -9,20 +16,16 @@ interface NotificationRule {
   name: string;
   rule_type: string;
   threshold_hours: number | null;
+  demand_threshold: number | null;
   schedule_cron: string;
+  meter_selections: MeterSelection[] | string | null;
 }
 
 /** A (meter_id, meter_element_id) pair with the display name built the same way as favorites */
 interface MeterElementPair {
   meter_id: string;
   meter_element_id: string;
-  display_name: string; // "Meter Name    A-Phase"
-}
-
-export interface HourlyData {
-  hour: string;
-  label: string;
-  count: number;
+  display_name: string;
 }
 
 export class NotificationRuleAgent {
@@ -45,29 +48,66 @@ export class NotificationRuleAgent {
 
   // ─── Public API ───────────────────────────────────────────────────────────────
 
+  async loadRuleById(ruleId: string): Promise<NotificationRule | null> {
+    const sql = `SELECT notification_rule_id, tenant_id, name, rule_type,
+              threshold_hours, demand_threshold, schedule_cron, meter_selections
+       FROM notification_rule
+       WHERE notification_rule_id = $1`;
+    logger.info(`[SQL] loadRuleById:\n${formatSqlForDebug(sql, [ruleId])}`);
+    const result = await db.query<NotificationRule>(sql, [ruleId]);
+    if (result.rows.length === 0) {
+      logger.warn(`[rule] loadRuleById: no rule found for id=${ruleId}`);
+      return null;
+    }
+    const r = result.rows[0];
+    const rule = { ...r, meter_selections: this.parseMeterSelections(r.meter_selections) };
+    logger.info(`[rule] loaded rule: id=${rule.notification_rule_id} name="${rule.name}" type="${rule.rule_type}" threshold_hours=${rule.threshold_hours} meter_selections=${JSON.stringify(rule.meter_selections)}`);
+    return rule;
+  }
+
   async loadActiveRules(): Promise<NotificationRule[]> {
-    const result = await db.query<NotificationRule>(
-      `SELECT notification_rule_id, tenant_id, name, rule_type, threshold_hours, schedule_cron
+    const sql = `SELECT notification_rule_id, tenant_id, name, rule_type,
+              threshold_hours, demand_threshold, schedule_cron, meter_selections
        FROM notification_rule
        WHERE active = true
-       ORDER BY notification_rule_id ASC`
-    );
-    return result.rows;
+       ORDER BY notification_rule_id ASC`;
+    logger.info(`[SQL] loadActiveRules:\n${formatSqlForDebug(sql, [])}`);
+    const result = await db.query<NotificationRule>(sql);
+    return result.rows.map(r => ({
+      ...r,
+      meter_selections: this.parseMeterSelections(r.meter_selections),
+    }));
+  }
+
+  private parseMeterSelections(raw: any): MeterSelection[] | null {
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+      try { return JSON.parse(raw); } catch { return null; }
+    }
+    if (Array.isArray(raw)) return raw as MeterSelection[];
+    return null;
   }
 
   async executeRule(rule: NotificationRule): Promise<void> {
-    logger.info(`Executing notification rule: ${rule.name} (${rule.notification_rule_id}), type: ${rule.rule_type}`);
+    logger.info(`Executing rule: ${rule.name} (${rule.notification_rule_id}), type: ${rule.rule_type}`);
     try {
-      if (rule.rule_type === 'meter_no_reading') {
-        await this.checkMeterNoReading(rule);
-      } else if (rule.rule_type === 'meter_zero_reading') {
-        await this.checkMeterZeroReading(rule);
-      } else {
-        logger.debug(`Rule type '${rule.rule_type}' not handled by NotificationRuleAgent`);
+      switch (rule.rule_type) {
+        case 'meter_no_reading':
+          await this.checkMeterNoReading(rule);
+          break;
+        case 'meter_zero_reading':
+          await this.checkMeterZeroReading(rule);
+          break;
+        case 'demand_threshold':
+          await this.checkDemandThreshold(rule);
+          break;
+        default:
+          logger.warn(`Rule type '${rule.rule_type}' is not handled — no queries will run for rule ${rule.notification_rule_id}`);
       }
     } catch (error) {
       logger.error(`Failed to execute rule ${rule.notification_rule_id}`, {
         error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
       });
     }
   }
@@ -76,65 +116,59 @@ export class NotificationRuleAgent {
 
   /**
    * Returns the (meter_id, meter_element_id) pairs targeted by the rule.
-   * If the rule has no specific meters, returns every active (meter, element) for the tenant.
-   * Name is built using the same pattern as favorites:
-   *   CONCAT(meter.name, '    ', meter_element.element, '-', meter_element.name)
+   * Reads from meter_selections JSONB on the rule. If no selections are set,
+   * returns every active (meter, element) for the tenant.
    */
   private async getRuleMeterElements(rule: NotificationRule): Promise<MeterElementPair[]> {
-    const ruleMeters = await db.query<{ meter_id: string; meter_element_id: string | null }>(
-      `SELECT meter_id, meter_element_id
-       FROM notification_rule_meter
-       WHERE notification_rule_id = $1`,
-      [rule.notification_rule_id]
-    );
-
+    const selections = Array.isArray(rule.meter_selections) ? rule.meter_selections : null;
     let pairs: Array<{ meter_id: string; meter_element_id: string }>;
 
-    if (ruleMeters.rows.length > 0) {
-      // Rule has explicit meters; resolve any rows where meter_element_id is NULL
-      // to all elements of that meter
+    if (selections && selections.length > 0) {
       const resolved: Array<{ meter_id: string; meter_element_id: string }> = [];
-      for (const row of ruleMeters.rows) {
-        if (row.meter_element_id) {
-          resolved.push({ meter_id: row.meter_id, meter_element_id: row.meter_element_id });
+      for (const sel of selections) {
+        if (!sel.meter_id) continue;
+        const meterId = String(sel.meter_id);
+
+        if (sel.meter_element_ids && sel.meter_element_ids.length > 0) {
+          // Specific elements chosen
+          for (const elId of sel.meter_element_ids) {
+            resolved.push({ meter_id: meterId, meter_element_id: String(elId) });
+          }
         } else {
-          // No element specified → expand to all elements for this meter
-          const elements = await db.query<{ meter_element_id: string }>(
-            `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`,
-            [row.meter_id]
-          );
+          // No element filter → expand to all elements for this meter
+          const elemSql = `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`;
+          logger.info(`[SQL] expand elements for meter ${meterId}:\n${formatSqlForDebug(elemSql, [meterId])}`);
+          const elements = await db.query<{ meter_element_id: string }>(elemSql, [meterId]);
           for (const el of elements.rows) {
-            resolved.push({ meter_id: row.meter_id, meter_element_id: el.meter_element_id });
+            resolved.push({ meter_id: meterId, meter_element_id: el.meter_element_id });
           }
         }
       }
       pairs = resolved;
     } else {
       // No specific meters – check every active (meter, element) for the tenant
-      const all = await db.query<{ meter_id: string; meter_element_id: string }>(
-        `SELECT m.meter_id, me.meter_element_id
+      const allSql = `SELECT m.meter_id, me.meter_element_id
          FROM meter m
          JOIN meter_element me ON me.meter_id = m.meter_id
-         WHERE m.tenant_id = $1 AND m.active = true`,
-        [rule.tenant_id]
-      );
+         WHERE m.tenant_id = $1 AND m.active = true`;
+      logger.info(`[SQL] all tenant meter elements (rule ${rule.notification_rule_id}):\n${formatSqlForDebug(allSql, [rule.tenant_id])}`);
+      const all = await db.query<{ meter_id: string; meter_element_id: string }>(allSql, [rule.tenant_id]);
       pairs = all.rows;
     }
 
-    // Fetch display names in one query using the favorites naming pattern
-    if (pairs.length === 0) return [];
+    logger.info(`[rule] getRuleMeterElements: resolved ${pairs.length} pairs for rule ${rule.notification_rule_id}`);
+    if (pairs.length === 0) {
+      logger.warn(`[rule] no meter/element pairs found for rule ${rule.notification_rule_id} — nothing to check`);
+      return [];
+    }
 
+    // Fetch display names in one query
     const placeholders = pairs
       .map((_, i) => `($${i * 2 + 1}::bigint, $${i * 2 + 2}::bigint)`)
       .join(', ');
     const flatParams = pairs.flatMap(p => [p.meter_id, p.meter_element_id]);
 
-    const nameResult = await db.query<{
-      meter_id: string;
-      meter_element_id: string;
-      display_name: string;
-    }>(
-      `SELECT
+    const nameSql = `SELECT
          m.meter_id,
          me.meter_element_id,
          CONCAT(
@@ -146,9 +180,13 @@ export class NotificationRuleAgent {
          ) AS display_name
        FROM (VALUES ${placeholders}) AS v(mid, meid)
        JOIN meter         m  ON m.meter_id          = v.mid
-       JOIN meter_element me ON me.meter_element_id = v.meid`,
-      flatParams
-    );
+       JOIN meter_element me ON me.meter_element_id = v.meid`;
+    logger.info(`[SQL] fetch display names:\n${formatSqlForDebug(nameSql, flatParams)}`);
+    const nameResult = await db.query<{
+      meter_id: string;
+      meter_element_id: string;
+      display_name: string;
+    }>(nameSql, flatParams);
 
     return nameResult.rows.map(r => ({
       meter_id: String(r.meter_id),
@@ -157,248 +195,440 @@ export class NotificationRuleAgent {
     }));
   }
 
+  private async clearNotification(
+    tenantId: string,
+    meterId: string,
+    meterElementId: string,
+    notificationType: string
+  ): Promise<void> {
+    const sql = `DELETE FROM notification
+       WHERE tenant_id = $1 AND meter_id = $2 AND meter_element_id = $3 AND notification_type = $4`;
+    logger.info(`[SQL] clearNotification:\n${formatSqlForDebug(sql, [tenantId, meterId, meterElementId, notificationType])}`);
+    await db.query(sql, [tenantId, meterId, meterElementId, notificationType]);
+  }
+
+  private async upsertNotification(
+    tenantId: string,
+    meterId: string,
+    meterElementId: string,
+    notificationType: string,
+    severity: string,
+    title: string,
+    description: string
+  ): Promise<string> {
+    await this.clearNotification(tenantId, meterId, meterElementId, notificationType);
+    const insertSql = `INSERT INTO notification
+         (tenant_id, meter_id, meter_element_id, notification_type, severity, title, description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING notification_id`;
+    logger.info(`[SQL] upsertNotification:\n${formatSqlForDebug(insertSql, [tenantId, meterId, meterElementId, notificationType, severity, title, description])}`);
+    const result = await db.query<{ notification_id: string }>(insertSql, [tenantId, meterId, meterElementId, notificationType, severity, title, description]);
+    return result.rows[0]?.notification_id ?? '';
+  }
+
   // ─── meter_no_reading ─────────────────────────────────────────────────────────
+  //
+  // Fires when NO records exist in the threshold window.
+  // Clears the notification when readings resume.
 
   private async checkMeterNoReading(rule: NotificationRule): Promise<void> {
     const thresholdHours = rule.threshold_hours ?? 24;
     const pairs = await this.getRuleMeterElements(rule);
-
-    logger.info(`meter_no_reading: checking ${pairs.length} meter elements for rule ${rule.notification_rule_id}`);
+    logger.info(`meter_no_reading: checking ${pairs.length} meter elements`);
     for (const pair of pairs) {
-      await this.checkNoReadingForMeterElement(rule, pair, thresholdHours);
+      await this.checkNoReadingForPair(rule, pair, thresholdHours);
     }
   }
 
-  private async checkNoReadingForMeterElement(
+  private async checkNoReadingForPair(
     rule: NotificationRule,
     pair: MeterElementPair,
     thresholdHours: number
   ): Promise<void> {
-    // Count readings per hour for the threshold window, keyed on (meter_id, meter_element_id)
-    const hourlyResult = await db.query<{ hour: Date; count: string }>(
-      `SELECT date_trunc('hour', created_at) AS hour, COUNT(*) AS count
-       FROM meter_reading
-       WHERE meter_id = $1
-         AND meter_element_id = $2
-         AND created_at >= NOW() - ($3 || ' hours')::INTERVAL
-       GROUP BY 1
-       ORDER BY 1 ASC`,
-      [pair.meter_id, pair.meter_element_id, thresholdHours]
-    );
+    logger.info(`[rule] checkNoReadingForPair start: meter=${pair.meter_id} element=${pair.meter_element_id} threshold=${thresholdHours}h`);
 
-    // Build map: ISO-hour-prefix → count
-    const hourlyMap = new Map<string, number>();
-    for (const row of hourlyResult.rows) {
-      hourlyMap.set(new Date(row.hour).toISOString().slice(0, 13), parseInt(row.count, 10));
+    // Detect gaps in the reading sequence using LAG().
+    // A gap is any consecutive pair of readings more than 15 minutes apart.
+    // Looks back over the last threshold_hours window.
+    const gapSql = `
+      WITH ordered AS (
+        SELECT
+          created_at AS ts,
+          LAG(created_at) OVER (ORDER BY created_at) AS prev_ts
+        FROM meter_reading
+        WHERE tenant_id = $1
+          AND meter_id = $2
+          AND meter_element_id = $3
+          AND created_at >= NOW() - INTERVAL '1 hour' * $4
+          AND created_at IS NOT NULL
+      ),
+      gaps AS (
+        SELECT
+          prev_ts                                                          AS last_record_before_gap,
+          ts                                                               AS first_record_after_gap,
+          prev_ts + INTERVAL '15 minutes'                                  AS gap_starts_at,
+          ts - INTERVAL '15 minutes'                                       AS gap_ends_at,
+          ROUND(EXTRACT(EPOCH FROM (ts - prev_ts)) / 60)                  AS gap_duration_minutes,
+          FLOOR(EXTRACT(EPOCH FROM (ts - prev_ts)) / 900)::int - 1        AS missing_records_in_this_gap
+        FROM ordered
+        WHERE prev_ts IS NOT NULL
+          AND ts > prev_ts + INTERVAL '15 minutes'
+      )
+      SELECT
+        last_record_before_gap,
+        first_record_after_gap,
+        gap_starts_at,
+        gap_ends_at,
+        gap_duration_minutes,
+        missing_records_in_this_gap,
+        COUNT(*) OVER () AS total_number_of_gaps
+      FROM gaps
+      ORDER BY gap_duration_minutes DESC
+      LIMIT 100`;
+
+    const params = [rule.tenant_id, pair.meter_id, pair.meter_element_id, thresholdHours];
+    logger.info(`[SQL] checkNoReading gaps (meter=${pair.meter_id}, element=${pair.meter_element_id}):\n${formatSqlForDebug(gapSql, params)}`);
+
+    interface GapRow {
+      last_record_before_gap: Date;
+      first_record_after_gap: Date;
+      gap_starts_at: Date;
+      gap_ends_at: Date;
+      gap_duration_minutes: string;
+      missing_records_in_this_gap: number;
+      total_number_of_gaps: string;
     }
 
-    // Generate all hour slots in the window
-    const now = new Date();
-    const hourlyData: HourlyData[] = [];
-    for (let i = thresholdHours - 1; i >= 0; i--) {
-      const slot = new Date(now);
-      slot.setHours(slot.getHours() - i, 0, 0, 0);
-      const key = slot.toISOString().slice(0, 13);
-      hourlyData.push({
-        hour: slot.toISOString(),
-        label: slot.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-        count: hourlyMap.get(key) ?? 0,
+    let gapResult: { rows: GapRow[] };
+    try {
+      gapResult = await db.query<GapRow>(gapSql, params);
+    } catch (queryErr) {
+      logger.error(`[rule] gap query failed for meter=${pair.meter_id} element=${pair.meter_element_id}`, {
+        error: queryErr instanceof Error ? queryErr.message : String(queryErr),
+        stack: queryErr instanceof Error ? queryErr.stack : undefined,
       });
-    }
-
-    const gapHours = hourlyData.filter(h => h.count === 0);
-    if (gapHours.length === 0) {
-      logger.info(`No gaps for ${pair.display_name}`);
       return;
     }
 
-    const totalReadings = hourlyData.reduce((s, h) => s + h.count, 0);
-    const description = JSON.stringify({
-      summary: `Found ${gapHours.length} gap hour${gapHours.length !== 1 ? 's' : ''} in the last ${thresholdHours} hours`,
-      hourly_data: hourlyData,
-      gap_hours: gapHours.map(h => h.label),
-      total_readings: totalReadings,
-      threshold_hours: thresholdHours,
-    });
+    const hasGaps = gapResult.rows.length > 0;
+    logger.info(`[rule] gap check: meter=${pair.meter_id} element=${pair.meter_element_id} rows=${gapResult.rows.length} gaps=${hasGaps ? gapResult.rows[0].total_number_of_gaps : 0} threshold=${thresholdHours}h tenant=${rule.tenant_id}`);
+    logger.info(`[rule] gap results:\n${JSON.stringify(gapResult.rows, null, 2)}`);
 
-    const title = `${pair.display_name} – ${gapHours.length} gap${gapHours.length !== 1 ? 's' : ''} in last ${thresholdHours}h`;
+    if (!hasGaps) {
+      await this.clearNotification(rule.tenant_id, pair.meter_id, pair.meter_element_id, 'meter_no_reading');
+      return;
+    }
 
-    // Replace existing notification for this (meter, element) pair so the chart stays current
-    await db.query(
-      `DELETE FROM notification
-       WHERE tenant_id = $1 AND meter_id = $2 AND meter_element_id = $3 AND notification_type = 'meter_no_reading'`,
-      [rule.tenant_id, pair.meter_id, pair.meter_element_id]
+    // rows[0] is the largest gap (ORDER BY gap_duration_minutes DESC)
+    const worst = gapResult.rows[0];
+    const totalGaps = parseInt(worst.total_number_of_gaps, 10);
+    const gapMinutes = parseFloat(worst.gap_duration_minutes);
+    const gapHours = Math.round((gapMinutes / 60) * 10) / 10;
+    const gapStart = new Date(worst.gap_starts_at);
+    const gapEnd = new Date(worst.gap_ends_at);
+
+    const title = `${pair.display_name} – ${totalGaps} reading gap${totalGaps !== 1 ? 's' : ''} detected`;
+    const description = `Largest gap: ${gapMinutes} min (${gapStart.toLocaleString()} – ${gapEnd.toLocaleString()}). `
+      + `${totalGaps} gap${totalGaps !== 1 ? 's' : ''} found in the last ${thresholdHours}h window.`;
+
+    const notificationId = await this.upsertNotification(
+      rule.tenant_id, pair.meter_id, pair.meter_element_id,
+      'meter_no_reading', 'error', title, description
     );
-    const insertResult = await db.query<{ notification_id: string }>(
-      `INSERT INTO notification
-         (tenant_id, meter_id, meter_element_id, notification_type, severity, title, description)
-       VALUES ($1, $2, $3, 'meter_no_reading', 'warning', $4, $5)
-       RETURNING notification_id`,
-      [rule.tenant_id, pair.meter_id, pair.meter_element_id, title, description]
-    );
-    logger.info('meter_no_reading notification created', {
-      notification_id: insertResult.rows[0]?.notification_id,
+    logger.info('meter_no_reading alert', {
+      notification_id: notificationId,
       meter: pair.display_name,
-      gaps: gapHours.length,
+      total_gaps: totalGaps,
+      largest_gap_minutes: gapMinutes,
     });
 
     const recipients = await this.getEmailRecipients(rule.notification_rule_id);
     if (recipients.length > 0) {
-      await this.sendGapEmail(rule, pair.display_name, hourlyData, gapHours, recipients);
+      await this.sendNoReadingEmail(
+        rule, pair.display_name, thresholdHours, gapHours,
+        gapStart, gapEnd,
+        recipients
+      );
     }
   }
 
   // ─── meter_zero_reading ───────────────────────────────────────────────────────
+  //
+  // Fires when readings DO exist in the threshold window but every single one
+  // shows kWh = 0 AND kW = 0 (meter is communicating but measuring nothing).
+  // Clears the notification when any non-zero reading appears.
 
   private async checkMeterZeroReading(rule: NotificationRule): Promise<void> {
     const thresholdHours = rule.threshold_hours ?? 24;
     const pairs = await this.getRuleMeterElements(rule);
-
+    logger.info(`meter_zero_reading: checking ${pairs.length} meter elements`);
     for (const pair of pairs) {
-      await this.checkZeroReadingForMeterElement(rule, pair, thresholdHours);
+      await this.checkZeroReadingForPair(rule, pair, thresholdHours);
     }
   }
 
-  private async checkZeroReadingForMeterElement(
+  private async checkZeroReadingForPair(
     rule: NotificationRule,
     pair: MeterElementPair,
     thresholdHours: number
   ): Promise<void> {
-    const latestResult = await db.query<{ kwh: string; kw: string }>(
-      `SELECT kwh, kw FROM meter_reading
+    const zeroSql = `SELECT
+         COUNT(*)                                          AS total,
+         COUNT(*) FILTER (WHERE kwh = 0 AND kw = 0)      AS zero_count
+       FROM meter_reading
+       WHERE meter_id = $1
+         AND meter_element_id = $2
+         AND created_at >= NOW() - ($3 || ' hours')::INTERVAL`;
+    logger.info(`[SQL] checkZeroReading (meter=${pair.meter_id}, element=${pair.meter_element_id}):\n${formatSqlForDebug(zeroSql, [pair.meter_id, pair.meter_element_id, thresholdHours])}`);
+    const result = await db.query<{ total: string; zero_count: string }>(zeroSql, [pair.meter_id, pair.meter_element_id, thresholdHours]);
+
+    const total = parseInt(result.rows[0]?.total ?? '0', 10);
+    const zeroCount = parseInt(result.rows[0]?.zero_count ?? '0', 10);
+    const allZero = total > 0 && total === zeroCount;
+
+    if (!allZero) {
+      // Either no readings (meter_no_reading's job) or some non-zero readings — clear
+      await this.clearNotification(rule.tenant_id, pair.meter_id, pair.meter_element_id, 'meter_zero_reading');
+      return;
+    }
+
+    const title = `${pair.display_name} – ${total} reading${total !== 1 ? 's' : ''} all zero`;
+    const description = `All ${total} reading${total !== 1 ? 's' : ''} in the last ${thresholdHours} hours show kWh = 0 and kW = 0. The meter is communicating but reporting no energy.`;
+
+    const notificationId = await this.upsertNotification(
+      rule.tenant_id, pair.meter_id, pair.meter_element_id,
+      'meter_zero_reading', 'warning', title, description
+    );
+    logger.info('meter_zero_reading notification created', {
+      notification_id: notificationId,
+      meter: pair.display_name,
+      total_readings: total,
+    });
+
+    const recipients = await this.getEmailRecipients(rule.notification_rule_id);
+    if (recipients.length > 0) {
+      await this.sendZeroReadingEmail(rule, pair.display_name, thresholdHours, total, recipients);
+    }
+  }
+
+  // ─── demand_threshold ─────────────────────────────────────────────────────────
+  //
+  // Fires when any reading in the threshold window has kW > demand_threshold.
+  // Clears when no breach exists in the current window.
+
+  private async checkDemandThreshold(rule: NotificationRule): Promise<void> {
+    if (!rule.demand_threshold) {
+      logger.warn(`Rule ${rule.notification_rule_id} (demand_threshold) has no threshold value set — skipping`);
+      return;
+    }
+    const pairs = await this.getRuleMeterElements(rule);
+    logger.info(`demand_threshold: checking ${pairs.length} meter elements, threshold=${rule.demand_threshold} kW`);
+    for (const pair of pairs) {
+      await this.checkDemandThresholdForPair(rule, pair);
+    }
+  }
+
+  private async checkDemandThresholdForPair(
+    rule: NotificationRule,
+    pair: MeterElementPair
+  ): Promise<void> {
+    const thresholdHours = rule.threshold_hours ?? 1;
+
+    const demandSql = `SELECT kw, created_at
+       FROM meter_reading
        WHERE meter_id = $1
          AND meter_element_id = $2
          AND created_at >= NOW() - ($3 || ' hours')::INTERVAL
-       ORDER BY created_at DESC LIMIT 1`,
-      [pair.meter_id, pair.meter_element_id, thresholdHours]
-    );
+         AND kw > $4
+       ORDER BY kw DESC
+       LIMIT 1`;
+    logger.info(`[SQL] checkDemandThreshold (meter=${pair.meter_id}, element=${pair.meter_element_id}):\n${formatSqlForDebug(demandSql, [pair.meter_id, pair.meter_element_id, thresholdHours, rule.demand_threshold])}`);
+    const result = await db.query<{ kw: string; created_at: Date }>(demandSql, [pair.meter_id, pair.meter_element_id, thresholdHours, rule.demand_threshold]);
 
-    if (latestResult.rows.length === 0) return;
+    if (result.rows.length === 0) {
+      // No breach in window — clear standing notification
+      await this.clearNotification(rule.tenant_id, pair.meter_id, pair.meter_element_id, 'demand_threshold');
+      return;
+    }
 
-    const { kwh, kw } = latestResult.rows[0];
-    if (Number(kwh) !== 0 || Number(kw) !== 0) return;
+    const peakKw = Number(result.rows[0].kw);
+    const peakAt = new Date(result.rows[0].created_at);
+    const threshold = Number(rule.demand_threshold);
 
-    await db.query(
-      `DELETE FROM notification
-       WHERE tenant_id = $1 AND meter_id = $2 AND meter_element_id = $3 AND notification_type = 'meter_zero_reading'`,
-      [rule.tenant_id, pair.meter_id, pair.meter_element_id]
+    const title = `${pair.display_name} – Peak demand ${peakKw.toFixed(1)} kW exceeds ${threshold} kW`;
+    const description = `Peak demand of ${peakKw.toFixed(1)} kW recorded at ${peakAt.toISOString()}, exceeding the configured threshold of ${threshold} kW.`;
+
+    const notificationId = await this.upsertNotification(
+      rule.tenant_id, pair.meter_id, pair.meter_element_id,
+      'demand_threshold', 'error', title, description
     );
-    await db.query(
-      `INSERT INTO notification
-         (tenant_id, meter_id, meter_element_id, notification_type, severity, title, description)
-       VALUES ($1, $2, $3, 'meter_zero_reading', 'warning', $4, $5)`,
-      [
-        rule.tenant_id,
-        pair.meter_id,
-        pair.meter_element_id,
-        `${pair.display_name} – Zero energy readings`,
-        'Latest reading shows both kWh and kW at zero',
-      ]
-    );
-    logger.info('meter_zero_reading notification created', { meter: pair.display_name });
+    logger.info('demand_threshold notification created', {
+      notification_id: notificationId,
+      meter: pair.display_name,
+      peak_kw: peakKw,
+      threshold,
+    });
+
+    const recipients = await this.getEmailRecipients(rule.notification_rule_id);
+    if (recipients.length > 0) {
+      await this.sendDemandThresholdEmail(rule, pair.display_name, peakKw, threshold, peakAt, recipients);
+    }
   }
 
   // ─── Email helpers ────────────────────────────────────────────────────────────
 
   private async getEmailRecipients(ruleId: string): Promise<string[]> {
-    const result = await db.query<{ email_address: string | null }>(
-      `SELECT COALESCE(r.email_address, u.email) AS email_address
+    const recipSql = `SELECT COALESCE(r.email_address, u.email) AS email_address
        FROM notification_rule_recipient r
        LEFT JOIN users u ON u.users_id = r.users_id
-       WHERE r.notification_rule_id = $1 AND r.receive_email = true`,
-      [ruleId]
-    );
+       WHERE r.notification_rule_id = $1 AND r.receive_email = true`;
+    logger.info(`[SQL] getEmailRecipients (rule=${ruleId}):\n${formatSqlForDebug(recipSql, [ruleId])}`);
+    const result = await db.query<{ email_address: string | null }>(recipSql, [ruleId]);
     return result.rows.map(r => r.email_address).filter((e): e is string => !!e);
   }
 
-  private async sendGapEmail(
-    rule: NotificationRule,
-    displayName: string,
-    hourlyData: HourlyData[],
-    gapHours: HourlyData[],
-    recipients: string[]
-  ): Promise<void> {
+  private async sendEmail(to: string[], subject: string, html: string): Promise<void> {
     if (!this.transporter) {
-      logger.warn('Email transporter not available – skipping gap email');
+      logger.warn('Email transporter not available — skipping notification email');
       return;
     }
-
-    const html = this.buildGapEmailHtml(rule, displayName, hourlyData, gapHours);
-    const subject = `Alert: ${displayName} – ${gapHours.length} missing reading${gapHours.length !== 1 ? 's' : ''} (last ${rule.threshold_hours ?? 24}h)`;
-
-    for (const to of recipients) {
+    for (const recipient of to) {
       try {
-        await this.transporter.sendMail({ from: config.email.from, to, subject, html });
-        logger.info(`Gap notification email sent to ${to}`);
+        await this.transporter.sendMail({ from: config.email.from, to: recipient, subject, html });
+        logger.info(`Notification email sent to ${recipient}`);
       } catch (error) {
-        logger.error(`Failed to send gap email to ${to}`, {
+        logger.error(`Failed to send notification email to ${recipient}`, {
           error: error instanceof Error ? error.message : String(error),
         });
       }
     }
   }
 
-  private buildGapEmailHtml(
+  private async sendNoReadingEmail(
     rule: NotificationRule,
     displayName: string,
-    hourlyData: HourlyData[],
-    gapHours: HourlyData[]
-  ): string {
-    const maxCount = Math.max(...hourlyData.map(h => h.count), 1);
-    const barWidth = Math.max(Math.floor(600 / hourlyData.length), 12);
+    thresholdHours: number,
+    gapHours: number,
+    gapStart: Date,
+    gapEnd: Date,
+    recipients: string[]
+  ): Promise<void> {
+    const html = this.buildEmailHtml({
+      headerColor: '#c62828',
+      headerTitle: 'Missing Meter Readings Alert',
+      headerSubtitle: `${rule.name} — ${displayName}`,
+      body: `
+        <p>
+          A gap of <strong>${gapHours} hours</strong> was detected for
+          <strong>${displayName}</strong> within the last 24 hours,
+          exceeding the configured threshold of <strong>${thresholdHours} hour${thresholdHours !== 1 ? 's' : ''}</strong>.
+        </p>
+        <p>
+          <strong>Gap period:</strong> ${gapStart.toLocaleString()} &mdash; ${gapEnd.toLocaleString()}
+        </p>
+        <p>Please check the meter connection and BACnet configuration.</p>
+      `,
+      ruleName: rule.name,
+    });
 
-    const barsHtml = hourlyData
-      .map(h => {
-        const pct = Math.round((h.count / maxCount) * 100);
-        const barColor = h.count === 0 ? '#ef5350' : '#42a5f5';
-        return `
-          <td style="padding:1px 2px;vertical-align:bottom;text-align:center;width:${barWidth}px;">
-            <div style="background:${barColor};height:${Math.max(pct, 2)}px;width:100%;margin-bottom:2px;"></div>
-            <div style="font-size:9px;color:#666;white-space:nowrap;">${h.label}</div>
-            <div style="font-size:10px;font-weight:bold;">${h.count}</div>
-          </td>`;
-      })
-      .join('');
+    await this.sendEmail(
+      recipients,
+      `Alert: ${displayName} – ${gapHours}h gap in readings`,
+      html
+    );
+  }
 
+  private async sendZeroReadingEmail(
+    rule: NotificationRule,
+    displayName: string,
+    thresholdHours: number,
+    totalReadings: number,
+    recipients: string[]
+  ): Promise<void> {
+    const html = this.buildEmailHtml({
+      headerColor: '#e65100',
+      headerTitle: 'Zero Energy Readings Alert',
+      headerSubtitle: `${rule.name} — ${displayName}`,
+      body: `
+        <p>
+          <strong>${displayName}</strong> has sent
+          <strong>${totalReadings} reading${totalReadings !== 1 ? 's' : ''}</strong>
+          in the last <strong>${thresholdHours} hour${thresholdHours !== 1 ? 's' : ''}</strong>,
+          but every reading shows <strong>kWh = 0</strong> and <strong>kW = 0</strong>.
+        </p>
+        <p>
+          The meter is communicating but reporting no energy consumption.
+          This may indicate a wiring issue, CT clamp problem, or meter configuration error.
+        </p>
+      `,
+      ruleName: rule.name,
+    });
+
+    await this.sendEmail(
+      recipients,
+      `Alert: ${displayName} – All ${totalReadings} readings are zero`,
+      html
+    );
+  }
+
+  private async sendDemandThresholdEmail(
+    rule: NotificationRule,
+    displayName: string,
+    peakKw: number,
+    threshold: number,
+    peakAt: Date,
+    recipients: string[]
+  ): Promise<void> {
+    const overBy = (peakKw - threshold).toFixed(1);
+    const html = this.buildEmailHtml({
+      headerColor: '#1565c0',
+      headerTitle: 'Demand Threshold Exceeded',
+      headerSubtitle: `${rule.name} — ${displayName}`,
+      body: `
+        <p>
+          <strong>${displayName}</strong> reached a peak demand of
+          <strong>${peakKw.toFixed(1)} kW</strong> at ${peakAt.toLocaleString()},
+          exceeding the configured threshold of <strong>${threshold} kW</strong>
+          by <strong>${overBy} kW</strong>.
+        </p>
+        <p>Review load scheduling or consider increasing demand capacity.</p>
+      `,
+      ruleName: rule.name,
+    });
+
+    await this.sendEmail(
+      recipients,
+      `Alert: ${displayName} – Peak demand ${peakKw.toFixed(1)} kW exceeds ${threshold} kW`,
+      html
+    );
+  }
+
+  private buildEmailHtml(opts: {
+    headerColor: string;
+    headerTitle: string;
+    headerSubtitle: string;
+    body: string;
+    ruleName: string;
+  }): string {
     return `<!DOCTYPE html>
 <html>
 <head>
   <style>
-    body { font-family: Arial, sans-serif; color: #333; margin: 0; padding: 0; }
-    .header { background: #d32f2f; color: white; padding: 16px 20px; }
-    .header h2 { margin: 0 0 4px; font-size: 18px; }
-    .header p  { margin: 0; font-size: 13px; opacity: .85; }
-    .body  { padding: 20px; }
-    .gap-list { color: #d32f2f; font-weight: bold; }
-    .chart-wrap { overflow-x: auto; margin: 16px 0; }
-    .chart-table { border-collapse: collapse; min-width: 600px; }
-    .legend { font-size: 11px; color: #777; margin-top: 4px; }
-    .footer { border-top: 1px solid #eee; padding: 12px 20px; font-size: 11px; color: #999; }
+    body  { font-family: Arial, sans-serif; color: #333; margin: 0; padding: 0; }
+    .hdr  { background: ${opts.headerColor}; color: #fff; padding: 16px 20px; }
+    .hdr h2 { margin: 0 0 4px; font-size: 18px; }
+    .hdr p  { margin: 0; font-size: 13px; opacity: .85; }
+    .body { padding: 20px; line-height: 1.6; }
+    .foot { border-top: 1px solid #eee; padding: 12px 20px; font-size: 11px; color: #999; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h2>Missing Meter Readings Alert</h2>
-    <p>${rule.name} &mdash; ${displayName}</p>
+  <div class="hdr">
+    <h2>${opts.headerTitle}</h2>
+    <p>${opts.headerSubtitle}</p>
   </div>
-  <div class="body">
-    <p>
-      <strong class="gap-list">${gapHours.length} gap hour${gapHours.length !== 1 ? 's' : ''}</strong>
-      detected in the last <strong>${rule.threshold_hours ?? 24} hours</strong> for
-      <strong>${displayName}</strong>.
-    </p>
-    <p>Missing at: <span class="gap-list">${gapHours.map(h => h.label).join(', ')}</span></p>
-    <h3 style="margin-bottom:8px;">Readings per Hour</h3>
-    <div class="chart-wrap">
-      <table class="chart-table">
-        <tr style="vertical-align:bottom;height:120px;">${barsHtml}</tr>
-      </table>
-    </div>
-    <p class="legend">&#9632; Blue = readings received &nbsp; &#9632; Red = no readings (gap)</p>
-  </div>
-  <div class="footer">
-    Automated alert from MeterItPro &mdash; Rule: ${rule.name}
-  </div>
+  <div class="body">${opts.body}</div>
+  <div class="foot">Automated alert from MeterItPro &mdash; Rule: ${opts.ruleName}</div>
 </body>
 </html>`;
   }

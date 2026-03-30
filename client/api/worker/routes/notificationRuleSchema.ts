@@ -5,7 +5,7 @@ export const notificationRuleSchema = defineSchema({
   entityName: 'NotificationRule',
   tableName: 'notification_rule',
   description: 'Custom notification rules for meter monitoring and alerting',
-  formMaxWidth: '700px',
+  formMaxWidth: '800px',
 
   formTabs: [
     tab({
@@ -84,7 +84,7 @@ export const notificationRuleSchema = defineSchema({
               required: false,
               label: 'Meter',
               dbField: 'meter_selections',
-              helpText: 'Select the meter, element and registers to monitor',
+              helpText: 'Select the meter, element and registers to monitor. Leave empty to check all meters.',
               showOn: ['form'],
               customField: true,
             }),
@@ -170,6 +170,18 @@ export const notificationRuleSchema = defineSchema({
               customField: true,
             }),
           ],
+        }),
+      ],
+    }),
+    tab({
+      name: 'History',
+      order: 4,
+      sections: [
+        section({
+          name: 'Execution History',
+          order: 1,
+          flex: 1,
+          fields: [],
         }),
       ],
     }),

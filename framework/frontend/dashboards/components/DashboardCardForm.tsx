@@ -28,7 +28,8 @@ import './DashboardCardForm.css';
 export interface DashboardCardModalProps {
   isOpen: boolean;
   card?: any | null;
-  meters: Array<{ id: number; name: string }>;
+  /** Optional — when omitted the grid fetches meters itself. */
+  meters?: Array<{ id: number; name: string }>;
   /** @deprecated No longer used — grid loads elements internally */
   meterElements?: Array<{ meter_element_id: number; name: string; element?: string }>;
   /** @deprecated No longer used */

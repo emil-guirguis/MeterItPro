@@ -224,7 +224,11 @@ export function DataTable<T extends Record<string, any>>({
             </div>
           ) : (
             sortedData.map((item, index) => (
-              <div key={item.id || index} className="data-table__card">
+              <div
+                key={item.id || index}
+                className={`data-table__card ${(onView || onEdit) ? 'data-table__card--clickable' : ''}`}
+                onClick={(onView || onEdit) ? () => (onView ?? onEdit)!(item) : undefined}
+              >
                 {onSelect && (
                   <div className="data-table__card-select">
                     <input
@@ -381,10 +385,10 @@ export function DataTable<T extends Record<string, any>>({
               </tr>
             ) : (
               sortedData.map((item, index) => (
-                <tr 
-                  key={item.id || index} 
-                  className={`data-table__row ${onView ? 'data-table__row--clickable' : ''}`}
-                  onClick={onView ? () => onView(item) : undefined}
+                <tr
+                  key={item.id || index}
+                  className={`data-table__row ${(onView || onEdit) ? 'data-table__row--clickable' : ''}`}
+                  onClick={(onView || onEdit) ? () => (onView ?? onEdit)!(item) : undefined}
                 >
                   {onSelect && (
                     <td className="data-table__cell data-table__cell--select">

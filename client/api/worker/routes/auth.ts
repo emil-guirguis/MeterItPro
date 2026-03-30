@@ -108,7 +108,7 @@ async function logAuthEvent(
         params.userId || null,
         params.eventType,
         params.status,
-        params.ipAddress || null,
+        params.ipAddress && /^[\d.:a-fA-F]+$/.test(params.ipAddress) ? params.ipAddress : null,
         params.userAgent || null,
         params.details ? JSON.stringify(params.details) : null,
       ]
@@ -429,7 +429,7 @@ auth.post('/login', async (c) => {
       return c.json({ success: false, message: 'Validation failed', errors: [{ msg: 'Password is required' }] }, 400);
     }
 
-    const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
+    const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || undefined;
     const userAgent = c.req.header('user-agent') || '';
 
     // Find user by email
@@ -625,7 +625,7 @@ auth.post('/verify-2fa', async (c) => {
       return c.json({ success: false, message: 'Validation failed', errors: [{ msg: 'Invalid 2FA method' }] }, 400);
     }
 
-    const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
+    const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || undefined;
     const userAgent = c.req.header('user-agent') || '';
 
     // Verify session token

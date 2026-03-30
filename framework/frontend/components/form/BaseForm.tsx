@@ -972,7 +972,15 @@ export const BaseForm: React.FC<BaseFormProps> = ({
               });
 
               // fieldNames should always be an array from useFormTabs
-              const visibleFields = (Array.isArray(fieldNames) ? fieldNames : []).filter(f => !excludeFields.includes(f));
+              const visibleFields = (Array.isArray(fieldNames) ? fieldNames : []).filter(f => {
+                if (excludeFields.includes(f)) return false;
+                const fieldDef = schema?.formFields?.[f] || schema?.entityFields?.[f];
+                if (fieldDef?.showIf) {
+                  const { fieldName: condField, value: condValue } = fieldDef.showIf;
+                  return form?.formData?.[condField] === condValue;
+                }
+                return true;
+              });
               console.log('[BaseForm] Visible fields in section:', { sectionTitle, visibleFields });
 
               if (visibleFields.length === 0) {

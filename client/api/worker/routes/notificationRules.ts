@@ -241,6 +241,53 @@ app.put('/:id', async (c) => {
   }
 });
 
+// GET /:id/history - Get notification history for a rule
+app.get('/:id/history', async (c) => {
+  try {
+    const tenantId = c.get('tenantId');
+    const id = c.req.param('id');
+
+    if (isNaN(Number(id))) {
+      return c.json({ success: false, message: 'Invalid rule ID' }, 400);
+    }
+
+    const qs = c.req.query();
+    let page = parseInt(qs.page || '1') || 1;
+    let limit = parseInt(qs.limit || '20') || 20;
+    if (page < 1) page = 1;
+    if (limit < 1 || limit > 100) limit = 20;
+    const offset = (page - 1) * limit;
+
+    const countResult = await query(
+      c.env,
+      `SELECT COUNT(*) as total FROM public.notification_history WHERE notification_rule_id = $1 AND tenant_id = $2`,
+      [id, tenantId]
+    );
+    const total = parseInt(countResult.rows[0].total, 10);
+
+    const result = await query(
+      c.env,
+      `SELECT notification_history_id, title, description, status, sent_at, created_at
+       FROM public.notification_history
+       WHERE notification_rule_id = $1 AND tenant_id = $2
+       ORDER BY sent_at DESC
+       LIMIT $3 OFFSET $4`,
+      [id, tenantId, limit, offset]
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        history: result.rows,
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      },
+    });
+  } catch (error: any) {
+    logError('Error fetching notification rule history:', error);
+    return c.json({ success: false, message: 'Failed to fetch notification rule history' }, 500);
+  }
+});
+
 // DELETE /:id - Delete a notification rule
 app.delete('/:id', async (c) => {
   try {

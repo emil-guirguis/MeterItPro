@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import dotenv from 'dotenv';
-dotenv.config();
+
+// Resolve .env relative to this file so it works regardless of process.cwd()
+const __dirname_local = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: resolve(__dirname_local, '../.env') });
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -305,6 +310,81 @@ function startDebugServer(scheduler: SchedulerService): void {
         })
         .catch(err => {
           logger.error('[debug] Error running notification rules', { error: err.message });
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        });
+      return;
+    }
+
+    // POST /debug/run-all-reports — run all active reports immediately
+    if (req.method === 'POST' && req.url === '/debug/run-all-reports') {
+      logger.info('[debug] Manually triggering all reports via debug endpoint');
+      scheduler
+        .runAllReports()
+        .then(result => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, ...result }));
+        })
+        .catch(err => {
+          logger.error('[debug] Error running reports', { error: err.message });
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        });
+      return;
+    }
+
+    // POST /debug/run-report/:id — run a single report by ID
+    const reportMatch = req.url?.match(/^\/debug\/run-report\/(\d+)$/);
+    if (req.method === 'POST' && reportMatch) {
+      const reportId = reportMatch[1];
+      logger.info(`[debug] Manually triggering report ${reportId}`);
+      scheduler
+        .runReport(reportId)
+        .then(result => {
+          if (!result.found) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: `Report ${reportId} not found or inactive` }));
+          } else {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, report_id: reportId }));
+          }
+        })
+        .catch(err => {
+          logger.error(`[debug] Error running report ${reportId}`, { error: err.message });
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        });
+      return;
+    }
+
+    // POST /debug/reload-reports — reconcile report jobs with DB
+    if (req.method === 'POST' && req.url === '/debug/reload-reports') {
+      logger.info('[debug] Reloading report jobs from database');
+      scheduler
+        .reconcileReports()
+        .then(result => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, ...result }));
+        })
+        .catch(err => {
+          logger.error('[debug] Error reloading reports', { error: err.message });
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        });
+      return;
+    }
+
+    // POST /debug/reload-notification-rules — reconcile rule jobs with DB
+    if (req.method === 'POST' && req.url === '/debug/reload-notification-rules') {
+      logger.info('[debug] Reloading notification rule jobs from database');
+      scheduler
+        .reconcileNotificationRules()
+        .then(result => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, ...result }));
+        })
+        .catch(err => {
+          logger.error('[debug] Error reloading notification rules', { error: err.message });
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: err.message }));
         });
