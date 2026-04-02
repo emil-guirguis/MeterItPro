@@ -8,23 +8,27 @@
     "build": "tsc",
     "start": "node --env-file=../../.env dist/server.js",
     "dev": "tsx watch --env-file=../../.env src/server.ts",
-    "dev:node": "npm run build && node --env-file=../../.env dist/server.js"
+    "dev:node": "npm run build && node --env-file=../../.env dist/server.js",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --run --coverage"
   },
   "dependencies": {
     "dotenv": "^16.0.0",
     "express": "^5.1.0",
     "pg": "^8.16.3",
-    "swagger-ui-express": "^5.0.0",
-    "swagger-jsdoc": "^6.2.8"
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.5",
     "@types/node": "^20.19.25",
     "@types/pg": "^8.15.5",
-    "@types/swagger-ui-express": "^4.1.6",
     "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.6",
     "tsx": "^4.19.4",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.2"
   },
   "keywords": [
     "sync",

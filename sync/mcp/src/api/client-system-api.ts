@@ -122,7 +122,7 @@ export class ClientSystemApiClient {
     // Transform readings to API format - include all fields
     const request: BatchUploadRequest = {
       readings: readings.map((r) => ({
-        meter_id: r.meter_id,
+        meter_id: r.meter_id!,
         meter_element_id: r.meter_element_id ?? null,
         created_at: r.created_at,
         kwh: r.kwh ?? null,

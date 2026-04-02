@@ -13,9 +13,10 @@ import {
 } from '@mui/material';
 import { BaseForm, FormContainer } from '@framework/components/form';
 import { CronField } from '@framework/components/formfield/CronField';
-import { DeviceRegisterChecklist } from '../../components/shared/DeviceRegisterChecklist';
 import { useReportsEnhanced } from './reportsStore';
-import { RecipientsField, MeterElementSelector, RegisterSelector } from './components';
+import { RecipientsField } from './components';
+import { MeterElementRegisterSelectorGrid } from '../../components/shared/MeterElementRegisterSelectorGrid';
+import type { MeterRowValue } from '../../components/shared/MeterElementRegisterSelectorGrid';
 import apiClient from '../../services/apiClient';
 import type { Report } from './types';
 import './ReportForm.css';
@@ -62,7 +63,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
       <div className="form-container__content">
         <BaseForm
           schemaName="report"
-          entity={report}
+          entity={report ? { ...report, id: report.report_id } : undefined}
           store={reports}
           onCancel={onCancel}
           onLegacySubmit={onSubmit}
@@ -151,42 +152,17 @@ export const ReportForm: React.FC<ReportFormProps> = ({
               );
             }
 
-            // Custom rendering for meter_ids and element_ids fields
-            if (fieldName === 'meter_ids' || fieldName === 'element_ids') {
+            // Custom rendering for meter_selections field
+            if (fieldName === 'meter_selections') {
+              const rows: MeterRowValue[] = Array.isArray(value) ? value : [];
               return (
-                <MeterElementSelector
-                  value={{
-                    meter_ids: report?.meter_ids || [],
-                    element_ids: report?.element_ids || [],
-                  }}
-                  error={error}
-                  isDisabled={isDisabled}
-                  onChange={(newValue) => {
-                    // Update both fields when either changes
-                    onChange(newValue);
-                  }}
-                />
-              );
-            }
-
-            // Custom rendering for register_ids field (stores field_names as JSONB array)
-            if (fieldName === 'register_ids') {
-              // Get the first meter_id from the report as the device context
-              const deviceId = report?.meter_ids?.[0] ? parseInt(report.meter_ids[0]) : null;
-
-              return (
-                <DeviceRegisterChecklist
-                  deviceId={deviceId}
-                  value={Array.isArray(value) ? value : []}
+                <MeterElementRegisterSelectorGrid
+                  value={rows}
                   onChange={onChange}
-                  label="Registers"
+                  disabled={isDisabled}
+                  error={error}
                 />
               );
-            }
-
-            // HTML format checkbox - let BaseForm render default
-            if (fieldName === 'html_format') {
-              return null; // BaseForm will render as checkbox
             }
 
             // Return null to let BaseForm render default field

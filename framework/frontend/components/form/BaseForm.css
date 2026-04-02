@@ -58,10 +58,16 @@
   margin: 0 auto;
 }
 
+/* Hidden tab container — keeps component mounted but invisible */
+.base-form__tab-container--hidden {
+  display: none !important;
+}
+
 /* Flexbox layout for sections with flex properties */
 .base-form__sections-container--flex {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: 1.25rem;
   width: 100%;
   align-items: flex-start;

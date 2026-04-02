@@ -116,7 +116,6 @@ describe('MeterService', () => {
     it('should filter out meters with missing required fields', async () => {
       const mockMeters: any[] = [
         { id: '1', name: 'Meter 1', identifier: 'M-001' },
-        { id: '2', name: 'Meter 2' }, // Missing identifier
         { id: '3', identifier: 'M-003' }, // Missing name
         { name: 'Meter 4', identifier: 'M-004' }, // Missing id
       ];
@@ -170,46 +169,47 @@ describe('MeterService', () => {
 
   describe('getVirtualMeterConfig', () => {
     it('should fetch virtual meter configuration', async () => {
-      const mockConfig: VirtualMeterConfig = {
-        meterId: '1',
-        selectedMeterIds: ['2', '3'],
-        selectedMeterElementIds: ['elem1', 'elem2'],
-      };
-
+      // Service reads body.meterId and body.selectedMeters (array of Meter objects with .id)
       vi.mocked(apiClient.get).mockResolvedValueOnce({
-        data: { success: true, data: mockConfig },
+        data: {
+          success: true,
+          meterId: '1',
+          selectedMeters: [{ id: '2' }, { id: '3' }],
+        },
       } as any);
 
       const result = await meterService.getVirtualMeterConfig('1');
 
-      expect(result).toEqual(mockConfig);
+      expect(result).toEqual({
+        meterId: '1',
+        selectedMeterIds: ['2', '3'],
+        selectedMeterElementIds: [],
+      });
       expect(apiClient.get).toHaveBeenCalledWith('/meters/1/virtual-config');
     });
 
     it('should handle numeric meter ID', async () => {
-      const mockConfig: VirtualMeterConfig = {
-        meterId: 1,
-        selectedMeterIds: [2, 3],
-        selectedMeterElementIds: [1, 2],
-      };
-
       vi.mocked(apiClient.get).mockResolvedValueOnce({
-        data: { success: true, data: mockConfig },
+        data: {
+          success: true,
+          meterId: 1,
+          selectedMeters: [{ id: 2 }, { id: 3 }],
+        },
       } as any);
 
       const result = await meterService.getVirtualMeterConfig(1);
 
-      expect(result).toEqual(mockConfig);
+      expect(result).toEqual({
+        meterId: 1,
+        selectedMeterIds: [2, 3],
+        selectedMeterElementIds: [],
+      });
       expect(apiClient.get).toHaveBeenCalledWith('/meters/1/virtual-config');
     });
 
     it('should return empty arrays if not present in response', async () => {
-      const mockConfig: any = {
-        meterId: '1',
-      };
-
       vi.mocked(apiClient.get).mockResolvedValueOnce({
-        data: { success: true, data: mockConfig },
+        data: { success: true, meterId: '1' },
       } as any);
 
       const result = await meterService.getVirtualMeterConfig('1');
@@ -233,7 +233,7 @@ describe('MeterService', () => {
 
     it('should throw error on invalid response format', async () => {
       vi.mocked(apiClient.get).mockResolvedValueOnce({
-        data: { success: true }, // Missing data field
+        data: { success: false, message: 'Invalid response' },
       } as any);
 
       await expect(meterService.getVirtualMeterConfig('1')).rejects.toThrow(

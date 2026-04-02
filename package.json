@@ -24,14 +24,27 @@
     "build:sync:all": "npm run build:sync:api && npm run build:sync:mcp && npm run build:sync:frontend",
     "build:sync:api": "cd sync/api && npm run build",
     "build:sync:mcp": "cd sync/mcp && npm run build",
-    "build:sync:frontend": "cd sync/frontend && npm run build"
+    "build:sync:frontend": "cd sync/frontend && npm run build",
+    "test": "vitest --ui --open",
+    "test:run": "vitest --run --reporter=verbose",
+    "test:report": "vitest --run --reporter=verbose --reporter=html",
+    "test:all": "concurrently -n client-api,client-fe,sync-api,sync-mcp -c \"yellow,cyan,blue,magenta\" \"cd client/api && npm test\" \"cd client/frontend && npm run test:run\" \"cd sync/api && npm test\" \"cd sync/mcp && npm test\"",
+    "test:client:api": "cd client/api && npm test",
+    "test:client:frontend": "cd client/frontend && npm run test:run",
+    "test:sync:api": "cd sync/api && npm test",
+    "test:sync:mcp": "cd sync/mcp && npm test"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "^4.7.0",
+    "@vitest/ui": "^4.1.2",
     "concurrently": "^8.2.2",
+    "jsdom": "^29.0.1",
     "node-windows": "1.0.0-beta.8",
     "vite": "^5.4.0",
-    "vitest": "^4.0.16"
+    "vitest": "^4.1.2"
   },
   "keywords": [
     "meteritpro",

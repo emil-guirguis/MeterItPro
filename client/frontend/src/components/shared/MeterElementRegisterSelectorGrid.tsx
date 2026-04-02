@@ -22,6 +22,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SaveIcon from '@mui/icons-material/Save';
 import apiClient from '../../services/apiClient';
 import { useMetersList } from '../../hooks/useMetersList';
 import './MeterElementRegisterSelectorGrid.css';
@@ -66,6 +67,8 @@ export interface MeterElementRegisterSelectorGridProps {
   disabled?: boolean;
   /** Error message shown below the grid */
   error?: string;
+  /** Called when the user clicks Save on a specific row */
+  onSaveRow?: (row: MeterRowValue) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -92,6 +95,7 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
   onChange,
   disabled = false,
   error,
+  onSaveRow,
 }) => {
   const { meters: fetchedMeters, loading: metersLoading } = useMetersList();
   const meters = metersProp ?? fetchedMeters;
@@ -316,6 +320,7 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
               <TableCell className="merseg-col-registers">Registers</TableCell>
               <TableCell className="merseg-col-actions" sx={{ textAlign: 'left', pl: 0, ml: 0 }} padding="none">
                 <Button
+                  type="button"
                   size="small"
                   startIcon={<AddIcon />}
                   onClick={addRow}
@@ -480,7 +485,7 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
                       )}
                     </TableCell>
 
-                    {/* ── Delete ── */}
+                    {/* ── Actions ── */}
                     <TableCell className="merseg-cell merseg-cell--action">
                       {isDuplicate && (
                         <Tooltip title="This combination of meter / elements / registers overlaps with another row">
@@ -489,18 +494,34 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
                           </Typography>
                         </Tooltip>
                       )}
-                      <Tooltip title="Remove row">
-                        <span>
-                          <IconButton
-                            size="small"
-                            onClick={() => deleteRow(row.id)}
-                            disabled={disabled}
-                            className="merseg-delete-btn"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                        <Tooltip title="Remove row">
+                          <span>
+                            <IconButton
+                              type="button"
+                              size="small"
+                              onClick={() => deleteRow(row.id)}
+                              disabled={disabled}
+                              className="merseg-delete-btn"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title="Save row">
+                          <span>
+                            <IconButton
+                              type="button"
+                              size="small"
+                              onClick={() => onSaveRow?.(row)}
+                              disabled={disabled}
+                              className="merseg-save-btn"
+                            >
+                              <SaveIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 );

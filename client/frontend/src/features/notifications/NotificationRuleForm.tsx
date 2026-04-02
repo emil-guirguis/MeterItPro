@@ -228,7 +228,7 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
                     {(value || []).map((recipient: any, idx: number) => (
                       <Chip
                         key={idx}
-                        label={recipient.email_address || recipient.users_id}
+                        label={recipient.email_address}
                         onDelete={() =>
                           onChange((value || []).filter((_: any, i: number) => i !== idx))
                         }

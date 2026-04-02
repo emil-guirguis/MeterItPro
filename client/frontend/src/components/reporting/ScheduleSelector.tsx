@@ -77,8 +77,10 @@ const ScheduleSelector: React.FC<ScheduleSelectorProps> = ({
   return (
     <Stack spacing={2}>
       <FormControl fullWidth disabled={disabled}>
-        <InputLabel>Schedule</InputLabel>
+        <InputLabel id="schedule-label">Schedule</InputLabel>
         <Select
+          labelId="schedule-label"
+          inputProps={{ id: 'schedule-select' }}
           value={selectedPreset}
           onChange={handlePresetChange}
           label="Schedule"

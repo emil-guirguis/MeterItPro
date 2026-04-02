@@ -9,11 +9,66 @@ vi.mock('../services/dashboardService', () => ({
   dashboardService: {
     getDashboardCards: vi.fn(),
     deleteDashboardCard: vi.fn(),
+    updateDashboardCard: vi.fn().mockResolvedValue(undefined),
+    getCardData: vi.fn().mockResolvedValue(null),
+    createDashboardCard: vi.fn().mockResolvedValue(undefined),
+    getPowerColumns: vi.fn().mockResolvedValue([]),
+    getMeterElementsByMeter: vi.fn().mockResolvedValue([]),
   }
+}));
+
+// Mock react-grid-layout to avoid CJS module resolution issues in jsdom
+vi.mock('react-grid-layout', () => ({
+  default: ({ children }: any) => <div>{children}</div>,
+  Responsive: ({ children }: any) => <div>{children}</div>,
+  WidthProvider: (Component: any) => Component,
+}));
+
+// Mock framework dashboard components that depend on react-grid-layout
+vi.mock('@framework/dashboards/components/DashboardPage', () => ({
+  DashboardPage: ({ cards, loading, error, onRefresh, onCreateCard, refreshing, onErrorClose, children }: any) => (
+    <div>
+      <h1>Dashboard</h1>
+      <p>Manage and view your energy metrics</p>
+      {loading && <div>Loading dashboard cards...</div>}
+      {error && (
+        <div>
+          <span>{error}</span>
+          <button aria-label="Close error" onClick={onErrorClose}>Close</button>
+        </div>
+      )}
+      {!loading && !error && cards && cards.length === 0 && (
+        <div>
+          <p>No Dashboard Cards Yet</p>
+          <p>Create your first dashboard card to get started</p>
+        </div>
+      )}
+      {cards && cards.map((card: any) => <div key={card.id}>{card.card_name}</div>)}
+      <button onClick={onRefresh} disabled={refreshing}>
+        {refreshing ? 'Refreshing...' : 'Refresh All'}
+      </button>
+      <button onClick={onCreateCard}>Create Dashboard Card</button>
+      {children}
+    </div>
+  ),
+}));
+vi.mock('@framework/dashboards/components/DashboardCard', () => ({
+  DashboardCard: ({ children }: any) => <div>{children}</div>,
+}));
+vi.mock('@framework/dashboards/components/ExpandedCardModal', () => ({
+  ExpandedCardModal: () => null,
+}));
+vi.mock('@framework/dashboards/components/Visualization', () => ({
+  Visualization: () => null,
 }));
 
 // Mock the DashboardCardForm component to avoid React hook issues
 vi.mock('../components/dashboard/DashboardCardForm', () => ({
+  DashboardCardForm: () => null
+}));
+
+// Mock the framework DashboardCardForm to prevent MUI module resolution failure
+vi.mock('@framework/dashboards/components/DashboardCardForm', () => ({
   DashboardCardForm: () => null
 }));
 

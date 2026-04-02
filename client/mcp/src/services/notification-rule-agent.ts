@@ -478,10 +478,9 @@ export class NotificationRuleAgent {
   // ─── Email helpers ────────────────────────────────────────────────────────────
 
   private async getEmailRecipients(ruleId: string): Promise<string[]> {
-    const recipSql = `SELECT COALESCE(r.email_address, u.email) AS email_address
-       FROM notification_rule_recipient r
-       LEFT JOIN users u ON u.users_id = r.users_id
-       WHERE r.notification_rule_id = $1 AND r.receive_email = true`;
+    const recipSql = `SELECT email_address
+       FROM notification_rule_recipient
+       WHERE notification_rule_id = $1`;
     logger.info(`[SQL] getEmailRecipients (rule=${ruleId}):\n${formatSqlForDebug(recipSql, [ruleId])}`);
     const result = await db.query<{ email_address: string | null }>(recipSql, [ruleId]);
     return result.rows.map(r => r.email_address).filter((e): e is string => !!e);

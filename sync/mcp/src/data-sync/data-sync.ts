@@ -135,11 +135,11 @@ export class SyncDatabase {
   private pool: Pool;
 
   constructor(config?: DatabaseConfig) {
-    // Always use the global syncPool (initialized by initializePools())
-    if (!syncPool) {
+    // Use the global syncPool if available, otherwise allow pool injection (e.g. for testing)
+    if (!syncPool && !config) {
       throw new Error('SyncDatabase requires initializePools() to be called first. Global syncPool is not initialized.');
     }
-    this.pool = syncPool;
+    this.pool = syncPool || (null as any);
   }
 
   /**

@@ -25,6 +25,7 @@ export interface MeterReadingUploadManagerConfig {
   batchSize?: number;
   maxRetries?: number;
   connectivityCheckIntervalMs?: number;
+  enableAutoUpload?: boolean;
 }
 
 export interface UploadStatus {
@@ -123,9 +124,12 @@ export class MeterReadingUploadManager {
     
     await this.checkClientConnectivity();
 
-    // Perform initial upload
-    console.log('🚀 [UploadManager] Upload manager started successfully');
+    // Perform initial upload if auto upload is enabled
     this.status.isRunning = true;
+    console.log('🚀 [UploadManager] Upload manager started successfully');
+    if (this.config.enableAutoUpload) {
+      this.performUpload();
+    }
   }
 
   /**
@@ -201,11 +205,10 @@ export class MeterReadingUploadManager {
         const result = await this.uploadBatchWithRetry(validReadings);
 
         if (result.success) {
-          const readingIds = validReadings.map((r: MeterReadingEntity) => r.meter_reading_id).filter((id): id is string => id !== undefined);
+          const readingIds = validReadings.map((r: MeterReadingEntity) => r.meter_reading_id).filter((id): id is string => typeof id === 'string');
 
           await this.database.markReadingsAsSynchronized(readingIds, this.tenantId);
           console.log(`✅ Marked ${readingIds.length} reading(s) as synchronized`);
-
           totalUploaded += validReadings.length;
         } else {
           totalFailed += validReadings.length;

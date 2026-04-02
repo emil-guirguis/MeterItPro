@@ -933,129 +933,122 @@ export const BaseForm: React.FC<BaseFormProps> = ({
 
   // Render dynamic form sections
   const useFlexbox = shouldUseFlexbox();
-  const containerClass = useFlexbox 
+  const containerClass = useFlexbox
     ? 'base-form__sections-container--flex'
     : `base-form__sections-container base-form__sections-container--grid-${Object.keys(fieldSections || formTabsFieldSections || {}).length || 1}`;
-  
+
+  // Renders sections for a single tab. Used both for the active tab and kept-mounted inactive tabs.
+  const renderTabSections = (sectionsToRender: Record<string, string[]>, tabName: string, tabUseFlexbox: boolean) => {
+    const sectionEntries = Object.entries(sectionsToRender);
+
+    if (sectionEntries.length === 0) return null;
+
+    const allSectionsEmpty = sectionEntries.every(([, fieldNames]) => {
+      const visible = (Array.isArray(fieldNames) ? fieldNames : []).filter(f => !excludeFields.includes(f));
+      return visible.length === 0;
+    });
+
+    if (allSectionsEmpty && renderTabContent && tabName) {
+      const tabContent = renderTabContent(tabName);
+      if (tabContent) return tabContent;
+    }
+
+    return sectionEntries.map(([sectionTitle, fieldNames]) => {
+      const visibleFields = (Array.isArray(fieldNames) ? fieldNames : []).filter(f => {
+        if (excludeFields.includes(f)) return false;
+        const fieldDef = schema?.formFields?.[f] || schema?.entityFields?.[f];
+        if (fieldDef?.showIf) {
+          const { fieldName: condField, value: condValue } = fieldDef.showIf;
+          return form?.formData?.[condField] === condValue;
+        }
+        return true;
+      });
+
+      if (visibleFields.length === 0) return null;
+
+      const sectionData = schema?.formTabs
+        ?.flatMap(tab => tab.sections || [])
+        .find(sec => sec.name === sectionTitle);
+      const sectionMinWidth = sectionData?.minWidth;
+      const sectionMaxWidth = sectionData?.maxWidth;
+      const sectionFlex = sectionData?.flex;
+      const sectionFlexGrow = sectionData?.flexGrow;
+      const sectionFlexShrink = sectionData?.flexShrink;
+
+      const sectionStyle: React.CSSProperties = {};
+      if (tabUseFlexbox) {
+        if (sectionFlex !== undefined && sectionFlex !== null) sectionStyle.flex = sectionFlex;
+        if (sectionFlexGrow !== undefined && sectionFlexGrow !== null) sectionStyle.flexGrow = sectionFlexGrow;
+        if (sectionFlexShrink !== undefined && sectionFlexShrink !== null) sectionStyle.flexShrink = sectionFlexShrink;
+      }
+      if (sectionMinWidth) sectionStyle.minWidth = sectionMinWidth;
+      if (sectionMaxWidth) sectionStyle.maxWidth = sectionMaxWidth;
+
+      return (
+        <div
+          key={sectionTitle}
+          className={`${className}__section${tabUseFlexbox ? ' base-form__section--flex' : ''}`}
+          style={Object.keys(sectionStyle).length > 0 ? sectionStyle : undefined}
+        >
+          <h3 className={`${className}__section-title`}>{sectionTitle}</h3>
+          {visibleFields.map(fieldName => {
+            const fieldDef = schema?.formFields?.[fieldName] || schema?.entityFields?.[fieldName];
+            return fieldDef ? <div key={fieldName}>{renderField(fieldName, fieldDef)}</div> : null;
+          })}
+        </div>
+      );
+    });
+  };
+
   const formContent = shouldRenderFormContent && isDynamicForm ? (
+    schema?.formTabs && tabList.length > 0 ? (
+      // Render ALL tabs at once, hiding inactive ones — keeps components mounted across tab switches
+      <>
+        {tabList.map(tabName => {
+          const tabSections = allTabs[tabName]?.sections || {};
+          const isActive = tabName === effectiveActiveTab;
+          const tabSchemaSections = schema?.formTabs?.find(t => t.name === tabName)?.sections || [];
+          const tabUseFlexbox = tabSchemaSections.some(sec =>
+            sec.flex !== undefined || sec.flexGrow !== undefined || sec.flexShrink !== undefined
+          );
+          const tabContainerClass = tabUseFlexbox
+            ? 'base-form__sections-container--flex'
+            : `base-form__sections-container base-form__sections-container--grid-${Object.keys(tabSections).length || 1}`;
+
+          return (
+            <div
+              key={tabName}
+              className={`${tabContainerClass}${isActive ? '' : ' base-form__tab-container--hidden'}`}
+            >
+              {renderTabSections(tabSections, tabName, tabUseFlexbox)}
+            </div>
+          );
+        })}
+      </>
+    ) : (
     <div className={containerClass}>
       {/* Render sections from formTabs if available, otherwise use fieldSections prop */}
       {(() => {
         const sectionsToRender = fieldSections || formTabsFieldSections || {};
         const sectionEntries = Object.entries(sectionsToRender);
-        console.log('[BaseForm] formContent render:', {
-          sectionsToRender,
-          sectionCount: sectionEntries.length,
-          willRenderSections: sectionEntries.length > 0,
-        });
-        
+
         if (sectionEntries.length > 0) {
-          // Check if all sections have empty visible fields - if so, use renderTabContent fallback
-          const allSectionsEmpty = sectionEntries.every(([, fieldNames]) => {
-            const visible = (Array.isArray(fieldNames) ? fieldNames : []).filter(f => !excludeFields.includes(f));
-            return visible.length === 0;
-          });
-
-          if (allSectionsEmpty && renderTabContent && effectiveActiveTab) {
-            const tabContent = renderTabContent(effectiveActiveTab);
-            if (tabContent) {
-              return tabContent;
-            }
-          }
-
-          return sectionEntries.map(
-            ([sectionTitle, fieldNames]) => {
-              console.log('[BaseForm] Rendering section:', {
-                sectionTitle,
-                fieldNames,
-                isArray: Array.isArray(fieldNames),
-              });
-
-              // fieldNames should always be an array from useFormTabs
-              const visibleFields = (Array.isArray(fieldNames) ? fieldNames : []).filter(f => {
-                if (excludeFields.includes(f)) return false;
-                const fieldDef = schema?.formFields?.[f] || schema?.entityFields?.[f];
-                if (fieldDef?.showIf) {
-                  const { fieldName: condField, value: condValue } = fieldDef.showIf;
-                  return form?.formData?.[condField] === condValue;
-                }
-                return true;
-              });
-              console.log('[BaseForm] Visible fields in section:', { sectionTitle, visibleFields });
-
-              if (visibleFields.length === 0) {
-                console.log('[BaseForm] Section has no visible fields, skipping');
-                return null;
-              }
-
-              const sectionLayoutClass = sectionClasses[sectionTitle] || '';
-              
-              // Get width and flex properties from schema if available
-              const sectionData = schema?.formTabs
-                ?.flatMap(tab => tab.sections || [])
-                .find(sec => sec.name === sectionTitle);
-              const sectionMinWidth = sectionData?.minWidth;
-              const sectionMaxWidth = sectionData?.maxWidth;
-              const sectionFlex = sectionData?.flex;
-              const sectionFlexGrow = sectionData?.flexGrow;
-              const sectionFlexShrink = sectionData?.flexShrink;
-              
-              console.log('[BaseForm] Section layout:', { sectionTitle, sectionMinWidth, sectionMaxWidth, sectionFlex, sectionFlexGrow, sectionFlexShrink });
-
-              // Build inline styles for flex/width properties since CSS attr() doesn't work for these
-              const sectionStyle: React.CSSProperties = {};
-              if (useFlexbox) {
-                if (sectionFlex !== undefined && sectionFlex !== null) {
-                  sectionStyle.flex = sectionFlex;
-                }
-                if (sectionFlexGrow !== undefined && sectionFlexGrow !== null) {
-                  sectionStyle.flexGrow = sectionFlexGrow;
-                }
-                if (sectionFlexShrink !== undefined && sectionFlexShrink !== null) {
-                  sectionStyle.flexShrink = sectionFlexShrink;
-                }
-              }
-              if (sectionMinWidth) {
-                sectionStyle.minWidth = sectionMinWidth;
-              }
-              if (sectionMaxWidth) {
-                sectionStyle.maxWidth = sectionMaxWidth;
-              }
-
-              return (
-                <div
-                  key={sectionTitle}
-                  className={`${className}__section ${sectionLayoutClass}${useFlexbox ? ' base-form__section--flex' : ''}`}
-                  style={Object.keys(sectionStyle).length > 0 ? sectionStyle : undefined}
-                >
-                  <h3 className={`${className}__section-title`}>{sectionTitle}</h3>
-                  {visibleFields.map(fieldName => {
-                    // Check formFields first, then entityFields
-                    const fieldDef = schema?.formFields?.[fieldName] || schema?.entityFields?.[fieldName];
-                    console.log('[BaseForm] Rendering field:', { fieldName, hasFieldDef: !!fieldDef });
-                    return fieldDef ? <div key={fieldName}>{renderField(fieldName, fieldDef)}</div> : null;
-                  })}
-                </div>
-              );
-            }
-          );
+          return renderTabSections(sectionsToRender, effectiveActiveTab, useFlexbox);
         } else {
           // Fallback: render all form fields if no sections are defined
-          console.log('[BaseForm] No sections, rendering all form fields as fallback');
           const allFields = Object.keys(schema?.formFields || {})
             .filter(f => !excludeFields.includes(f));
-          console.log('[BaseForm] All fields to render:', allFields);
-          
+
           return allFields.map(fieldName => {
             const fieldDef = schema?.formFields?.[fieldName];
             return fieldDef ? <div key={fieldName}>{renderField(fieldName, fieldDef)}</div> : null;
           });
         }
       })()}
-      
+
       {/* Render entity fields that have showOn: ['form'] but are not in fieldSections */}
-      {Object.entries(schema?.entityFields || {}).some(([fieldName, fieldDef]) => 
-        fieldDef.showOn?.includes('form') && 
+      {Object.entries(schema?.entityFields || {}).some(([fieldName, fieldDef]) =>
+        fieldDef.showOn?.includes('form') &&
         !excludeFields.includes(fieldName) &&
         !Object.values(fieldSections || formTabsFieldSections || {}).flat().includes(fieldName)
       ) && (
@@ -1064,16 +1057,15 @@ export const BaseForm: React.FC<BaseFormProps> = ({
             if (!fieldDef.showOn?.includes('form') || excludeFields.includes(fieldName)) {
               return null;
             }
-            // Skip if already in fieldSections
             if (Object.values(fieldSections || formTabsFieldSections || {}).flat().includes(fieldName)) {
               return null;
             }
-            
             return <div key={fieldName}>{renderField(fieldName, fieldDef)}</div>;
           })}
         </div>
       )}
     </div>
+    )
   ) : (
     children
   );

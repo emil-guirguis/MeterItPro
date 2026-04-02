@@ -6,7 +6,10 @@
     "start": "wrangler dev",
     "db:migrate": "node migrations/run-migrations.js",
     "worker:dev": "wrangler dev",
-    "worker:deploy": "wrangler deploy"
+    "worker:deploy": "wrangler deploy",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --run --coverage"
   },
   "dependencies": {
     "@types/pg": "^8.15.5",
@@ -16,9 +19,11 @@
     "speakeasy": "^2.0.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.0",
+    "vitest": "^4.1.2",
     "wrangler": "4.64.0"
   },
   "keywords": [

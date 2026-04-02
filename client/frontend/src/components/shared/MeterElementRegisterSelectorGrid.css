@@ -3,7 +3,7 @@
 }
 
 .merseg-paper {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .merseg-table {
@@ -12,10 +12,10 @@
 }
 
 /* Column widths */
-.merseg-col-meter     { width: 26%; }
-.merseg-col-elements  { width: 30%; }
-.merseg-col-registers { width: 36%; }
-.merseg-col-actions   { width: 6%; }
+.merseg-col-meter     { width: 24%; }
+.merseg-col-elements  { width: 28%; }
+.merseg-col-registers { width: 32%; }
+.merseg-col-actions   { width: 16%; }
 
 .merseg-header-row th {
   font-weight: 600;
@@ -90,6 +90,15 @@
 
 .merseg-delete-btn:hover {
   color: var(--mui-palette-error-main, #d32f2f) !important;
+}
+
+/* Save button */
+.merseg-save-btn {
+  color: var(--mui-palette-action-active, #666) !important;
+}
+
+.merseg-save-btn:hover {
+  color: var(--mui-palette-primary-main, #1976d2) !important;
 }
 
 /* Error message below grid */

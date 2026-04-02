@@ -29,7 +29,7 @@ function validateEmailList(emails: string[]): { isValid: boolean; invalidEmails:
 // POST / - Create a new report
 app.post('/', async (c) => {
   try {
-    const { name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, meter_selections } = await c.req.json();
+    const { name, type, schedule, recipients, config, active, meter_selections } = await c.req.json();
     const errors: string[] = [];
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) errors.push('Report name is required');
@@ -52,18 +52,14 @@ app.post('/', async (c) => {
     const now = new Date();
     const result = await query(
       c.env,
-      `INSERT INTO public.report (name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, meter_selections, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-       RETURNING report_id, name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, meter_selections, created_at, updated_at`,
+      `INSERT INTO public.report (name, type, schedule, recipients, config, active, meter_selections, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING report_id, name, type, schedule, recipients, config, active, meter_selections, created_at, updated_at`,
       [
         name.trim(), type.trim(), schedule.trim(),
         recipients,
         config || {},
         active !== false,
-        meter_ids || [],
-        element_ids || [],
-        register_ids || [],
-        html_format || false,
         meter_selections !== undefined ? (typeof meter_selections === 'string' ? meter_selections : JSON.stringify(meter_selections)) : null,
         now, now,
       ]
@@ -97,7 +93,7 @@ app.get('/', async (c) => {
 
     const result = await query(
       c.env,
-      `SELECT report_id, name, type, schedule, recipients, config, active , created_at, updated_at
+      `SELECT report_id, name, type, schedule, recipients, config, active, meter_selections, created_at, updated_at
        FROM public.report ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
@@ -126,7 +122,7 @@ app.get('/:id', async (c) => {
 
     const result = await query(
       c.env,
-      `SELECT report_id, name, type, schedule, recipients, config, active, created_at, updated_at
+      `SELECT report_id, name, type, schedule, recipients, config, active, meter_selections, created_at, updated_at
        FROM public.report WHERE report_id = $1`,
       [id]
     );
@@ -148,7 +144,7 @@ app.put('/:id', async (c) => {
     const existing = await query(c.env, 'SELECT report_id FROM public.report WHERE report_id = $1', [id]);
     if (existing.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
 
-    const { name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, meter_selections } = await c.req.json();
+    const { name, type, schedule, recipients, config, active, meter_selections } = await c.req.json();
     const updates: string[] = [];
     const values: any[] = [];
     let paramCount = 1;
@@ -185,22 +181,6 @@ app.put('/:id', async (c) => {
       updates.push(`active = $${paramCount}`); values.push(active); paramCount++;
     }
 
-    if (meter_ids !== undefined) {
-      updates.push(`meter_ids = $${paramCount}`); values.push(meter_ids); paramCount++;
-    }
-
-    if (element_ids !== undefined) {
-      updates.push(`element_ids = $${paramCount}`); values.push(element_ids); paramCount++;
-    }
-
-    if (register_ids !== undefined) {
-      updates.push(`register_ids = $${paramCount}`); values.push(register_ids); paramCount++;
-    }
-
-    if (html_format !== undefined) {
-      updates.push(`html_format = $${paramCount}`); values.push(html_format); paramCount++;
-    }
-
     if (meter_selections !== undefined) {
       const ms = typeof meter_selections === 'string' ? meter_selections : JSON.stringify(meter_selections);
       updates.push(`meter_selections = $${paramCount}`); values.push(ms); paramCount++;
@@ -216,7 +196,7 @@ app.put('/:id', async (c) => {
 
     const result = await query(
       c.env,
-      `UPDATE public.report SET ${updates.join(', ')} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, meter_selections, created_at, updated_at`,
+      `UPDATE public.report SET ${updates.join(', ')} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, active, meter_selections, created_at, updated_at`,
       values
     );
 

@@ -11,7 +11,6 @@ const ReportsPage: React.FC = () => {
   const reports = useReportsEnhanced();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCreateReport = () => {
     setSelectedReport(null);
@@ -28,24 +27,11 @@ const ReportsPage: React.FC = () => {
     setViewMode('view');
   };
 
-  const handleFormSubmit = async (data: any) => {
-    setIsSubmitting(true);
-    try {
-      if (viewMode === 'create') {
-        await reports.createReport(data);
-      } else if (viewMode === 'edit' && selectedReport) {
-        await reports.updateReport(selectedReport.report_id, data);
-      }
-      setViewMode('list');
-      setSelectedReport(null);
-      // Refresh the list
-      await reports.fetchItems();
-    } catch (error) {
-      console.error('Report form submission error:', error);
-      // Error handling is already done in the store with notifications
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleFormSubmit = async (_data: any) => {
+    // BaseForm already saved via the store — just close and refresh the list
+    setViewMode('list');
+    setSelectedReport(null);
+    await reports.fetchItems();
   };
 
   const handleFormCancel = () => {
@@ -173,7 +159,6 @@ const ReportsPage: React.FC = () => {
             report={selectedReport || undefined}
             onSubmit={handleFormSubmit}
             onCancel={handleFormCancel}
-            loading={isSubmitting}
           />
         </FormModal>
       )}

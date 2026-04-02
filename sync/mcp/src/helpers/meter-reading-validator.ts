@@ -81,7 +81,7 @@ export class MeterReadingValidator {
     let source: 'bacnet' | 'mock' | 'unknown' = 'unknown';
 
     // Check 1: Validate timestamp
-    const timestampCheck = this.validateTimestamp(reading.created_at);
+    const timestampCheck = this.validateTimestamp(reading.created_at!);
     if (!timestampCheck.valid) {
       issues.push({
         code: 'INVALID_TIMESTAMP',
@@ -113,7 +113,7 @@ export class MeterReadingValidator {
 
     // Check 4: Validate temporal consistency
     if (reading.meter_id) {
-      const temporalCheck = this.validateTemporalConsistency(reading.meter_id, reading.created_at);
+      const temporalCheck = this.validateTemporalConsistency(reading.meter_id, reading.created_at!);
       if (temporalCheck.issues.length > 0) {
         issues.push(...temporalCheck.issues);
       }
@@ -427,7 +427,7 @@ export class MeterReadingValidator {
    */
   validateBatch(readings: MeterReadingEntity[], deviceIps?: Map<number, string>): ValidationResult[] {
     return readings.map((reading) => {
-      const deviceIp = deviceIps?.get(reading.meter_id);
+      const deviceIp = deviceIps?.get(reading.meter_id!);
       return this.validateReading(reading, deviceIp);
     });
   }

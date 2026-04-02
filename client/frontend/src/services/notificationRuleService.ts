@@ -21,9 +21,7 @@ export interface NotificationRule {
 
 export interface NotificationRuleRecipient {
   notification_rule_recipient_id: string;
-  users_id: string;
-  receive_email: boolean;
-  email_address?: string;
+  email_address: string;
 }
 
 export interface NotificationRuleMeter {
@@ -44,11 +42,7 @@ export interface CreateNotificationRuleRequest {
   threshold_hours?: number;
   demand_threshold?: number;
   schedule_cron: string;
-  recipients: Array<{
-    users_id: string;
-    receive_email: boolean;
-    email_address?: string;
-  }>;
+  recipients: Array<{ email_address: string }>;
   meter_elements: Array<{ meter_id: string; meter_element_id: string }>;
 }
 

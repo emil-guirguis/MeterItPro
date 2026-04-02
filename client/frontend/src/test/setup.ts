@@ -16,12 +16,12 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+// Mock ResizeObserver — must use a regular function (not arrow) so `new ResizeObserver()` works
+global.ResizeObserver = vi.fn().mockImplementation(function () {
+  this.observe = vi.fn();
+  this.unobserve = vi.fn();
+  this.disconnect = vi.fn();
+});
 
 // Mock requestAnimationFrame
 global.requestAnimationFrame = vi.fn().mockImplementation(cb => setTimeout(cb, 0));

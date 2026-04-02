@@ -31,8 +31,8 @@ interface ReportsActions {
   // Legacy methods for backward compatibility
   fetchReports: (page?: number, limit?: number) => Promise<void>;
   fetchReport: (id: number) => Promise<Report | null>;
-  createReport: (data: Omit<Report, 'report_id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  updateReport: (id: number, data: Partial<Omit<Report, 'report_id' | 'created_at' | 'updated_at'>>) => Promise<void>;
+  createReport: (data: Omit<Report, 'report_id' | 'created_at' | 'updated_at'>) => Promise<Report>;
+  updateReport: (id: number, data: Partial<Omit<Report, 'report_id' | 'created_at' | 'updated_at'>>) => Promise<Report>;
   deleteReport: (id: number) => Promise<void>;
   toggleReportStatus: (id: number) => Promise<void>;
   clearFilters: () => void;
@@ -180,6 +180,7 @@ export const useReportsStore = create<ReportsStore>()(
             items: [newReport, ...state.items],
             list: { ...state.list, loading: false },
           });
+          return newReport;
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to create report';
           set(s => ({
@@ -201,6 +202,7 @@ export const useReportsStore = create<ReportsStore>()(
             items: state.items.map(r => r.report_id === id ? updatedReport : r),
             list: { ...state.list, loading: false },
           });
+          return updatedReport;
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to update report';
           set(s => ({

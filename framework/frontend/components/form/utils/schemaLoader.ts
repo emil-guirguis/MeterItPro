@@ -305,15 +305,17 @@ export function convertSchema(backendSchema: BackendSchema): ConvertedSchema {
   Object.entries(backendSchema.entityFields).forEach(([fieldName, fieldDef]) => {
     entityFields[fieldName] = convertFieldDefinition(fieldDef);
   });
-  // Determine primary ID field name
-  const tableIdField = `${backendSchema.tableName}_id`;
-  let idFieldName: string | null = null;
-  if (backendSchema.entityFields && backendSchema.entityFields[tableIdField]) {
-    idFieldName = tableIdField;
-  } else {
-    // fallback: first entity field that ends with _id
-    const candidate = Object.keys(backendSchema.entityFields || {}).find(k => k.endsWith('_id'));
-    idFieldName = candidate || null;
+  // Determine primary ID field name — prefer explicit declaration from backend schema
+  let idFieldName: string | null = (backendSchema as any).idFieldName || null;
+  if (!idFieldName) {
+    const tableIdField = `${backendSchema.tableName}_id`;
+    if (backendSchema.entityFields && backendSchema.entityFields[tableIdField]) {
+      idFieldName = tableIdField;
+    } else {
+      // fallback: first entity field that ends with _id
+      const candidate = Object.keys(backendSchema.entityFields || {}).find(k => k.endsWith('_id'));
+      idFieldName = candidate || null;
+    }
   }
 
   return {

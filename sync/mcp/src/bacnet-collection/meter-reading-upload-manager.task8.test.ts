@@ -1,774 +1,819 @@
-// /**
-//  * Tests for Task 8: Verify deletion of successfully uploaded readings
-//  * 
-//  * Verifies:
-//  * - Task 8.1: Readings are deleted after successful upload
-//  * - Task 8.2: Deletion count is logged
-//  * - Task 8.3: Deletion errors don't block next batch
-//  */
+/**
+ * Tests for Task 8: Verify deletion of successfully uploaded readings
+ * 
+ * Verifies:
+ * - Task 8.1: Readings are deleted after successful upload
+ * - Task 8.2: Deletion count is logged
+ * - Task 8.3: Deletion errors don't block next batch
+ */
 
-// import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-// import { MeterReadingUploadManager, MeterReadingUploadManagerConfig } from './meter-reading-upload-manager.js';
-// import { ClientSystemApiClient } from '../api/client-system-api.js';
-// import { MeterReadingEntity, SyncDatabase } from '../types/entities.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { MeterReadingUploadManager, MeterReadingUploadManagerConfig } from './meter-reading-upload-manager.js';
+import { ClientSystemApiClient } from '../api/client-system-api.js';
+import { MeterReadingEntity, SyncDatabase } from '../types/entities.js';
+import { cacheManager } from '../cache/cache-manager.js';
 
-// // Mock implementations
-// class MockSyncDatabaseForTask8 implements Partial<SyncDatabase> {
-//   private readings: MeterReadingEntity[] = [];
-//   private deletedReadingIds: number[] = [];
-//   private deletionCallCount: number = 0;
-//   private deletionErrors: boolean = false;
-//   private loggedOperations: any[] = [];
+const mockTenant = {
+  tenant_id: 1,
+  name: 'Test Tenant',
+  api_key: 'test-api-key',
+  upload_batch_size: 100,
+};
 
-//   setReadings(readings: MeterReadingEntity[]) {
-//     this.readings = readings;
-//   }
+// Mock implementations
+class MockSyncDatabaseForTask8 implements Partial<SyncDatabase> {
+  private readings: MeterReadingEntity[] = [];
+  private deletedReadingIds: string[] = [];
+  private deletionCallCount: number = 0;
+  private deletionErrors: boolean = false;
+  private loggedOperations: any[] = [];
 
-//   getDeletedReadingIds() {
-//     return this.deletedReadingIds;
-//   }
+  setReadings(readings: MeterReadingEntity[]) {
+    this.readings = readings;
+  }
 
-//   getDeletionCallCount() {
-//     return this.deletionCallCount;
-//   }
+  getDeletedReadingIds() {
+    return this.deletedReadingIds;
+  }
 
-//   setDeletionErrors(shouldError: boolean) {
-//     this.deletionErrors = shouldError;
-//   }
+  getDeletionCallCount() {
+    return this.deletionCallCount;
+  }
 
-//   getLoggedOperations() {
-//     return this.loggedOperations;
-//   }
+  setDeletionErrors(shouldError: boolean) {
+    this.deletionErrors = shouldError;
+  }
 
-//   async getUnsynchronizedReadings(limit: number) {
-//     return this.readings.slice(0, limit);
-//   }
+  getLoggedOperations() {
+    return this.loggedOperations;
+  }
 
-//   async incrementRetryCount(readingIds: number[]) {
-//     // No-op for this test
-//   }
+  async getUnsynchronizedReadings(limit: number) {
+    return this.readings.slice(0, limit);
+  }
 
-//   async deleteSynchronizedReadings(readingIds: number[]): Promise<number> {
-//     this.deletionCallCount++;
+  async incrementRetryCount(readingIds: string[]) {
+    // No-op for this test
+  }
 
-//     if (this.deletionErrors) {
-//       throw new Error('Database connection lost during deletion');
-//     }
+  async deleteSynchronizedReadings(readingIds: string[]): Promise<number> {
+    this.deletionCallCount++;
 
-//     this.deletedReadingIds.push(...readingIds);
-//     this.readings = this.readings.filter(r => !readingIds.includes(r.meter_reading_id || 0));
-//     return readingIds.length;
-//   }
+    if (this.deletionErrors) {
+      throw new Error('Database connection lost during deletion');
+    }
 
-//   async logSyncOperation(
-//     tenantId: number,
-//     operationType: string,
-//     readingsCount: number,
-//     success: boolean,
-//     errorMessage?: string
-//   ) {
-//     this.loggedOperations.push({
-//       tenantId,
-//       operationType,
-//       readingsCount,
-//       success,
-//       errorMessage,
-//       timestamp: new Date(),
-//     });
-//   }
+    this.deletedReadingIds.push(...readingIds);
+    this.readings = this.readings.filter(r => !readingIds.includes(r.meter_reading_id || ''));
+    return readingIds.length;
+  }
 
-//   async getSyncStats() {
-//     return {};
-//   }
-// }
+  async markReadingsAsSynchronized(readingIds: any[], tenantId?: number) {
+    this.deletionCallCount++;
+    if (this.deletionErrors) {
+      throw new Error('Database connection lost during deletion');
+    }
+    this.deletedReadingIds.push(...readingIds);
+    this.readings = this.readings.filter(r => !readingIds.includes(r.meter_reading_id || ''));
+    return readingIds.length;
+  }
 
-// class MockClientSystemApiClientForTask8 implements Partial<ClientSystemApiClient> {
-//   private apiKey: string = '';
-//   private uploadResponses: any[] = [];
-//   private responseIndex: number = 0;
+  async logSyncOperation(
+    operationType: string,
+    readingsCount: number,
+    success: boolean,
+    errorMessage?: string
+  ) {
+    this.loggedOperations.push({
+      tenantId: 1,
+      operationType,
+      readingsCount,
+      success,
+      errorMessage,
+      timestamp: new Date(),
+    });
+  }
 
-//   setApiKey(apiKey: string) {
-//     this.apiKey = apiKey;
-//   }
+  async getSyncStats() {
+    return {};
+  }
+}
 
-//   setUploadResponses(responses: any[]) {
-//     this.uploadResponses = responses;
-//     this.responseIndex = 0;
-//   }
+class MockClientSystemApiClientForTask8 implements Partial<ClientSystemApiClient> {
+  private apiKey: string = '';
+  private uploadResponses: any[] = [];
+  private responseIndex: number = 0;
 
-//   async uploadBatch(readings: MeterReadingEntity[]) {
-//     // Return configured response or default success
-//     if (this.uploadResponses.length > 0 && this.responseIndex < this.uploadResponses.length) {
-//       const response = this.uploadResponses[this.responseIndex];
-//       this.responseIndex++;
+  setApiKey(apiKey: string) {
+    this.apiKey = apiKey;
+  }
 
-//       if (response.error) {
-//         throw new Error(response.error);
-//       }
+  setUploadResponses(responses: any[]) {
+    this.uploadResponses = responses;
+    this.responseIndex = 0;
+  }
 
-//       return response;
-//     }
+  async uploadBatch(readings: MeterReadingEntity[]) {
+    // Return configured response or default success
+    if (this.uploadResponses.length > 0 && this.responseIndex < this.uploadResponses.length) {
+      const response = this.uploadResponses[this.responseIndex];
+      this.responseIndex++;
 
-//     return { success: true, recordsProcessed: readings.length };
-//   }
+      if (response.error) {
+        throw new Error(response.error);
+      }
 
-//   async testConnection() {
-//     return true;
-//   }
-// }
+      return response;
+    }
 
-// describe('Task 8.1: Verify readings are deleted after successful upload', () => {
-//   let uploadManager: MeterReadingUploadManager;
-//   let mockDatabase: MockSyncDatabaseForTask8;
-//   let mockApiClient: MockClientSystemApiClientForTask8;
+    return { success: true, recordsProcessed: readings.length };
+  }
 
-//   beforeEach(() => {
-//     mockDatabase = new MockSyncDatabaseForTask8();
-//     mockApiClient = new MockClientSystemApiClientForTask8();
-//   });
+  async testConnection() {
+    return true;
+  }
+}
 
-//   afterEach(async () => {
-//     if (uploadManager) {
-//       await uploadManager.stop();
-//     }
-//   });
+describe('Task 8.1: Verify readings are deleted after successful upload', () => {
+  let uploadManager: MeterReadingUploadManager;
+  let mockDatabase: MockSyncDatabaseForTask8;
+  let mockApiClient: MockClientSystemApiClientForTask8;
 
-//   describe('Deletion Called with Correct Reading IDs', () => {
-//     it('should call delete with correct reading IDs after successful upload', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+  beforeEach(() => {
+    process.env.METER_READING_VALIDATION_BEFORE_UPLOAD = 'false';
+    vi.spyOn(cacheManager, 'getTenant').mockReturnValue(mockTenant as any);
+    mockDatabase = new MockSyncDatabaseForTask8();
+    mockApiClient = new MockClientSystemApiClientForTask8();
+  });
 
-//       mockDatabase.setReadings(readings);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
+  afterEach(async () => {
+    if (uploadManager) {
+      await uploadManager.stop();
+    }
+    delete process.env.METER_READING_VALIDATION_BEFORE_UPLOAD;
+    vi.restoreAllMocks();
+  });
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+  describe('Deletion Called with Correct Reading IDs', () => {
+    it('should call delete with correct reading IDs after successful upload', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       uploadManager = new MeterReadingUploadManager(config);
-//       await uploadManager.triggerUpload();
+      mockDatabase.setReadings(readings);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
 
-//       // Verify deletion was called
-//       expect(mockDatabase.getDeletionCallCount()).toBe(1);
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//       // Verify correct reading IDs were deleted
-//       const deletedIds = mockDatabase.getDeletedReadingIds();
-//       expect(deletedIds.length).toBe(50);
-//       for (let i = 1; i <= 50; i++) {
-//         expect(deletedIds).toContain(i);
-//       }
-//     });
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
+      await uploadManager.triggerUpload();
 
-//     it('should delete all readings in batch with correct IDs', async () => {
-//       const readings: MeterReadingEntity[] = [
-//         {
-//           meter_reading_id: 101,
-//           meter_id: 1,
-//           name: 'Reading 1',
-//           timestamp: new Date('2024-01-01T10:00:00Z'),
-//           data_point: 'energy_consumption',
-//           value: 100.5,
-//           unit: 'kWh',
-//           is_synchronized: false,
-//           retry_count: 0,
-//         },
-//         {
-//           meter_reading_id: 102,
-//           meter_id: 1,
-//           name: 'Reading 2',
-//           timestamp: new Date('2024-01-01T10:01:00Z'),
-//           data_point: 'energy_consumption',
-//           value: 101.5,
-//           unit: 'kWh',
-//           is_synchronized: false,
-//           retry_count: 0,
-//         },
-//         {
-//           meter_reading_id: 103,
-//           meter_id: 1,
-//           name: 'Reading 3',
-//           timestamp: new Date('2024-01-01T10:02:00Z'),
-//           data_point: 'energy_consumption',
-//           value: 102.5,
-//           unit: 'kWh',
-//           is_synchronized: false,
-//           retry_count: 0,
-//         },
-//       ];
+      // Verify deletion was called
+      expect(mockDatabase.getDeletionCallCount()).toBe(1);
 
-//       mockDatabase.setReadings(readings);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 3 }
-//       ]);
+      // Verify correct reading IDs were deleted
+      const deletedIds = mockDatabase.getDeletedReadingIds();
+      expect(deletedIds.length).toBe(50);
+      for (let i = 1; i <= 50; i++) {
+        expect(deletedIds).toContain(`uuid-${i}`);
+      }
+    });
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+    it('should delete all readings in batch with correct IDs', async () => {
+      const readings: MeterReadingEntity[] = [
+        {
+          meter_reading_id: 'uuid-101',
+          meter_id: 1,
+          name: 'Reading 1',
+          timestamp: new Date('2024-01-01T10:00:00Z'),
+          data_point: 'energy_consumption',
+          value: 100.5,
+          unit: 'kWh',
+          is_synchronized: false,
+          retry_count: 0,
+        },
+        {
+          meter_reading_id: 'uuid-102',
+          meter_id: 1,
+          name: 'Reading 2',
+          timestamp: new Date('2024-01-01T10:01:00Z'),
+          data_point: 'energy_consumption',
+          value: 101.5,
+          unit: 'kWh',
+          is_synchronized: false,
+          retry_count: 0,
+        },
+        {
+          meter_reading_id: 'uuid-103',
+          meter_id: 1,
+          name: 'Reading 3',
+          timestamp: new Date('2024-01-01T10:02:00Z'),
+          data_point: 'energy_consumption',
+          value: 102.5,
+          unit: 'kWh',
+          is_synchronized: false,
+          retry_count: 0,
+        },
+      ];
 
-//       uploadManager = new MeterReadingUploadManager(config);
-//       await uploadManager.triggerUpload();
+      mockDatabase.setReadings(readings);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 3 }
+      ]);
 
-//       // Verify all reading IDs were deleted
-//       const deletedIds = mockDatabase.getDeletedReadingIds();
-//       expect(deletedIds).toContain(101);
-//       expect(deletedIds).toContain(102);
-//       expect(deletedIds).toContain(103);
-//     });
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//     it('should not delete readings if upload fails', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
+      await uploadManager.triggerUpload();
 
-//       mockDatabase.setReadings(readings);
-//       mockApiClient.setUploadResponses([
-//         { success: false, recordsProcessed: 0, message: 'Upload failed' }
-//       ]);
+      // Verify all reading IDs were deleted
+      const deletedIds = mockDatabase.getDeletedReadingIds();
+      expect(deletedIds).toContain('uuid-101');
+      expect(deletedIds).toContain('uuid-102');
+      expect(deletedIds).toContain('uuid-103');
+    });
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+    it('should not delete readings if upload fails', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       uploadManager = new MeterReadingUploadManager(config);
-//       await uploadManager.triggerUpload();
+      mockDatabase.setReadings(readings);
+      mockApiClient.setUploadResponses([
+        { success: false, recordsProcessed: 0, message: 'Upload failed' }
+      ]);
 
-//       // Verify deletion was NOT called
-//       expect(mockDatabase.getDeletionCallCount()).toBe(0);
-//       expect(mockDatabase.getDeletedReadingIds().length).toBe(0);
-//     });
-//   });
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//   describe('Readings Removed from Sync Database', () => {
-//     it('should remove readings from sync database after deletion', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
+      await uploadManager.triggerUpload();
 
-//       mockDatabase.setReadings(readings);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
+      // Verify deletion was NOT called
+      expect(mockDatabase.getDeletionCallCount()).toBe(0);
+      expect(mockDatabase.getDeletedReadingIds().length).toBe(0);
+    });
+  });
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+  describe('Readings Removed from Sync Database', () => {
+    it('should remove readings from sync database after deletion', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       uploadManager = new MeterReadingUploadManager(config);
+      mockDatabase.setReadings(readings);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
+
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
+
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
+
+      // Verify readings exist before upload
+      expect(mockDatabase.getDeletedReadingIds().length).toBe(0);
       
-//       // Verify readings exist before upload
-//       expect(mockDatabase.getDeletedReadingIds().length).toBe(0);
+      await uploadManager.triggerUpload();
+
+      // Verify readings were deleted
+      expect(mockDatabase.getDeletedReadingIds().length).toBe(50);
+    });
+
+    it('should verify deleted readings are no longer in database', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
+
+      mockDatabase.setReadings(readings);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
+
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
+
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
+      await uploadManager.triggerUpload();
+
+      // Verify readings were deleted from database
+      const deletedIds = mockDatabase.getDeletedReadingIds();
+      expect(deletedIds.length).toBe(50);
       
-//       await uploadManager.triggerUpload();
+      // Verify all reading IDs are in the deleted list
+      for (let i = 1; i <= 50; i++) {
+        expect(deletedIds).toContain(`uuid-${i}`);
+      }
+    });
+  });
+});
 
-//       // Verify readings were deleted
-//       expect(mockDatabase.getDeletedReadingIds().length).toBe(50);
-//     });
+describe('Task 8.2: Verify deletion count is logged', () => {
+  let uploadManager: MeterReadingUploadManager;
+  let mockDatabase: MockSyncDatabaseForTask8;
+  let mockApiClient: MockClientSystemApiClientForTask8;
 
-//     it('should verify deleted readings are no longer in database', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+  beforeEach(() => {
+    process.env.METER_READING_VALIDATION_BEFORE_UPLOAD = 'false';
+    vi.spyOn(cacheManager, 'getTenant').mockReturnValue(mockTenant as any);
+    mockDatabase = new MockSyncDatabaseForTask8();
+    mockApiClient = new MockClientSystemApiClientForTask8();
+  });
 
-//       mockDatabase.setReadings(readings);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
+  afterEach(async () => {
+    if (uploadManager) {
+      await uploadManager.stop();
+    }
+    delete process.env.METER_READING_VALIDATION_BEFORE_UPLOAD;
+    vi.restoreAllMocks();
+  });
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+  describe('Deletion Count Logging', () => {
+    it('should log deletion count after successful upload', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       uploadManager = new MeterReadingUploadManager(config);
-//       await uploadManager.triggerUpload();
+      mockDatabase.setReadings(readings);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
 
-//       // Verify readings were deleted from database
-//       const deletedIds = mockDatabase.getDeletedReadingIds();
-//       expect(deletedIds.length).toBe(50);
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
+
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
+      await uploadManager.triggerUpload();
+
+      // Verify log operation was called
+      const loggedOps = mockDatabase.getLoggedOperations();
+      expect(loggedOps.length).toBeGreaterThan(0);
       
-//       // Verify all reading IDs are in the deleted list
-//       for (let i = 1; i <= 50; i++) {
-//         expect(deletedIds).toContain(i);
-//       }
-//     });
-//   });
-// });
+      // Verify the log includes the upload count
+      const uploadLog = loggedOps.find(op => op.operationType === 'upload' && op.success);
+      expect(uploadLog).toBeDefined();
+      expect(uploadLog?.readingsCount).toBe(50);
+    });
 
-// describe('Task 8.2: Verify deletion count is logged', () => {
-//   let uploadManager: MeterReadingUploadManager;
-//   let mockDatabase: MockSyncDatabaseForTask8;
-//   let mockApiClient: MockClientSystemApiClientForTask8;
+    it('should include correct count in log message', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 25 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (25 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//   beforeEach(() => {
-//     mockDatabase = new MockSyncDatabaseForTask8();
-//     mockApiClient = new MockClientSystemApiClientForTask8();
-//   });
+      mockDatabase.setReadings(readings);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 25 }
+      ]);
 
-//   afterEach(async () => {
-//     if (uploadManager) {
-//       await uploadManager.stop();
-//     }
-//   });
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//   describe('Deletion Count Logging', () => {
-//     it('should log deletion count after successful upload', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
+      await uploadManager.triggerUpload();
 
-//       mockDatabase.setReadings(readings);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
+      // Verify log includes correct count
+      const loggedOps = mockDatabase.getLoggedOperations();
+      const uploadLog = loggedOps.find(op => op.operationType === 'upload' && op.success);
+      expect(uploadLog?.readingsCount).toBe(25);
+    });
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+    it('should log deletion count for different batch sizes', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 100 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (100 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       uploadManager = new MeterReadingUploadManager(config);
-//       await uploadManager.triggerUpload();
+      mockDatabase.setReadings(readings);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 100 }
+      ]);
 
-//       // Verify log operation was called
-//       const loggedOps = mockDatabase.getLoggedOperations();
-//       expect(loggedOps.length).toBeGreaterThan(0);
-      
-//       // Verify the log includes the upload count
-//       const uploadLog = loggedOps.find(op => op.operationType === 'upload' && op.success);
-//       expect(uploadLog).toBeDefined();
-//       expect(uploadLog?.readingsCount).toBe(50);
-//     });
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 100,
+        enableAutoUpload: false,
+      };
 
-//     it('should include correct count in log message', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 25 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (25 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
+      await uploadManager.triggerUpload();
 
-//       mockDatabase.setReadings(readings);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 25 }
-//       ]);
+      // Verify log includes correct count
+      const loggedOps = mockDatabase.getLoggedOperations();
+      const uploadLog = loggedOps.find(op => op.operationType === 'upload' && op.success);
+      expect(uploadLog?.readingsCount).toBe(100);
+    });
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+    it('should log success status with deletion count', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       uploadManager = new MeterReadingUploadManager(config);
-//       await uploadManager.triggerUpload();
+      mockDatabase.setReadings(readings);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
 
-//       // Verify log includes correct count
-//       const loggedOps = mockDatabase.getLoggedOperations();
-//       const uploadLog = loggedOps.find(op => op.operationType === 'upload' && op.success);
-//       expect(uploadLog?.readingsCount).toBe(25);
-//     });
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//     it('should log deletion count for different batch sizes', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 100 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (100 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
+      await uploadManager.triggerUpload();
 
-//       mockDatabase.setReadings(readings);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 100 }
-//       ]);
+      // Verify log shows success
+      const loggedOps = mockDatabase.getLoggedOperations();
+      const uploadLog = loggedOps.find(op => op.operationType === 'upload');
+      expect(uploadLog?.success).toBe(true);
+      expect(uploadLog?.readingsCount).toBe(50);
+    });
+  });
+});
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 100,
-//         enableAutoUpload: false,
-//       };
+describe('Task 8.3: Verify deletion errors don\'t block next batch', () => {
+  let uploadManager: MeterReadingUploadManager;
+  let mockDatabase: MockSyncDatabaseForTask8;
+  let mockApiClient: MockClientSystemApiClientForTask8;
 
-//       uploadManager = new MeterReadingUploadManager(config);
-//       await uploadManager.triggerUpload();
+  beforeEach(() => {
+    process.env.METER_READING_VALIDATION_BEFORE_UPLOAD = 'false';
+    vi.spyOn(cacheManager, 'getTenant').mockReturnValue(mockTenant as any);
+    mockDatabase = new MockSyncDatabaseForTask8();
+    mockApiClient = new MockClientSystemApiClientForTask8();
+  });
 
-//       // Verify log includes correct count
-//       const loggedOps = mockDatabase.getLoggedOperations();
-//       const uploadLog = loggedOps.find(op => op.operationType === 'upload' && op.success);
-//       expect(uploadLog?.readingsCount).toBe(100);
-//     });
+  afterEach(async () => {
+    if (uploadManager) {
+      await uploadManager.stop();
+    }
+    delete process.env.METER_READING_VALIDATION_BEFORE_UPLOAD;
+    vi.restoreAllMocks();
+  });
 
-//     it('should log success status with deletion count', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+  describe('Deletion Error Handling', () => {
+    it('should log error but continue when deletion fails', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       mockDatabase.setReadings(readings);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
+      mockDatabase.setReadings(readings);
+      mockDatabase.setDeletionErrors(true);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//       uploadManager = new MeterReadingUploadManager(config);
-//       await uploadManager.triggerUpload();
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
 
-//       // Verify log shows success
-//       const loggedOps = mockDatabase.getLoggedOperations();
-//       const uploadLog = loggedOps.find(op => op.operationType === 'upload');
-//       expect(uploadLog?.success).toBe(true);
-//       expect(uploadLog?.readingsCount).toBe(50);
-//     });
-//   });
-// });
+      // Should not throw even though deletion fails
+      await expect(uploadManager.triggerUpload()).resolves.not.toThrow();
+    });
 
-// describe('Task 8.3: Verify deletion errors don\'t block next batch', () => {
-//   let uploadManager: MeterReadingUploadManager;
-//   let mockDatabase: MockSyncDatabaseForTask8;
-//   let mockApiClient: MockClientSystemApiClientForTask8;
+    it('should not retry deletion on error', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//   beforeEach(() => {
-//     mockDatabase = new MockSyncDatabaseForTask8();
-//     mockApiClient = new MockClientSystemApiClientForTask8();
-//   });
+      mockDatabase.setReadings(readings);
+      mockDatabase.setDeletionErrors(true);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
 
-//   afterEach(async () => {
-//     if (uploadManager) {
-//       await uploadManager.stop();
-//     }
-//   });
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//   describe('Deletion Error Handling', () => {
-//     it('should log error but continue when deletion fails', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
+      await uploadManager.triggerUpload();
 
-//       mockDatabase.setReadings(readings);
-//       mockDatabase.setDeletionErrors(true);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
+      // Verify deletion was only attempted once (not retried)
+      expect(mockDatabase.getDeletionCallCount()).toBe(1);
+    });
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+    it('should allow readings to be re-uploaded if deletion fails', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       uploadManager = new MeterReadingUploadManager(config);
-      
-//       // Should not throw even though deletion fails
-//       await expect(uploadManager.triggerUpload()).resolves.not.toThrow();
-//     });
+      mockDatabase.setReadings(readings);
+      mockDatabase.setDeletionErrors(true);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
 
-//     it('should not retry deletion on error', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//       mockDatabase.setReadings(readings);
-//       mockDatabase.setDeletionErrors(true);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+      // First upload attempt (deletion fails)
+      await uploadManager.triggerUpload();
 
-//       uploadManager = new MeterReadingUploadManager(config);
-//       await uploadManager.triggerUpload();
+      // Verify readings are still in database (not deleted)
+      const deletedIds = mockDatabase.getDeletedReadingIds();
+      expect(deletedIds.length).toBe(0);
 
-//       // Verify deletion was only attempted once (not retried)
-//       expect(mockDatabase.getDeletionCallCount()).toBe(1);
-//     });
+      // Readings should still be available for re-upload on next cycle
+      // (This is safe due to idempotency - re-uploading same readings is safe)
+    });
 
-//     it('should allow readings to be re-uploaded if deletion fails', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+    it('should continue processing after deletion error', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       mockDatabase.setReadings(readings);
-//       mockDatabase.setDeletionErrors(true);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
+      mockDatabase.setReadings(readings);
+      mockDatabase.setDeletionErrors(true);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//       uploadManager = new MeterReadingUploadManager(config);
-      
-//       // First upload attempt (deletion fails)
-//       await uploadManager.triggerUpload();
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
 
-//       // Verify readings are still in database (not deleted)
-//       const deletedIds = mockDatabase.getDeletedReadingIds();
-//       expect(deletedIds.length).toBe(0);
+      // Upload should complete despite deletion error
+      await uploadManager.triggerUpload();
 
-//       // Readings should still be available for re-upload on next cycle
-//       // (This is safe due to idempotency - re-uploading same readings is safe)
-//     });
+      // Verify upload manager is still operational
+      const status = uploadManager.getStatus();
+      expect(status.isRunning).toBe(true); // Running because we called start()
+      expect(status.lastUploadTime).toBeDefined(); // And upload was attempted
+    });
 
-//     it('should continue processing after deletion error', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+    it('should log deletion error without blocking', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       mockDatabase.setReadings(readings);
-//       mockDatabase.setDeletionErrors(true);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
+      mockDatabase.setReadings(readings);
+      mockDatabase.setDeletionErrors(true);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//       uploadManager = new MeterReadingUploadManager(config);
-      
-//       // Upload should complete despite deletion error
-//       await uploadManager.triggerUpload();
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
 
-//       // Verify upload manager is still operational
-//       const status = uploadManager.getStatus();
-//       expect(status.isRunning).toBe(false); // Not running because we didn't start it
-//       expect(status.lastUploadTime).toBeDefined(); // But upload was attempted
-//     });
+      // Should not throw
+      await expect(uploadManager.triggerUpload()).resolves.not.toThrow();
 
-//     it('should log deletion error without blocking', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+      // Verify upload was still recorded
+      const status = uploadManager.getStatus();
+      expect(status.lastUploadTime).toBeDefined();
+    });
+  });
 
-//       mockDatabase.setReadings(readings);
-//       mockDatabase.setDeletionErrors(true);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
+  describe('Idempotency on Deletion Failure', () => {
+    it('should allow safe re-upload of readings if deletion fails', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+      mockDatabase.setReadings(readings);
+      mockDatabase.setDeletionErrors(true);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
 
-//       uploadManager = new MeterReadingUploadManager(config);
-      
-//       // Should not throw
-//       await expect(uploadManager.triggerUpload()).resolves.not.toThrow();
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//       // Verify upload was still recorded
-//       const status = uploadManager.getStatus();
-//       expect(status.lastUploadTime).toBeDefined();
-//     });
-//   });
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
 
-//   describe('Idempotency on Deletion Failure', () => {
-//     it('should allow safe re-upload of readings if deletion fails', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+      // First upload (deletion fails)
+      await uploadManager.triggerUpload();
 
-//       mockDatabase.setReadings(readings);
-//       mockDatabase.setDeletionErrors(true);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
+      // Verify readings were not deleted
+      expect(mockDatabase.getDeletedReadingIds().length).toBe(0);
 
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
+      // Readings are still available for next upload cycle
+      // This is safe because the API should handle duplicate uploads idempotently
+    });
 
-//       uploadManager = new MeterReadingUploadManager(config);
-      
-//       // First upload (deletion fails)
-//       await uploadManager.triggerUpload();
+    it('should not mark readings as failed when deletion fails', async () => {
+      const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
+        meter_reading_id: `uuid-${i + 1}`,
+        meter_id: 1,
+        name: `Reading ${i + 1}`,
+        timestamp: new Date(Date.now() - (50 - i) * 60000),
+        data_point: 'energy_consumption',
+        value: 100 + i,
+        unit: 'kWh',
+        is_synchronized: false,
+        retry_count: 0,
+      }));
 
-//       // Verify readings were not deleted
-//       expect(mockDatabase.getDeletedReadingIds().length).toBe(0);
+      mockDatabase.setReadings(readings);
+      mockDatabase.setDeletionErrors(true);
+      mockApiClient.setUploadResponses([
+        { success: true, recordsProcessed: 50 }
+      ]);
 
-//       // Readings are still available for next upload cycle
-//       // This is safe because the API should handle duplicate uploads idempotently
-//     });
+      const config: MeterReadingUploadManagerConfig = {
+        database: mockDatabase as any,
+        apiClient: mockApiClient as any,
+        batchSize: 50,
+        enableAutoUpload: false,
+      };
 
-//     it('should not mark readings as failed when deletion fails', async () => {
-//       const readings: MeterReadingEntity[] = Array.from({ length: 50 }, (_, i) => ({
-//         meter_reading_id: i + 1,
-//         meter_id: 1,
-//         name: `Reading ${i + 1}`,
-//         timestamp: new Date(Date.now() - (50 - i) * 60000),
-//         data_point: 'energy_consumption',
-//         value: 100 + i,
-//         unit: 'kWh',
-//         is_synchronized: false,
-//         retry_count: 0,
-//       }));
+      uploadManager = new MeterReadingUploadManager(config);
+      await uploadManager.start();
+      await uploadManager.triggerUpload();
 
-//       mockDatabase.setReadings(readings);
-//       mockDatabase.setDeletionErrors(true);
-//       mockApiClient.setUploadResponses([
-//         { success: true, recordsProcessed: 50 }
-//       ]);
-
-//       const config: MeterReadingUploadManagerConfig = {
-//         database: mockDatabase as any,
-//         apiClient: mockApiClient as any,
-//         batchSize: 50,
-//         enableAutoUpload: false,
-//       };
-
-//       uploadManager = new MeterReadingUploadManager(config);
-//       await uploadManager.triggerUpload();
-
-//       // Verify readings are still available (not marked as failed)
-//       const deletedIds = mockDatabase.getDeletedReadingIds();
-//       expect(deletedIds.length).toBe(0);
-//     });
-//   });
-// });
+      // Verify readings are still available (not marked as failed)
+      const deletedIds = mockDatabase.getDeletedReadingIds();
+      expect(deletedIds.length).toBe(0);
+    });
+  });
+});

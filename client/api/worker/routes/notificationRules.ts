@@ -86,7 +86,7 @@ app.get('/:id', async (c) => {
     // Get recipients
     const recipientsResult = await query(
       c.env,
-      `SELECT notification_rule_recipient_id, users_id, receive_email, email_address
+      `SELECT notification_rule_recipient_id, email_address
        FROM public.notification_rule_recipient
        WHERE notification_rule_id = $1`,
       [id]
@@ -148,12 +148,14 @@ app.post('/', async (c) => {
 
     // Add recipients
     for (const recipient of recipients) {
+      if (!recipient.email_address) continue;
       await query(
         c.env,
         `INSERT INTO public.notification_rule_recipient
-         (notification_rule_id, users_id, receive_email, email_address)
-         VALUES ($1, $2, $3, $4)`,
-        [ruleId, recipient.users_id, recipient.receive_email !== false, recipient.email_address || null]
+         (notification_rule_id, email_address)
+         VALUES ($1, $2)
+         ON CONFLICT (notification_rule_id, email_address) DO NOTHING`,
+        [ruleId, recipient.email_address]
       );
     }
 
@@ -225,12 +227,14 @@ app.put('/:id', async (c) => {
     // Update recipients
     await query(c.env, 'DELETE FROM public.notification_rule_recipient WHERE notification_rule_id = $1', [id]);
     for (const recipient of recipients) {
+      if (!recipient.email_address) continue;
       await query(
         c.env,
         `INSERT INTO public.notification_rule_recipient
-         (notification_rule_id, users_id, receive_email, email_address)
-         VALUES ($1, $2, $3, $4)`,
-        [id, recipient.users_id, recipient.receive_email !== false, recipient.email_address || null]
+         (notification_rule_id, email_address)
+         VALUES ($1, $2)
+         ON CONFLICT (notification_rule_id, email_address) DO NOTHING`,
+        [id, recipient.email_address]
       );
     }
 

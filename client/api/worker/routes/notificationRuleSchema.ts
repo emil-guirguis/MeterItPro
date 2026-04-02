@@ -87,6 +87,10 @@ export const notificationRuleSchema = defineSchema({
               helpText: 'Select the meter, element and registers to monitor. Leave empty to check all meters.',
               showOn: ['form'],
               customField: true,
+              showIf: {
+                fieldName: 'rule_type',
+                value: 'custom',
+              },
             }),
           ],
         }),

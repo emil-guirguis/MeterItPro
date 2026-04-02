@@ -6,8 +6,13 @@
  */
 export type MeterReadingEntity = {
   meter_reading_id?: string;
-  meter_id: number;
-  created_at: Date;
+  meter_id?: number;
+  name?: string;
+  created_at?: Date;
+  timestamp?: Date;
+  data_point?: string;
+  value?: number;
+  unit?: string;
   is_synchronized: boolean;
   retry_count: number;
   kwh?: number;

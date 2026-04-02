@@ -21,7 +21,6 @@ import { MeterElementRegisterSelectorGrid } from '../shared/MeterElementRegister
 import type { MeterRowValue } from '../shared/MeterElementRegisterSelectorGrid';
 import RecipientManager from './RecipientManager';
 import ScheduleSelector from './ScheduleSelector';
-import apiClient from '../../services/apiClient';
 
 interface ReportFormProps {
   report?: Report;
@@ -45,22 +44,12 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
     enabled: true
   });
 
-  const [meters, setMeters] = useState<Array<{ id: number; name: string }>>([]);
   const [meterSelections, setMeterSelections] = useState<MeterRowValue[]>([]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
-
-  useEffect(() => {
-    apiClient.get('/meters', { params: { limit: 1000 } })
-      .then(res => {
-        const list = res.data?.data || res.data || [];
-        setMeters(Array.isArray(list) ? list : []);
-      })
-      .catch(() => setMeters([]));
-  }, []);
 
   useEffect(() => {
     if (report) {
@@ -182,8 +171,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="fullWidth">
-          <Tab label="Basic Info" />
-          <Tab label="Meter Configuration" />
+          <Tab label="General" />
           <Tab label="Recipients" />
         </Tabs>
       </Box>
@@ -203,8 +191,8 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
             />
 
             <FormControl fullWidth error={!!errors.type} disabled={loading}>
-              <InputLabel>Report Type</InputLabel>
-              <Select value={formData.type} onChange={handleTypeChange} label="Report Type">
+              <InputLabel id="report-type-label">Report Type</InputLabel>
+              <Select labelId="report-type-label" inputProps={{ id: 'report-type-select' }} value={formData.type} onChange={handleTypeChange} label="Report Type">
                 {REPORT_TYPES.map((type) => (
                   <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
                 ))}
@@ -218,19 +206,16 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
               error={errors.schedule}
               disabled={loading}
             />
+
+            <MeterElementRegisterSelectorGrid
+              value={meterSelections}
+              onChange={setMeterSelections}
+              disabled={loading}
+            />
           </>
         )}
 
         {activeTab === 1 && (
-          <MeterElementRegisterSelectorGrid
-            meters={meters}
-            value={meterSelections}
-            onChange={setMeterSelections}
-            disabled={loading}
-          />
-        )}
-
-        {activeTab === 2 && (
           <RecipientManager
             recipients={formData.recipients}
             onChange={handleRecipientsChange}

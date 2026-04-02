@@ -202,8 +202,9 @@ export class ReadingBatcher {
     let totalRetryAttempts = 0;
     const insertedReadingIds: string[] = [];
 
-    // Use the global syncPool directly
-    if (!syncPool) {
+    // Use passed database pool if available, otherwise fall back to global syncPool
+    const pool = database?.pool || syncPool;
+    if (!pool) {
       throw new Error('Global syncPool is not initialized. Call initializePools() first.');
     }
 
@@ -218,9 +219,9 @@ export class ReadingBatcher {
       while (retryCount < 3 && !batchSuccess) {
         let client;
         try {
-          // Get client from global pool
+          // Get client from pool
           this.logger.debug(`   Acquiring database connection...`);
-          client = await syncPool.connect();
+          client = await pool.connect();
           this.logger.debug(`   ✓ Connection acquired`);
 
           // Begin transaction
@@ -374,7 +375,7 @@ export class ReadingBatcher {
     // Calculate kWh for all successfully inserted readings
     if (insertedReadingIds.length > 0) {
       try {
-        await calculateKwhForReadings(syncPool, insertedReadingIds);
+        await calculateKwhForReadings(pool, insertedReadingIds);
       } catch (error) {
         // Non-fatal: log but don't fail the batch — readings are still saved
         this.logger.error('❌ [KWH] kWh calculation step failed:', error);

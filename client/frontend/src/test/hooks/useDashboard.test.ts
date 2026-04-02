@@ -18,6 +18,7 @@ describe('useDashboard Hook', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
     localStorage.clear();
   });
 
@@ -175,17 +176,22 @@ describe('useDashboard Hook', () => {
 
       renderHook(() => useDashboard(config));
 
-      // Initial call
-      await waitFor(() => {
-        expect(fetchDataMock).toHaveBeenCalledTimes(1);
+      // Allow initial fetch promise to settle without advancing timers
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
       });
 
-      // Advance time by refresh interval
-      vi.advanceTimersByTime(1000);
+      expect(fetchDataMock).toHaveBeenCalledTimes(1);
 
-      await waitFor(() => {
-        expect(fetchDataMock).toHaveBeenCalledTimes(2);
+      // Advance time by refresh interval so the interval fires once
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+        await Promise.resolve();
+        await Promise.resolve();
       });
+
+      expect(fetchDataMock).toHaveBeenCalledTimes(2);
 
       vi.useRealTimers();
     });

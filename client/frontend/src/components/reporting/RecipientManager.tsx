@@ -82,7 +82,7 @@ const RecipientManager: React.FC<RecipientManagerProps> = ({
           <Button
             onClick={handleAddRecipient}
             variant="outlined"
-            disabled={disabled || !inputValue.trim()}
+            disabled={disabled}
             startIcon={<AddIcon />}
             sx={{ mt: 1 }}
           >

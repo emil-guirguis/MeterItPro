@@ -6,7 +6,8 @@
 import React from 'react';
 
 export interface Meter {
-  id: string;
+  meter_id: string;
+  meter_element_id: string;
   tenantId: string;
   name: string;
   description?: string;

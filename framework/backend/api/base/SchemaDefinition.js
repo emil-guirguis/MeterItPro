@@ -286,6 +286,7 @@ function defineSchema(definition) {
     entityFields: definition.entityFields || {},
     relationships: definition.relationships || {},
     validation: definition.validation || {},
+    idFieldName: definition.idFieldName || null,
     version: '1.2.0', // Updated to include formTabs support
     generatedAt: new Date().toISOString(),
   };

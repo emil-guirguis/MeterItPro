@@ -375,6 +375,23 @@ async executeCycle(
       this.logger.info(`   Full meter:`, JSON.stringify(meter, null, 2));
       this.logger.info(`${'='.repeat(100)}\n`);
 
+      // ── Connectivity pre-check ────────────────────────────────────────
+      const port = meter.port || 47808;
+      this.logger.info(`Checking connectivity for meter ${meter.meter_id} at ${meter.ip}:${port}`);
+      const isOnline = await bacnetClient.checkConnectivity(meter.ip, port);
+      if (!isOnline) {
+        this.logger.warn(`Meter ${meter.meter_id} at ${meter.ip}:${port} is offline or unreachable — skipping reads`);
+        errors.push({
+          meterId: String(meter.meter_id),
+          operation: 'connectivity',
+          error: `Meter is offline or unreachable`,
+          timestamp: new Date(),
+        });
+        return readings;
+      }
+      this.logger.info(`Meter ${meter.meter_id} at ${meter.ip}:${port} is online`);
+      // ──────────────────────────────────────────────────────────────────
+
       // ── Circuit breaker check ──────────────────────────────────────────
       if (this.batchSizeManager.isCircuitOpen(meter.meter_id)) {
         const state = this.batchSizeManager.getMeterState(meter.meter_id);

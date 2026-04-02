@@ -63,7 +63,22 @@
       "Bash(npx wrangler:*)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''scripts'''',{}\\), indent=2\\)\\)\")",
       "Bash(/c/Projects/MeterItPro/COMPONENT_INTEGRATION_SUMMARY.md:*)",
-      "Bash(find C:ProjectsMeterItPro -type f \\\\\\(-name *notification*test* -o -name *test*notification* \\\\\\))"
+      "Bash(find C:ProjectsMeterItPro -type f \\\\\\(-name *notification*test* -o -name *test*notification* \\\\\\))",
+      "Bash(npx vitest:*)",
+      "Read(//c/Users/emil_/AppData/Local/Temp/claude/c--Projects-MeterItPro/7330bd07-6d72-43a4-8072-5b9c75a89743/tasks/**)",
+      "Bash(taskkill //F //IM \"node.exe\" //FI \"WINDOWTITLE eq *vitest*\")",
+      "Bash(pkill -f \"vitest\")",
+      "Bash(npm test:*)",
+      "Bash(python3 -c \"import json,sys; p=json.load\\(sys.stdin\\); print\\(list\\(p.get\\(''''devDependencies'''',{}\\).keys\\(\\)\\)[:10]\\)\")",
+      "Bash(node -e \":*)",
+      "Read(//c/Projects/MeterItPro/sync/mcp/**)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Bash(node_modules/.bin/vitest run:*)",
+      "Read(//tmp/**)",
+      "Read(//c/Projects/MeterItPro/client/frontend/**)",
+      "Bash(npx which:*)",
+      "Bash(wait)"
     ]
   }
 }

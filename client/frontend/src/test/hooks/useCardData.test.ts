@@ -18,6 +18,7 @@ describe('useCardData Hook', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   describe('Property 1: Component Isolation - Card-Specific Data', () => {
@@ -175,19 +176,22 @@ describe('useCardData Hook', () => {
 
       renderHook(() => useCardData(config));
 
-      // Initial call
-      await waitFor(() => {
-        expect(fetchDataMock).toHaveBeenCalledTimes(1);
+      // Allow initial fetch promise to settle without advancing timers
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
       });
 
-      // Advance time by refresh interval
-      vi.advanceTimersByTime(5000);
+      expect(fetchDataMock).toHaveBeenCalledTimes(1);
 
-      await waitFor(() => {
-        expect(fetchDataMock).toHaveBeenCalledTimes(2);
+      // Advance time by refresh interval so the interval fires once
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+        await Promise.resolve();
+        await Promise.resolve();
       });
 
-      vi.useRealTimers();
+      expect(fetchDataMock).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -385,7 +389,7 @@ describe('useCardData Hook', () => {
      * Property: For any hook instance, on unmount, all intervals and timers
      * SHALL be cleared to prevent memory leaks.
      */
-    it('should clear intervals on unmount', () => {
+    it('should clear intervals on unmount', async () => {
       vi.useFakeTimers();
 
       const card: DashboardCard = {
@@ -407,14 +411,18 @@ describe('useCardData Hook', () => {
 
       const { unmount } = renderHook(() => useCardData(config));
 
+      // Allow initial fetch promise to settle without advancing timers
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
       unmount();
 
-      // Advance time - should not cause additional calls
+      // Advance time - should not cause additional calls after unmount
       vi.advanceTimersByTime(2000);
 
       expect(fetchDataMock).toHaveBeenCalledTimes(1); // Only initial call
-
-      vi.useRealTimers();
     });
   });
 });

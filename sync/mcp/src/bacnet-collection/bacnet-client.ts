@@ -56,16 +56,43 @@ export interface BatchReadResult {
   error?: string;
 }
 
+export interface BACnetClientConfig {
+  bacnetInterface?: string;
+  bacnetPort?: number;
+  apduTimeout?: number;
+  batchReadTimeout?: number;
+  sequentialReadTimeout?: number;
+  connectivityCheckTimeout?: number;
+}
+
 export class BACnetClient {
   private client: any = null;
   private readonly bacnetInterface: string;
   private readonly bacnetPort: number;
   private readonly apduTimeout: number;
+  private readonly batchReadTimeout: number;
+  private readonly sequentialReadTimeout: number;
+  private readonly connectivityCheckTimeout: number;
+  private readonly logger: any;
 
-  constructor(bacnetInterface: string = '0.0.0.0', bacnetPort: number = 47808, apduTimeout: number = 6000) {
-    this.bacnetInterface = bacnetInterface;
-    this.bacnetPort = bacnetPort;
-    this.apduTimeout = apduTimeout;
+  constructor(config: BACnetClientConfig | string = '0.0.0.0', bacnetPortOrLogger: number | any = 47808, apduTimeout: number = 6000) {
+    if (typeof config === 'object') {
+      this.bacnetInterface = config.bacnetInterface ?? '0.0.0.0';
+      this.bacnetPort = config.bacnetPort ?? 47808;
+      this.apduTimeout = config.apduTimeout ?? 6000;
+      this.batchReadTimeout = config.batchReadTimeout ?? 5000;
+      this.sequentialReadTimeout = config.sequentialReadTimeout ?? 3000;
+      this.connectivityCheckTimeout = config.connectivityCheckTimeout ?? 2000;
+      this.logger = (typeof bacnetPortOrLogger === 'object' && bacnetPortOrLogger !== null) ? bacnetPortOrLogger : undefined;
+    } else {
+      this.bacnetInterface = config;
+      this.bacnetPort = typeof bacnetPortOrLogger === 'number' ? bacnetPortOrLogger : 47808;
+      this.apduTimeout = apduTimeout;
+      this.batchReadTimeout = 5000;
+      this.sequentialReadTimeout = 3000;
+      this.connectivityCheckTimeout = 2000;
+      this.logger = undefined;
+    }
     this.initializeClient();
   }
 
@@ -95,11 +122,19 @@ export class BACnetClient {
         });
       });
 
-      console.log('BACnet client initialized', {
-        interface: this.bacnetInterface,
-        port: this.bacnetPort,
-        apduTimeout: this.apduTimeout,
-      });
+      if (this.logger) {
+        this.logger.info('✅ BACnet client initialized', {
+          interface: this.bacnetInterface,
+          port: this.bacnetPort,
+          apduTimeout: this.apduTimeout,
+        });
+      } else {
+        console.log('BACnet client initialized', {
+          interface: this.bacnetInterface,
+          port: this.bacnetPort,
+          apduTimeout: this.apduTimeout,
+        });
+      }
     }
   }
 
@@ -217,8 +252,9 @@ export class BACnetClient {
     ip: string,
     port: number,
     requests: BatchReadRequest[],
-    timeoutMs: number
+    timeoutMs?: number
   ): Promise<BatchReadResult[]> {
+    const effectiveTimeoutMs = timeoutMs ?? this.batchReadTimeout;
     try {
       // Note: bacnet-node doesn't use port in the address for readPropertyMultiple
       // The port is configured at client initialization
@@ -254,7 +290,7 @@ export class BACnetClient {
       console.log(`${'='.repeat(80)}\n`);
 
       return new Promise((resolve) => {
-        const effectiveTimeout = Math.max(timeoutMs, this.apduTimeout);
+        const effectiveTimeout = effectiveTimeoutMs;
         const timeoutHandle = setTimeout(() => {
           console.error(
             `BACnet batch read timeout for ${address} (${requests.length} properties) after ${effectiveTimeout}ms`
@@ -371,12 +407,53 @@ export class BACnetClient {
   }
 
   /**
+   * Read multiple properties from a device sequentially (one at a time).
+   * Falls back to this when batch reads fail.
+   */
+  async readPropertySequential(
+    ip: string,
+    port: number,
+    requests: BatchReadRequest[],
+    timeoutMs?: number
+  ): Promise<BatchReadResult[]> {
+    const timeout = timeoutMs ?? this.sequentialReadTimeout;
+    const results: BatchReadResult[] = [];
+
+    for (const req of requests) {
+      try {
+        const result = await this.readProperty(ip, port, req.objectType, req.objectInstance, req.propertyId, timeout);
+        results.push({
+          success: result.success,
+          objectType: req.objectType,
+          objectInstance: req.objectInstance,
+          propertyId: req.propertyId,
+          fieldName: req.fieldName,
+          value: result.value,
+          error: result.error,
+        });
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        results.push({
+          success: false,
+          objectType: req.objectType,
+          objectInstance: req.objectInstance,
+          propertyId: req.propertyId,
+          fieldName: req.fieldName,
+          error: errorMsg,
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * Check if a BACnet device is reachable by reading objectName (prop 77) from
    * the Device object (type 8, instance 0). Any reply — value or BACnet error —
    * means the device is online. Only a timeout (no UDP reply) means offline.
    */
   async checkConnectivity(ip: string, port: number): Promise<boolean> {
-    const CONNECTIVITY_TIMEOUT_MS = 5000;
+    const CONNECTIVITY_TIMEOUT_MS = this.connectivityCheckTimeout;
 
     return new Promise((resolve) => {
       let resolved = false;

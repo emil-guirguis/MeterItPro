@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AppLayoutWrapper } from './AppLayoutWrapper';
 import { MeterSelectionProvider, useMeterSelection } from '../../contexts/MeterSelectionContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -108,14 +108,14 @@ describe('AppLayoutWrapper - Context Synchronization', () => {
     const user = userEvent.setup();
 
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={['/']}>
         <MeterSelectionProvider>
           <Routes>
             <Route path="/" element={<AppLayoutWrapper><div /></AppLayoutWrapper>} />
             <Route path="/meter-readings" element={<MeterReadingsTestPage />} />
           </Routes>
         </MeterSelectionProvider>
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
     // Find and click the meter element button
@@ -139,7 +139,7 @@ describe('AppLayoutWrapper - Context Synchronization', () => {
     };
 
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={['/']}>
         <MeterSelectionProvider>
           <Routes>
             <Route path="/" element={<AppLayoutWrapper><div /></AppLayoutWrapper>} />
@@ -158,7 +158,7 @@ describe('AppLayoutWrapper - Context Synchronization', () => {
             />
           </Routes>
         </MeterSelectionProvider>
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
     const button = screen.getByTestId('meter-element-button');
