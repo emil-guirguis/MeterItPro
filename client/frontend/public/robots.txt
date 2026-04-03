@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Allow: /signup
+Allow: /login
+Disallow: /dashboard
+Disallow: /meters
+Disallow: /meter-readings
+Disallow: /reports
+Disallow: /settings
+Disallow: /users
+Disallow: /location
+Disallow: /contacts
+Disallow: /devices
+Disallow: /management
+Disallow: /notification-rules
+Disallow: /security/
+
+Sitemap: https://meteritpro.com/sitemap.xml

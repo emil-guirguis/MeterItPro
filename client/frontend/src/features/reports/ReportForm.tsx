@@ -10,7 +10,12 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Button,
+  Tooltip,
+  Alert,
+  Collapse,
 } from '@mui/material';
+import BugReportIcon from '@mui/icons-material/BugReport';
 import { BaseForm, FormContainer } from '@framework/components/form';
 import { CronField } from '@framework/components/formfield/CronField';
 import { useReportsEnhanced } from './reportsStore';
@@ -45,8 +50,29 @@ export const ReportForm: React.FC<ReportFormProps> = ({
 }) => {
   const reports = useReportsEnhanced();
 
+  const [debugRunning, setDebugRunning] = useState(false);
+  const [debugResult, setDebugResult] = useState<{ success: boolean; message: string } | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  const handleDebugRun = async () => {
+    if (!report?.report_id) return;
+    setDebugRunning(true);
+    setDebugResult(null);
+    const url = `http://localhost:3005/debug/run-report/${report.report_id}`;
+    try {
+      const res = await fetch(url, { method: 'POST' });
+      const json = await res.json();
+      setDebugResult({
+        success: json.success,
+        message: json.success ? 'Report executed successfully' : `Error: ${json.error ?? 'Unknown error'}`,
+      });
+    } catch {
+      setDebugResult({ success: false, message: 'Could not reach MCP debug server on port 3005' });
+    } finally {
+      setDebugRunning(false);
+    }
+  };
 
   useEffect(() => {
     if (!report?.report_id) return;
@@ -60,6 +86,35 @@ export const ReportForm: React.FC<ReportFormProps> = ({
 
   return (
     <FormContainer>
+      {import.meta.env.DEV && report?.report_id && (
+        <Box sx={{ px: 2, pt: 2 }}>
+          <Tooltip title="Run this report now via the MCP agent (port 3005 must be running)">
+            <span>
+              <Button
+                variant="outlined"
+                color="warning"
+                size="small"
+                startIcon={debugRunning ? <CircularProgress size={14} color="inherit" /> : <BugReportIcon />}
+                onClick={handleDebugRun}
+                disabled={debugRunning}
+              >
+                [DEV] Run This Report Now
+              </Button>
+            </span>
+          </Tooltip>
+          <Collapse in={!!debugResult} unmountOnExit>
+            {debugResult && (
+              <Alert
+                severity={debugResult.success ? 'success' : 'error'}
+                onClose={() => setDebugResult(null)}
+                sx={{ mt: 1 }}
+              >
+                {debugResult.message}
+              </Alert>
+            )}
+          </Collapse>
+        </Box>
+      )}
       <div className="form-container__content">
         <BaseForm
           schemaName="report"
@@ -154,10 +209,10 @@ export const ReportForm: React.FC<ReportFormProps> = ({
 
             // Custom rendering for meter_selections field
             if (fieldName === 'meter_selections') {
-              const rows: MeterRowValue[] = Array.isArray(value) ? value : [];
+              const parsed: MeterRowValue[] = typeof value === 'string' ? JSON.parse(value || '[]') : (value || []);
               return (
                 <MeterElementRegisterSelectorGrid
-                  value={rows}
+                  value={parsed}
                   onChange={onChange}
                   disabled={isDisabled}
                   error={error}
