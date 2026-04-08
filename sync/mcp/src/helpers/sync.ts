@@ -34,7 +34,7 @@ export interface SyncOperationConfig {
   entityType: string;
   remotePool: Pool;
   syncPool: Pool;
-  tenantId?: number;
+  tenantId: number;
   useCompositeKey?: boolean;
   keyColumns?: string[];
   changeDetector?: (remote: any, local: any) => boolean;
@@ -59,9 +59,14 @@ export async function orchestrateSync(config: SyncOperationConfig): Promise<Sync
   try {
     console.log(`\n🔄 [Sync] Starting ${config.entityType} synchronization...`);
 
+    // Validate tenant context before any remote query
+    if (config.tenantId === undefined || config.tenantId === null) {
+      throw new Error(`[Sync] tenantId is required for ${config.entityType} sync but was not provided.`);
+    }
+
     // Get remote entities
     console.log(`🔍 [Sync] Querying remote database for ${config.entityType} entities...`);
-    const remoteEntities = await getRemoteEntities(config.remotePool, config.entityType, config.tenantId ?? 0, 'orchestrateSync>getRemoteEntities');
+    const remoteEntities = await getRemoteEntities(config.remotePool, config.entityType, config.tenantId, 'orchestrateSync>getRemoteEntities');
     console.log(`📋 [Sync] Found ${remoteEntities.length} remote ${config.entityType} record(s)`);
 
     // Get local entities

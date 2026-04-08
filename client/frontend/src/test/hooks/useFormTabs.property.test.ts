@@ -23,7 +23,7 @@ function processFormTabs(
     sections: Record<string, { fields: FieldWithOrder[]; order: number }>;
   }
 
-  const tabsMap: Record<string, TabInfoInternal> = {};
+  const tabsMap: Record<string, TabInfoInternal> = Object.create(null);
 
   // Process each tab
   formTabs.forEach((tab) => {
@@ -68,7 +68,7 @@ function processFormTabs(
   const sortedTabsList = Object.entries(tabsMap)
     .sort(([, a], [, b]) => a.order - b.order);
 
-  const sortedTabs: Record<string, any> = {};
+  const sortedTabs: Record<string, any> = Object.create(null);
   sortedTabsList.forEach(([tabName, tab]) => {
     // Sort sections within tab
     const sortedSections = Object.entries(tab.sections)
@@ -81,7 +81,7 @@ function processFormTabs(
 
         sectionAcc[sectionName] = sortedFields;
         return sectionAcc;
-      }, {} as Record<string, string[]>);
+      }, Object.create(null) as Record<string, string[]>);
 
     sortedTabs[tabName] = {
       label: tab.label,
@@ -91,7 +91,7 @@ function processFormTabs(
   });
 
   // Build field sections for current tab
-  const currentTabSections: Record<string, string[]> = {};
+  const currentTabSections: Record<string, string[]> = Object.create(null);
   if (sortedTabs[activeTab]) {
     Object.assign(currentTabSections, sortedTabs[activeTab].sections);
   }

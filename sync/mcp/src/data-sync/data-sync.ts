@@ -108,13 +108,6 @@ export async function initializePools() {
   //   console.error('Failed to connect to the remote  database', err);
   // }
 
-  // Ensure local sync database schema is up to date
-  try {
-    await syncPool.query(`ALTER TABLE meter ADD COLUMN IF NOT EXISTS meter_element_id INTEGER NOT NULL DEFAULT 0`);
-    await syncPool.query(`ALTER TABLE meter ADD COLUMN IF NOT EXISTS element VARCHAR(255)`);
-  } catch (err) {
-    console.warn('Schema migration note:', err instanceof Error ? err.message : err);
-  }
 }
 
 /**

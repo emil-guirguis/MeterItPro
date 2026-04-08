@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { versionPlugin } from './vite-plugins/version-plugin';
@@ -49,7 +50,37 @@ export default defineConfig({
       },
     }),
     errorLoggerPlugin(),
-    // bundle visualizer removed per request
+    VitePWA({
+      registerType: 'autoUpdate',
+      manifest: {
+        name: 'MeterIt Pro',
+        short_name: 'MeterIt Pro',
+        description: 'Cloud-based meter management software for manufacturers, sellers, utilities, and BMS operators.',
+        theme_color: '#0f62fe',
+        background_color: '#ffffff',
+        display: 'standalone',
+        orientation: 'portrait',
+        start_url: '/',
+        icons: [
+          {
+            src: '/icons/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: '/icons/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+      },
+    }),
   ],
   resolve: {
     alias: {
@@ -135,13 +166,25 @@ export default defineConfig({
           if (id.includes('node_modules/@mui/') || id.includes('node_modules/@emotion/')) {
             return 'vendor-mui';
           }
-          // Recharts (already large on its own — keep isolated)
+          // Recharts + D3 (already large on its own — keep isolated)
           if (id.includes('node_modules/recharts/') || id.includes('node_modules/d3') || id.includes('node_modules/victory-vendor/')) {
             return 'vendor-recharts';
+          }
+          // ApexCharts
+          if (id.includes('node_modules/apexcharts/') || id.includes('node_modules/react-apexcharts/')) {
+            return 'vendor-apexcharts';
           }
           // Grid layout
           if (id.includes('node_modules/react-grid-layout/') || id.includes('node_modules/react-resizable/')) {
             return 'vendor-grid';
+          }
+          // Routing
+          if (id.includes('node_modules/react-router') || id.includes('node_modules/@remix-run/')) {
+            return 'vendor-router';
+          }
+          // HTTP + state
+          if (id.includes('node_modules/axios/') || id.includes('node_modules/zustand/')) {
+            return 'vendor-state';
           }
           // Remaining node_modules → shared vendor chunk
           if (id.includes('node_modules/')) {

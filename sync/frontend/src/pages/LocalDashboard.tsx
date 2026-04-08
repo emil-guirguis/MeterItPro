@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Card,
@@ -31,7 +31,7 @@ export default function LocalDashboard() {
 
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -51,7 +51,7 @@ export default function LocalDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setLoading, setError, setMeters, setReadings]);
 
   useEffect(() => {
     fetchData();
@@ -59,28 +59,33 @@ export default function LocalDashboard() {
     const interval = setInterval(fetchData, POLLING_INTERVAL);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData]);
 
-  // Calculate meter statuses
-  const meterStatuses = meters.map((meter) => {
-    const meterReadings = readings.filter(
-      (r) => r.meter_id === meter.meter_id
-    );
-    const lastReading = meterReadings.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    )[0];
+  // Calculate meter statuses - build a Map first for O(1) per-meter lookups
+  // instead of O(n×m) filter+sort on every render.
+  const meterStatuses = useMemo(() => {
+    const readingsByMeter = new Map<number, typeof readings>();
+    for (const r of readings) {
+      if (!readingsByMeter.has(r.meter_id)) readingsByMeter.set(r.meter_id, []);
+      readingsByMeter.get(r.meter_id)!.push(r);
+    }
 
-    const isConnected = lastReading
-      ? new Date().getTime() - new Date(lastReading.timestamp).getTime() < 5 * 60 * 1000
-      : false;
+    return meters.map((meter) => {
+      const meterReadings = readingsByMeter.get(meter.meter_id) ?? [];
+      const lastReading = meterReadings.reduce<typeof readings[0] | undefined>(
+        (best, r) =>
+          !best || new Date(r.timestamp).getTime() > new Date(best.timestamp).getTime()
+            ? r
+            : best,
+        undefined,
+      );
+      const isConnected = lastReading
+        ? Date.now() - new Date(lastReading.timestamp).getTime() < 5 * 60 * 1000
+        : false;
 
-    return {
-      meter,
-      isConnected,
-      lastReading,
-      readingCount: meterReadings.length,
-    };
-  });
+      return { meter, isConnected, lastReading, readingCount: meterReadings.length };
+    });
+  }, [meters, readings]);
 
   const connectedCount = meterStatuses.filter((m) => m.isConnected).length;
   const totalCount = meterStatuses.length;

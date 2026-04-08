@@ -130,8 +130,9 @@ export async function findAll(env: Env, opts: FindAllOptions): Promise<FindAllRe
   };
 }
 
-export async function findById(env: Env, table: string, primaryKey: string, id: any, tenantId?: number) {
-  let sql = `SELECT * FROM ${table} WHERE ${primaryKey} = $1`;
+export async function findById(env: Env, table: string, primaryKey: string, id: any, tenantId?: number, selectFields?: string) {
+  const cols = selectFields || `${table}.*`;
+  let sql = `SELECT ${cols} FROM ${table} WHERE ${primaryKey} = $1`;
   const params: any[] = [id];
 
   if (tenantId !== undefined) {

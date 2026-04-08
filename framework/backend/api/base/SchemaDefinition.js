@@ -550,6 +550,40 @@ function defineSchema(definition) {
   }
 
   /**
+   * Get database column names for SELECT queries.
+   *
+   * Iterates formFields + entityFields and collects each field's dbField value.
+   * Fields with dbField: null are virtual/computed (e.g. 'elements') and are skipped.
+   *
+   * @param {string} [tableName] - Optional table alias prefix (e.g. 'meter' → 'meter.meter_id')
+   * @returns {string[]} Array of column name strings
+   */
+  function getDbFields(tableName) {
+    const allFields = { ...schema.formFields, ...schema.entityFields };
+    const columns = [];
+    for (const fieldDef of Object.values(allFields)) {
+      if (fieldDef.dbField === null || fieldDef.dbField === undefined) continue;
+      columns.push(tableName ? `${tableName}.${fieldDef.dbField}` : fieldDef.dbField);
+    }
+    return columns;
+  }
+
+  /**
+   * Get database column names as a single SQL SELECT string.
+   *
+   * Convenience wrapper around getDbFields() that joins the result with ', '.
+   * Falls back to '<tableName>.*' (or '*') when no db fields are found.
+   *
+   * @param {string} [tableName] - Optional table alias prefix
+   * @returns {string} Comma-separated column string ready for use in SELECT
+   */
+  function getSelectFields(tableName) {
+    const cols = getDbFields(tableName);
+    if (cols.length === 0) return tableName ? `${tableName}.*` : '*';
+    return cols.join(', ');
+  }
+
+  /**
    * Get constructor code for model (for code generation)
    */
   function getConstructorCode(className, dataParamName = 'data') {
@@ -589,6 +623,8 @@ ${assignments}
     fromDatabase,
     initializeFromData,
     getConstructorCode,
+    getDbFields,
+    getSelectFields,
   };
 }
 

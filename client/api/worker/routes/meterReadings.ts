@@ -61,7 +61,6 @@ app.get('/', requirePermission('meter:read'), async (c) => {
     const items = result.rows || [];
 
     const totalPages = Math.ceil(total / pageSize) || 1;
-    const hasMore = page < totalPages;
 
     return c.json({
       success: true,
@@ -71,7 +70,6 @@ app.get('/', requirePermission('meter:read'), async (c) => {
         page,
         pageSize,
         totalPages,
-        hasMore,
       },
     });
   } catch (error: any) {
