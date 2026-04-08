@@ -21,35 +21,40 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: client/frontend/package-lock.json
+
+      - name: Install Chrome for puppeteer (prerender)
+        run: npx puppeteer browsers install chrome
+        working-directory: ./client/frontend
+        continue-on-error: true
 
       - name: Install dependencies (frontend)
         run: npm ci
-        working-directory: ./responsive-web-app
+        working-directory: ./client/frontend
 
       - name: Build frontend
         run: npm run build
-        working-directory: ./responsive-web-app
+        working-directory: ./client/frontend
 
       - name: Upload artifact for GitHub Pages
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: responsive-web-app/dist
+          path: client/frontend/dist
 
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4
 
       - name: Smoke test GitHub Pages
         if: always()
         run: |
-          # Compute Pages URL from repository context
           owner=${GITHUB_REPOSITORY%%/*}
           repo=${GITHUB_REPOSITORY##*/}
           url="https://${owner}.github.io/${repo}/"
 
           echo "Checking Pages URL: $url"
 
-          # Retry loop: try for up to 2 minutes (24 attempts * 5s)
           success=0
           for i in {1..24}; do
             echo "Attempt $i: curling $url"

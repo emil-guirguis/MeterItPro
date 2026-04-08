@@ -17,14 +17,14 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // ResizeObserver is used by MUI — must be a regular function so `new ResizeObserver()` works
-global.ResizeObserver = vi.fn().mockImplementation(function () {
+(globalThis as any).ResizeObserver = vi.fn().mockImplementation(function (this: any) {
   this.observe = vi.fn();
   this.unobserve = vi.fn();
   this.disconnect = vi.fn();
 });
 
 // Suppress console noise in test output
-global.console = {
+(globalThis as any).console = {
   ...console,
   log: vi.fn(),
   debug: vi.fn(),
