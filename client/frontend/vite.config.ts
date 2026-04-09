@@ -104,6 +104,8 @@ export default defineConfig({
       'axios',
       'react-grid-layout',
       'react-resizable',
+      'apexcharts',
+      'react-apexcharts',
     ],
   },
   optimizeDeps: {
