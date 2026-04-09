@@ -37,6 +37,8 @@ const errorLoggerPlugin = () => {
   };
 };
 
+const basePath = process.env.VITE_BASE_PATH ?? '/';
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -60,7 +62,7 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        start_url: basePath,
         icons: [
           {
             src: '/icons/pwa-192x192.png',
@@ -77,7 +79,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallback: '/index.html',
+        navigateFallback: `${basePath}index.html`,
         navigateFallbackDenylist: [/^\/api\//],
       },
     }),
@@ -195,6 +197,6 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 600,
   },
-  // Base path for production (leave empty for root domain)
-  base: '/',
+  // Base path: /MeterItPro/ when deploying to GitHub Pages, / otherwise
+  base: process.env.VITE_BASE_PATH ?? '/',
 });

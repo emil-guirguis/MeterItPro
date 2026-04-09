@@ -1,0 +1,12 @@
+The new machine process is now:                                                                                                                        
+                                                                                                                                                               
+  1. Install Docker Desktop                                                                                                                                    
+  2. Copy install.ps1 to the machine    
+                                                                                                                           
+                                                                                                                           
+3. Right-click → Run with PowerShell                                                                                                                         
+
+                                                                                                                                                                 
+That's it — no prompts, no typing. It downloads everything from GitHub and starts all 4 services automatically.                                                                                                                                                                                                               
+You can get the script file at:                                                                                                                                
+https://raw.githubusercontent.com/emil-guirguis/MeterItPro/main/sync/install.ps1 

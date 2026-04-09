@@ -40,6 +40,8 @@ jobs:
       - name: Build frontend
         run: npm run build
         working-directory: ./client/frontend
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
@@ -59,14 +61,14 @@ jobs:
           echo "Checking Pages URL: $url"
 
           success=0
-          for i in {1..24}; do
+          for i in {1..36}; do
             echo "Attempt $i: curling $url"
             if curl -fsSL --max-time 10 "$url" -o /dev/null; then
               echo "Site responded successfully"
               success=1
               break
             fi
-            sleep 5
+            sleep 10
           done
 
           if [ "$success" -ne 1 ]; then

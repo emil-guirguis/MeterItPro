@@ -1,0 +1,30 @@
+ Two steps — dump from the source, restore into Docker.
+                                                                                                                                                               
+  Step 1 — On the source machine, dump the database:                                                                                                           
+                                                                                                                                                                 & "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" -h localhost -p 5432 -U postgres -d postgres --no-owner --no-acl -f C:\db-backup.sql                      
+                                                                                                                                                               
+  Copy C:\db-backup.sql to the target machine (USB, network share, etc.).
+
+  ---
+  Step 2 — On the target machine, restore into the Docker container:
+
+  First wipe the existing Docker database (so there are no conflicts with the schema that was auto-applied), then restore:
+
+  cd C:\MeterItPro\sync
+
+  # Stop everything except the database
+  docker compose stop sync-api sync-mcp sync-frontend
+
+  # Wipe and restart the database fresh
+  docker compose down -v
+  docker compose up -d db
+
+  # Wait for it to be healthy, then restore
+  Start-Sleep -Seconds 10
+  cmd /c "type C:\db-backup.sql | docker exec -i sync-sync-db-1 psql -U postgres -d postgres"
+
+  # Start the rest of the services
+  docker compose up -d
+
+  ---
+  That's it. The restore overwrites everything in the Docker DB with the data from the source machine.

@@ -79,7 +79,10 @@
       "Read(//c/Projects/MeterItPro/client/frontend/**)",
       "Bash(npx which:*)",
       "Bash(wait)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(docker --version)",
+      "Bash(docker info:*)",
+      "Bash(docker compose:*)"
     ]
   }
 }
