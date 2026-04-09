@@ -1338,9 +1338,9 @@ async function startServer() {
     `);
     console.log('✅ [Sync API] Required tables verified');
 
-    // Start listening (bind to localhost only for security)
-    const server = app.listen(PORT, '127.0.0.1', () => {
-      console.log(`\n✅ [Sync API] Server listening on http://127.0.0.1:${PORT}`);
+    // Start listening (bind to all interfaces for Docker compatibility)
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`\n✅ [Sync API] Server listening on http://0.0.0.0:${PORT}`);
       console.log(`   Health check: http://localhost:${PORT}/health`);
       console.log(`   Tenant endpoint: http://localhost:${PORT}/api/local/tenant`);
       console.log(`   Meters endpoint: http://localhost:${PORT}/api/local/meters`);
