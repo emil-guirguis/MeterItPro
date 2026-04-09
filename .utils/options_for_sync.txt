@@ -1,0 +1,19 @@
+Raspberry Pi 4/5 (~$60-90)
+
+  - Runs Linux + Docker natively
+  - Pi 5 with 4GB RAM handles 4 small containers comfortably
+  - Tiny, low power (~5W), passively cooled
+  - Risk: SD card reliability for a database (use an SSD over USB instead)
+
+  Mini PC / Intel N100 (~$100-200)
+
+  - Full x86, better Docker compatibility than ARM
+  - Examples: Beelink S12 Pro, GMKtec M5
+  - More headroom, built-in eMMC or M.2 SSD
+  - Still very small and low power
+
+  Industrial SBC / Embedded PC (~$150-400)
+
+  - Designed for 24/7 field deployment, wide temp range, no moving parts
+  - Examples: Advantech, Onlogic, Seeed reComputer
+  - Worth considering if the machines are in harsh environments (utility rooms, outdoors)

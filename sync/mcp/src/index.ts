@@ -816,8 +816,8 @@ class SyncMcpServer {
     });
 
     const httpPort = parseInt(process.env.MCP_HTTP_PORT || '3001', 10);
-    this.httpServer.listen(httpPort, '127.0.0.1', () => {
-      console.log(`✅ [HTTP] MCP HTTP server listening on http://127.0.0.1:${httpPort}`);
+    this.httpServer.listen(httpPort, '0.0.0.0', () => {
+      console.log(`✅ [HTTP] MCP HTTP server listening on http://0.0.0.0:${httpPort}`);
       console.log(`   Connectivity check: POST http://localhost:${httpPort}/api/check-connectivity`);
       console.log(`   Meter reading trigger: POST http://localhost:${httpPort}/api/meter-reading/trigger`);
     });
