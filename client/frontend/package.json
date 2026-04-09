@@ -26,6 +26,7 @@
     "@mui/material": "^5.18.0",
     "apexcharts": "^5.10.4",
     "axios": "^1.12.2",
+    "date-fns": "^4.1.0",
     "react": "^19.1.1",
     "react-apexcharts": "^2.1.0",
     "react-dom": "^19.1.1",
