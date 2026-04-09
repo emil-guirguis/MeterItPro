@@ -154,7 +154,7 @@ export default function MeterCollectionCard() {
               variant="contained"
               startIcon={isTriggering ? <CircularProgress size={20} /> : <SyncIcon />}
               onClick={handleTriggerCollection}
-              disabled={isTriggering || !agentStatus.isRunning}
+              disabled={isTriggering}
               size="small"
             >
               {isTriggering ? 'Collecting...' : 'Collect Now'}

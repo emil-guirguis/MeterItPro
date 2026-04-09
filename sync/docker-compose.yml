@@ -14,7 +14,7 @@ services:
 
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
   db:
-    image: postgres:16-alpine
+    image: postgres:18
     ports:
       - "5432:5432"
     environment:
@@ -22,7 +22,7 @@ services:
       POSTGRES_USER: ${POSTGRES_SYNC_USER}
       POSTGRES_PASSWORD: ${POSTGRES_SYNC_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
       - ./docker/init:/docker-entrypoint-initdb.d   # applied once on first start
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SYNC_USER} -d ${POSTGRES_SYNC_DB}"]
@@ -44,6 +44,11 @@ services:
       POSTGRES_SYNC_DB: ${POSTGRES_SYNC_DB}
       POSTGRES_SYNC_USER: ${POSTGRES_SYNC_USER}
       POSTGRES_SYNC_PASSWORD: ${POSTGRES_SYNC_PASSWORD}
+      POSTGRES_CLIENT_HOST: ${POSTGRES_CLIENT_HOST}
+      POSTGRES_CLIENT_PORT: ${POSTGRES_CLIENT_PORT}
+      POSTGRES_CLIENT_DB: ${POSTGRES_CLIENT_DB}
+      POSTGRES_CLIENT_USER: ${POSTGRES_CLIENT_USER}
+      POSTGRES_CLIENT_PASSWORD: ${POSTGRES_CLIENT_PASSWORD}
       MCP_HTTP_URL: http://sync-mcp:${MCP_HTTP_PORT:-3003}
       JWT_SECRET: ${JWT_SECRET}
       CLIENT_API_URL: ${CLIENT_API_URL}

@@ -83,7 +83,13 @@
       "Bash(docker --version)",
       "Bash(docker info:*)",
       "Bash(docker compose:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(git -C c:/Projects/MeterItPro remote get-url origin)",
+      "Bash(pg_dump --version)",
+      "Bash(docker exec:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Program Files\\PostgreSQL\\18\\data"
     ]
   }
 }

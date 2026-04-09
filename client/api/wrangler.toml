@@ -9,7 +9,7 @@ routes = [
 
 [vars]
 NODE_ENV = "production"
-FRONTEND_URL = "https://meteritpro.com,http://localhost:5173,http://localhost:3003,https://www.meteritpro.com"
+FRONTEND_URL = "https://meteritpro.com,http://localhost:5173,http://localhost:3003,https://www.meteritpro.com,http://localhost:8080"
 
 # Database connection is configured via secrets:
 # npx wrangler secret put DATABASE_URL

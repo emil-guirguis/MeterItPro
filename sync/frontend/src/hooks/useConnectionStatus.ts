@@ -38,7 +38,7 @@ export function useConnectionStatus() {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const url = `${API_BASE_URL}${endpoint}`;
+      const url = `${API_BASE_URL.replace(/\/$/, '')}${endpoint}`;
       const response = await fetch(url, {
         method: 'GET',
         signal: controller.signal,
