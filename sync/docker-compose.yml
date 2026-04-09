@@ -93,12 +93,13 @@ services:
 
   # ── Watchtower (auto-update labeled containers) ─────────────────────────────
   watchtower:
-    image: containrrr/watchtower:1.7.1
+    image: containrrr/watchtower:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       REPO_USER: ${GITHUB_USER}
       REPO_PASS: ${GITHUB_TOKEN}
+      DOCKER_API_VERSION: "1.45"
     command: --label-enable --cleanup --interval 300
     restart: unless-stopped
     labels:
