@@ -358,7 +358,7 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
                     sx={isDuplicate ? { outline: '2px solid', outlineColor: 'error.main', outlineOffset: '-2px' } : undefined}
                   >
                     {/* ── Meter ── */}
-                    <TableCell className="merseg-cell">
+                    <TableCell className="merseg-cell" data-label="Meter">
                       <FormControl fullWidth size="small" disabled={disabled || metersLoading}>
                         <Select
                           value={isAllMeters ? ALL : String(mid)}
@@ -391,7 +391,7 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
                     </TableCell>
 
                     {/* ── Elements ── */}
-                    <TableCell className="merseg-cell">
+                    <TableCell className="merseg-cell" data-label="Elements">
                       {isAllMeters ? (
                         <Chip label="All Elements" size="small" className="merseg-chip merseg-chip--all" />
                       ) : elLoading ? (
@@ -437,7 +437,7 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
                     </TableCell>
 
                     {/* ── Registers ── */}
-                    <TableCell className="merseg-cell">
+                    <TableCell className="merseg-cell" data-label="Registers">
                       {regLoading ? (
                         <CircularProgress size={18} className="merseg-spinner" />
                       ) : (
@@ -486,7 +486,7 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
                     </TableCell>
 
                     {/* ── Actions ── */}
-                    <TableCell className="merseg-cell merseg-cell--action">
+                    <TableCell className="merseg-cell merseg-cell--action" data-label="Actions">
                       {isDuplicate && (
                         <Tooltip title="This combination of meter / elements / registers overlaps with another row">
                           <Typography variant="caption" color="error" display="block" sx={{ mb: 0.5, lineHeight: 1.2 }}>
@@ -531,6 +531,19 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
         </Table>
 
       </Paper>
+
+      {/* Mobile-only Add button (desktop Add is in the table header) */}
+      <Button
+        type="button"
+        size="small"
+        startIcon={<AddIcon />}
+        onClick={addRow}
+        disabled={disabled}
+        variant="text"
+        className="merseg-add-btn"
+      >
+        Add
+      </Button>
 
       {error && (
         <Typography variant="caption" color="error" className="merseg-error">

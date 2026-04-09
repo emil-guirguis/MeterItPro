@@ -249,6 +249,19 @@
   margin-right: 0.5rem;
 }
 
+/* Inline custom content (e.g. meters list under a menu item) */
+.sidebar-item__content {
+  display: none;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+  margin: 0 0.5rem 0.25rem;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.sidebar-item__content.expanded {
+  display: block;
+}
+
 /* Tooltip for collapsed state */
 .sidebar-tooltip {
   position: absolute;

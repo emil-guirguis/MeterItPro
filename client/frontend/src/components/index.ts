@@ -10,6 +10,5 @@ export { FormModal } from '@framework/components/modal';
 export { FormField } from '@framework/components/formfield/FormField';
 
 // Components
-export { TemplateList, TemplateForm, TemplatePreview, TemplateEditor, RichTextEditor, TemplateAnalytics, TemplateManagement } from './templates';
 export { CompanyInfoForm, SystemConfigForm, EmailConfigForm } from './settings';
 export { SystemHealth } from './system';

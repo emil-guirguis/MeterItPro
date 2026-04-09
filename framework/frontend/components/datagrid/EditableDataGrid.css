@@ -1,35 +1,23 @@
 .editable-data-grid {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px;
+  gap: 16px;
   background: transparent;
 }
 
-.editable-data-grid__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 0;
+.editable-data-grid__actions-header-cell {
+  text-align: right !important;
+  white-space: nowrap;
 }
 
 .editable-data-grid__add-button {
-  min-width: 120px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-
-.editable-data-grid__add-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  min-width: unset;
+  padding: 2px 6px !important;
 }
 
 .editable-data-grid__loading {
   margin-left: 8px;
+  vertical-align: middle;
 }
 
 .editable-data-grid__error {
@@ -119,28 +107,12 @@
   position: relative;
 }
 
-.editable-data-grid__cell--editable::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
 .editable-data-grid__cell--editable:hover {
-  background-color: #f0f4ff;
-}
-
-.editable-data-grid__cell--editable:hover::after {
-  opacity: 0.3;
+  background-color: rgba(26, 115, 232, 0.04);
 }
 
 .editable-data-grid__cell--editable:hover .editable-data-grid__cell-dropdown-icon {
-  color: #667eea;
+  color: #1a73e8;
 }
 
 .editable-data-grid__cell--editing {
@@ -164,52 +136,15 @@
 }
 
 .editable-data-grid__input .MuiOutlinedInput-root.Mui-focused {
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+  border-color: #1a73e8;
 }
 
 .editable-data-grid__select {
   width: 100%;
 }
 
-.editable-data-grid__select .MuiOutlinedInput-root {
-  font-size: 14px;
-  background-color: #ffffff !important;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.editable-data-grid__select .MuiOutlinedInput-input {
-  color: #2d3748 !important;
-  padding: 10px 12px;
-}
-
-.editable-data-grid__select .MuiOutlinedInput-root.Mui-focused {
-  background-color: #ffffff !important;
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
-}
-
-.editable-data-grid__select .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-input {
-  color: #2d3748 !important;
-}
-
 .editable-data-grid__select .MuiSvgIcon-root {
-  color: #667eea !important;
-}
-
-/* Additional specificity for Material-UI Select */
-.editable-data-grid__cell--editing .editable-data-grid__select .MuiSelect-select {
-  color: #2d3748 !important;
-  background-color: #ffffff !important;
-}
-
-.editable-data-grid__cell--editing .editable-data-grid__select .MuiOutlinedInput-root {
-  background-color: #ffffff !important;
-}
-
-.editable-data-grid__cell--editing .editable-data-grid__select .MuiOutlinedInput-input {
-  color: #2d3748 !important;
+  color: #1a73e8 !important;
 }
 
 .editable-data-grid__actions-cell {
@@ -219,13 +154,12 @@
 }
 
 .editable-data-grid__delete-button {
-  color: #ef5350;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
 }
 
 .editable-data-grid__delete-button:hover {
-  background-color: rgba(239, 83, 80, 0.08);
-  transform: scale(1.1);
+  opacity: 1;
 }
 
 .editable-data-grid__save-button {

@@ -101,8 +101,82 @@
   color: var(--mui-palette-primary-main, #1976d2) !important;
 }
 
+/* Mobile add button hidden on desktop */
+.merseg-add-btn {
+  display: none !important;
+}
+
 /* Error message below grid */
 .merseg-error {
   display: block;
   margin-top: 4px;
+}
+
+/* Mobile: stack rows vertically */
+@media (max-width: 768px) {
+  .merseg-table,
+  .merseg-table thead,
+  .merseg-table tbody,
+  .merseg-table th,
+  .merseg-table td,
+  .merseg-table tr {
+    display: block;
+  }
+
+  .merseg-table thead {
+    display: none !important;
+  }
+
+  .merseg-row {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+
+  .merseg-row:last-child {
+    border-bottom: 1px solid #e0e0e0 !important;
+  }
+
+  .merseg-cell {
+    width: 100% !important;
+    box-sizing: border-box;
+    border-bottom: 1px solid #f0f0f0 !important;
+    padding: 10px 12px !important;
+    vertical-align: top !important;
+  }
+
+  .merseg-cell:last-child {
+    border-bottom: none !important;
+  }
+
+  .merseg-cell::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--mui-palette-text-secondary, #666);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+
+  .merseg-cell--action {
+    text-align: left !important;
+  }
+
+  .merseg-col-meter,
+  .merseg-col-elements,
+  .merseg-col-registers,
+  .merseg-col-actions {
+    width: auto !important;
+  }
+
+  .merseg-paper {
+    border-radius: 8px;
+  }
+
+  .merseg-add-btn {
+    display: inline-flex !important;
+    margin-top: 8px;
+  }
 }

@@ -5,7 +5,6 @@ export * from '../../features/users/usersStore';
 export * from '../../features/locations/locationsStore';
 export * from '../../features/contacts/contactsStore';
 export * from '../../features/meters/metersStore';
-export * from './templatesStore';
 export * from './settingsStore';
 
 // Export CRUD patterns
@@ -16,7 +15,6 @@ import { useUsersStore, useUsersEnhanced } from '../../features/users/usersStore
 import { useLocationsStore, useLocationsEnhanced } from '../../features/locations/locationsStore';
 import { useContactsStore, useContactsEnhanced } from '../../features/contacts/contactsStore';
 import { useMetersStore, useMetersEnhanced } from '../../features/meters/metersStore';
-import { useTemplatesStore, useTemplatesEnhanced } from './templatesStore';
 import { useSettingsStore, useSettingsEnhanced } from './settingsStore';
 import { clearCache } from '../middleware/apiMiddleware';
 
@@ -28,7 +26,6 @@ export const entityManager = {
     locations: useLocationsStore,
     contacts: useContactsStore,
     meters: useMetersStore,
-    templates: useTemplatesStore,
     settings: useSettingsStore,
   },
 
@@ -38,7 +35,6 @@ export const entityManager = {
     locations: useLocationsEnhanced,
     contacts: useContactsEnhanced,
     meters: useMetersEnhanced,
-    templates: useTemplatesEnhanced,
     settings: useSettingsEnhanced,
   },
 
@@ -52,7 +48,6 @@ export const entityManager = {
     useLocationsStore.getState().reset();
     useContactsStore.getState().reset();
     useMetersStore.getState().reset();
-    useTemplatesStore.getState().reset();
     useSettingsStore.getState().reset();
   },
 
@@ -63,7 +58,6 @@ export const entityManager = {
       useLocationsStore.getState().fetchItems(),
       useContactsStore.getState().fetchItems(),
       useMetersStore.getState().fetchItems(),
-      useTemplatesStore.getState().fetchItems(),
       useSettingsStore.getState().fetchSettings(),
     ];
 
@@ -81,16 +75,14 @@ export const entityManager = {
     const locationsLoading = useLocationsStore.getState().loading || useLocationsStore.getState().list.loading;
     const contactsLoading = useContactsStore.getState().loading || useContactsStore.getState().list.loading;
     const metersLoading = useMetersStore.getState().loading || useMetersStore.getState().list.loading;
-    const templatesLoading = useTemplatesStore.getState().loading || useTemplatesStore.getState().list.loading;
     const settingsLoading = useSettingsStore.getState().loading;
 
     return {
-      isLoading: usersLoading || locationsLoading || contactsLoading || metersLoading || templatesLoading || settingsLoading,
+      isLoading: usersLoading || locationsLoading || contactsLoading || metersLoading || settingsLoading,
       users: usersLoading,
       locations: locationsLoading,
       contacts: contactsLoading,
       meters: metersLoading,
-      templates: templatesLoading,
       settings: settingsLoading,
     };
   },
@@ -101,16 +93,14 @@ export const entityManager = {
     const locationsError = useLocationsStore.getState().error || useLocationsStore.getState().list.error;
     const contactsError = useContactsStore.getState().error || useContactsStore.getState().list.error;
     const metersError = useMetersStore.getState().error || useMetersStore.getState().list.error;
-    const templatesError = useTemplatesStore.getState().error || useTemplatesStore.getState().list.error;
     const settingsError = useSettingsStore.getState().error;
 
     return {
-      hasError: !!(usersError || locationsError || contactsError || metersError || templatesError || settingsError),
+      hasError: !!(usersError || locationsError || contactsError || metersError || settingsError),
       users: usersError,
       locations: locationsError,
       contacts: contactsError,
       meters: metersError,
-      templates: templatesError,
       settings: settingsError,
     };
   },
@@ -121,7 +111,6 @@ export const entityManager = {
     const locationsState = useLocationsStore.getState();
     const contactsState = useContactsStore.getState();
     const metersState = useMetersStore.getState();
-    const templatesState = useTemplatesStore.getState();
     const settingsState = useSettingsStore.getState();
 
     return {
@@ -129,18 +118,15 @@ export const entityManager = {
       totalLocations: locationsState.total,
       totalContacts: contactsState.total,
       totalMeters: metersState.total,
-      totalTemplates: templatesState.total,
       activeUsers: usersState.items.filter(u => u.active).length,
       activeLocations: locationsState.items.filter((b: any) => b.active).length,
       activeContacts: contactsState.items.filter((c: any) => c.active).length,
       activeMeters: metersState.items.filter((m: any) => m.active).length,
-      activeTemplates: templatesState.items.filter((t: any) => t.active).length,
       lastUpdated: Math.max(
         usersState.lastFetch || 0,
         locationsState.lastFetch || 0,
         contactsState.lastFetch || 0,
         metersState.lastFetch || 0,
-        templatesState.lastFetch || 0,
         settingsState.lastFetch || 0
       ),
     };
@@ -153,7 +139,6 @@ export const useEntityManager = () => {
   const locationsState = useLocationsStore();
   const contactsState = useContactsStore();
   const metersState = useMetersStore();
-  const templatesState = useTemplatesStore();
   const settingsState = useSettingsStore();
 
   return {
@@ -162,7 +147,6 @@ export const useEntityManager = () => {
     locations: locationsState,
     contacts: contactsState,
     meters: metersState,
-    templates: templatesState,
     settings: settingsState,
 
     // Global operations
@@ -201,12 +185,6 @@ export const entityRegistry = {
     name: 'Meter',
     pluralName: 'Meters',
   },
-  templates: {
-    store: useTemplatesStore,
-    hook: useTemplatesEnhanced,
-    name: 'Template',
-    pluralName: 'Templates',
-  },
 } as const;
 
 export type EntityType = keyof typeof entityRegistry;
@@ -214,13 +192,13 @@ export type EntityType = keyof typeof entityRegistry;
 // Generic entity operations that work with any registered entity
 export const createGenericEntityOperations = <T extends EntityType>(entityType: T) => {
   const config = entityRegistry[entityType];
-  
+
   return {
     getStore: () => config.store,
     useHook: config.hook,
     getName: () => config.name,
     getPluralName: () => config.pluralName,
-    
+
     // Generic operations
     fetchAll: () => config.store.getState().fetchItems(),
     create: (data: any) => config.store.getState().createItem(data),

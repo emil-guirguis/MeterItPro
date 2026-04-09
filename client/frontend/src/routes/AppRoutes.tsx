@@ -157,7 +157,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/management"
           element={
-            <AuthGuard requiredPermissions={[Permission.TEMPLATE_READ]}>
+            <AuthGuard requiredPermissions={[Permission.DEVICE_READ]}>
               <ManagementForm />
             </AuthGuard>
           }

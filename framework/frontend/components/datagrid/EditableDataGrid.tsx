@@ -203,27 +203,6 @@ export const EditableDataGrid: React.FC<EditableDataGridProps> = ({
 
   return (
     <Box className="editable-data-grid">
-      {/* Header with Add Button */}
-      {!hideAddButton && (
-        <Box className="editable-data-grid__header">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={onRowAdd}
-            disabled={loading || !onRowAdd}
-            className="editable-data-grid__add-button"
-          >
-            {addButtonLabel}
-          </Button>
-          {loading && (
-            <CircularProgress
-              size={24}
-              className="editable-data-grid__loading"
-            />
-          )}
-        </Box>
-      )}
-
       {/* Error State */}
       {error && (
         <Alert
@@ -261,9 +240,28 @@ export const EditableDataGrid: React.FC<EditableDataGridProps> = ({
               {!hideDeleteColumn && (
                 <TableCell
                   style={{ width: '60px' }}
-                  className="editable-data-grid__header-cell"
+                  className="editable-data-grid__header-cell editable-data-grid__actions-header-cell"
                 >
-                  Actions
+                  {!hideAddButton && (
+                    <>
+                      <Button
+                        variant="text"
+                        color="primary"
+                        onClick={onRowAdd}
+                        disabled={loading || !onRowAdd}
+                        className="editable-data-grid__add-button"
+                        size="small"
+                      >
+                        + {addButtonLabel}
+                      </Button>
+                      {loading && (
+                        <CircularProgress
+                          size={16}
+                          className="editable-data-grid__loading"
+                        />
+                      )}
+                    </>
+                  )}
                 </TableCell>
               )}
             </TableRow>
@@ -355,7 +353,6 @@ export const EditableDataGrid: React.FC<EditableDataGridProps> = ({
                           onClick={() => handleDeleteClick(rowIndex)}
                           className="editable-data-grid__delete-button"
                           title="Delete row"
-                          color="error"
                           disabled={!onRowDelete}
                         >
                           <DeleteIcon fontSize="small" />
@@ -440,7 +437,7 @@ export const EditableDataGrid: React.FC<EditableDataGridProps> = ({
             fontSize: '14px',
             backgroundColor: '#ffffff',
             color: '#000000',
-            border: '2px solid #1976d2',
+            border: '2px solid #1a73e8',
             borderRadius: '4px',
             zIndex: 9999,
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',

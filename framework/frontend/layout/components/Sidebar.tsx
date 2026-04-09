@@ -20,9 +20,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentPath,
   onToggle,
   onNavigate,
-  sidebarContent
+  sidebarContent,
+  defaultExpanded,
 }) => {
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [expandedItems, setExpandedItems] = useState<string[]>(defaultExpanded ?? []);
   const asideRef = useRef<HTMLElement | null>(null);
 
   // Auto-expand parent menus when their children are active
@@ -56,33 +57,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [currentPath, menuItems]);
 
   const handleItemClick = (item: any) => {
-    const hasChildren = item.children && item.children.length > 0;
+    if (item.onClick) {
+      item.onClick();
+      return;
+    }
 
-    if (hasChildren) {
-      // When collapsed, clicking expands the sidebar first, then toggle submenu
+    const hasChildren = item.children && item.children.length > 0;
+    const hasContent = !!item.content;
+
+    if (hasChildren || hasContent) {
       if (isCollapsed && !isMobile) {
-        onToggle(); // Expand the sidebar
-        // Also expand the submenu
-        setExpandedItems(prev => 
-          prev.includes(item.id) 
-            ? prev
-            : [...prev, item.id]
+        onToggle();
+        setExpandedItems(prev =>
+          prev.includes(item.id) ? prev : [...prev, item.id]
         );
       } else {
-        // Toggle submenu when sidebar is expanded
-        setExpandedItems(prev => 
-          prev.includes(item.id) 
+        setExpandedItems(prev =>
+          prev.includes(item.id)
             ? prev.filter(id => id !== item.id)
             : [...prev, item.id]
         );
       }
     } else {
-      // Navigate to page - let parent handle navigation
       onNavigate(item.path);
     }
   };
 
   const isItemActive = (item: any): boolean => {
+    if (item.isActive !== undefined) return item.isActive;
     if (item.path === currentPath) return true;
     if (item.children) {
       return item.children.some((child: any) => child.path === currentPath);
@@ -94,11 +96,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const isActive = isItemActive(item);
     const isExpanded = expandedItems.includes(item.id);
     const hasChildren = item.children && item.children.length > 0;
+    const hasContent = !!item.content;
+    const isExpandable = hasChildren || hasContent;
 
     return (
       <li key={item.id} className={`sidebar-item ${level > 0 ? 'sidebar-item--child' : ''}`}>
         <div
-          className={`sidebar-link ${isActive ? 'active' : ''} ${hasChildren ? 'has-children' : ''}`}
+          className={`sidebar-link ${isActive ? 'active' : ''} ${isExpandable ? 'has-children' : ''}`}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -124,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {item.badge && (
                   <span className="sidebar-badge">{item.badge}</span>
                 )}
-                {hasChildren && (
+                {isExpandable && (
                   <span className={`sidebar-arrow ${isExpanded ? 'expanded' : ''}`}>
                     ▼
                   </span>
@@ -134,11 +138,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Submenu */}
+        {/* Submenu (children) */}
         {hasChildren && (!isCollapsed || isMobile) && (
           <ul className={`sidebar-submenu ${isExpanded ? 'expanded' : ''}`}>
             {item.children.map((child: any) => renderMenuItem(child, level + 1))}
           </ul>
+        )}
+
+        {/* Inline custom content */}
+        {hasContent && (!isCollapsed || isMobile) && (
+          <div className={`sidebar-item__content ${isExpanded ? 'expanded' : ''}`}>
+            {item.content}
+          </div>
         )}
 
         {/* Tooltip for collapsed state */}

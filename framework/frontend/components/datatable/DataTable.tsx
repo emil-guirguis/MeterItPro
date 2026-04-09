@@ -19,7 +19,7 @@ export function DataTable<T extends Record<string, any>>({
   striped = true,
   hoverable = true,
 }: DataTableProps<T>) {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   const [selectedItems, setSelectedItems] = useState<T[]>([]);
   const [sortConfig, setSortConfig] = useState<{
     key: string;
@@ -90,18 +90,20 @@ export function DataTable<T extends Record<string, any>>({
     }
   }, [selectedItems, onSelect]);
 
-  // Get visible columns based on responsive settings
+  // Get visible columns based on responsive settings.
+  // Mobile card view shows all columns (the card layout handles space).
+  // On tablet, hide columns marked hide-tablet. On desktop, show everything.
   const visibleColumns = useMemo(() => {
-    if (!responsive) return columns;
-    
+    if (!responsive || isMobile) return columns;
+
     return columns.filter(column => {
       if (!column.responsive) return true;
       if (column.responsive === 'always-show') return true;
-      if (column.responsive === 'hide-mobile' && isMobile) return false;
-      if (column.responsive === 'hide-tablet' && (isMobile || !isMobile)) return false;
+      if (column.responsive === 'hide-mobile') return true;   // only hidden on mobile
+      if (column.responsive === 'hide-tablet') return !isTablet; // hidden on tablet, shown on desktop
       return true;
     });
-  }, [columns, responsive, isMobile]);
+  }, [columns, responsive, isMobile, isTablet]);
 
   // Render cell content
   const renderCell = useCallback((column: ColumnDefinition<T>, item: T, index: number) => {

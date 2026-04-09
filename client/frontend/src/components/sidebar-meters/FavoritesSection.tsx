@@ -1,7 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Alert, Button, IconButton } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { Alert, Button } from '@mui/material';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import type { FavoritesSectionProps, FavoriteDisplay } from './types';
 import { StarIcon } from './StarIcon';
@@ -16,7 +14,6 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
 }) => {
   const [loadingStars, setLoadingStars] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragItemRef = useRef<number | null>(null);
@@ -127,19 +124,7 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
 
   return (
     <div className="favorites-section">
-      <div className="favorites-header">
-        <h3 className="favorites-title">Favorites</h3>
-        <IconButton
-          size="small"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          sx={{ ml: 'auto' }}
-        >
-          {isCollapsed ? <ExpandMoreIcon /> : <ExpandLessIcon />}
-        </IconButton>
-      </div>
-
-      {!isCollapsed && (
-        <div className="favorites-list">
+      <div className="favorites-list">
           {favorites.map((favorite, index) => {
             const key = `${favorite.id1}:${favorite.id2}`;
             const isLoading = loadingStars.has(key);
@@ -207,7 +192,6 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
             );
           })}
         </div>
-      )}
     </div>
   );
 };

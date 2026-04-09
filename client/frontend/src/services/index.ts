@@ -3,7 +3,6 @@ export { default as authService } from './authService';
 export { apiClient } from './apiClient';
 export { meterReadingService } from './meterReadingService';
 export { mcpService } from './mcpService';
-export { templateService } from './templateService';
 export { dashboardService } from './dashboardService';
 
 // Note: contactService, deviceService, locationService, meterService, and userService

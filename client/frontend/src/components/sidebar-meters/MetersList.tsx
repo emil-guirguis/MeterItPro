@@ -1,7 +1,4 @@
-import React, { useState } from 'react';
-import { IconButton } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import React from 'react';
 import type { MetersListProps } from './types';
 import { MeterItem } from './MeterItem';
 import { MeterElementItem } from './MeterElementItem';
@@ -24,10 +21,6 @@ export const MetersList: React.FC<MetersListProps> = ({
   onMeterElementSelect,
   onFavoriteToggle,
 }) => {
-  const [isMetersCollapsed, setIsMetersCollapsed] = useState(false);
-
-
-
   /**
    * Create a click handler for star icon that toggles favorite status
    * Requirements: 2.1, 2.3, 2.5
@@ -56,27 +49,10 @@ export const MetersList: React.FC<MetersListProps> = ({
 
   return (
     <div className="meters-list">
-      {/* Meters Header with Collapse Icon */}
-      {sortedMeters.length > 0 && (
-        <div className="metersHeader" onClick={() => setIsMetersCollapsed(!isMetersCollapsed)} style={{ cursor: 'pointer' }}>
-          <h3 className="meters-title">Meter Readings</h3>
-          <IconButton
-            size="small"
-            onClick={(e) => { e.stopPropagation(); setIsMetersCollapsed(!isMetersCollapsed); }}
-            sx={{ ml: 'auto' }}
-          >
-            {isMetersCollapsed ? <ExpandMoreIcon /> : <ExpandLessIcon />}
-          </IconButton>
-        </div>
-      )}
-
-      {/* Meters Content */}
-      {!isMetersCollapsed && (
-        <>
-          {sortedMeters.length === 0 ? (
-            <div className="empty-state">No meters available</div>
-          ) : (
-            sortedMeters.map((meter) => {
+      {sortedMeters.length === 0 ? (
+        <div className="empty-state">No meters available</div>
+      ) : (
+        sortedMeters.map((meter) => {
               const isExpanded = expandedMeters.has(meter.id);
               const isMeterSelected = selectedItem?.type === 'meter' && selectedItem?.meterId === meter.id;
               const elements = meterElements[meter.id] || [];
@@ -157,8 +133,6 @@ export const MetersList: React.FC<MetersListProps> = ({
                 </div>
               );
             })
-          )}
-        </>
       )}
     </div>
   );

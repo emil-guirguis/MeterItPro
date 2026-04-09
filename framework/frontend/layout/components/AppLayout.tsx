@@ -30,6 +30,7 @@ export interface AppLayoutConfig {
   usePageTitle?: (title: string) => void;
   getPageTitle?: (pathname: string) => string;
   sidebarContent?: React.ReactNode;
+  sidebarDefaultExpanded?: string[];
 }
 
 export interface AppLayoutProps extends LayoutProps {
@@ -56,6 +57,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     uiState,
     getPageTitle,
     sidebarContent,
+    sidebarDefaultExpanded,
   } = config;
 
   const { isMobile, isTablet, isDesktop } = responsive;
@@ -117,6 +119,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             onToggle={toggleSidebar}
             onNavigate={navigateAndClose}
             sidebarContent={sidebarContent}
+            defaultExpanded={sidebarDefaultExpanded}
           />
         )}
 

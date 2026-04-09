@@ -54,6 +54,8 @@ export interface SidebarMetersProps {
   userId: string;
   onMeterSelect: (meterId: string, meterName?: string) => void;
   onMeterElementSelect: (meterId: string, elementId: string, elementName?: string, elementNumber?: number, gridType?: 'simple' | 'baselist') => void;
+  /** Which section to display. Defaults to 'all'. */
+  mode?: 'favorites' | 'meters' | 'all';
 }
 
 export interface MeterItemProps {

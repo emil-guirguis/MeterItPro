@@ -50,6 +50,7 @@ export interface SidebarProps {
   onToggle: () => void;
   onNavigate: (path: string) => void;
   sidebarContent?: React.ReactNode;
+  defaultExpanded?: string[];
 }
 
 export interface MenuItem {
@@ -60,6 +61,12 @@ export interface MenuItem {
   requiredPermission?: string;
   children?: MenuItem[];
   badge?: string | number;
+  /** If provided, called instead of navigating on click */
+  onClick?: () => void;
+  /** Explicit active override — used for items that have no route */
+  isActive?: boolean;
+  /** Custom content rendered inline below the item when expanded (replaces children list) */
+  content?: ReactNode;
 }
 
 export interface Notification {
