@@ -124,6 +124,7 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
 
   return (
     <div className="favorites-section">
+      <div className="favorites-title">Favorites</div>
       <div className="favorites-list">
           {favorites.map((favorite, index) => {
             const key = `${favorite.id1}:${favorite.id2}`;

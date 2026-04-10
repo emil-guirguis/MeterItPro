@@ -40,12 +40,17 @@ vi.mock('../../utils/navigationUtils', () => ({
 
 // Mock the framework AppLayout component
 vi.mock('@framework/layout', () => ({
-  AppLayout: ({ config }: any) => (
-    <div data-testid="app-layout">
-      <div data-testid="sidebar-content">{config.sidebarContent}</div>
-      <div data-testid="main-content">Main Content</div>
-    </div>
-  ),
+  AppLayout: ({ config, children }: any) => {
+    const meterReadingsItem = config.menuItems?.find((item: any) => item.id === 'meter-readings');
+    return (
+      <div data-testid="app-layout">
+        <div data-testid="sidebar-content">
+          {meterReadingsItem?.content}
+        </div>
+        <div data-testid="main-content">{children}</div>
+      </div>
+    );
+  },
 }));
 
 // Mock the SidebarMetersSection component

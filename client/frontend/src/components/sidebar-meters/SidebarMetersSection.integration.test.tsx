@@ -1,8 +1,39 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SidebarMetersSection } from './SidebarMetersSection';
 import { favoritesService } from '../../services/favoritesService';
 import type { Favorite } from './types';
+import { SidebarDataProvider, clearSidebarDataCache } from '../../contexts/SidebarDataContext';
+import { MeterSelectionProvider, useMeterSelection } from '../../contexts/MeterSelectionContext';
+
+function renderWithProviders(ui: React.ReactElement, tenantId = '1', userId = '100') {
+  return render(
+    <MeterSelectionProvider>
+      <SidebarDataProvider tenantId={tenantId} userId={userId}>
+        {ui}
+      </SidebarDataProvider>
+    </MeterSelectionProvider>
+  );
+}
+
+/** Wrapper that pipes onMeterElementSelect into MeterSelectionContext so selected state reflects in the UI */
+function SidebarWithSelection({ onMeterElementSelect: spy, tenantId, userId, ...rest }: any) {
+  const { setSelectedMeter, setSelectedElement } = useMeterSelection();
+  const handleSelect = (meterId: string, elementId: string, name?: string, num?: number) => {
+    setSelectedMeter(meterId);
+    setSelectedElement(elementId);
+    spy?.(meterId, elementId, name, num);
+  };
+  return (
+    <SidebarMetersSection
+      tenantId={tenantId}
+      userId={userId}
+      onMeterElementSelect={handleSelect}
+      {...rest}
+    />
+  );
+}
 
 // Mock the services
 vi.mock('../../services/favoritesService');
@@ -72,6 +103,7 @@ describe('SidebarMetersSection Integration Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSidebarDataCache();
 
     vi.mocked(favoritesService.getMetersWithElements).mockResolvedValue(mockMetersWithElements);
     vi.mocked(favoritesService.getFavorites).mockResolvedValue([]);
@@ -97,7 +129,7 @@ describe('SidebarMetersSection Integration Tests', () => {
 
   describe('Component Initialization', () => {
     it('should load meters and favorites on mount', async () => {
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -121,7 +153,7 @@ describe('SidebarMetersSection Integration Tests', () => {
     });
 
     it('should display all meters after loading', async () => {
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -141,7 +173,7 @@ describe('SidebarMetersSection Integration Tests', () => {
         () => new Promise(() => {}) // Never resolves
       );
 
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -157,7 +189,7 @@ describe('SidebarMetersSection Integration Tests', () => {
       const errorMessage = 'Failed to fetch meters';
       vi.mocked(favoritesService.getMetersWithElements).mockRejectedValue(new Error(errorMessage));
 
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -176,7 +208,7 @@ describe('SidebarMetersSection Integration Tests', () => {
         new Error('Network error')
       );
 
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -203,7 +235,7 @@ describe('SidebarMetersSection Integration Tests', () => {
 
   describe('Meter Expansion and Element Display', () => {
     it('should expand meter and display elements when expand button is clicked', async () => {
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -228,7 +260,7 @@ describe('SidebarMetersSection Integration Tests', () => {
     });
 
     it('should collapse meter and hide elements when expanded meter is clicked again', async () => {
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -260,7 +292,7 @@ describe('SidebarMetersSection Integration Tests', () => {
     });
 
     it('should persist expanded state to session storage', async () => {
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -293,7 +325,7 @@ describe('SidebarMetersSection Integration Tests', () => {
     it('should call onMeterElementSelect when element is clicked', async () => {
       const onMeterElementSelect = vi.fn();
 
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -322,8 +354,8 @@ describe('SidebarMetersSection Integration Tests', () => {
     });
 
     it('should highlight selected element', async () => {
-      render(
-        <SidebarMetersSection
+      renderWithProviders(
+        <SidebarWithSelection
           tenantId={mockTenantId}
           userId={mockUserId}
           onMeterSelect={vi.fn()}
@@ -359,7 +391,7 @@ describe('SidebarMetersSection Integration Tests', () => {
     it('should display favorites section when favorites exist', async () => {
       vi.mocked(favoritesService.getFavorites).mockResolvedValue(mockFavorites);
 
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -381,7 +413,7 @@ describe('SidebarMetersSection Integration Tests', () => {
     it('should not display favorites section when no favorites exist', async () => {
       vi.mocked(favoritesService.getFavorites).mockResolvedValue([]);
 
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -399,7 +431,7 @@ describe('SidebarMetersSection Integration Tests', () => {
     });
 
     it('should toggle favorite when element star button is clicked', async () => {
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -456,7 +488,7 @@ describe('SidebarMetersSection Integration Tests', () => {
         new Error('Failed to remove favorite')
       );
 
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -494,7 +526,7 @@ describe('SidebarMetersSection Integration Tests', () => {
     it('should complete full workflow: expand meter -> click element -> callback fires', async () => {
       const onMeterElementSelect = vi.fn();
 
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -526,7 +558,7 @@ describe('SidebarMetersSection Integration Tests', () => {
     });
 
     it('should maintain state across multiple meter expansions', async () => {
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -569,7 +601,7 @@ describe('SidebarMetersSection Integration Tests', () => {
 
   describe('Data Flow Verification', () => {
     it('should pass correct data to child components', async () => {
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}
@@ -623,7 +655,7 @@ describe('SidebarMetersSection Integration Tests', () => {
         makeFavorite({ id1: 1, id2: 101, favorite_name: 'Water Meter - element-Flow Rate' }),
       ]);
 
-      render(
+      renderWithProviders(
         <SidebarMetersSection
           tenantId={mockTenantId}
           userId={mockUserId}

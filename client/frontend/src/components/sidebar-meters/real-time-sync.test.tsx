@@ -1,8 +1,21 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SidebarMetersSection } from './SidebarMetersSection';
 import { favoritesService } from '../../services/favoritesService';
 import type { Favorite } from './types';
+import { SidebarDataProvider, clearSidebarDataCache } from '../../contexts/SidebarDataContext';
+import { MeterSelectionProvider } from '../../contexts/MeterSelectionContext';
+
+function renderWithProviders(ui: React.ReactElement, tenantId = '1', userId = '100') {
+  return render(
+    <MeterSelectionProvider>
+      <SidebarDataProvider tenantId={tenantId} userId={userId}>
+        {ui}
+      </SidebarDataProvider>
+    </MeterSelectionProvider>
+  );
+}
 
 // Mock the services
 vi.mock('../../services/favoritesService');
@@ -74,6 +87,7 @@ describe('Task 9.1: Real-Time Favorites Section Updates', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSidebarDataCache();
 
     vi.mocked(favoritesService.getMetersWithElements).mockResolvedValue(mockMetersWithElements);
     vi.mocked(favoritesService.getFavorites).mockResolvedValue([]);
@@ -101,7 +115,7 @@ describe('Task 9.1: Real-Time Favorites Section Updates', () => {
     // Start with no favorites - FavoritesSection won't render
     vi.mocked(favoritesService.getFavorites).mockResolvedValue([]);
 
-    render(
+    renderWithProviders(
       <SidebarMetersSection
         tenantId={mockTenantId}
         userId={mockUserId}
@@ -192,7 +206,7 @@ describe('Task 9.1: Real-Time Favorites Section Updates', () => {
     ];
     vi.mocked(favoritesService.getMetersWithElements).mockResolvedValue(metersWithFavoritedElement);
 
-    render(
+    renderWithProviders(
       <SidebarMetersSection
         tenantId={mockTenantId}
         userId={mockUserId}
@@ -251,7 +265,7 @@ describe('Task 9.1: Real-Time Favorites Section Updates', () => {
     // Start with no favorites
     vi.mocked(favoritesService.getFavorites).mockResolvedValue([]);
 
-    render(
+    renderWithProviders(
       <SidebarMetersSection
         tenantId={mockTenantId}
         userId={mockUserId}
@@ -341,7 +355,7 @@ describe('Task 9.1: Real-Time Favorites Section Updates', () => {
     ];
     vi.mocked(favoritesService.getMetersWithElements).mockResolvedValue(metersWithFavoritedElement);
 
-    render(
+    renderWithProviders(
       <SidebarMetersSection
         tenantId={mockTenantId}
         userId={mockUserId}
@@ -403,7 +417,7 @@ describe('Task 9.1: Real-Time Favorites Section Updates', () => {
     // Start with no favorites
     vi.mocked(favoritesService.getFavorites).mockResolvedValue([]);
 
-    render(
+    renderWithProviders(
       <SidebarMetersSection
         tenantId={mockTenantId}
         userId={mockUserId}
@@ -471,7 +485,7 @@ describe('Task 9.1: Real-Time Favorites Section Updates', () => {
     // Start with no favorites
     vi.mocked(favoritesService.getFavorites).mockResolvedValue([]);
 
-    render(
+    renderWithProviders(
       <SidebarMetersSection
         tenantId={mockTenantId}
         userId={mockUserId}

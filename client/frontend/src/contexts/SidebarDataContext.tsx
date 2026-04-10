@@ -242,3 +242,6 @@ export const useSidebarData = () => {
   if (!context) throw new Error('useSidebarData must be used within SidebarDataProvider');
   return context;
 };
+
+/** Clear the module-level cache — intended for use in tests only */
+export const clearSidebarDataCache = () => sidebarDataCache.clear();

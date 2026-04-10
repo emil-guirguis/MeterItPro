@@ -28,3 +28,34 @@
 .recharts-legend-icon {
   display: none !important;
 }
+
+/* Custom legend */
+.viz-legend {
+  display: grid;
+  padding: 6px 8px 4px;
+  gap: 3px 0;
+}
+
+.viz-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 1px 4px;
+}
+
+.viz-legend-marker {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.viz-legend-label {
+  font-size: 12px;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
