@@ -26,7 +26,7 @@
  * });
  */
 
-import React, { useState, useEffect, useCallback, useMemo, createContext, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
 import { useSchema } from '../../form/utils/schemaLoader';
 import type {
@@ -89,7 +89,11 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
 
   // Get store instance
   const store = useStore();
-  
+
+  // Track whether filters have been changed by the user vs. set on initial mount.
+  // On first mount we let the store's TTL cache decide whether to re-fetch.
+  const filtersInitialisedRef = useRef(false);
+
   // Load entity schema to determine special behaviors (e.g., soft-delete via `active` flag)
   const { schema: entitySchema } = useSchema(entityName);
 
@@ -203,18 +207,25 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
   // Apply filters when they change
   useEffect(() => {
     console.log('[useBaseList] Filter effect triggered with filters:', filters);
-    
+
     if (store.setFilters && store.fetchItems) {
       const cleanedFilters = buildFilters(filters);
       console.log('[useBaseList] Setting cleaned filters:', cleanedFilters);
-      
+
       // Update store filters - this will reset page to 1
       store.setFilters(cleanedFilters);
-      
-      // Trigger new API request with updated filters
-      // Pass a dummy param object to bypass cache check
-      console.log('[useBaseList] Calling fetchItems with updated filters');
-      (store.fetchItems as any)({ _bypassCache: true });
+
+      if (filtersInitialisedRef.current) {
+        // User changed a filter — bypass cache to get fresh data
+        console.log('[useBaseList] Calling fetchItems with updated filters (bypass cache)');
+        (store.fetchItems as any)({ _bypassCache: true });
+      } else {
+        // Initial mount — respect the store's TTL cache so repeated navigation
+        // to this page is instant when the data is still fresh.
+        filtersInitialisedRef.current = true;
+        console.log('[useBaseList] Initial fetch — respecting store cache');
+        store.fetchItems();
+      }
     }
   }, [filters]);
 

@@ -62,6 +62,8 @@ export interface BaseFormProps {
    * based on the tab's visibleFor property.
    */
   meterType?: 'physical' | 'virtual' | null;
+  /** Optional content rendered on the right side of the tab header bar */
+  tabHeaderActions?: React.ReactNode;
 }
 
 /**
@@ -125,6 +127,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   formMinWidth,
   // Meter type for tab filtering
   meterType,
+  tabHeaderActions,
 }) => {
   const formClassName = className ? `base-form ${className}` : 'base-form';
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -141,7 +144,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
 
   // Dynamic schema form logic
   const isDynamicForm = !!schemaName;
-  const { schema, loading: schemaLoading, error: schemaError } = useSchema(isDynamicForm ? schemaName! : '', { bypassCache: true });
+  const { schema, loading: schemaLoading, error: schemaError } = useSchema(isDynamicForm ? schemaName! : '');
 
   // Determine the active tab - use state if set, otherwise use first tab from schema
   const effectiveActiveTab = React.useMemo(() => {
@@ -1094,6 +1097,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
             onTabChange?.(tabName);
           }}
           className={`${className}__tabs`}
+          actions={tabHeaderActions}
         />
       )}
       

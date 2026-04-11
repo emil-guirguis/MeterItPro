@@ -7,6 +7,8 @@ export interface FormTabsProps {
   activeTab: string;
   onTabChange: (tabName: string) => void;
   className?: string;
+  /** Optional content rendered on the right side of the tab bar */
+  actions?: React.ReactNode;
 }
 
 /**
@@ -31,6 +33,7 @@ export const FormTabs: React.FC<FormTabsProps> = ({
   activeTab,
   onTabChange,
   className = '',
+  actions,
 }) => {
   if (tabList.length <= 1) {
     return null;
@@ -38,16 +41,23 @@ export const FormTabs: React.FC<FormTabsProps> = ({
 
   return (
     <div className={`form-tabs ${className}`}>
-      {tabList.map((tabName) => (
-        <button
-          key={tabName}
-          className={`form-tabs__tab ${activeTab === tabName ? 'form-tabs__tab--active' : ''}`}
-          onClick={() => onTabChange(tabName)}
-          type="button"
-        >
-          {tabs[tabName].label}
-        </button>
-      ))}
+      <div className="form-tabs__tabs">
+        {tabList.map((tabName) => (
+          <button
+            key={tabName}
+            className={`form-tabs__tab ${activeTab === tabName ? 'form-tabs__tab--active' : ''}`}
+            onClick={() => onTabChange(tabName)}
+            type="button"
+          >
+            {tabs[tabName].label}
+          </button>
+        ))}
+      </div>
+      {actions && (
+        <div className="form-tabs__actions">
+          {actions}
+        </div>
+      )}
     </div>
   );
 };

@@ -28,6 +28,11 @@ export class ReportExecutor {
 
   // ─── Public API ───────────────────────────────────────────────────────────────
 
+  async generatePreviewHtml(report: Report): Promise<string> {
+    const reportData = await this.generateReportData(report);
+    return this.buildHtmlPage(report, reportData);
+  }
+
   async execute(report: Report): Promise<void> {
     const executedAt = new Date();
     let historyId: string | null = null;
@@ -283,6 +288,82 @@ export class ReportExecutor {
       dayCount: new Set(result.rows.map((r: any) => r.date)).size,
       data: result.rows,
     };
+  }
+
+  // ─── HTML preview ────────────────────────────────────────────────────────────
+
+  private buildHtmlPage(report: Report, reportData: ReportData): string {
+    const generatedAt = new Date().toLocaleString();
+    const rows: Record<string, any>[] = Array.isArray(reportData.data) ? reportData.data : [];
+    const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+    const tableRows = rows.map(row =>
+      `<tr>${headers.map(h => `<td>${this.formatValue(row[h])}</td>`).join('')}</tr>`
+    ).join('\n');
+
+    const tableHtml = rows.length === 0
+      ? '<p class="no-data">No data available for this report.</p>'
+      : `
+        <table>
+          <thead><tr>${headers.map(h => `<th>${h.replace(/_/g, ' ')}</th>`).join('')}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+        ${rows.length > 500 ? `<p class="note">Showing all ${rows.length} records.</p>` : ''}
+      `;
+
+    const meta = [
+      reportData.period ? `<p><strong>Period:</strong> ${reportData.period}</p>` : '',
+      reportData.recordCount != null ? `<p><strong>Records:</strong> ${reportData.recordCount}</p>` : '',
+      reportData.meterCount != null ? `<p><strong>Meters:</strong> ${reportData.meterCount}</p>` : '',
+      reportData.dayCount != null ? `<p><strong>Days:</strong> ${reportData.dayCount}</p>` : '',
+    ].filter(Boolean).join('\n');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${report.name}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #111; background: #fff; padding: 24px; }
+    .header { border-bottom: 2px solid #1a56db; padding-bottom: 12px; margin-bottom: 16px; }
+    .header h1 { font-size: 20px; color: #1a56db; }
+    .header p { color: #555; margin-top: 4px; font-size: 11px; }
+    .meta { margin-bottom: 16px; }
+    .meta p { margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { background: #1a56db; color: #fff; text-align: left; padding: 6px 8px; font-size: 11px; text-transform: capitalize; }
+    td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+    tr:nth-child(even) td { background: #f9fafb; }
+    .no-data { color: #6b7280; font-style: italic; margin-top: 16px; }
+    .note { color: #6b7280; font-size: 11px; margin-top: 8px; }
+    .print-btn { margin-bottom: 16px; }
+    .print-btn button { padding: 6px 14px; background: #1a56db; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .print-btn button:hover { background: #1e429f; }
+    @media print {
+      .print-btn { display: none; }
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-btn"><button onclick="window.print()">⬇ Save as PDF / Print</button></div>
+  <div class="header">
+    <h1>${report.name}</h1>
+    <p>Type: ${report.type} &nbsp;|&nbsp; Generated: ${generatedAt}</p>
+  </div>
+  <div class="meta">${meta}</div>
+  ${tableHtml}
+</body>
+</html>`;
+  }
+
+  private formatValue(value: any): string {
+    if (value === null || value === undefined) return '-';
+    if (value instanceof Date) return value.toLocaleString();
+    if (typeof value === 'object') return JSON.stringify(value);
+    if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2);
+    return String(value);
   }
 
   // ─── History ──────────────────────────────────────────────────────────────────

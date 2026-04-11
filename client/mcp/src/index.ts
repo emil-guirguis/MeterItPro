@@ -291,7 +291,7 @@ function startDebugServer(scheduler: SchedulerService): void {
   const server = http.createServer((req, res) => {
     // CORS headers so the local frontend can call this
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') {
@@ -329,6 +329,30 @@ function startDebugServer(scheduler: SchedulerService): void {
           logger.error('[debug] Error running reports', { error: err.message });
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: err.message }));
+        });
+      return;
+    }
+
+    // GET /debug/preview-report/:id — generate HTML preview without sending emails
+    const previewMatch = req.url?.match(/^\/debug\/preview-report\/(\d+)$/);
+    if (req.method === 'GET' && previewMatch) {
+      const reportId = previewMatch[1];
+      logger.info(`[debug] Generating preview for report ${reportId}`);
+      scheduler
+        .previewReport(reportId)
+        .then(result => {
+          if (!result.found) {
+            res.writeHead(404, { 'Content-Type': 'text/html' });
+            res.end('<h1>Report not found or inactive</h1>');
+          } else {
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(result.html);
+          }
+        })
+        .catch(err => {
+          logger.error(`[debug] Error previewing report ${reportId}`, { error: err.message });
+          res.writeHead(500, { 'Content-Type': 'text/html' });
+          res.end(`<h1>Error generating preview</h1><pre>${err.message}</pre>`);
         });
       return;
     }

@@ -341,6 +341,11 @@
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 14px;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.data-table__action-btn .material-symbols-outlined {
+  font-size: 18px;
 }
 
 .data-table__action-btn:hover {
@@ -424,34 +429,33 @@
   font-size: 14px;
 }
 
-/* Loading State */
-.data-table__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px;
-  text-align: center;
+/* Skeleton Loading */
+.data-table__skeleton-cell {
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--color-border, #e5e7eb) 25%, #f3f4f6 50%, var(--color-border, #e5e7eb) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  width: 70%;
 }
 
-.data-table__spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-border, #e5e7eb);
-  border-top: 3px solid var(--color-primary, #3b82f6);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
+.data-table__skeleton-cell--label {
+  width: 35%;
+  margin-right: 8px;
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
+.data-table__row--skeleton td {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
 
-  100% {
-    transform: rotate(360deg);
-  }
+.data-table__card--skeleton {
+  pointer-events: none;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* Error State */
@@ -620,8 +624,9 @@
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-  .data-table__spinner {
+  .data-table__skeleton-cell {
     animation: none;
+    background: var(--color-border, #e5e7eb);
   }
 
   .data-table__action-btn,

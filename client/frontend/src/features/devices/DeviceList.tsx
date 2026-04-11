@@ -81,7 +81,8 @@ export const DeviceList: React.FC<DeviceListProps> = ({
         loading={baseList.loading}
         error={baseList.error}
         emptyMessage="No devices found."
-        onView={onDeviceView}     // Use onView instead of onEdit
+        onView={undefined}
+        onRowClick={onDeviceView}
         onEdit={undefined}       // No edit function
         onDelete={undefined}     // No delete function
         onSelect={onDeviceSelect ? (items: Device[]) => onDeviceSelect(items[0]) : undefined}

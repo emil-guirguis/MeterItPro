@@ -26,6 +26,8 @@ export interface BaseListProps<T> {
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
   onSelect?: (selected: T[]) => void;
+  /** Click handler for the whole row — opens record without showing an action button */
+  onRowClick?: (item: T) => void;
   bulkActions?: BulkAction<T>[];
   pagination?: DataTableProps<T>['pagination'];
 
@@ -66,6 +68,7 @@ export function BaseList<T extends Record<string, any>>({
   onEdit,
   onDelete,
   onSelect,
+  onRowClick,
   bulkActions,
   pagination,
   responsive = true,
@@ -136,6 +139,7 @@ export function BaseList<T extends Record<string, any>>({
         onEdit={onEdit}
         onDelete={onDelete}
         onSelect={onSelect}
+        onRowClick={onRowClick}
         bulkActions={bulkActions}
         pagination={pagination}
         responsive={responsive}

@@ -126,17 +126,20 @@ export const createEntityStore = <T extends { id: string }>(
             sortOrder: state.list.sortOrder,
           };
 
+          // Load schema once (hits in-memory cache, near-instant) and use it for
+          // both defaultSort and id normalisation — avoids two separate awaits.
+          let schema = null;
+          try {
+            schema = await loadSchema(options.name);
+          } catch (e) {
+            console.warn('[fetchItems] Could not load schema:', e);
+          }
+
           if (!queryParams.sortBy) {
-            try {
-              const schema = await loadSchema(options.name);
-              if (schema?.defaultSort) {
-                queryParams.sortBy = schema.defaultSort;
-                console.log('[fetchItems] Using default sortBy from schema:', queryParams.sortBy);
-              } else {
-                queryParams.sortOrder = undefined;
-              }
-            } catch (e) {
-              console.warn('[fetchItems] Could not load schema for default sortBy:', e);
+            if (schema?.defaultSort) {
+              queryParams.sortBy = schema.defaultSort;
+              console.log('[fetchItems] Using default sortBy from schema:', queryParams.sortBy);
+            } else {
               queryParams.sortOrder = undefined;
             }
           }
@@ -145,19 +148,15 @@ export const createEntityStore = <T extends { id: string }>(
           const response = await service.getAll(queryParams);
           console.log('[fetchItems] Got response:', response);
 
-          try {
-            const schema = await loadSchema(options.name);
-            const idField = schema?.idFieldName;
-            if (idField && Array.isArray(response.items)) {
-              response.items = response.items.map((it: any) => {
-                if ((it.id === undefined || it.id === null) && (it as any)[idField] !== undefined) {
-                  return { ...it, id: (it as any)[idField] };
-                }
-                return it;
-              });
-            }
-          } catch (e) {
-            console.warn('[fetchItems] Could not load schema for id normalization:', e);
+          // Normalise entity IDs using the schema's idFieldName
+          const idField = schema?.idFieldName;
+          if (idField && Array.isArray(response.items)) {
+            response.items = response.items.map((it: any) => {
+              if ((it.id === undefined || it.id === null) && (it as any)[idField] !== undefined) {
+                return { ...it, id: (it as any)[idField] };
+              }
+              return it;
+            });
           }
 
           set((s) => ({

@@ -483,9 +483,30 @@ export async function getAvailableSchemas(baseUrl?: string): Promise<Array<{
  * @param options - Options for schema loading
  * @returns Schema state
  */
+/**
+ * Read schema from cache synchronously, returning null if missing or expired.
+ */
+function getFromCache(entityName: string): ConvertedSchema | null {
+  const entry = schemaCache.get(entityName);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp >= CACHE_TTL) {
+    schemaCache.delete(entityName);
+    return null;
+  }
+  return convertSchema(entry.schema);
+}
+
 export function useSchema(entityName: string, options?: { bypassCache?: boolean }) {
-  const [schema, setSchema] = React.useState<ConvertedSchema | null>(null);
-  const [loading, setLoading] = React.useState(true);
+  // Initialise synchronously from cache so cached schemas render instantly
+  const [schema, setSchema] = React.useState<ConvertedSchema | null>(() => {
+    if (options?.bypassCache || !entityName) return null;
+    return getFromCache(entityName);
+  });
+  const [loading, setLoading] = React.useState<boolean>(() => {
+    if (!entityName) return false;
+    if (options?.bypassCache) return true;
+    return getFromCache(entityName) === null;
+  });
   const [error, setError] = React.useState<Error | null>(null);
 
   React.useEffect(() => {
@@ -494,30 +515,28 @@ export function useSchema(entityName: string, options?: { bypassCache?: boolean 
     async function load() {
       try {
         const startTime = Date.now();
-        
-        // Check if schema is already in cache before setting loading state
-        if (!options?.bypassCache && schemaCache.has(entityName)) {
-          const entry = schemaCache.get(entityName)!;
-          const age = Date.now() - entry.timestamp;
-          
-          if (age < CACHE_TTL) {
+
+        // Fast path: cache hit (and not bypassing cache)
+        if (!options?.bypassCache) {
+          const cached = getFromCache(entityName);
+          if (cached) {
+            const age = Date.now() - (schemaCache.get(entityName)?.timestamp ?? 0);
             console.log(`[useSchema] ✅ Cache HIT for ${entityName} (age: ${age}ms)`);
-            const convertedSchema = convertSchema(entry.schema);
             if (mounted) {
-              setSchema(convertedSchema);
+              setSchema(cached);
               setError(null);
               setLoading(false);
             }
             return;
           }
         }
-        
+
         console.log(`[useSchema] 🔄 Cache MISS for ${entityName}, fetching from API...`);
         setLoading(true);
         const loadedSchema = await loadSchema(entityName);
         const duration = Date.now() - startTime;
         console.log(`[useSchema] ✅ Loaded ${entityName} from API in ${duration}ms`);
-        
+
         if (mounted) {
           setSchema(loadedSchema);
           setError(null);

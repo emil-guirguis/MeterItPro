@@ -389,14 +389,37 @@ export class SchedulerService {
   }
 
   /**
+   * Load a single report by ID regardless of active status.
+   */
+  private async loadReportById(reportId: string): Promise<Report | null> {
+    const result = await db.query<Report>(
+      `SELECT report_id as id, name, type, schedule, recipients, config,
+              active, meter_selections, created_at, updated_at
+       FROM report
+       WHERE report_id = $1`,
+      [reportId]
+    );
+    return result.rows[0] ?? null;
+  }
+
+  /**
    * Immediately run a single report by ID (used by the debug endpoint).
    */
   async runReport(reportId: string): Promise<{ found: boolean }> {
-    const reports = await this.loadActiveReports();
-    const report = reports.find(r => String(r.id) === String(reportId));
+    const report = await this.loadReportById(reportId);
     if (!report) return { found: false };
     await this.reportExecutor.execute(report);
     return { found: true };
+  }
+
+  /**
+   * Generate an HTML preview for a report without sending emails.
+   */
+  async previewReport(reportId: string): Promise<{ found: false } | { found: true; html: string }> {
+    const report = await this.loadReportById(reportId);
+    if (!report) return { found: false };
+    const html = await this.reportExecutor.generatePreviewHtml(report);
+    return { found: true, html };
   }
 
   /**

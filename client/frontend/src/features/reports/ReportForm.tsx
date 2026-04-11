@@ -11,11 +11,9 @@ import {
   TableRow,
   Paper,
   Button,
-  Tooltip,
   Alert,
   Collapse,
 } from '@mui/material';
-import BugReportIcon from '@mui/icons-material/BugReport';
 import { BaseForm, FormContainer } from '@framework/components/form';
 import { CronField } from '@framework/components/formfield/CronField';
 import { useReportsEnhanced } from './reportsStore';
@@ -59,16 +57,18 @@ export const ReportForm: React.FC<ReportFormProps> = ({
     if (!report?.report_id) return;
     setDebugRunning(true);
     setDebugResult(null);
-    const url = `http://localhost:3005/debug/run-report/${report.report_id}`;
     try {
-      const res = await fetch(url, { method: 'POST' });
+      // Open the HTML preview in a new tab (user can print/save as PDF)
+      window.open(`http://localhost:3005/debug/preview-report/${report.report_id}`, '_blank');
+
+      // Also trigger the actual run to send emails
+      const res = await fetch(`http://localhost:3005/debug/run-report/${report.report_id}`, { method: 'POST' });
       const json = await res.json();
-      setDebugResult({
-        success: json.success,
-        message: json.success ? 'Report executed successfully' : `Error: ${json.error ?? 'Unknown error'}`,
-      });
+      if (!json.success) {
+        setDebugResult({ success: false, message: `Email send error: ${json.error ?? 'Unknown error'}` });
+      }
     } catch {
-      setDebugResult({ success: false, message: 'Could not reach MCP debug server on port 3005' });
+      setDebugResult({ success: false, message: 'Could not reach MCP server on port 3005' });
     } finally {
       setDebugRunning(false);
     }
@@ -84,36 +84,33 @@ export const ReportForm: React.FC<ReportFormProps> = ({
       .finally(() => setHistoryLoading(false));
   }, [report?.report_id]);
 
+  const runButton = report?.report_id ? (
+    <Box>
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={debugRunning ? <CircularProgress size={14} color="inherit" /> : <span className="material-symbols-outlined" style={{ fontSize: 16 }}>play_arrow</span>}
+        onClick={handleDebugRun}
+        disabled={debugRunning}
+      >
+        {debugRunning ? 'Running...' : 'Run Now'}
+      </Button>
+    </Box>
+  ) : null;
+
   return (
     <FormContainer>
-      {import.meta.env.DEV && report?.report_id && (
-        <Box sx={{ px: 2, pt: 2 }}>
-          <Tooltip title="Run this report now via the MCP agent (port 3005 must be running)">
-            <span>
-              <Button
-                variant="outlined"
-                color="warning"
-                size="small"
-                startIcon={debugRunning ? <CircularProgress size={14} color="inherit" /> : <BugReportIcon />}
-                onClick={handleDebugRun}
-                disabled={debugRunning}
-              >
-                [DEV] Run This Report Now
-              </Button>
-            </span>
-          </Tooltip>
-          <Collapse in={!!debugResult} unmountOnExit>
-            {debugResult && (
-              <Alert
-                severity={debugResult.success ? 'success' : 'error'}
-                onClose={() => setDebugResult(null)}
-                sx={{ mt: 1 }}
-              >
-                {debugResult.message}
-              </Alert>
-            )}
-          </Collapse>
-        </Box>
+      {debugResult && (
+        <Collapse in={!!debugResult} unmountOnExit>
+          <Box sx={{ px: 2, pt: 1 }}>
+            <Alert
+              severity={debugResult.success ? 'success' : 'error'}
+              onClose={() => setDebugResult(null)}
+            >
+              {debugResult.message}
+            </Alert>
+          </Box>
+        </Collapse>
       )}
       <div className="form-container__content">
         <BaseForm
@@ -124,6 +121,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
           onLegacySubmit={onSubmit}
           loading={loading}
           showTabs={true}
+          tabHeaderActions={runButton}
           renderTabContent={(tabName) => {
             if (tabName !== 'History') return null;
             if (!report?.report_id) {

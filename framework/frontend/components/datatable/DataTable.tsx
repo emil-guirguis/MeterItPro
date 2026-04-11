@@ -12,6 +12,7 @@ export function DataTable<T extends Record<string, any>>({
   onEdit,
   onDelete,
   onView,
+  onRowClick,
   onSelect,
   pagination,
   bulkActions = [],
@@ -134,12 +135,11 @@ export function DataTable<T extends Record<string, any>>({
             className="data-table__action-btn data-table__action-btn--view"
             onClick={(e) => {
               e.stopPropagation();
-              console.log('[DataTable] View clicked for item:', item);
               onView(item);
             }}
             title="View"
           >
-            👁️
+            <span className="material-symbols-outlined" aria-hidden="true">visibility</span>
           </button>
         )}
         {onEdit && (
@@ -148,12 +148,11 @@ export function DataTable<T extends Record<string, any>>({
             className="data-table__action-btn data-table__action-btn--edit"
             onClick={(e) => {
               e.stopPropagation();
-              console.log('[DataTable] Edit clicked for item:', item);
               onEdit(item);
             }}
             title="Edit"
           >
-            ✏️
+            <span className="material-symbols-outlined" aria-hidden="true">edit</span>
           </button>
         )}
         {onDelete && (
@@ -166,22 +165,12 @@ export function DataTable<T extends Record<string, any>>({
             }}
             title="Delete"
           >
-            🗑️
+            <span className="material-symbols-outlined" aria-hidden="true">delete</span>
           </button>
         )}
       </div>
     );
   }, [onView, onEdit, onDelete]);
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="data-table__loading">
-        <div className="data-table__spinner"></div>
-        <p>Loading...</p>
-      </div>
-    );
-  }
 
   // Error state
   if (error) {
@@ -220,7 +209,18 @@ export function DataTable<T extends Record<string, any>>({
         )}
 
         <div className="data-table__cards">
-          {isEmpty ? (
+          {loading && (!data || data.length === 0) ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="data-table__card data-table__card--skeleton">
+                {visibleColumns.map(column => (
+                  <div key={column.key?.toString()} className="data-table__card-field">
+                    <div className="data-table__skeleton-cell data-table__skeleton-cell--label" />
+                    <div className="data-table__skeleton-cell" />
+                  </div>
+                ))}
+              </div>
+            ))
+          ) : isEmpty ? (
             <div className="data-table__empty">
               <p>{emptyMessage}</p>
             </div>
@@ -228,8 +228,8 @@ export function DataTable<T extends Record<string, any>>({
             sortedData.map((item, index) => (
               <div
                 key={item.id || index}
-                className={`data-table__card ${(onView || onEdit) ? 'data-table__card--clickable' : ''}`}
-                onClick={(onView || onEdit) ? () => (onView ?? onEdit)!(item) : undefined}
+                className={`data-table__card ${(onRowClick || onView || onEdit) ? 'data-table__card--clickable' : ''}`}
+                onClick={(onRowClick || onView || onEdit) ? () => (onRowClick ?? onView ?? onEdit)!(item) : undefined}
               >
                 {onSelect && (
                   <div className="data-table__card-select">
@@ -370,12 +370,24 @@ export function DataTable<T extends Record<string, any>>({
           </thead>
           
           <tbody className="data-table__body">
-            {isEmpty ? (
+            {loading && (!data || data.length === 0) ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i} className="data-table__row data-table__row--skeleton">
+                  {onSelect && <td className="data-table__cell data-table__cell--select"><div className="data-table__skeleton-cell" /></td>}
+                  {visibleColumns.map(column => (
+                    <td key={column.key?.toString()} className="data-table__cell">
+                      <div className="data-table__skeleton-cell" />
+                    </td>
+                  ))}
+                  {(onView || onEdit || onDelete) && <td className="data-table__cell data-table__cell--actions"><div className="data-table__skeleton-cell" /></td>}
+                </tr>
+              ))
+            ) : isEmpty ? (
               <tr className="data-table__row data-table__row--empty">
-                <td 
+                <td
                   colSpan={
-                    (onSelect ? 1 : 0) + 
-                    visibleColumns.length + 
+                    (onSelect ? 1 : 0) +
+                    visibleColumns.length +
                     (onView || onEdit || onDelete ? 1 : 0)
                   }
                   className="data-table__cell data-table__cell--empty"
@@ -389,8 +401,8 @@ export function DataTable<T extends Record<string, any>>({
               sortedData.map((item, index) => (
                 <tr
                   key={item.id || index}
-                  className={`data-table__row ${(onView || onEdit) ? 'data-table__row--clickable' : ''}`}
-                  onClick={(onView || onEdit) ? () => (onView ?? onEdit)!(item) : undefined}
+                  className={`data-table__row ${(onRowClick || onView || onEdit) ? 'data-table__row--clickable' : ''}`}
+                  onClick={(onRowClick || onView || onEdit) ? () => (onRowClick ?? onView ?? onEdit)!(item) : undefined}
                 >
                   {onSelect && (
                     <td className="data-table__cell data-table__cell--select">
