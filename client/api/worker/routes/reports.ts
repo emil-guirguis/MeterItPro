@@ -259,6 +259,34 @@ app.patch('/:id/toggle', async (c) => {
   }
 });
 
+// POST /:id/run - Trigger a report to run immediately via the MCP server
+app.post('/:id/run', async (c) => {
+  try {
+    const id = c.req.param('id');
+    if (isNaN(Number(id))) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
+
+    const reportCheck = await query(c.env, 'SELECT report_id FROM public.report WHERE report_id = $1 AND active = true', [id]);
+    if (reportCheck.rows.length === 0) return c.json({ success: false, message: 'Report not found or inactive' }, 404);
+
+    const mcpUrl = c.env.MCP_URL;
+    if (!mcpUrl) {
+      return c.json({ success: false, message: 'Report execution not configured on this server (MCP_URL not set)' }, 503);
+    }
+
+    const mcpRes = await fetch(`${mcpUrl}/debug/run-report/${id}`, { method: 'POST' });
+    const mcpJson = await mcpRes.json() as { success: boolean; error?: string };
+
+    if (!mcpJson.success) {
+      return c.json({ success: false, message: mcpJson.error ?? 'MCP server returned an error' }, 502);
+    }
+
+    return c.json({ success: true, message: 'Report queued for execution' });
+  } catch (error: any) {
+    logError('Error triggering report run:', error);
+    return c.json({ success: false, message: 'Failed to trigger report execution' }, 500);
+  }
+});
+
 // GET /:id/history - Get report execution history
 app.get('/:id/history', async (c) => {
   try {

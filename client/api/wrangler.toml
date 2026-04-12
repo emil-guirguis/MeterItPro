@@ -14,6 +14,9 @@ FRONTEND_URL = "https://meteritpro.com,http://localhost:5173,http://localhost:30
 # Database connection is configured via secrets:
 # npx wrangler secret put DATABASE_URL
 # npx wrangler secret put JWT_SECRET
+# MCP server URL (required for "Run Now" on reports):
+# npx wrangler secret put MCP_URL
+# e.g. https://mcp.meteritpro.com  or  http://<your-server-ip>:3005
 
 [[hyperdrive]]
 binding = "HYPERDRIVE"

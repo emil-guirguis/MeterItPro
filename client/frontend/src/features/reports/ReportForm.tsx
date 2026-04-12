@@ -68,17 +68,15 @@ export const ReportForm: React.FC<ReportFormProps> = ({
     setDebugRunning(true);
     setDebugResult(null);
     try {
-      // Open the HTML preview in a new tab (user can print/save as PDF)
-      window.open(`http://localhost:3005/debug/preview-report/${report.report_id}`, '_blank');
-
-      // Also trigger the actual run to send emails
-      const res = await fetch(`http://localhost:3005/debug/run-report/${report.report_id}`, { method: 'POST' });
-      const json = await res.json();
-      if (!json.success) {
-        setDebugResult({ success: false, message: `Email send error: ${json.error ?? 'Unknown error'}` });
+      const res = await apiClient.post(`/reports/${report.report_id}/run`);
+      if (!res.data.success) {
+        setDebugResult({ success: false, message: `Error: ${res.data.message ?? 'Unknown error'}` });
+      } else {
+        setDebugResult({ success: true, message: 'Report triggered — emails will be sent shortly.' });
       }
-    } catch {
-      setDebugResult({ success: false, message: 'Could not reach MCP server on port 3005' });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Failed to trigger report. Please try again.';
+      setDebugResult({ success: false, message: msg });
     } finally {
       setDebugRunning(false);
       refreshHistory();
