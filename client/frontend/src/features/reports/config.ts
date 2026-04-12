@@ -21,11 +21,11 @@ import type { Report } from './types';
 export const reportStats: StatDefinition<Report>[] = [
   {
     label: 'Enabled Reports',
-    value: (items: Report[]) => Array.isArray(items) ? items.filter((r: Report) => r.enabled).length : 0,
+    value: (items: Report[]) => Array.isArray(items) ? items.filter((r: Report) => r.active).length : 0,
   },
   {
     label: 'Disabled Reports',
-    value: (items: Report[]) => Array.isArray(items) ? items.filter((r: Report) => !r.enabled).length : 0,
+    value: (items: Report[]) => Array.isArray(items) ? items.filter((r: Report) => !r.active).length : 0,
   },
   {
     label: 'Total Reports',
@@ -47,7 +47,7 @@ export const reportExportConfig: ExportConfig<Report> = {
     'Type',
     'Schedule',
     'Recipients',
-    'Enabled',
+    'Active',
     'Created',
     'Updated',
   ],
@@ -56,7 +56,7 @@ export const reportExportConfig: ExportConfig<Report> = {
     report.type,
     report.schedule,
     Array.isArray(report.recipients) ? report.recipients.join('; ') : '',
-    report.enabled ? 'Yes' : 'No',
+    report.active ? 'Yes' : 'No',
     report.created_at ? new Date(report.created_at).toISOString() : '',
     report.updated_at ? new Date(report.updated_at).toISOString() : '',
   ],

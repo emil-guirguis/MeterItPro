@@ -268,10 +268,9 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       }
     }
 
-    // Ensure updateItemInList exists by delegating to existing method names if present
-    if (!proxy.updateItemInList) {
-      proxy.updateItemInList = proxy.updateItemInList || proxy.updateItem || proxy.updateReport;
-    }
+    // Note: do NOT fall back to proxy.updateItem for updateItemInList.
+    // updateItem(id, data) takes two args; updateItemInList(entity) takes one.
+    // Using updateItem as fallback would trigger a spurious API PUT with the entity object as the id.
 
     return proxy;
   }, [store, schema]);

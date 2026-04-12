@@ -7,7 +7,7 @@ export interface Report {
   schedule: string;
   recipients: string[];
   config: Record<string, any>;
-  enabled: boolean;
+  active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -87,7 +87,7 @@ export const deleteReport = async (id: number): Promise<void> => {
 /**
  * Toggle report enabled status
  */
-export const toggleReportStatus = async (id: number): Promise<{ id: number; name: string; enabled: boolean; updated_at: string }> => {
+export const toggleReportStatus = async (id: number): Promise<{ id: number; name: string; active: boolean; updated_at: string }> => {
   const response = await apiClient.patch(`/reports/${id}/toggle`);
   return response.data.data;
 };

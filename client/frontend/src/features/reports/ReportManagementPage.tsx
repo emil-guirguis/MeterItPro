@@ -172,8 +172,8 @@ const ReportDetails: React.FC<ReportDetailsProps> = ({ report, onEdit }) => {
           </div>
           <div className="report-details__field">
             <label className="report-details__label">Status</label>
-            <span className={`report-details__status report-details__status--${report.enabled}`}>
-              {report.enabled ? '✅ Enabled' : '❌ Disabled'}
+            <span className={`report-details__status report-details__status--${report.active}`}>
+              {report.active ? '✅ Enabled' : '❌ Disabled'}
             </span>
           </div>
         </div>

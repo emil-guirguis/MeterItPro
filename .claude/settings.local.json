@@ -88,7 +88,11 @@
       "Bash(pg_dump --version)",
       "Bash(docker exec:*)",
       "Bash(taskkill:*)",
-      "Bash(cmd:*)"
+      "Bash(cmd:*)",
+      "Bash(/c/Program Files/PostgreSQL/18/bin/psql.exe:*)",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql\" -U postgres -d meteritpro -c \"\\\\d report\")",
+      "Bash(\"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d meteritpro -c \"\\\\d report\")",
+      "Bash(C:/Program Files/PostgreSQL/18/bin/psql.exe:*)"
     ],
     "additionalDirectories": [
       "C:\\Program Files\\PostgreSQL\\18\\data"

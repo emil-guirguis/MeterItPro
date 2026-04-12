@@ -5,7 +5,7 @@ export interface Report {
   schedule: string;
   recipients: string[];
   config: Record<string, any>;
-  enabled: boolean;
+  active: boolean;
   meter_ids?: string[];
   element_ids?: string[];
   register_ids?: string[];

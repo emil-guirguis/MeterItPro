@@ -104,6 +104,13 @@ export default function Layout() {
           <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
             MeterIT Sync
           </Typography>
+          <Typography
+            variant="caption"
+            noWrap
+            sx={{ opacity: 0.7, letterSpacing: 0.3, mt: '2px' }}
+          >
+            v{import.meta.env.VITE_APP_VERSION || 'dev'}
+          </Typography>
         </Toolbar>
       </AppBar>
 

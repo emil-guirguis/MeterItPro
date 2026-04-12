@@ -12,8 +12,6 @@
 import React from 'react';
 import type { ColumnDefinition } from '../types/ui';
 import type { FieldDefinition } from '../../form/utils/formSchema';
-import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 
 /**
  * Extended field definition with additional properties from backend schema
@@ -72,7 +70,7 @@ export function generateColumnsFromSchema<T extends Record<string, any>>(
   return listFields.map(([fieldName, fieldDef]) => {
     const column: ColumnDefinition<T> = {
       key: fieldName as keyof T,
-      label: fieldDef.label || fieldName,
+      label: fieldName === 'active' ? 'Status' : (fieldDef.label || fieldName),
       sortable: true,
       responsive,
     };
@@ -82,20 +80,15 @@ export function generateColumnsFromSchema<T extends Record<string, any>>(
       case 'boolean':
         column.render = (_value: any, row: T) => {
           const val = row[fieldName as keyof T];
-          // Special rendering for 'active' column
           if (fieldName === 'active') {
-            const Icon = val ? RadioButtonCheckedIcon : RadioButtonUncheckedIcon;
-            const color = val ? '#4caf50' : '#9e9e9e';
-            return React.createElement(Icon, {
-              sx: { color, fontSize: '20px' }
-            });
+            const label = val ? 'Active' : 'Inactive';
+            const mod = val ? 'active' : 'inactive';
+            return React.createElement('span', { className: `list-status-badge list-status-badge--${mod}` }, label);
           }
-          return val ? '✓' : '✗';
+          const label = val ? 'Yes' : 'No';
+          const mod = val ? 'true' : 'false';
+          return React.createElement('span', { className: `list-status-badge list-status-badge--${mod}` }, label);
         };
-        // Center align the active column
-        if (fieldName === 'active') {
-          column.align = 'center';
-        }
         break;
 
       case 'date':

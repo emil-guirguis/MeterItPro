@@ -510,3 +510,35 @@
   }
 }
 
+/* ── Status badge (boolean/active columns) ───────────── */
+.list-status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.list-status-badge--active {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+}
+
+.list-status-badge--inactive {
+  background-color: #ffccbc;
+  color: #d84315;
+}
+
+.list-status-badge--true {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+}
+
+.list-status-badge--false {
+  background-color: #ffccbc;
+  color: #d84315;
+}
+

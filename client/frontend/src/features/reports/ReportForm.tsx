@@ -53,6 +53,16 @@ export const ReportForm: React.FC<ReportFormProps> = ({
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  const refreshHistory = () => {
+    if (!report?.report_id) return;
+    setHistoryLoading(true);
+    apiClient
+      .get(`/reports/${report.report_id}/history`)
+      .then((res) => setHistory(res.data?.data?.history || []))
+      .catch(() => setHistory([]))
+      .finally(() => setHistoryLoading(false));
+  };
+
   const handleDebugRun = async () => {
     if (!report?.report_id) return;
     setDebugRunning(true);
@@ -71,17 +81,13 @@ export const ReportForm: React.FC<ReportFormProps> = ({
       setDebugResult({ success: false, message: 'Could not reach MCP server on port 3005' });
     } finally {
       setDebugRunning(false);
+      refreshHistory();
     }
   };
 
   useEffect(() => {
-    if (!report?.report_id) return;
-    setHistoryLoading(true);
-    apiClient
-      .get(`/reports/${report.report_id}/history`)
-      .then((res) => setHistory(res.data?.data?.history || []))
-      .catch(() => setHistory([]))
-      .finally(() => setHistoryLoading(false));
+    refreshHistory();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [report?.report_id]);
 
   const runButton = report?.report_id ? (
@@ -214,6 +220,10 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   onChange={onChange}
                   disabled={isDisabled}
                   error={error}
+                  onSaveRow={() => {
+                    const formEl = document.getElementById('form-report') as HTMLFormElement | null;
+                    formEl?.requestSubmit();
+                  }}
                 />
               );
             }

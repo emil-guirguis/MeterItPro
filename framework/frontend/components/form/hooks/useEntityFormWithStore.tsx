@@ -109,57 +109,33 @@ export function useEntityFormWithStore<TEntity extends { id?: string | number },
       e.preventDefault();
     }
     
-    console.log('========================================');
-    console.log('[STORE SUBMIT] handleSubmit called');
-    try {
-      console.log('[STORE SUBMIT] Entity:', JSON.stringify(entity, null, 2));
-    } catch (e) {
-      console.log('[STORE SUBMIT] Entity: (circular structure, cannot stringify)');
-    }
-    try {
-      console.log('[STORE SUBMIT] Form data:', JSON.stringify(form.formData, null, 2));
-    } catch (e) {
-      console.log('[STORE SUBMIT] Form data: (circular structure, cannot stringify)');
-    }
-    console.log('========================================');
-    
     setIsSubmitting(true);
     setSubmitError(null);
-    
+
     try {
       const mode = entity ? 'update' : 'create';
-      
-      console.log('[STORE SUBMIT] Mode:', mode);
-      
+
       // Transform form data to entity data
-      const entityData = formDataToEntity 
+      const entityData = formDataToEntity
         ? formDataToEntity(form.formData)
         : (form.formData as unknown as Partial<TEntity>);
-      
-      console.log('[STORE SUBMIT] Transformed entity data:', entityData);
-      
+
       let savedEntity: TEntity;
-      
+
       if (mode === 'update' && entity?.id) {
         // Update existing entity
-        console.log('[STORE SUBMIT] Updating entity with ID:', entity.id);
         const updateMethod = (store as any)[updateMethodName] || (store as any).update;
         if (!updateMethod) {
           throw new Error(`Store does not have ${updateMethodName} or update method`);
         }
-        console.log('[STORE SUBMIT] Calling update method with data:', entityData);
         savedEntity = await updateMethod(String(entity.id), entityData);
-        console.log('[STORE SUBMIT] Update successful, saved entity:', savedEntity);
       } else {
         // Create new entity
-        console.log('[STORE SUBMIT] Creating new entity');
         const createMethod = (store as any)[createMethodName] || (store as any).create;
         if (!createMethod) {
           throw new Error(`Store does not have ${createMethodName} or create method`);
         }
-        console.log('[STORE SUBMIT] Calling create method with data:', entityData);
         savedEntity = await createMethod(entityData);
-        console.log('[STORE SUBMIT] Create successful, saved entity:', savedEntity);
       }
       
       // Validate saved entity has required properties

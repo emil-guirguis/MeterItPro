@@ -32,7 +32,7 @@ export const UserList: React.FC<UserListProps> = ({
   const columns = useMemo(() => {
     if (!schema) return [];
     return generateColumnsFromSchema<User>(schema.formFields, {
-      fieldOrder: ['name', 'role', 'active'],
+      fieldOrder: ['name', 'email', 'phone', 'role', 'active'],
       responsive: 'hide-mobile',
     });
   }, [schema]);

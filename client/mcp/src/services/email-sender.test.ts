@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import nodemailer from 'nodemailer';
 import { EmailSender } from './email-sender.js';
 import { db } from '../database/client.js';
 import { logger } from '../utils/logger.js';
@@ -11,6 +12,8 @@ vi.mock('../database/client.js');
 vi.mock('../utils/logger.js');
 vi.mock('nodemailer');
 
+const mockSendMail = vi.fn().mockResolvedValue({ messageId: 'test-message-id' });
+
 describe('EmailSender', () => {
   let emailSender: EmailSender;
   const mockReport: Report = {
@@ -20,7 +23,8 @@ describe('EmailSender', () => {
     schedule: '0 9 * * *',
     recipients: ['test@example.com', 'test2@example.com'],
     config: {},
-    enabled: true,
+    active: true,
+    meter_selections: null,
     created_at: new Date(),
     updated_at: new Date(),
   };
@@ -37,6 +41,8 @@ describe('EmailSender', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSendMail.mockResolvedValue({ messageId: 'test-message-id' });
+    vi.mocked(nodemailer.createTransport).mockReturnValue({ sendMail: mockSendMail } as any);
     emailSender = new EmailSender();
   });
 
@@ -215,8 +221,7 @@ describe('EmailSender', () => {
 
       // Verify email content was formatted
       expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Completed sending report emails'),
-        expect.any(Object)
+        expect.stringContaining('Completed sending report emails')
       );
     });
 
@@ -241,8 +246,7 @@ describe('EmailSender', () => {
       await emailSender.sendReportEmails(mockReport, emptyData, historyId, sentAt);
 
       expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Completed sending report emails'),
-        expect.any(Object)
+        expect.stringContaining('Completed sending report emails')
       );
     });
 
@@ -272,8 +276,7 @@ describe('EmailSender', () => {
       await emailSender.sendReportEmails(mockReport, largeData, historyId, sentAt);
 
       expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Completed sending report emails'),
-        expect.any(Object)
+        expect.stringContaining('Completed sending report emails')
       );
     });
   });

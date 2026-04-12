@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Chip, Switch, Box } from '@mui/material';
+import { Chip, Box } from '@mui/material';
 import { BaseList } from '@framework/components/list/BaseList';
 import { useBaseList } from '@framework/components/list/hooks';
 import { useSchema } from '@framework/components/form/utils/schemaLoader';
@@ -33,7 +33,6 @@ export const NotificationRulesList: React.FC<NotificationRulesListProps> = ({
 }) => {
   const auth = useAuth();
   const { schema } = useSchema('notification_rule');
-  const rulesStore = useNotificationRulesEnhanced();
 
   const columns = useMemo((): ColumnDefinition<NotificationRule>[] => {
     if (!schema?.formFields) return [];
@@ -55,21 +54,6 @@ export const NotificationRulesList: React.FC<NotificationRulesListProps> = ({
         };
       }
 
-      if (col.key === 'active') {
-        return {
-          ...col,
-          render: (value: boolean, row: NotificationRule) => (
-            <Switch
-              checked={value}
-              onChange={(e) => {
-                rulesStore.toggleActive(row.notification_rule_id, e.target.checked);
-              }}
-              size="small"
-            />
-          ),
-        };
-      }
-
       if (col.key === 'schedule_cron') {
         return {
           ...col,
@@ -83,7 +67,7 @@ export const NotificationRulesList: React.FC<NotificationRulesListProps> = ({
 
       return col;
     });
-  }, [schema, rulesStore]);
+  }, [schema]);
 
   const filters = useMemo(() => {
     if (!schema?.formFields) return [];

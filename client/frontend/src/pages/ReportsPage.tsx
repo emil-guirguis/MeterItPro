@@ -77,9 +77,9 @@ const ReportsPage: React.FC = () => {
             </div>
             <div className="detail-item">
               <label>Status:</label>
-              <span className={`status-indicator status-indicator--${report.enabled ? 'active' : 'inactive'}`}>
-                <span className={`status-dot status-dot--${report.enabled ? 'active' : 'inactive'}`}></span>
-                {report.enabled ? 'Active' : 'Inactive'}
+              <span className={`status-indicator status-indicator--${report.active ? 'active' : 'inactive'}`}>
+                <span className={`status-dot status-dot--${report.active ? 'active' : 'inactive'}`}></span>
+                {report.active ? 'Active' : 'Inactive'}
               </span>
             </div>
           </div>

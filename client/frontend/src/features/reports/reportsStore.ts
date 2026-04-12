@@ -27,6 +27,7 @@ interface ReportsActions {
   setPage: (page: number) => void;
   setPageSize: (size: number) => void;
   deleteItem: (id: string | number) => Promise<void>;
+  updateItemInList: (report: Report) => void;
   
   // Legacy methods for backward compatibility
   fetchReports: (page?: number, limit?: number) => Promise<void>;
@@ -114,6 +115,12 @@ export const useReportsStore = create<ReportsStore>()(
 
       deleteItem: async (id: string | number) => {
         await get().deleteReport(Number(id));
+      },
+
+      updateItemInList: (report: Report) => {
+        set(s => ({
+          items: s.items.map(r => r.report_id === report.report_id ? report : r),
+        }));
       },
 
       // Legacy methods
@@ -243,7 +250,7 @@ export const useReportsStore = create<ReportsStore>()(
           const state = get();
           set({
             items: state.items.map(r => 
-              r.report_id === id ? { ...r, enabled: result.enabled } : r
+              r.report_id === id ? { ...r, active: result.active } : r
             ),
             list: { ...state.list, loading: false },
           });
@@ -275,6 +282,7 @@ export const useReportsEnhanced = (): EnhancedStore<Report> => {
     setPage: store.setPage,
     setPageSize: store.setPageSize,
     deleteItem: store.deleteItem,
+    updateItemInList: store.updateItemInList,
     // Legacy methods for backward compatibility
     fetchReports: store.fetchReports,
     fetchReport: store.fetchReport,

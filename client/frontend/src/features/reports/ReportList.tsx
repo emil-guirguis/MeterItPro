@@ -51,18 +51,6 @@ export const ReportList: React.FC<ReportListProps> = ({
           ),
         };
       }
-      if (col.key === 'enabled') {
-        return {
-          ...col,
-          render: (value: boolean) => (
-            <div className="status-cell">
-              <span className={`status-badge status-badge--${value ? 'active' : 'inactive'}`}>
-                {value ? 'Active' : 'Inactive'}
-              </span>
-            </div>
-          ),
-        };
-      }
       if (col.key === 'schedule') {
         return {
           ...col,

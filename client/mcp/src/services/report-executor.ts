@@ -46,9 +46,13 @@ export class ReportExecutor {
         dataSize: JSON.stringify(reportData).length,
       });
 
-      historyId = await this.createHistoryEntry(report.id, executedAt, 'success', null);
+      // Create a pending history entry before sending — updated to success after
+      historyId = await this.createHistoryEntry(report.id, executedAt, 'pending', null);
 
       await this.emailSender.sendReportEmails(report, reportData, historyId, executedAt);
+
+      // Mark as success only after emails actually sent
+      await this.updateHistoryEntry(historyId, 'success', null);
 
       logger.info(`Successfully executed report: ${report.name} (${report.id})`);
     } catch (error) {
@@ -56,9 +60,13 @@ export class ReportExecutor {
       logger.error(`Failed to execute report: ${report.name} (${report.id})`, { error: errorMessage });
 
       try {
-        await this.createHistoryEntry(report.id, executedAt, 'failed', errorMessage);
+        if (historyId) {
+          await this.updateHistoryEntry(historyId, 'failed', errorMessage);
+        } else {
+          await this.createHistoryEntry(report.id, executedAt, 'failed', errorMessage);
+        }
       } catch (historyError) {
-        logger.error('Failed to create failed history entry', {
+        logger.error('Failed to update history entry', {
           reportId: report.id,
           error: historyError instanceof Error ? historyError.message : String(historyError),
         });
@@ -139,6 +147,39 @@ export class ReportExecutor {
 
   // ─── Report generators ────────────────────────────────────────────────────────
 
+  /**
+   * Returns the union of all register_field_names across all meter selections,
+   * or null if none are specified (meaning "show all columns").
+   */
+  private getRegisterFieldNames(report: Report): string[] | null {
+    const selections = this.parseMeterSelections(report.meter_selections);
+    if (!selections || selections.length === 0) return null;
+    const names = selections.flatMap(s => s.register_field_names ?? []);
+    return names.length > 0 ? [...new Set(names)] : null;
+  }
+
+  /**
+   * Filter data rows to only the columns specified in register_field_names.
+   * Always keeps identifier columns (meter_name, element, created_at, date).
+   */
+  private filterColumns(rows: Record<string, any>[], allowedFields: string[] | null): Record<string, any>[] {
+    // Always keep display identifiers; strip internal DB IDs
+    const identifiers = new Set(['meter_name', 'element', 'created_at', 'date']);
+    const internalIds = new Set(['meter_reading_id', 'meter_id', 'meter_element_id', 'tenant_id', 'device_id', 'reading_id']);
+
+    if (!allowedFields) {
+      // No filter specified — return all columns except internal IDs
+      return rows.map(row =>
+        Object.fromEntries(Object.entries(row).filter(([k]) => !internalIds.has(k)))
+      );
+    }
+
+    const allowed = new Set([...identifiers, ...allowedFields]);
+    return rows.map(row =>
+      Object.fromEntries(Object.entries(row).filter(([k]) => allowed.has(k)))
+    );
+  }
+
   private async generateReportData(report: Report): Promise<ReportData> {
     switch (report.type) {
       case 'meter_readings':
@@ -172,18 +213,9 @@ export class ReportExecutor {
 
     const result = await db.query(
       `SELECT
-         m.name                          AS meter_name,
-         CONCAT(COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, '?')) AS element,
-         r.kwh,
-         r.kw,
-         r.kvar,
-         r.kvarh,
-         r.kva,
-         r.kvah,
-         r.power_factor,
-         r.amperage,
-         r.peak_kw,
-         r.created_at
+         m.name                                                                  AS meter_name,
+         CONCAT(COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, '?'))   AS element,
+         r.*
        FROM meter_reading r
        JOIN meter m ON m.meter_id = r.meter_id
        JOIN meter_element me ON me.meter_element_id = r.meter_element_id
@@ -193,12 +225,13 @@ export class ReportExecutor {
       params
     );
 
+    const data = this.filterColumns(result.rows, this.getRegisterFieldNames(report));
     return {
       type: 'meter_readings',
       generatedAt: new Date().toISOString(),
       period: 'Last 24 hours',
-      recordCount: result.rows.length,
-      data: result.rows,
+      recordCount: data.length,
+      data,
     };
   }
 
@@ -238,12 +271,13 @@ export class ReportExecutor {
       params
     );
 
+    const data = this.filterColumns(result.rows, this.getRegisterFieldNames(report));
     return {
       type: 'usage_summary',
       generatedAt: new Date().toISOString(),
       period: 'Last 30 days',
-      meterCount: result.rows.length,
-      data: result.rows,
+      meterCount: data.length,
+      data,
     };
   }
 
@@ -281,12 +315,13 @@ export class ReportExecutor {
       params
     );
 
+    const data = this.filterColumns(result.rows, this.getRegisterFieldNames(report));
     return {
       type: 'daily_summary',
       generatedAt: new Date().toISOString(),
       period: 'Last 30 days',
-      dayCount: new Set(result.rows.map((r: any) => r.date)).size,
-      data: result.rows,
+      dayCount: new Set(data.map((r: any) => r.date)).size,
+      data,
     };
   }
 
@@ -371,7 +406,7 @@ export class ReportExecutor {
   private async createHistoryEntry(
     reportId: string,
     executedAt: Date,
-    status: 'success' | 'failed',
+    status: 'success' | 'failed' | 'pending',
     errorMessage: string | null
   ): Promise<string> {
     const result = await db.query<{ id: string }>(
@@ -383,5 +418,16 @@ export class ReportExecutor {
 
     if (result.rows.length === 0) throw new Error('Failed to create history entry');
     return result.rows[0].id;
+  }
+
+  private async updateHistoryEntry(
+    historyId: string,
+    status: 'success' | 'failed',
+    errorMessage: string | null
+  ): Promise<void> {
+    await db.query(
+      `UPDATE report_history SET status = $1, error_message = $2 WHERE report_history_id = $3`,
+      [status, errorMessage, historyId]
+    );
   }
 }

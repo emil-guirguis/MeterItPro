@@ -48,7 +48,8 @@ export class EmailSender {
         recipientCount: report.recipients.length,
       });
 
-      // Send email to each recipient
+      // Send email to each recipient; collect failures but attempt all
+      const failures: string[] = [];
       for (const recipient of report.recipients) {
         try {
           await this.sendEmailToRecipient(
@@ -59,12 +60,17 @@ export class EmailSender {
             sentAt
           );
         } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
           logger.error(`Failed to send email to recipient: ${recipient}`, {
             reportId: report.id,
-            error: error instanceof Error ? error.message : String(error),
+            error: msg,
           });
-          // Continue with next recipient even if one fails
+          failures.push(`${recipient}: ${msg}`);
         }
+      }
+
+      if (failures.length > 0) {
+        throw new Error(`Email delivery failed for ${failures.length} recipient(s): ${failures.join('; ')}`);
       }
 
       logger.info(`Completed sending report emails for report: ${report.name}`);
