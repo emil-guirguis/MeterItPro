@@ -13,7 +13,8 @@ export interface Env {
   JWT_EXPIRES_IN?: string;
   FRONTEND_URL?: string;
   HYPERDRIVE: any;
-  MCP_URL?: string;
+  SEND_EMAIL?: { send(message: any): Promise<void> };
+  ANTHROPIC_API_KEY?: string;
 }
 
 export async function query(env: Env, text: string, params: any[] = []) {

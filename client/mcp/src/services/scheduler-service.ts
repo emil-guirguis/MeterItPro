@@ -40,11 +40,10 @@ export class SchedulerService {
     logger.info('Initializing SchedulerService...');
     
     try {
-      await this.reconcileReports();
+      // Reports and notification rules are now executed by the Cloudflare Worker
+      // (Cron Trigger + Resend). Do not schedule them here — that would cause
+      // duplicate emails alongside the Worker's scheduled runs.
       await this.initializeHealthCheck();
-      await this.initializeNotificationRules();
-      this.scheduleNotificationRuleReconcile();
-      this.scheduleReportReconcile();
 
       logger.info(`SchedulerService initialized with ${this.jobs.size} active jobs`);
     } catch (error) {

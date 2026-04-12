@@ -6,6 +6,8 @@
  */
 
 import { Hono } from 'hono';
+import { runAllActiveReports } from './reportRunner';
+import { runAllActiveNotificationRules } from './notificationRunner';
 import { cors } from 'hono/cors';
 import { query, Env } from './db';
 import { AuthVariables, authenticateToken } from './middleware';
@@ -32,11 +34,12 @@ import notificationRulesRoutes from './routes/notificationRules';
 import notificationHistoryRoutes from './routes/notificationHistory';
 import emailLogRoutes from './routes/emailLogs';
 import aiSearchRoutes from './routes/aiSearch';
+import aiChatRoutes from './routes/aiChat';
 import registerRoutes from './routes/registers';
 import deviceRegisterRoutes from './routes/deviceRegisters';
 import uploadRoutes from './routes/upload';
 
-const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
+export const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
 // --- CORS ---
 
@@ -236,6 +239,7 @@ app.route('/api/schema', schemaRoutes);
 app.route('/api/dashboard', dashboardRoutes);
 app.route('/api/favorites', favoriteRoutes);
 app.route('/api/ai/search', aiSearchRoutes);
+app.route('/api/ai/chat', aiChatRoutes);
 app.route('/api/reports', reportRoutes);
 app.route('/api/notifications', notificationRoutes);
 app.route('/api/notification-rules', notificationRulesRoutes);
@@ -364,4 +368,20 @@ app.all('*', (c) => {
   return c.json({ success: false, message: 'Route not found' }, 404);
 });
 
-export default app;
+// ─── Cron trigger (Cloudflare scheduled event) ────────────────────────────────
+// Runs every hour per wrangler.toml [triggers] crons setting.
+// Executes all active reports whose schedule matches the current time.
+
+export default {
+  fetch: app.fetch,
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(Promise.all([
+      runAllActiveReports(env).catch(err =>
+        console.error('[cron] runAllActiveReports failed:', err instanceof Error ? err.message : err)
+      ),
+      runAllActiveNotificationRules(env).catch(err =>
+        console.error('[cron] runAllActiveNotificationRules failed:', err instanceof Error ? err.message : err)
+      ),
+    ]));
+  },
+};

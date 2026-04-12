@@ -63,6 +63,8 @@ export const Header: React.FC<HeaderProps> = ({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [isAiAnswering, setIsAiAnswering] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -224,11 +226,61 @@ export const Header: React.FC<HeaderProps> = ({
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
+    setAiResponse(null);
     if (value.trim()) {
       handleSearch(value);
     } else {
       setSearchResults([]);
       setShowSearchResults(false);
+    }
+  };
+
+  const handleAskAI = async (query: string) => {
+    if (!query.trim()) return;
+    const authToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    if (!authToken) return;
+
+    setIsAiAnswering(true);
+    setAiResponse(null);
+    setShowSearchResults(true);
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ message: query }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        setAiResponse(data.response ?? 'No response from AI.');
+      } else {
+        setAiResponse('AI is not available right now. Please try again.');
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setAiResponse('Request timed out. Please try a shorter question.');
+      } else {
+        setAiResponse('Could not reach the AI. Please check your connection.');
+      }
+    } finally {
+      setIsAiAnswering(false);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAskAI(searchQuery);
     }
   };
 
@@ -277,12 +329,13 @@ export const Header: React.FC<HeaderProps> = ({
             <input
               type="search"
               className="search-input"
-              placeholder="Search devices, meters... or use voice"
-              aria-label="Search"
+              placeholder="Search or ask AI — press Enter"
+              aria-label="Search or ask AI"
               value={searchQuery}
               onChange={handleSearchInputChange}
+              onKeyDown={handleSearchKeyDown}
               onFocus={() => searchQuery && setShowSearchResults(true)}
-              disabled={isSearching}
+              disabled={isSearching || isAiAnswering}
             />
             {isSearching && (
               <div className="search-loading" aria-label="Searching...">
@@ -301,44 +354,64 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {/* Search Results Dropdown */}
-            {showSearchResults && searchResults.length > 0 && (
+            {showSearchResults && (searchResults.length > 0 || isAiAnswering || aiResponse) && (
               <div className="search-results-dropdown" role="region" aria-label="Search results">
-                <div className="search-results-list">
-                  {searchResults.slice(0, 5).map((result) => (
-                    <div key={result.id} className="search-result-item">
-                      <div className="result-icon">
-                        {getIconElement('electric_bolt', 'result-icon')}
-                      </div>
-                      <div className="result-content">
-                        <div className="result-name">{result.name}</div>
-                        <div className="result-meta">
-                          <span className="result-type">{result.type}</span>
-                          <span className="result-location">{result.location}</span>
+                {/* Device / meter quick results */}
+                {searchResults.length > 0 && (
+                  <div className="search-results-list">
+                    {searchResults.slice(0, 5).map((result) => (
+                      <div key={result.id} className="search-result-item">
+                        <div className="result-icon">
+                          {getIconElement('electric_bolt', 'result-icon')}
                         </div>
-                        <div className="result-consumption">
-                          {result.currentConsumption} {result.unit}
+                        <div className="result-content">
+                          <div className="result-name">{result.name}</div>
+                          <div className="result-meta">
+                            <span className="result-type">{result.type}</span>
+                            <span className="result-location">{result.location}</span>
+                          </div>
+                          <div className="result-consumption">
+                            {result.currentConsumption} {result.unit}
+                          </div>
+                        </div>
+                        <div className={`result-status ${result.status}`}>
+                          {result.status}
                         </div>
                       </div>
-                      <div className={`result-status ${result.status}`}>
-                        {result.status}
+                    ))}
+                    {searchResults.length > 5 && (
+                      <div className="search-results-footer">
+                        <button type="button" className="view-all-button">
+                          View all {searchResults.length} results
+                        </button>
                       </div>
+                    )}
+                  </div>
+                )}
+
+                {/* AI Answer panel */}
+                {(isAiAnswering || aiResponse) && (
+                  <div className="search-ai-answer">
+                    <div className="search-ai-answer__header">
+                      {getIconElement('smart_toy', 'search-ai-answer__icon')}
+                      <span>AI Answer</span>
+                      {isAiAnswering && <span className="search-ai-answer__spinner"></span>}
                     </div>
-                  ))}
-                </div>
-                {searchResults.length > 5 && (
-                  <div className="search-results-footer">
-                    <button type="button" className="view-all-button">
-                      View all {searchResults.length} results
-                    </button>
+                    <div className="search-ai-answer__body">
+                      {isAiAnswering
+                        ? 'Thinking...'
+                        : aiResponse}
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
-            {showSearchResults && searchQuery && searchResults.length === 0 && (
+            {showSearchResults && searchQuery && !isAiAnswering && !aiResponse && searchResults.length === 0 && (
               <div className="search-results-dropdown" role="region" aria-label="Search results">
                 <div className="no-results">
                   <p>No devices or meters found matching "{searchQuery}"</p>
+                  <p className="no-results-hint">Press <kbd>Enter</kbd> to ask the AI</p>
                 </div>
               </div>
             )}

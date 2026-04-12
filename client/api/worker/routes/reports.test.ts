@@ -16,10 +16,17 @@ vi.mock('../errorHandler', () => ({
   logError: vi.fn(),
 }));
 
+vi.mock('../reportRunner', () => ({
+  runReport: vi.fn(),
+}));
+
 import { verify } from 'hono/jwt';
 import { query } from '../db';
+import { runReport } from '../reportRunner';
 import reportsApp from './reports';
 import type { Env } from '../db';
+
+const mockRunReport = vi.mocked(runReport);
 
 const mockVerify = vi.mocked(verify);
 const mockQuery = vi.mocked(query);
@@ -34,9 +41,10 @@ const TEST_ENV: Env = {
   HYPERDRIVE: { connectionString: 'postgresql://test:test@localhost/test' },
 };
 
-const TEST_ENV_WITH_MCP: Env = {
+const TEST_ENV_WITH_RESEND: Env = {
   ...TEST_ENV,
-  MCP_URL: 'http://localhost:3005',
+  RESEND_API_KEY: 'test-resend-key',
+  RESEND_FROM: 'test@meteritpro.com',
 };
 
 const SAMPLE_REPORT = {
@@ -254,96 +262,53 @@ describe('Reports Routes', () => {
 
   // ── POST /:id/run ────────────────────────────────────────────────────────────
   describe('POST /:id/run', () => {
-    it('returns 503 when MCP_URL is not configured', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [{ report_id: 1 }] } as any);
-
-      const res = await reportsApp.request('/1/run', {
-        method: 'POST',
-        headers: { authorization: 'Bearer valid-token' },
-      }, TEST_ENV); // no MCP_URL
-
-      expect(res.status).toBe(503);
-      const body = await res.json();
-      expect(body.message).toContain('MCP_URL');
-    });
-
-    it('returns 404 when report does not exist or is inactive', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [] } as any);
-
-      const res = await reportsApp.request('/999/run', {
-        method: 'POST',
-        headers: { authorization: 'Bearer valid-token' },
-      }, TEST_ENV_WITH_MCP);
-
-      expect(res.status).toBe(404);
-    });
-
     it('returns 400 for non-numeric ID', async () => {
       const res = await reportsApp.request('/abc/run', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
-      }, TEST_ENV_WITH_MCP);
+      }, TEST_ENV);
 
       expect(res.status).toBe(400);
     });
 
-    it('returns 200 when MCP server triggers successfully', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [{ report_id: 1 }] } as any);
-
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-        json: () => Promise.resolve({ success: true }),
-      }));
+    it('returns 200 when report runs successfully', async () => {
+      mockRunReport.mockResolvedValueOnce(undefined);
 
       const res = await reportsApp.request('/1/run', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
-      }, TEST_ENV_WITH_MCP);
+      }, TEST_ENV_WITH_RESEND);
 
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.success).toBe(true);
-
-      vi.unstubAllGlobals();
+      expect(mockRunReport).toHaveBeenCalledWith(TEST_ENV_WITH_RESEND, 1);
     });
 
-    it('returns 502 when MCP server returns an error', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [{ report_id: 1 }] } as any);
+    it('returns 404 when report is not found or inactive', async () => {
+      mockRunReport.mockRejectedValueOnce(new Error('Report 999 not found or inactive'));
 
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-        json: () => Promise.resolve({ success: false, error: 'Report generation failed' }),
-      }));
+      const res = await reportsApp.request('/999/run', {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
+      }, TEST_ENV_WITH_RESEND);
+
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.message).toContain('not found or inactive');
+    });
+
+    it('returns 500 when report execution fails', async () => {
+      mockRunReport.mockRejectedValueOnce(new Error('Email delivery failed'));
 
       const res = await reportsApp.request('/1/run', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
-      }, TEST_ENV_WITH_MCP);
+      }, TEST_ENV_WITH_RESEND);
 
-      expect(res.status).toBe(502);
+      expect(res.status).toBe(500);
       const body = await res.json();
-      expect(body.message).toContain('Report generation failed');
-
-      vi.unstubAllGlobals();
-    });
-
-    it('calls the correct MCP endpoint URL', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [{ report_id: 42 }] } as any);
-
-      const mockFetch = vi.fn().mockResolvedValue({
-        json: () => Promise.resolve({ success: true }),
-      });
-      vi.stubGlobal('fetch', mockFetch);
-
-      await reportsApp.request('/42/run', {
-        method: 'POST',
-        headers: { authorization: 'Bearer valid-token' },
-      }, TEST_ENV_WITH_MCP);
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3005/debug/run-report/42',
-        { method: 'POST' }
-      );
-
-      vi.unstubAllGlobals();
+      expect(body.message).toContain('Email delivery failed');
     });
   });
 

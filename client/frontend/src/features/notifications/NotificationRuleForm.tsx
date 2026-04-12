@@ -17,7 +17,7 @@ import {
   TableRow,
   Paper,
 } from '@mui/material';
-import BugReportIcon from '@mui/icons-material/BugReport';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { BaseForm, FormContainer } from '@framework/components/form';
 import { CronField } from '@framework/components/formfield/CronField';
 import { MeterElementRegisterSelectorGrid } from '../../components/shared/MeterElementRegisterSelectorGrid';
@@ -61,16 +61,15 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
     if (!rule?.notification_rule_id) return;
     setDebugRunning(true);
     setDebugResult(null);
-    const url = `http://localhost:3005/debug/run-notification-rule/${rule.notification_rule_id}`;
     try {
-      const res = await fetch(url, { method: 'POST' });
-      const json = await res.json();
+      const res = await apiClient.post(`/notification-rules/${rule.notification_rule_id}/run`);
       setDebugResult({
-        success: json.success,
-        message: json.success ? 'Rule executed successfully' : `Error: ${json.error ?? 'Unknown error'}`,
+        success: res.data.success,
+        message: res.data.success ? 'Rule executed successfully.' : `Error: ${res.data.message ?? 'Unknown error'}`,
       });
-    } catch {
-      setDebugResult({ success: false, message: 'Could not reach MCP debug server on port 3005' });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Failed to run rule. Please try again.';
+      setDebugResult({ success: false, message: msg });
     } finally {
       setDebugRunning(false);
     }
@@ -78,22 +77,17 @@ export const NotificationRuleForm: React.FC<NotificationRuleFormProps> = ({
 
   return (
     <FormContainer>
-      {import.meta.env.DEV && rule?.notification_rule_id && (
+      {rule?.notification_rule_id && (
         <Box sx={{ px: 2, pt: 2 }}>
-          <Tooltip title="Run this rule now via the MCP agent (port 3005 must be running)">
-            <span>
-              <Button
-                variant="outlined"
-                color="warning"
-                size="small"
-                startIcon={debugRunning ? <CircularProgress size={14} color="inherit" /> : <BugReportIcon />}
-                onClick={handleDebugRun}
-                disabled={debugRunning}
-              >
-                [DEV] Run This Rule Now
-              </Button>
-            </span>
-          </Tooltip>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={debugRunning ? <CircularProgress size={14} color="inherit" /> : <PlayArrowIcon fontSize="small" />}
+            onClick={handleDebugRun}
+            disabled={debugRunning}
+          >
+            {debugRunning ? 'Running...' : 'Run Now'}
+          </Button>
           <Collapse in={!!debugResult} unmountOnExit>
             {debugResult && (
               <Alert

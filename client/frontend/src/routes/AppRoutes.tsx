@@ -16,6 +16,7 @@ const SettingsPage = lazy(() => import('../pages').then(m => ({ default: m.Setti
 const MetersPage = lazy(() => import('../pages').then(m => ({ default: m.MetersPage })));
 const ReportsPage = lazy(() => import('../pages').then(m => ({ default: m.ReportsPage })));
 const NotificationRulesPage = lazy(() => import('../features/notifications').then(m => ({ default: m.NotificationRulesPage })));
+const AiChatPage = lazy(() => import('../features/ai/AiChatPage').then(m => ({ default: m.AiChatPage })));
 import ManagementForm from '../components/management/ManagementForm';
 
 // Unauthorized page
@@ -150,6 +151,16 @@ const AppRoutes: React.FC = () => {
             <AuthGuard requiredPermissions={[Permission.NOTIFICATION_RULE_READ]}>
               <NotificationRulesPage />
             </AuthGuard>
+          }
+        />
+
+        {/* AI Chat Route */}
+        <Route
+          path="/ai-chat"
+          element={
+            <ProtectedRoute>
+              <AiChatPage />
+            </ProtectedRoute>
           }
         />
 

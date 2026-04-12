@@ -12,6 +12,7 @@
     "test:coverage": "vitest --run --coverage"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0",
     "@types/pg": "^8.15.5",
     "bcryptjs": "^2.4.3",
     "hono": "^4.11.9",

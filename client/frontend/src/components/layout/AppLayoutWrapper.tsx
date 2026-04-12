@@ -34,6 +34,7 @@ const appIconMappings = {
   'notifications': 'notifications',
   'favorites': 'star',
   'meter-readings': 'electric_bolt',
+  'ai-chat': 'smart_toy',
 };
 
 // Register icon mappings once
@@ -136,6 +137,12 @@ const staticMenuItems: MenuItem[] = [
         requiredPermission: Permission.USER_READ
       },
     ]
+  },
+  {
+    id: 'ai-chat',
+    label: 'AI Assistant',
+    icon: 'smart_toy',
+    path: '/ai-chat',
   },
   {
     id: 'settings',

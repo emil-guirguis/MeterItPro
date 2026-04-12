@@ -37,7 +37,7 @@ vi.mock('speakeasy', () => ({
 }));
 
 import { query } from './db';
-import app from './index';
+import { app } from './index';
 
 const mockQuery = vi.mocked(query);
 

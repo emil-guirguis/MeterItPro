@@ -6,6 +6,7 @@ import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
+import { runNotificationRule } from '../notificationRunner';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -316,6 +317,22 @@ app.delete('/:id', async (c) => {
   } catch (error: any) {
     logError('Error deleting notification rule:', error);
     return c.json({ success: false, message: 'Failed to delete notification rule' }, 500);
+  }
+});
+
+// POST /:id/run - Run a notification rule immediately
+app.post('/:id/run', async (c) => {
+  try {
+    const id = c.req.param('id');
+    await runNotificationRule(c.env, id);
+    return c.json({ success: true, message: 'Notification rule executed.' });
+  } catch (error: any) {
+    const msg = error?.message ?? 'Failed to run notification rule';
+    if (msg.includes('not found or inactive')) {
+      return c.json({ success: false, message: msg }, 404);
+    }
+    logError('Error running notification rule:', error);
+    return c.json({ success: false, message: msg }, 500);
   }
 });
 
