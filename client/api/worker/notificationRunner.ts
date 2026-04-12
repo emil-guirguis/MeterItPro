@@ -133,41 +133,25 @@ async function upsertNotification(
   );
 }
 
-// ─── Email via Cloudflare Email Workers ───────────────────────────────────────
+// ─── Email via Resend ─────────────────────────────────────────────────────────
 
 async function sendEmail(env: Env, recipients: string[], subject: string, html: string): Promise<void> {
-  if (!env.SEND_EMAIL) {
-    console.warn('[notificationRunner] SEND_EMAIL binding not configured — skipping email');
+  const apiKey = (env as any).RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn('[notificationRunner] RESEND_API_KEY not set — skipping email');
     return;
   }
-
-  const from = 'noreply@meteritpro.com';
-
-  // @ts-ignore — cloudflare:email is a runtime-only module
-  const { EmailMessage } = await import('cloudflare:email');
+  const from = (env as any).RESEND_FROM || 'MeterItPro <noreply@meteritpro.com>';
 
   for (const to of recipients) {
-    try {
-      const rawEmail = [
-        'MIME-Version: 1.0',
-        `From: MeterItPro <${from}>`,
-        `To: ${to}`,
-        `Subject: ${subject}`,
-        'Content-Type: text/html; charset=utf-8',
-        'Content-Transfer-Encoding: 7bit',
-        '',
-        html,
-      ].join('\r\n');
-
-      const { readable, writable } = new TransformStream();
-      const writer = writable.getWriter();
-      writer.write(new TextEncoder().encode(rawEmail));
-      writer.close();
-
-      const message = new EmailMessage(from, to, readable);
-      await env.SEND_EMAIL.send(message);
-    } catch (err) {
-      console.error(`[notificationRunner] Email error for ${to}:`, err instanceof Error ? err.message : err);
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to, subject, html }),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error(`[notificationRunner] Resend error for ${to} (${res.status}): ${err}`);
     }
   }
 }

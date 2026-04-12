@@ -21,9 +21,6 @@ FRONTEND_URL = "https://meteritpro.com,http://localhost:5173,http://localhost:30
 [triggers]
 crons = ["0 * * * *"]   # Run active reports every hour (Cloudflare Cron Trigger)
 
-[[send_email]]
-name = "SEND_EMAIL"
-
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = "48644504510e40829be6f314dacc1ef3"

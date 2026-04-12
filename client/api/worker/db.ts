@@ -13,7 +13,8 @@ export interface Env {
   JWT_EXPIRES_IN?: string;
   FRONTEND_URL?: string;
   HYPERDRIVE: any;
-  SEND_EMAIL?: { send(message: any): Promise<void> };
+  RESEND_API_KEY?: string;
+  RESEND_FROM?: string;
   ANTHROPIC_API_KEY?: string;
 }
 

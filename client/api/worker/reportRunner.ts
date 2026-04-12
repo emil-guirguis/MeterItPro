@@ -3,11 +3,11 @@
  *
  * Ports the MCP ReportExecutor + EmailSender logic to run inside a Worker:
  * - Queries are done via the Worker's `query()` helper (Hyperdrive / pg).
- * - Email is sent via Cloudflare Email Workers (send_email binding — free, no API key needed).
+ * - Email is sent via the Resend HTTP API (no TCP / nodemailer required).
  *
- * Required setup (Cloudflare dashboard):
- *   1. Enable Email Routing on meteritpro.com
- *   2. The [[send_email]] binding in wrangler.toml provides env.SEND_EMAIL
+ * Required env vars (set via `npx wrangler secret put`):
+ *   RESEND_API_KEY  — API key from resend.com (free tier: 3,000 emails/month)
+ *   RESEND_FROM     — "From" address, e.g. "MeterItPro <noreply@meteritpro.com>"
  */
 
 import { query, Env } from './db';
@@ -290,34 +290,24 @@ function buildEmailHtml(report: Report, reportData: ReportData): string {
 </html>`;
 }
 
-// ─── Email via Cloudflare Email Workers ───────────────────────────────────────
+// ─── Email via Resend ─────────────────────────────────────────────────────────
 
 async function sendEmail(env: Env, to: string, subject: string, html: string): Promise<void> {
-  if (!env.SEND_EMAIL) throw new Error('SEND_EMAIL binding is not configured (add [[send_email]] to wrangler.toml and enable Email Routing in Cloudflare dashboard)');
+  const apiKey = (env as any).RESEND_API_KEY;
+  if (!apiKey) throw new Error('RESEND_API_KEY is not configured — run: npx wrangler secret put RESEND_API_KEY');
 
-  const from = 'noreply@meteritpro.com';
+  const from = (env as any).RESEND_FROM || 'MeterItPro <noreply@meteritpro.com>';
 
-  // Build a minimal RFC 2822 MIME message
-  const rawEmail = [
-    'MIME-Version: 1.0',
-    `From: MeterItPro <${from}>`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    'Content-Type: text/html; charset=utf-8',
-    'Content-Transfer-Encoding: 7bit',
-    '',
-    html,
-  ].join('\r\n');
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from, to, subject, html }),
+  });
 
-  const { readable, writable } = new TransformStream();
-  const writer = writable.getWriter();
-  writer.write(new TextEncoder().encode(rawEmail));
-  writer.close();
-
-  // @ts-ignore — cloudflare:email is a runtime-only module
-  const { EmailMessage } = await import('cloudflare:email');
-  const message = new EmailMessage(from, to, readable);
-  await env.SEND_EMAIL.send(message);
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Resend API error (${res.status}): ${err}`);
+  }
 }
 
 // ─── History helpers ──────────────────────────────────────────────────────────
