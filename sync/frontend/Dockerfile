@@ -9,8 +9,10 @@ COPY src ./src
 # VITE_CLIENT_API_URL is the fixed remote API — same on all machines
 ARG VITE_API_URL=/
 ARG VITE_CLIENT_API_URL=https://meteritpro.com/api
+ARG VITE_APP_VERSION=dev
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_CLIENT_API_URL=$VITE_CLIENT_API_URL
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
 RUN npm run build
 
 # Stage 2 — serve with nginx

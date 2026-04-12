@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { versionPlugin } from './vite-plugins/version-plugin';
+
+// VITE_APP_VERSION is injected at build time via Docker build-arg → ENV.
+// Vite automatically exposes VITE_* env vars to import.meta.env, so no plugin needed.
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    versionPlugin(),
     react(),
   ],
   server: {
