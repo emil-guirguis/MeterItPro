@@ -11,6 +11,7 @@
  */
 
 import { query, Env } from './db';
+import { matchesCronSchedule } from './cronMatcher';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -363,6 +364,26 @@ async function createEmailLogEntry(
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
+ * Generate and return the HTML preview for a report without sending emails.
+ */
+export async function previewReport(env: Env, reportId: number): Promise<string> {
+  const reportResult = await query<Report>(
+    env,
+    `SELECT report_id, name, type, recipients, meter_selections, config
+     FROM report WHERE report_id = $1`,
+    [reportId]
+  );
+
+  if (reportResult.rows.length === 0) {
+    throw new Error(`Report ${reportId} not found`);
+  }
+
+  const report = reportResult.rows[0];
+  const reportData = await generateReportData(env, report);
+  return buildEmailHtml(report, reportData);
+}
+
+/**
  * Execute a single report: generate data, send emails, record history.
  * Throws on fatal errors; partial email failures are logged but not thrown.
  */
@@ -418,15 +439,21 @@ export async function runReport(env: Env, reportId: number): Promise<void> {
 }
 
 /**
- * Run all active reports — used by the cron trigger.
+ * Run all active reports whose cron schedule matches `now` — used by the cron trigger.
+ * Pass the scheduled event time so reports fire only at their configured time.
  */
-export async function runAllActiveReports(env: Env): Promise<void> {
+export async function runAllActiveReports(env: Env, now: Date = new Date()): Promise<void> {
   const result = await query<{ report_id: number; schedule: string }>(
     env,
     `SELECT report_id, schedule FROM report WHERE active = true`
   );
 
   for (const row of result.rows) {
+    if (!matchesCronSchedule(row.schedule, now)) {
+      console.log(`[cron] Report ${row.report_id} skipped — schedule "${row.schedule}" does not match ${now.toISOString()}`);
+      continue;
+    }
+
     try {
       await runReport(env, row.report_id);
       console.log(`[cron] Report ${row.report_id} executed successfully`);

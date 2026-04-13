@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { BaseList } from '@framework/components/list/BaseList';
 import { useAuth } from '../../hooks/useAuth';
 import { useBaseList } from '@framework/components/list/hooks';
@@ -8,6 +8,7 @@ import type { Report } from './types';
 import { Permission } from '../../types/auth';
 import type { ColumnDefinition } from '@framework/components/list/types';
 import { useReportsEnhanced } from './reportsStore';
+import apiClient from '../../services/apiClient';
 import './ReportList.css';
 
 interface ReportListProps {
@@ -102,6 +103,20 @@ export const ReportList: React.FC<ReportListProps> = ({
     authContext: auth,
   });
 
+  const handlePreview = useCallback(async (report: Report) => {
+    try {
+      const res = await apiClient.get(`/reports/${report.report_id}/preview`, { responseType: 'text' });
+      const blob = new Blob([res.data as string], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+      if (win) {
+        win.addEventListener('load', () => URL.revokeObjectURL(url));
+      }
+    } catch (err) {
+      console.error('[ReportList] Failed to preview report:', err);
+    }
+  }, []);
+
   return (
     <div className="report-list">
       <BaseList
@@ -114,6 +129,7 @@ export const ReportList: React.FC<ReportListProps> = ({
         loading={baseList.loading}
         error={baseList.error}
         emptyMessage="No reports found. Create your first report to get started."
+        onPreview={handlePreview}
         onEdit={baseList.handleEdit}
         onDelete={baseList.handleDelete}
         onSelect={baseList.bulkActions.length > 0 && onReportSelect ? (items) => onReportSelect(items[0]) : undefined}

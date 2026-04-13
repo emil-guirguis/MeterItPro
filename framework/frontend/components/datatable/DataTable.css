@@ -357,6 +357,11 @@
   color: var(--color-info, #3b82f6);
 }
 
+.data-table__action-btn--preview:hover {
+  background: var(--color-success-light, #d1fae5);
+  color: var(--color-success, #10b981);
+}
+
 .data-table__action-btn--edit:hover {
   background: var(--color-warning-light, #fef3c7);
   color: var(--color-warning, #f59e0b);

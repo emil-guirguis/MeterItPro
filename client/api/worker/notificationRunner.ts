@@ -6,6 +6,7 @@
  */
 
 import { query, Env } from './db';
+import { matchesCronSchedule } from './cronMatcher';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -368,7 +369,7 @@ export async function runNotificationRule(env: Env, ruleId: string): Promise<voi
   await executeRule(env, result.rows[0]);
 }
 
-export async function runAllActiveNotificationRules(env: Env): Promise<void> {
+export async function runAllActiveNotificationRules(env: Env, now: Date = new Date()): Promise<void> {
   const result = await query<NotificationRule>(env,
     `SELECT notification_rule_id, tenant_id, name, rule_type,
             threshold_hours, demand_threshold, schedule_cron, meter_selections
@@ -376,6 +377,11 @@ export async function runAllActiveNotificationRules(env: Env): Promise<void> {
   );
 
   for (const rule of result.rows) {
+    if (!matchesCronSchedule(rule.schedule_cron, now)) {
+      console.log(`[cron] Notification rule ${rule.notification_rule_id} skipped — schedule "${rule.schedule_cron}" does not match ${now.toISOString()}`);
+      continue;
+    }
+
     try {
       await executeRule(env, rule);
       console.log(`[cron] Notification rule ${rule.notification_rule_id} (${rule.name}) executed`);

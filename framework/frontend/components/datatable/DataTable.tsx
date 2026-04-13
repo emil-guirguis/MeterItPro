@@ -12,6 +12,7 @@ export function DataTable<T extends Record<string, any>>({
   onEdit,
   onDelete,
   onView,
+  onPreview,
   onRowClick,
   onSelect,
   pagination,
@@ -122,10 +123,10 @@ export function DataTable<T extends Record<string, any>>({
 
   // Render action buttons
   const renderActions = useCallback((item: T) => {
-    const hasActions = onView || onEdit || onDelete;
+    const hasActions = onView || onPreview || onEdit || onDelete;
     if (!hasActions) return null;
 
-    console.log('[DataTable] Rendering actions for item:', item, { onView: !!onView, onEdit: !!onEdit, onDelete: !!onDelete });
+    console.log('[DataTable] Rendering actions for item:', item, { onView: !!onView, onPreview: !!onPreview, onEdit: !!onEdit, onDelete: !!onDelete });
 
     return (
       <div className="data-table__actions">
@@ -140,6 +141,19 @@ export function DataTable<T extends Record<string, any>>({
             title="View"
           >
             <span className="material-symbols-outlined" aria-hidden="true">visibility</span>
+          </button>
+        )}
+        {onPreview && (
+          <button
+            type="button"
+            className="data-table__action-btn data-table__action-btn--preview"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPreview(item);
+            }}
+            title="Preview Report"
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">preview</span>
           </button>
         )}
         {onEdit && (
@@ -170,7 +184,7 @@ export function DataTable<T extends Record<string, any>>({
         )}
       </div>
     );
-  }, [onView, onEdit, onDelete]);
+  }, [onView, onPreview, onEdit, onDelete]);
 
   // Error state
   if (error) {

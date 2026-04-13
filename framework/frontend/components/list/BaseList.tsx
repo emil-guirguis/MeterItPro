@@ -23,6 +23,7 @@ export interface BaseListProps<T> {
 
   // Row actions
   onView?: (item: T) => void;
+  onPreview?: (item: T) => void;
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
   onSelect?: (selected: T[]) => void;
@@ -65,6 +66,7 @@ export function BaseList<T extends Record<string, any>>({
   error,
   emptyMessage,
   onView,
+  onPreview,
   onEdit,
   onDelete,
   onSelect,
@@ -136,6 +138,7 @@ export function BaseList<T extends Record<string, any>>({
         error={error}
         emptyMessage={emptyMessage}
         onView={onView}
+        onPreview={onPreview}
         onEdit={onEdit}
         onDelete={onDelete}
         onSelect={onSelect}

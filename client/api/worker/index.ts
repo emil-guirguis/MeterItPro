@@ -375,11 +375,12 @@ app.all('*', (c) => {
 export default {
   fetch: app.fetch,
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    const now = new Date(_event.scheduledTime);
     ctx.waitUntil(Promise.all([
-      runAllActiveReports(env).catch(err =>
+      runAllActiveReports(env, now).catch(err =>
         console.error('[cron] runAllActiveReports failed:', err instanceof Error ? err.message : err)
       ),
-      runAllActiveNotificationRules(env).catch(err =>
+      runAllActiveNotificationRules(env, now).catch(err =>
         console.error('[cron] runAllActiveNotificationRules failed:', err instanceof Error ? err.message : err)
       ),
     ]));

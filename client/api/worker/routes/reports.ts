@@ -7,7 +7,7 @@ import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
-import { runReport } from '../reportRunner';
+import { runReport, previewReport } from '../reportRunner';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -257,6 +257,24 @@ app.patch('/:id/toggle', async (c) => {
   } catch (error: any) {
     logError('Error toggling report status:', error);
     return c.json({ success: false, message: 'Failed to toggle report status' }, 500);
+  }
+});
+
+// GET /:id/preview - Preview report as HTML (no emails sent)
+app.get('/:id/preview', async (c) => {
+  try {
+    const id = c.req.param('id');
+    if (isNaN(Number(id))) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
+
+    const html = await previewReport(c.env, Number(id));
+    return c.html(html);
+  } catch (error: any) {
+    const msg = error?.message ?? 'Failed to preview report';
+    if (msg.includes('not found')) {
+      return c.json({ success: false, message: msg }, 404);
+    }
+    logError('Error previewing report:', error);
+    return c.json({ success: false, message: msg }, 500);
   }
 });
 

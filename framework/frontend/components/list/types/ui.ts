@@ -126,6 +126,7 @@ export interface DataTableProps<T> {
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
   onView?: (item: T) => void;
+  onPreview?: (item: T) => void;
   onRowClick?: (item: T) => void;
   onSelect?: (selectedItems: T[]) => void;
   pagination?: PaginationConfig;
