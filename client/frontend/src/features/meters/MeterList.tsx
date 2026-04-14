@@ -54,7 +54,7 @@ export const MeterList: React.FC<MeterListProps> = ({
     
     const generatedColumns = generateColumnsFromSchema(schema.formFields);
     
-    return generatedColumns.map(col => {
+    const mappedColumns = generatedColumns.map(col => {
       if (col.key === 'configuration') {
         return {
           ...col,
@@ -77,13 +77,17 @@ export const MeterList: React.FC<MeterListProps> = ({
           ),
         };
       }
-      // Show "Physical" or "Virtual" instead of boolean true/false
+      // Show color-coded Physical/Virtual badge matching the form colors
       if (col.key === 'is_virtual') {
         return {
           ...col,
           render: (_value: any, meter: Meter) => {
             const isVirtual = (meter as any).is_virtual === true || (meter as any).is_virtual === 'virtual';
-            return isVirtual ? 'Virtual' : 'Physical';
+            return (
+              <span className={`meter-type-bubble meter-type-bubble--${isVirtual ? 'virtual' : 'physical'}`}>
+                {isVirtual ? 'Virtual' : 'Physical'}
+              </span>
+            );
           },
         };
       }
@@ -99,6 +103,15 @@ export const MeterList: React.FC<MeterListProps> = ({
       }
       return col;
     });
+
+    // Move the 'active' (Status) column to the end
+    const activeIdx = mappedColumns.findIndex(col => col.key === 'active');
+    if (activeIdx !== -1) {
+      const [activeCol] = mappedColumns.splice(activeIdx, 1);
+      mappedColumns.push(activeCol);
+    }
+
+    return mappedColumns;
   }, [canRead, testingConnection, handleTestConnection, schema]);
 
   const meterFilters = useMemo(() => {

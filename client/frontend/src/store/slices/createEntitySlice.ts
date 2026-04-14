@@ -29,6 +29,10 @@ export const createEntityStore = <T extends { id: string }>(
 ) => {
   const cacheConfig = createCacheConfig(options.cache);
 
+  // In-flight request deduplication: multiple concurrent callers get the same
+  // promise instead of each firing a separate API request.
+  let fetchingPromise: Promise<void> | null = null;
+
   return create<EntityStoreSlice<T>>()(
     (set, get) => ({
       // Initial state
@@ -114,68 +118,82 @@ export const createEntityStore = <T extends { id: string }>(
           return;
         }
 
+        // If a fetch is already in flight, return the same promise so concurrent
+        // callers don't each fire a separate API request.
+        if (fetchingPromise && !shouldBypassCache) {
+          console.log('[fetchItems] Deduplicating in-flight request');
+          return fetchingPromise;
+        }
+
         set((s) => ({ list: { ...s.list, loading: true, error: null } }));
 
-        try {
-          let queryParams = hasRealParams ? params : {
-            page: state.list.page,
-            pageSize: state.list.pageSize,
-            search: state.list.search,
-            filters: state.list.filters,
-            sortBy: state.list.sortBy,
-            sortOrder: state.list.sortOrder,
-          };
-
-          // Load schema once (hits in-memory cache, near-instant) and use it for
-          // both defaultSort and id normalisation — avoids two separate awaits.
-          let schema = null;
+        const doFetch = async () => {
           try {
-            schema = await loadSchema(options.name);
-          } catch (e) {
-            console.warn('[fetchItems] Could not load schema:', e);
-          }
+            let queryParams = hasRealParams ? params : {
+              page: state.list.page,
+              pageSize: state.list.pageSize,
+              search: state.list.search,
+              filters: state.list.filters,
+              sortBy: state.list.sortBy,
+              sortOrder: state.list.sortOrder,
+            };
 
-          if (!queryParams.sortBy) {
-            if (schema?.defaultSort) {
-              queryParams.sortBy = schema.defaultSort;
-              console.log('[fetchItems] Using default sortBy from schema:', queryParams.sortBy);
-            } else {
-              queryParams.sortOrder = undefined;
+            // Load schema once (hits in-memory cache, near-instant) and use it for
+            // both defaultSort and id normalisation — avoids two separate awaits.
+            let schema = null;
+            try {
+              schema = await loadSchema(options.name);
+            } catch (e) {
+              console.warn('[fetchItems] Could not load schema:', e);
             }
-          }
 
-          console.log('[fetchItems] Calling service.getAll with queryParams:', queryParams);
-          const response = await service.getAll(queryParams);
-          console.log('[fetchItems] Got response:', response);
-
-          // Normalise entity IDs using the schema's idFieldName
-          const idField = schema?.idFieldName;
-          if (idField && Array.isArray(response.items)) {
-            response.items = response.items.map((it: any) => {
-              if ((it.id === undefined || it.id === null) && (it as any)[idField] !== undefined) {
-                return { ...it, id: (it as any)[idField] };
+            if (!queryParams.sortBy) {
+              if (schema?.defaultSort) {
+                queryParams.sortBy = schema.defaultSort;
+                console.log('[fetchItems] Using default sortBy from schema:', queryParams.sortBy);
+              } else {
+                queryParams.sortOrder = undefined;
               }
-              return it;
-            });
+            }
+
+            console.log('[fetchItems] Calling service.getAll with queryParams:', queryParams);
+            const response = await service.getAll(queryParams);
+            console.log('[fetchItems] Got response:', response);
+
+            // Normalise entity IDs using the schema's idFieldName
+            const idField = schema?.idFieldName;
+            if (idField && Array.isArray(response.items)) {
+              response.items = response.items.map((it: any) => {
+                if ((it.id === undefined || it.id === null) && (it as any)[idField] !== undefined) {
+                  return { ...it, id: (it as any)[idField] };
+                }
+                return it;
+              });
+            }
+
+            set((s) => ({
+              items: response.items as any,
+              total: response.total,
+              hasMore: response.hasMore,
+              lastFetch: Date.now(),
+              list: { ...s.list, loading: false, error: null, total: response.total },
+            }));
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to fetch items';
+            const errorDetail = (error as any)?.detail || (error as any)?.data?.detail || '';
+            const fullMessage = errorDetail ? `${errorMessage}: ${errorDetail}` : errorMessage;
+
+            console.error('[fetchItems] Error:', { message: errorMessage, detail: errorDetail, fullError: error });
+
+            set((s) => ({ list: { ...s.list, loading: false, error: fullMessage }, error: fullMessage }));
+            throw error;
+          } finally {
+            fetchingPromise = null;
           }
+        };
 
-          set((s) => ({
-            items: response.items as any,
-            total: response.total,
-            hasMore: response.hasMore,
-            lastFetch: Date.now(),
-            list: { ...s.list, loading: false, error: null, total: response.total },
-          }));
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch items';
-          const errorDetail = (error as any)?.detail || (error as any)?.data?.detail || '';
-          const fullMessage = errorDetail ? `${errorMessage}: ${errorDetail}` : errorMessage;
-
-          console.error('[fetchItems] Error:', { message: errorMessage, detail: errorDetail, fullError: error });
-
-          set((s) => ({ list: { ...s.list, loading: false, error: fullMessage }, error: fullMessage }));
-          throw error;
-        }
+        fetchingPromise = doFetch();
+        return fetchingPromise;
       },
 
       fetchItem: async (id) => {

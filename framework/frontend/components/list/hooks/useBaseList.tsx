@@ -90,9 +90,12 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
   // Get store instance
   const store = useStore();
 
-  // Track whether filters have been changed by the user vs. set on initial mount.
-  // On first mount we let the store's TTL cache decide whether to re-fetch.
+  // Track whether the [filters] effect has run at least once (to skip the empty initial run).
   const filtersInitialisedRef = useRef(false);
+  // Track the last filter key that was fetched so we only bypass cache when filters
+  // actually change. This prevents React Strict Mode's double-invocation from issuing
+  // a second DB round-trip (same filters → cache hit instead of bypass).
+  const lastFetchedFiltersKeyRef = useRef<string | null>(null);
 
   // Load entity schema to determine special behaviors (e.g., soft-delete via `active` flag)
   const { schema: entitySchema } = useSchema(entityName);
@@ -177,26 +180,25 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
 
   // Initialize default 'active' filter and fetch data
   useEffect(() => {
-    // Check if 'active' filter exists in filter definitions
     const hasActiveFilter = memoizedFilterDefinitions.some(f => f.key === 'active');
-    
-    // If filters are currently set, don't override them
+
+    // Don't override filters already set (e.g. user navigated back with existing filters)
     if (Object.keys(filters).length > 0) {
       return;
     }
-    
-    // If active filter exists, set it (do not fetch here - filters effect will trigger fetch)
+
     if (hasActiveFilter) {
+      // Set default active=true filter. The [filters] effect will fire when this state
+      // update lands and will issue the actual fetch — don't fetch here.
       console.log('[useBaseList] Initializing default active filter to true');
       const defaultFilters = { active: 'true' };
       setFiltersState(defaultFilters);
-      
-      // Set filters in store; do NOT call fetchItems here to avoid duplicate requests
       if (store.setFilters) {
         store.setFilters(defaultFilters);
       }
     } else {
-      // No active filter, just fetch all items
+      // No active filter default — [filters] effect skips its first run (empty filters),
+      // so we must trigger the initial fetch ourselves.
       console.log('[useBaseList] No active filter, fetching all items');
       if (store.fetchItems) {
         store.fetchItems();
@@ -208,22 +210,32 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
   useEffect(() => {
     console.log('[useBaseList] Filter effect triggered with filters:', filters);
 
+    if (!filtersInitialisedRef.current) {
+      // Always skip the very first run: either filters are empty (the
+      // memoizedFilterDefinitions effect is about to set the real default) or the
+      // filters were just initialised above and we'd double-fire the request.
+      filtersInitialisedRef.current = true;
+      console.log('[useBaseList] Initial filter run — deferring fetch to filter initialisation');
+      return;
+    }
+
     if (store.setFilters && store.fetchItems) {
       const cleanedFilters = buildFilters(filters);
       console.log('[useBaseList] Setting cleaned filters:', cleanedFilters);
-
-      // Update store filters - this will reset page to 1
       store.setFilters(cleanedFilters);
 
-      if (filtersInitialisedRef.current) {
-        // User changed a filter — bypass cache to get fresh data
-        console.log('[useBaseList] Calling fetchItems with updated filters (bypass cache)');
+      // Only bypass cache when the filters actually changed from the last fetch.
+      // Using the same key (e.g. React Strict Mode re-running the same effect) hits
+      // the TTL cache instead of firing another DB query.
+      const filtersKey = JSON.stringify(cleanedFilters);
+      const filtersChanged = lastFetchedFiltersKeyRef.current !== null && lastFetchedFiltersKeyRef.current !== filtersKey;
+      lastFetchedFiltersKeyRef.current = filtersKey;
+
+      if (filtersChanged) {
+        console.log('[useBaseList] Filters changed — bypassing cache');
         (store.fetchItems as any)({ _bypassCache: true });
       } else {
-        // Initial mount — respect the store's TTL cache so repeated navigation
-        // to this page is instant when the data is still fresh.
-        filtersInitialisedRef.current = true;
-        console.log('[useBaseList] Initial fetch — respecting store cache');
+        console.log('[useBaseList] Initial or same filters — respecting cache');
         store.fetchItems();
       }
     }

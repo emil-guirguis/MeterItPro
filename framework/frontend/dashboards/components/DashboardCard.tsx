@@ -199,7 +199,9 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
   const currentVisualization = (card.visualization_type || 'line') as VisualizationType;
   const groupingType = (card as any).grouping_type || 'daily';
   const timeFrameType = (card as any).time_frame_type || 'last_month';
-  const aggregationType = (card as any).aggregation_type || 'avg';
+  const VALID_AGGREGATIONS = ['avg', 'min', 'max'];
+  const rawAggregation = (card as any).aggregation_type;
+  const aggregationType = VALID_AGGREGATIONS.includes(rawAggregation) ? rawAggregation : 'avg';
   // Prefer the mapped column names returned by the API in data.selected_columns,
   // which match the keys inside grouped_data. Fall back to the card's stored raw names.
   const selectedColumns: string[] = (data as any)?.selected_columns || (card as any).selected_columns || [];

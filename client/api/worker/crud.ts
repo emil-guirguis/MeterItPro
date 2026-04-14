@@ -102,8 +102,6 @@ export async function findAll(env: Env, opts: FindAllOptions): Promise<FindAllRe
 
   // Count query
   const countSql = `SELECT COUNT(*) as total FROM ${table} ${joins} ${whereSQL}`;
-  console.log('[findAll] COUNT SQL:', countSql);
-  console.log('[findAll] COUNT params:', params);
   const countResult = await query(env, countSql, params);
   const total = parseInt(countResult.rows[0].total, 10);
 
@@ -111,8 +109,6 @@ export async function findAll(env: Env, opts: FindAllOptions): Promise<FindAllRe
   const offset = (page - 1) * limit;
   const dataParams = [...params, limit, offset];
   const dataSql = `SELECT ${selectFields} FROM ${table} ${joins} ${whereSQL} ORDER BY ${orderBy} LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
-  console.log('[findAll] DATA SQL:', dataSql);
-  console.log('[findAll] DATA params:', dataParams);
   const dataResult = await query(
     env,
     dataSql,

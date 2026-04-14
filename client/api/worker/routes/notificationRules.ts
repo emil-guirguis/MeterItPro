@@ -184,59 +184,76 @@ app.put('/:id', async (c) => {
   try {
     const tenantId = c.get('tenantId');
     const id = c.req.param('id');
-    const body = await c.req.json();
-    const {
-      name,
-      description,
-      active,
-      threshold_hours,
-      demand_threshold,
-      schedule_cron,
-      recipients = [],
-      meter_selections,
-    } = body;
 
     if (isNaN(Number(id))) {
       return c.json({ success: false, message: 'Invalid rule ID' }, 400);
     }
 
-    // Update the rule
-    const meterSelectionsJson = meter_selections !== undefined
-      ? (typeof meter_selections === 'string' ? meter_selections : JSON.stringify(meter_selections))
-      : null;
+    const body = await c.req.json();
+    const { name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, recipients, meter_selections } = body;
 
-    const updateResult = await query(
-      c.env,
-      `UPDATE public.notification_rule
-       SET name = COALESCE($1, name),
-           description = COALESCE($2, description),
-           active = COALESCE($3, active),
-           threshold_hours = COALESCE($4, threshold_hours),
-           demand_threshold = COALESCE($5, demand_threshold),
-           schedule_cron = COALESCE($6, schedule_cron),
-           meter_selections = $9,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE notification_rule_id = $7 AND tenant_id = $8
-       RETURNING notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, meter_selections, created_at, updated_at`,
-      [name || null, description || null, active !== undefined ? active : null, threshold_hours || null, demand_threshold || null, schedule_cron || null, id, tenantId, meterSelectionsJson]
-    );
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
 
-    if (updateResult.rows.length === 0) {
-      return c.json({ success: false, message: 'Rule not found' }, 404);
+    if (name !== undefined) { updates.push(`name = $${paramCount}`); values.push(name); paramCount++; }
+    if (description !== undefined) { updates.push(`description = $${paramCount}`); values.push(description || null); paramCount++; }
+    if (rule_type !== undefined) { updates.push(`rule_type = $${paramCount}`); values.push(rule_type); paramCount++; }
+    if (active !== undefined) { updates.push(`active = $${paramCount}`); values.push(active); paramCount++; }
+    if (threshold_hours !== undefined) { updates.push(`threshold_hours = $${paramCount}`); values.push(threshold_hours || null); paramCount++; }
+    if (demand_threshold !== undefined) { updates.push(`demand_threshold = $${paramCount}`); values.push(demand_threshold || null); paramCount++; }
+    if (schedule_cron !== undefined) { updates.push(`schedule_cron = $${paramCount}`); values.push(schedule_cron); paramCount++; }
+    if (meter_selections !== undefined) {
+      const ms = meter_selections === null ? null : (typeof meter_selections === 'string' ? meter_selections : JSON.stringify(meter_selections));
+      updates.push(`meter_selections = $${paramCount}`); values.push(ms); paramCount++;
     }
 
-    // Update recipients
-    await query(c.env, 'DELETE FROM public.notification_rule_recipient WHERE notification_rule_id = $1', [id]);
-    for (const recipient of recipients) {
-      if (!recipient.email_address) continue;
-      await query(
+    if (updates.length === 0 && recipients === undefined) {
+      return c.json({ success: false, message: 'No fields to update' }, 400);
+    }
+
+    let updateResult;
+    if (updates.length > 0) {
+      updates.push(`updated_at = CURRENT_TIMESTAMP`);
+      values.push(id, tenantId);
+      updateResult = await query(
         c.env,
-        `INSERT INTO public.notification_rule_recipient
-         (notification_rule_id, email_address)
-         VALUES ($1, $2)
-         ON CONFLICT (notification_rule_id, email_address) DO NOTHING`,
-        [id, recipient.email_address]
+        `UPDATE public.notification_rule
+         SET ${updates.join(', ')}
+         WHERE notification_rule_id = $${paramCount} AND tenant_id = $${paramCount + 1}
+         RETURNING notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, meter_selections, created_at, updated_at`,
+        values
       );
+
+      if (updateResult.rows.length === 0) {
+        return c.json({ success: false, message: 'Rule not found' }, 404);
+      }
+    } else {
+      updateResult = await query(
+        c.env,
+        `SELECT notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, meter_selections, created_at, updated_at
+         FROM public.notification_rule WHERE notification_rule_id = $1 AND tenant_id = $2`,
+        [id, tenantId]
+      );
+      if (updateResult.rows.length === 0) {
+        return c.json({ success: false, message: 'Rule not found' }, 404);
+      }
+    }
+
+    // Update recipients if provided
+    if (recipients !== undefined) {
+      const recipientList: any[] = Array.isArray(recipients) ? recipients : [];
+      await query(c.env, 'DELETE FROM public.notification_rule_recipient WHERE notification_rule_id = $1', [id]);
+      for (const recipient of recipientList) {
+        if (!recipient.email_address) continue;
+        await query(
+          c.env,
+          `INSERT INTO public.notification_rule_recipient (notification_rule_id, email_address)
+           VALUES ($1, $2)
+           ON CONFLICT (notification_rule_id, email_address) DO NOTHING`,
+          [id, recipient.email_address]
+        );
+      }
     }
 
     return c.json({ success: true, data: { rule: updateResult.rows[0] } });

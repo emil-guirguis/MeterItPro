@@ -12,18 +12,21 @@ import './App.css';
 // Initialize debug console on app startup
 setupDebugConsole();
 
+const appStartTime = performance.now();
+
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    console.log(`[App +${(performance.now() - appStartTime).toFixed(0)}ms] isAuthenticated=${isAuthenticated} isLoading=${isLoading}`);
+  }, [isAuthenticated, isLoading]);
 
   // Prefetch schemas after user is authenticated and wait for completion
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      console.log('[App] User authenticated, starting schema prefetch...');
-      prefetchAppSchemas().then(() => {
-        console.log('[App] Schema prefetch complete, all schemas cached and ready');
-      }).catch((error) => {
+      console.log(`[App +${(performance.now() - appStartTime).toFixed(0)}ms] Auth resolved — layout mounting, starting schema prefetch`);
+      prefetchAppSchemas().catch((error) => {
         console.error('[App] Schema prefetch failed:', error);
-        // App continues to work even if prefetch fails
       });
     }
   }, [isAuthenticated, isLoading]);

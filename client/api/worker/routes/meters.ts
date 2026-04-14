@@ -28,7 +28,9 @@ app.get('/elements', requirePermission('meter:read'), async (c) => {
   }
 
   try {
-    let sql = 'SELECT m.meter_id as id, m.name, m.serial_number as identifier FROM public.meter m WHERE m.tenant_id = $1';
+    let sql = `SELECT m.meter_id as id, m.name, m.serial_number as identifier
+      FROM public.meter m
+      WHERE m.tenant_id = $1 AND m.active = true AND m.is_virtual = false`;
     const params: any[] = [tenantId];
     let paramCount = 2;
 
@@ -103,30 +105,46 @@ app.get('/:meterId/virtual-config', requirePermission('meter:read'), async (c) =
       return c.json({ success: false, message: 'Meter not found' }, 404);
     }
 
-    // Query the meter_virtual table for all selected meters
+    // Query meter_virtual joined with meter and meter_element for full detail
     const result = await query(
       c.env,
       `SELECT
-        m.meter_id as id,
-        m.name,
-        m.serial_number as identifier
+        mv.selected_meter_id,
+        mv.select_meter_element_id,
+        m.name AS meter_name,
+        m.serial_number AS identifier,
+        me.meter_element_id,
+        me.name AS element_name,
+        me.element
       FROM public.meter_virtual mv
       JOIN public.meter m ON mv.selected_meter_id = m.meter_id
+      LEFT JOIN public.meter_element me ON me.meter_element_id = mv.select_meter_element_id
       WHERE mv.meter_id = $1
-      ORDER BY m.name ASC`,
+      ORDER BY mv.order_by ASC`,
       [meterId]
     );
 
-    // Validate response data
-    const selectedMeters = result.rows.filter((row: any) => {
-      if (!row.id || !row.name || !row.identifier) {
-        console.warn('Skipping meter with missing required fields:', row);
-        return false;
+    const selectedItems = result.rows.map((row: any) => {
+      if (row.meter_element_id) {
+        return {
+          selectionType: 'element',
+          meter_id: row.selected_meter_id,
+          meter_name: row.meter_name,
+          identifier: row.identifier,
+          meter_element_id: row.meter_element_id,
+          element_name: row.element_name,
+          element: row.element,
+        };
       }
-      return true;
+      return {
+        selectionType: 'meter',
+        meter_id: row.selected_meter_id,
+        meter_name: row.meter_name,
+        identifier: row.identifier,
+      };
     });
 
-    return c.json({ success: true, meterId, selectedMeters });
+    return c.json({ success: true, meterId, selectedItems });
   } catch (error: any) {
     logError('Error fetching virtual meter config', error);
     return c.json({

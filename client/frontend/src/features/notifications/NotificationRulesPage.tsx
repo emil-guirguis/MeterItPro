@@ -9,7 +9,6 @@ export const NotificationRulesPage: React.FC = () => {
   const rules = useNotificationRulesEnhanced();
   const [selectedRule, setSelectedRule] = useState<NotificationRule | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const handleCreate = () => {
     setSelectedRule(null);
     setShowForm(true);
@@ -20,23 +19,10 @@ export const NotificationRulesPage: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleFormSubmit = async (data: any) => {
-    setIsSubmitting(true);
-    try {
-      if (selectedRule) {
-        await rules.updateItem(selectedRule.notification_rule_id, data);
-      } else {
-        await rules.createItem(data);
-      }
-      setShowForm(false);
-      setSelectedRule(null);
-      await rules.fetchItems();
-    } catch (error) {
-      console.error('Form submission error:', error);
-      throw error;
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleFormSubmit = async () => {
+    setShowForm(false);
+    setSelectedRule(null);
+    await rules.fetchItems();
   };
 
   const handleFormClose = () => {
@@ -65,7 +51,7 @@ export const NotificationRulesPage: React.FC = () => {
             rule={selectedRule || undefined}
             onSubmit={handleFormSubmit}
             onCancel={handleFormClose}
-            loading={isSubmitting}
+            loading={false}
           />
         )}
       </FormModal>

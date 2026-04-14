@@ -33,7 +33,7 @@ export const SidebarDataProvider: React.FC<{
   const [meters, setMeters] = useState<Meter[]>([]);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [meterElements, setMeterElements] = useState<{ [meterId: string]: MeterElement[] }>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const cacheKey = `${tenantId}:${userId}`;
@@ -79,19 +79,17 @@ export const SidebarDataProvider: React.FC<{
     }
   }, [tenantId, userId, cacheKey]);
 
-  // Restore from cache immediately, then refresh in background
+  // Restore from cache immediately on mount (no network hit).
+  // Actual data fetching is deferred until SidebarMetersSection mounts
+  // (i.e. when the user expands the sidebar section for the first time).
   useEffect(() => {
     const cached = sidebarDataCache.get(cacheKey);
     if (cached) {
       setMeters(cached.meters);
       setFavorites(cached.favorites);
       setMeterElements(cached.meterElements);
-      setLoading(false);
-      loadData();
-    } else {
-      loadData();
     }
-  }, [cacheKey, loadData]);
+  }, [cacheKey]);
 
   const toggleFavorite = useCallback(
     async (meterId: string, elementId?: string) => {

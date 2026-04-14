@@ -8,7 +8,7 @@ import { sign, verify } from 'hono/jwt';
 import bcrypt from 'bcryptjs';
 import speakeasy from 'speakeasy';
 import { query, transaction, Env } from '../db';
-import { authenticateToken, AuthVariables } from '../middleware';
+import { authenticateToken, getCachedUser, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
 const auth = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -1437,7 +1437,13 @@ auth.post('/2fa/regenerate-backup-codes', async (c) => {
  */
 auth.get('/verify', async (c) => {
   try {
-    const currentUser = c.get('user');
+    const partial = c.get('user');
+
+    // Load full user from DB (cached) — authenticateToken only sets users_id/tenant_id from JWT
+    const currentUser = await getCachedUser(c.env, String(partial.users_id));
+    if (!currentUser) {
+      return c.json({ success: false, message: 'User not found' }, 401);
+    }
 
     // Derive permissions from role
     const userRole = (currentUser.role || 'viewer').toLowerCase();

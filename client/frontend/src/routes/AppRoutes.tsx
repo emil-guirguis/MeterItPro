@@ -1,23 +1,29 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute, AuthGuard } from '../components/auth';
-import LoginPage from '../pages/LoginPage';
-import LandingPage from '../pages/LandingPage';
-import SignupPage from '../pages/SignupPage';
-import { ForgotPasswordPage, PasswordResetPage, TwoFactorManagementPage } from '../pages/auth';
+import { Permission } from '../types/auth';
+
+// Public pages — lazy so authenticated users don't pay their parse cost
+const LoginPage = lazy(() => import('../pages/LoginPage'));
+const LandingPage = lazy(() => import('../pages/LandingPage'));
+const SignupPage = lazy(() => import('../pages/SignupPage'));
+const ForgotPasswordPage = lazy(() => import('../pages/auth').then(m => ({ default: m.ForgotPasswordPage })));
+const PasswordResetPage = lazy(() => import('../pages/auth').then(m => ({ default: m.PasswordResetPage })));
+const TwoFactorManagementPage = lazy(() => import('../pages/auth').then(m => ({ default: m.TwoFactorManagementPage })));
+
+// Protected pages — lazy
 const DashboardPage = lazy(() => import('../pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const MeterReadingsPage = lazy(() => import('../pages/MeterReadingsPage').then(m => ({ default: m.MeterReadingsPage })));
 const UserManagementPage = lazy(() => import('../features/users').then(m => ({ default: m.UserManagementPage })));
 const LocationManagementPage = lazy(() => import('../features/locations').then(m => ({ default: m.LocationManagementPage })));
 const ContactManagementPage = lazy(() => import('../features/contacts').then(m => ({ default: m.ContactManagementPage })));
 const DeviceManagementPage = lazy(() => import('../features/devices').then(m => ({ default: m.DeviceManagementPage })));
-import { Permission } from '../types/auth';
 const SettingsPage = lazy(() => import('../pages').then(m => ({ default: m.SettingsPage })));
 const MetersPage = lazy(() => import('../pages').then(m => ({ default: m.MetersPage })));
 const ReportsPage = lazy(() => import('../pages').then(m => ({ default: m.ReportsPage })));
 const NotificationRulesPage = lazy(() => import('../features/notifications').then(m => ({ default: m.NotificationRulesPage })));
 const AiChatPage = lazy(() => import('../features/ai/AiChatPage').then(m => ({ default: m.AiChatPage })));
-import ManagementForm from '../components/management/ManagementForm';
+const ManagementForm = lazy(() => import('../components/management/ManagementForm'));
 
 // Unauthorized page
 const UnauthorizedPage = () => (

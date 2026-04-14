@@ -21,11 +21,11 @@ import { notificationService } from '../../services/notificationService';
 import NotificationList from './NotificationList';
 
 interface NotificationBellProps {
-  refreshInterval?: number; // in milliseconds, default 30000
+  refreshInterval?: number; // in milliseconds, default 60000
 }
 
 export const NotificationBell: React.FC<NotificationBellProps> = ({
-  refreshInterval = 30000
+  refreshInterval = 60000
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [count, setCount] = useState(0);
@@ -39,11 +39,14 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     try {
       setIsLoading(true);
       setError(null);
+      const t0 = performance.now();
+      console.log('[NotificationBell] Fetching notifications...');
       const result = await notificationService.listNotifications(100, 0);
+      console.log(`[NotificationBell] Fetch done in ${(performance.now() - t0).toFixed(0)}ms — ${result.total} total`);
       setNotifications(result.notifications);
       setCount(result.total);
     } catch (err) {
-      console.error('Error fetching notifications:', err);
+      console.error('[NotificationBell] Error fetching notifications:', err);
       setError('Failed to load notifications');
     } finally {
       setIsLoading(false);

@@ -22,6 +22,56 @@ export interface VirtualMeterConfig {
 }
 
 /**
+ * A meter-level selection in a virtual meter
+ */
+export interface MeterSelection {
+  selectionType: 'meter';
+  id: string;
+  meter_id: number;
+  meter_name: string;
+  identifier: string;
+}
+
+/**
+ * An element-level selection in a virtual meter
+ */
+export interface ElementSelection {
+  selectionType: 'element';
+  id: string;
+  meter_id: number;
+  meter_name: string;
+  identifier: string;
+  meter_element_id: number;
+  element_name: string;
+  element: string;
+}
+
+export type SelectedItem = MeterSelection | ElementSelection;
+
+/**
+ * Format a selected item's display label the same way favorites do:
+ *   element → "Meter Name (kWh) Element Name"
+ *   meter   → "Meter Name"
+ */
+export function formatItemLabel(item: SelectedItem): string {
+  if (item.selectionType === 'element') {
+    const tag = item.element?.trim() || '?';
+    return `${item.meter_name} (${tag}) ${item.element_name}`;
+  }
+  return item.meter_name;
+}
+
+/**
+ * A meter element (register/channel on a physical meter)
+ */
+export interface MeterElement {
+  meter_element_id: number;
+  meter_id: number;
+  name: string;
+  element: string;
+}
+
+/**
  * Filter options for getMeterElements
  */
 export interface MeterElementFilters {
@@ -165,17 +215,29 @@ class MeterService {
   }
 
   /**
-   * Get virtual meter configuration (previously selected meters)
-   * @param meterId - The virtual meter ID
-   * @returns Promise<VirtualMeterConfig> - Configuration with selected meters
-   * @throws Error with descriptive message on failure
+   * Get all elements (registers/channels) for a specific meter
    */
-  async getVirtualMeterConfig(meterId: string | number): Promise<VirtualMeterConfig> {
+  async getElementsForMeter(meterId: string | number): Promise<MeterElement[]> {
     return withRetry(async () => {
       try {
-        if (!meterId) {
-          throw new Error('Meter ID is required');
-        }
+        const response = await apiClient.get(`/meters/${meterId}/elements`);
+        const body = response.data;
+        if (!body.success) throw new Error(body.message || 'Failed to fetch elements');
+        return body.data || [];
+      } catch (error) {
+        const message = getErrorMessage(error);
+        throw new Error(`Failed to load meter elements: ${message}`);
+      }
+    });
+  }
+
+  /**
+   * Get virtual meter configuration (previously selected meters/elements)
+   */
+  async getVirtualMeterConfig(meterId: string | number): Promise<SelectedItem[]> {
+    return withRetry(async () => {
+      try {
+        if (!meterId) throw new Error('Meter ID is required');
 
         const response = await apiClient.get(`/meters/${meterId}/virtual-config`);
         const body = response.data;
@@ -184,15 +246,29 @@ class MeterService {
           throw new Error(body.message || 'Failed to fetch virtual meter config');
         }
 
-        // Backend returns { success, meterId, selectedMeters }
-        const selectedMeters: Meter[] = body.selectedMeters || [];
-        const selectedMeterIds = selectedMeters.map((m: Meter) => m.id);
-
-        return {
-          meterId: body.meterId,
-          selectedMeterIds,
-          selectedMeterElementIds: [],
-        };
+        // Backend returns { success, meterId, selectedItems }
+        const raw: any[] = body.selectedItems || [];
+        return raw.map((item) => {
+          if (item.selectionType === 'element') {
+            return {
+              selectionType: 'element',
+              id: `element-${item.meter_element_id}`,
+              meter_id: item.meter_id,
+              meter_name: item.meter_name,
+              identifier: item.identifier,
+              meter_element_id: item.meter_element_id,
+              element_name: item.element_name,
+              element: item.element,
+            } as ElementSelection;
+          }
+          return {
+            selectionType: 'meter',
+            id: `meter-${item.meter_id}`,
+            meter_id: item.meter_id,
+            meter_name: item.meter_name,
+            identifier: item.identifier,
+          } as MeterSelection;
+        });
       } catch (error) {
         const message = getErrorMessage(error);
         throw new Error(`Failed to load virtual meter configuration: ${message}`);
@@ -201,38 +277,24 @@ class MeterService {
   }
 
   /**
-   * Save virtual meter configuration
-   * @param meterId - The virtual meter ID
-   * @param config - Configuration with selected meter IDs and element IDs
-   * @returns Promise<VirtualMeterConfig> - Saved configuration
-   * @throws Error with descriptive message on failure
+   * Save virtual meter configuration from an array of SelectedItem
    */
-  async saveVirtualMeterConfig(meterId: string | number, config: VirtualMeterConfig): Promise<VirtualMeterConfig> {
+  async saveVirtualMeterConfig(meterId: string | number, selectedItems: SelectedItem[]): Promise<void> {
     return withRetry(async () => {
       try {
-        if (!meterId) {
-          throw new Error('Meter ID is required');
-        }
+        if (!meterId) throw new Error('Meter ID is required');
 
-        if (!config || !Array.isArray(config.selectedMeterIds) || !Array.isArray(config.selectedMeterElementIds)) {
-          throw new Error('Invalid configuration: selectedMeterIds and selectedMeterElementIds must be arrays');
-        }
-
-        const payload = {
-          selectedMeterIds: config.selectedMeterIds,
-          selectedMeterElementIds: config.selectedMeterElementIds,
-        };
-
-        const response: AxiosResponse<ApiResponse<VirtualMeterConfig>> = await apiClient.post(
-          `/meters/${meterId}/virtual-config`,
-          payload
+        // meter-level selection: element_id = meter_id (convention)
+        // element-level selection: element_id = meter_element_id
+        const selectedMeterIds = selectedItems.map((item) => item.meter_id);
+        const selectedMeterElementIds = selectedItems.map((item) =>
+          item.selectionType === 'element' ? item.meter_element_id : item.meter_id
         );
 
-        if (!response.data.data) {
-          throw new Error('Invalid response format: missing data field');
-        }
-
-        return response.data.data;
+        await apiClient.post(`/meters/${meterId}/virtual-config`, {
+          selectedMeterIds,
+          selectedMeterElementIds,
+        });
       } catch (error) {
         const message = getErrorMessage(error);
         throw new Error(`Failed to save virtual meter configuration: ${message}`);

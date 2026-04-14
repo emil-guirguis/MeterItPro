@@ -303,7 +303,7 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
     checkPermission: (permission?: string) => permission ? checkPermission(permission) : true,
     responsive,
     uiState,
-    sidebarDefaultExpanded: ['favorites'],
+    sidebarDefaultExpanded: [],
   };
 
   if (!user) return <AppLayout {...props} config={config} />;

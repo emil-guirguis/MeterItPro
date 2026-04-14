@@ -8,24 +8,39 @@ export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<MeterReadingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Load initial state from localStorage, default to true if not found
   const [statsExpanded, setStatsExpanded] = useState(() => {
     const savedState = localStorage.getItem('dashboard-stats-expanded');
     return savedState !== null ? JSON.parse(savedState) : true;
   });
 
-  // Save state to localStorage whenever it changes
+  // Meter readings section starts collapsed — only load data when expanded
+  const [readingsExpanded, setReadingsExpanded] = useState(() => {
+    const saved = localStorage.getItem('dashboard-readings-expanded');
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+  const [readingsEverExpanded, setReadingsEverExpanded] = useState(false);
+
+  // Persist section states
   useEffect(() => {
     localStorage.setItem('dashboard-stats-expanded', JSON.stringify(statsExpanded));
   }, [statsExpanded]);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard-readings-expanded', JSON.stringify(readingsExpanded));
+    if (readingsExpanded) setReadingsEverExpanded(true);
+  }, [readingsExpanded]);
 
   // Fetch dashboard statistics
   const fetchStats = async () => {
     try {
       setLoading(true);
       setError(null);
+      const t0 = performance.now();
+      console.log('[Dashboard] Fetching stats...');
       const data = await meterReadingService.getMeterStats();
+      console.log(`[Dashboard] Stats done in ${(performance.now() - t0).toFixed(0)}ms`);
       setStats(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch statistics');
@@ -207,12 +222,34 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Latest Meter Readings */}
-      <div className="dashboard__content">
-        <MeterReadingsList 
-          className="dashboard__meter-readings"
-          maxItems={50}
-        />
+      {/* Latest Meter Readings — collapsed by default, only fetches when opened */}
+      <div className="dashboard__stats-section">
+        <div
+          className="dashboard__stats-header"
+          onClick={() => setReadingsExpanded(e => !e)}
+        >
+          <h2 className="dashboard__stats-title">
+            <span className="dashboard__stats-icon">⚡</span>
+            Latest Meter Readings
+          </h2>
+          <button
+            type="button"
+            className={`dashboard__collapse-btn ${readingsExpanded ? 'dashboard__collapse-btn--expanded' : ''}`}
+            aria-label={readingsExpanded ? 'Collapse meter readings' : 'Expand meter readings'}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+        <div className={`dashboard__stats-content ${readingsExpanded ? 'dashboard__stats-content--expanded' : ''}`}>
+          {readingsEverExpanded && (
+            <MeterReadingsList
+              className="dashboard__meter-readings"
+              maxItems={50}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

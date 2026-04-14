@@ -6,7 +6,7 @@
   height: 100%;
   background-color: var(--color-surface, #ffffff);
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -24,7 +24,7 @@
   flex-direction: column;
   flex: 1;
   min-width: 0;
-  background-color: var(--color-background, #f5f5f5);
+  background-color: var(--color-background, #f1f3f4);
   border-radius: 6px;
   border: 1px solid var(--color-border, #e0e0e0);
   overflow: hidden;
@@ -32,13 +32,11 @@
 
 /* Column header */
 .dual-list-selector__header {
-  padding: 0.75rem 1rem;
-  background-color: var(--color-primary, #007bff);
-  color: var(--color-surface, #ffffff);
+  padding: 8px 12px;
+  background-color: var(--color-background-alt, #f9fafb);
+  color: var(--color-text-primary, #202124);
   font-size: 0.875rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   border-bottom: 1px solid var(--color-border, #e0e0e0);
   flex-shrink: 0;
 }
@@ -62,15 +60,15 @@
 
 /* List item */
 .dual-list-selector__item {
-  padding: 0.75rem 1rem;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--color-border, #e0e0e0);
   background-color: var(--color-surface, #ffffff);
-  color: var(--color-text-primary, #333333);
+  color: var(--color-text-primary, #202124);
   font-size: 0.875rem;
   cursor: pointer;
   -webkit-user-select: none;
   user-select: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease;
   outline: none;
   position: relative;
 }
@@ -81,22 +79,22 @@
 
 /* Hover state */
 .dual-list-selector__item:hover {
-  background-color: var(--color-hover, rgba(0, 123, 255, 0.08));
-  color: var(--color-text-primary, #333333);
+  background-color: var(--color-background-hover, #f1f5f9);
+  color: var(--color-text-primary, #202124);
 }
 
 /* Focus state */
 .dual-list-selector__item:focus,
 .dual-list-selector__item--focused {
-  background-color: var(--color-primary-light, rgba(0, 123, 255, 0.15));
-  color: var(--color-text-primary, #333333);
-  box-shadow: inset 0 0 0 2px var(--color-primary, #007bff);
+  background-color: var(--color-primary-light, rgba(26, 115, 232, 0.12));
+  color: var(--color-text-primary, #202124);
+  box-shadow: inset 0 0 0 2px var(--color-primary, #1a73e8);
 }
 
 /* Dragging state */
 .dual-list-selector__item--dragging {
   opacity: 0.5;
-  background-color: var(--color-primary-light, rgba(0, 123, 255, 0.1));
+  background-color: var(--color-primary-light, rgba(26, 115, 232, 0.12));
 }
 
 /* Empty state message */
@@ -106,10 +104,10 @@
   justify-content: center;
   height: 100%;
   padding: 2rem 1rem;
-  color: var(--color-text-disabled, #999999);
+  color: var(--color-text-disabled, #9aa0a6);
   font-size: 0.875rem;
   text-align: center;
-  background-color: var(--color-background, #f5f5f5);
+  background-color: var(--color-background, #f1f3f4);
 }
 
 /* Scrollbar styling */
@@ -118,7 +116,8 @@
 }
 
 .dual-list-selector__list-container::-webkit-scrollbar-track {
-  background: var(--color-background, #f5f5f5);
+  background: var(--color-background, #f1f3f4);
+  border-radius: 4px;
 }
 
 .dual-list-selector__list-container::-webkit-scrollbar-thumb {
@@ -127,7 +126,7 @@
 }
 
 .dual-list-selector__list-container::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-secondary, #666666);
+  background: var(--color-text-secondary, #5f6368);
 }
 
 /* Responsive design */
@@ -176,41 +175,5 @@
   .dual-list-selector__empty-state {
     padding: 1rem 0.5rem;
     font-size: 0.75rem;
-  }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .dual-list-selector {
-    background-color: var(--color-surface-dark, #1e1e1e);
-  }
-
-  .dual-list-selector__column {
-    background-color: var(--color-background-dark, #2d2d2d);
-    border-color: var(--color-border-dark, #404040);
-  }
-
-  .dual-list-selector__list-container {
-    background-color: var(--color-surface-dark, #1e1e1e);
-  }
-
-  .dual-list-selector__item {
-    background-color: var(--color-surface-dark, #1e1e1e);
-    color: var(--color-text-primary-dark, #e0e0e0);
-    border-color: var(--color-border-dark, #404040);
-  }
-
-  .dual-list-selector__item:hover {
-    background-color: var(--color-hover-dark, rgba(0, 123, 255, 0.15));
-  }
-
-  .dual-list-selector__item:focus,
-  .dual-list-selector__item--focused {
-    background-color: var(--color-primary-light-dark, rgba(0, 123, 255, 0.25));
-  }
-
-  .dual-list-selector__empty-state {
-    background-color: var(--color-background-dark, #2d2d2d);
-    color: var(--color-text-disabled-dark, #666666);
   }
 }

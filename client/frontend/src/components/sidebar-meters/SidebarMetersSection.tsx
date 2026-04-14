@@ -68,6 +68,11 @@ export const SidebarMetersSection: React.FC<SidebarMetersProps> = ({
     }
   }, [favoriteDisplays, mode]);
 
+  /** Load sidebar data on first mount — fires only when this section is expanded. */
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   /** Restore expanded meters from session storage on mount */
   useEffect(() => {
     const savedExpanded = sessionStorage.getItem(`expanded-meters-${tenantId}`);

@@ -114,118 +114,138 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Initialize authentication state on app load
   useEffect(() => {
     const initializeAuth = async () => {
-      const logs: string[] = [];
-      const addLog = (msg: string) => {
-        console.log(msg);
-        logs.push(msg);
-        localStorage.setItem('auth_debug_logs', JSON.stringify(logs));
+      const t0 = performance.now();
+      const log = (msg: string) => {
+        const ms = (performance.now() - t0).toFixed(0);
+        console.log(`[AUTH +${ms}ms] ${msg}`);
       };
 
-      addLog('🔄 Initializing authentication...');
-      addLog('📍 Current URL: ' + window.location.href);
-      addLog('🗄️ LocalStorage explicit_logout: ' + localStorage.getItem('explicit_logout'));
-      addLog('🗄️ LocalStorage auth_token: ' + (localStorage.getItem('auth_token') ? 'EXISTS' : 'MISSING'));
-      addLog('🗄️ SessionStorage auth_token: ' + (sessionStorage.getItem('auth_token') ? 'EXISTS' : 'MISSING'));
-      
+      log('Starting auth initialization');
+
+      const normalizePermissions = (perms: any): string[] => {
+        if (!perms) return [];
+        if (Array.isArray(perms)) return perms;
+        if (typeof perms === 'object') {
+          const result: string[] = [];
+          Object.entries(perms).forEach(([moduleName, actions]) => {
+            if (typeof actions === 'object' && actions !== null) {
+              Object.entries(actions).forEach(([actionName, allowed]) => {
+                if (allowed) result.push(`${moduleName}:${actionName}`);
+              });
+            }
+          });
+          return result;
+        }
+        return [];
+      };
+
       try {
         dispatch({ type: 'SET_LOADING', payload: true });
 
         // Check logout flag FIRST - if set, prevent any auto-login
         if (authService.hasLogoutFlag()) {
-          addLog('🚪 User explicitly logged out, preventing auto-login');
+          log('User explicitly logged out, skipping auto-login');
           authService.clearStoredToken();
           dispatch({ type: 'SET_LOADING', payload: false });
           return;
         }
 
-        // Check if user has a stored token
         const token = authService.getStoredToken();
-        addLog('🔑 Stored token exists: ' + !!token);
-        addLog('🔑 Token value: ' + (token ? token.substring(0, 50) + '...' : 'null'));
+        log(`Token in storage: ${token ? 'YES' : 'NO'}`);
 
-        // If NO token exists, try dev auto-login
         if (!token) {
+          // No token — try dev auto-login if configured
           const autoLoginEnabled = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
           const devEmail = import.meta.env.VITE_DEV_EMAIL as string | undefined;
           const devPassword = import.meta.env.VITE_DEV_PASSWORD as string | undefined;
 
           if (autoLoginEnabled && devEmail && devPassword) {
-            addLog('⚙️ Dev auto-login enabled (no token found), attempting login...');
+            log('Dev auto-login: attempting...');
             try {
               await login({ email: devEmail, password: devPassword, rememberMe: true });
-              addLog('✅ Dev auto-login succeeded');
+              log(`Dev auto-login succeeded (+${(performance.now() - t0).toFixed(0)}ms)`);
               return;
             } catch (autoLoginError) {
-              addLog('❌ Dev auto-login failed: ' + (autoLoginError instanceof Error ? autoLoginError.message : String(autoLoginError)));
+              log(`Dev auto-login failed: ${autoLoginError instanceof Error ? autoLoginError.message : String(autoLoginError)}`);
               dispatch({ type: 'SET_LOADING', payload: false });
               return;
             }
           }
 
-          // No token and no dev auto-login
-          addLog('ℹ️ No stored token and dev auto-login not enabled, user not authenticated');
+          log('No token, no dev auto-login — user not authenticated');
           dispatch({ type: 'SET_LOADING', payload: false });
           return;
         }
 
-        // Token exists and no logout flag, proceed with verification
-        if (token) {
-          addLog('✅ Token found in storage, verifying with backend...');
-          try {
-            // Verify token with backend to get user data
-            let user = await authService.verifyToken();
-            // Normalize permissions shape if backend returned nested object
-            const normalizePermissions = (perms: any) => {
-              if (!perms) return [];
-              if (Array.isArray(perms)) return perms;
-              if (typeof perms === 'object') {
-                const result: string[] = [];
-                Object.entries(perms).forEach(([moduleName, actions]) => {
-                  if (typeof actions === 'object' && actions !== null) {
-                    Object.entries(actions).forEach(([actionName, allowed]) => {
-                      if (allowed) {
-                        result.push(`${moduleName}:${actionName}`);
-                      }
-                    });
-                  }
-                });
-                return result;
-              }
-              return [];
+        // --- FAST PATH: decode user from JWT without a network call ---
+        const isTokenValid = authService.isAuthenticated();
+        log(`Token locally valid (not expired): ${isTokenValid}`);
+
+        if (isTokenValid) {
+          const cachedUser = authService.getCurrentUserFromToken();
+          log(`User decoded from token: ${cachedUser ? cachedUser.email ?? 'ok' : 'null'}`);
+
+          if (cachedUser) {
+            const normalizedUser = {
+              ...cachedUser,
+              permissions: normalizePermissions((cachedUser as any).permissions),
             };
-            if (user && user.permissions) {
-              (user as any).permissions = normalizePermissions((user as any).permissions);
-            }
-            addLog('✅ Verify endpoint response: ' + JSON.stringify(user));
-            if (user) {
-              addLog('✅ Token verified, user authenticated: ' + user.email);
-              dispatch({ 
-                type: 'LOGIN_SUCCESS', 
-                payload: {
-                  user,
-                  locations: []
+            dispatch({ type: 'LOGIN_SUCCESS', payload: { user: normalizedUser, locations: [] } });
+            log(`UI unblocked from cached token — background verify starting`);
+
+            // Verify in background; only update state if the server returns meaningfully different info
+            authService.verifyToken().then(freshUser => {
+              const elapsed = (performance.now() - t0).toFixed(0);
+              if (freshUser) {
+                const normalizedFresh = {
+                  ...freshUser,
+                  permissions: normalizePermissions((freshUser as any).permissions),
+                };
+                // Skip dispatch if identity hasn't changed — avoids a re-render cascade
+                const identityChanged =
+                  normalizedFresh.users_id !== cachedUser.users_id ||
+                  normalizedFresh.email !== cachedUser.email ||
+                  normalizedFresh.client !== (cachedUser as any).client ||
+                  normalizedFresh.role !== cachedUser.role;
+                if (identityChanged) {
+                  log(`Background verify succeeded (+${elapsed}ms) — identity changed, updating state`);
+                  dispatch({ type: 'REFRESH_TOKEN_SUCCESS', payload: { user: normalizedFresh, locations: [] } });
+                } else {
+                  log(`Background verify succeeded (+${elapsed}ms) — identity unchanged, skipping re-render`);
                 }
-              });
-            } else {
-              addLog('❌ Token verification returned null user');
-              authService.clearStoredToken();
-              dispatch({ type: 'SET_LOADING', payload: false });
-            }
-          } catch (verifyError) {
-            addLog('❌ Token verification error: ' + (verifyError instanceof Error ? verifyError.message : String(verifyError)));
-            addLog('❌ Error details: ' + JSON.stringify({
-              message: verifyError instanceof Error ? verifyError.message : String(verifyError),
-              stack: verifyError instanceof Error ? verifyError.stack : 'no stack'
-            }));
+              } else {
+                log(`Background verify returned null (+${elapsed}ms) — token may be revoked, logging out`);
+                authService.clearStoredToken();
+                dispatch({ type: 'LOGOUT' });
+              }
+            }).catch(err => {
+              log(`Background verify error (+${(performance.now() - t0).toFixed(0)}ms): ${err?.message}`);
+              // Don't log out on network error — user may be offline
+            });
+
+            return;
+          }
+        }
+
+        // --- SLOW PATH: token expired or couldn't decode — must verify with backend ---
+        log('Token expired or undecodable — verifying with backend...');
+        try {
+          const user = await authService.verifyToken();
+          log(`Backend verify completed (+${(performance.now() - t0).toFixed(0)}ms): ${user ? user.email ?? 'ok' : 'null'}`);
+          if (user) {
+            const normalizedUser = { ...user, permissions: normalizePermissions((user as any).permissions) };
+            dispatch({ type: 'LOGIN_SUCCESS', payload: { user: normalizedUser, locations: [] } });
+          } else {
             authService.clearStoredToken();
             dispatch({ type: 'SET_LOADING', payload: false });
           }
-        } else {
-          addLog('ℹ️ No stored token, user not authenticated');
+        } catch (verifyError) {
+          log(`Backend verify error: ${verifyError instanceof Error ? verifyError.message : String(verifyError)}`);
+          authService.clearStoredToken();
           dispatch({ type: 'SET_LOADING', payload: false });
         }
       } catch (error) {
-        addLog('❌ Auth initialization error: ' + (error instanceof Error ? error.message : String(error)));
+        console.error('[AUTH] initializeAuth unexpected error:', error);
         authService.clearStoredToken();
         dispatch({ type: 'SET_LOADING', payload: false });
       }

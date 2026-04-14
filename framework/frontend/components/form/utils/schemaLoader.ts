@@ -86,14 +86,42 @@ interface CacheEntry {
 }
 
 /**
- * Schema cache to avoid repeated API calls
+ * In-memory schema cache to avoid repeated API calls within a session
  */
 const schemaCache = new Map<string, CacheEntry>();
 
 /**
- * Cache TTL in milliseconds (default: 5 minutes)
+ * Cache TTL in milliseconds (default: 30 minutes)
  */
-const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_TTL = 30 * 60 * 1000;
+
+const LS_PREFIX = 'schema_cache_';
+
+/** Persist a cache entry to localStorage so it survives F5 */
+function persistToStorage(entityName: string, entry: CacheEntry): void {
+  try {
+    localStorage.setItem(LS_PREFIX + entityName, JSON.stringify(entry));
+  } catch {
+    // localStorage quota exceeded or unavailable — silently ignore
+  }
+}
+
+/** Load a cache entry from localStorage into the in-memory map */
+function hydrateFromStorage(entityName: string): CacheEntry | null {
+  try {
+    const raw = localStorage.getItem(LS_PREFIX + entityName);
+    if (!raw) return null;
+    const entry: CacheEntry = JSON.parse(raw);
+    if (Date.now() - entry.timestamp >= CACHE_TTL) {
+      localStorage.removeItem(LS_PREFIX + entityName);
+      return null;
+    }
+    schemaCache.set(entityName, entry);
+    return entry;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Fetch schema from backend API
@@ -112,20 +140,23 @@ export async function fetchSchema(
     : 'http://localhost:3001/api';
   const { cache = true, baseUrl = defaultBaseUrl, ttl = CACHE_TTL } = options;
 
-  // Check cache first
+  // 1. Check in-memory cache
   if (cache && schemaCache.has(entityName)) {
     const entry = schemaCache.get(entityName)!;
     const age = Date.now() - entry.timestamp;
-    
-    // Return cached schema if still valid
     if (age < ttl) {
-      console.log(`[SchemaLoader] ✅ Cache HIT: ${entityName} (age: ${age}ms, TTL: ${ttl}ms)`);
       return entry.schema;
     }
-    
-    // Cache expired, remove it
-    console.log(`[SchemaLoader] ⏰ Cache EXPIRED: ${entityName} (age: ${age}ms, TTL: ${ttl}ms)`);
     schemaCache.delete(entityName);
+    localStorage.removeItem(LS_PREFIX + entityName);
+  }
+
+  // 2. Check localStorage (survives F5)
+  if (cache) {
+    const stored = hydrateFromStorage(entityName);
+    if (stored) {
+      return stored.schema;
+    }
   }
 
   try {
@@ -181,14 +212,12 @@ export async function fetchSchema(
       console.log(`[SchemaLoader] ⚠️ NO formTabs in schema`);
     }
 
-    // Cache the schema with timestamp
+    // Cache the schema in memory and localStorage
     if (cache) {
-      schemaCache.set(entityName, {
-        schema,
-        timestamp: Date.now(),
-      });
-      console.log(`✅ SCHEMA LOADED: ${entityName} (${Object.keys(schema.formFields).length} form fields)`);
-      logSchemasInMemory();
+      const entry: CacheEntry = { schema, timestamp: Date.now() };
+      schemaCache.set(entityName, entry);
+      persistToStorage(entityName, entry);
+      console.log(`[SchemaLoader] ✅ Fetched and cached: ${entityName}`);
     }
 
     return schema;
@@ -415,15 +444,18 @@ export function getCacheStats() {
 export function invalidateExpiredCache() {
   const now = Date.now();
   const toDelete: string[] = [];
-  
+
   schemaCache.forEach((entry, entityName) => {
     if (now - entry.timestamp >= CACHE_TTL) {
       toDelete.push(entityName);
     }
   });
-  
-  toDelete.forEach(entityName => schemaCache.delete(entityName));
-  
+
+  toDelete.forEach(entityName => {
+    schemaCache.delete(entityName);
+    localStorage.removeItem(LS_PREFIX + entityName);
+  });
+
   return toDelete.length;
 }
 

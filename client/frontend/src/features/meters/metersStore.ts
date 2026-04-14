@@ -136,7 +136,9 @@ const metersService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const error = new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`) as any;
+        const detailedMsg = errorData.error ? `${errorData.message}: ${errorData.error}` : (errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        console.error('[metersStore] Create error detail:', errorData);
+        const error = new Error(detailedMsg) as any;
         error.response = {
           status: response.status,
           data: errorData

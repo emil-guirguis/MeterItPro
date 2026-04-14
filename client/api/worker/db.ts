@@ -7,6 +7,20 @@
 
 import { Client } from 'pg';
 
+const C = { yellow: '\x1b[33m', reset: '\x1b[0m' };
+
+export function formatSqlForDebug(text: string, params: any[] = []): string {
+  return text.replace(/\$(\d+)/g, (_, i) => {
+    const val = params[parseInt(i, 10) - 1];
+    let formatted: string;
+    if (val === null || val === undefined) formatted = 'NULL';
+    else if (typeof val === 'number') formatted = String(val);
+    else if (typeof val === 'boolean') formatted = String(val);
+    else formatted = `'${String(val).replace(/'/g, "''")}'`;
+    return `${C.yellow}${formatted}${C.reset}`;
+  });
+}
+
 export interface Env {
   DATABASE_URL?: string;
   JWT_SECRET: string;
@@ -22,7 +36,7 @@ export async function query(env: Env, text: string, params: any[] = []) {
   const connectionString = env.DATABASE_URL || env.HYPERDRIVE?.connectionString;
   const client = new Client({ connectionString });
   await client.connect();
-  console.log('[SQL]', text, params.length ? params : '');
+  console.log('[SQL]', formatSqlForDebug(text, params));
   try {
     return await client.query(text, params);
   } catch (error: any) {
@@ -43,7 +57,7 @@ export async function transaction<T>(env: Env, callback: (client: Client) => Pro
     get(target, prop) {
       if (prop === 'query') {
         return (text: string, params?: any[]) => {
-          console.log('[SQL]', text, params?.length ? params : '');
+          console.log('[SQL]', formatSqlForDebug(text, params));
           return target.query(text, params as any);
         };
       }

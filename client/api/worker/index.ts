@@ -5,6 +5,15 @@
  * Mounts all route sub-apps and shared middleware.
  */
 
+// Prepend HH:MM:SS timestamp to every console log line in wrangler dev output
+const _origLog = console.log.bind(console);
+const _origWarn = console.warn.bind(console);
+const _origError = console.error.bind(console);
+const _ts = () => new Date().toTimeString().slice(0, 8);
+console.log   = (...a) => _origLog  (`[${_ts()}]`, ...a);
+console.warn  = (...a) => _origWarn (`[${_ts()}]`, ...a);
+console.error = (...a) => _origError(`[${_ts()}]`, ...a);
+
 import { Hono } from 'hono';
 import { runAllActiveReports } from './reportRunner';
 import { runAllActiveNotificationRules } from './notificationRunner';

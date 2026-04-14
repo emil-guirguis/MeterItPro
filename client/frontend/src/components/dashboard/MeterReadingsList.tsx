@@ -66,17 +66,7 @@ export const MeterReadingsList: React.FC<MeterReadingsListProps> = ({
   }, [fetchReadings]);
 
   useEffect(() => {
-    fetchReadings(true); // Initial load - fetch all data
-
-    // Set up auto-refresh every 30 seconds to show new data
-    const refreshInterval = setInterval(() => {
-      fetchReadings(true); // Auto-refresh - fetch all data
-    }, 30000); // 30 seconds
-
-    // Cleanup interval on unmount
-    return () => {
-      clearInterval(refreshInterval);
-    };
+    fetchReadings(true);
   }, [fetchReadings]);
 
   // Safe number check

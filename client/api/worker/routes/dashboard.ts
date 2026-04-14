@@ -8,7 +8,6 @@ import { query, Env } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { logError } from '../errorHandler';
-import { formatSqlForDebug } from '../../../../framework/backend/shared/utils';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -303,10 +302,7 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
       groupSql = aggSql;
     }
 
-    console.log('[Dashboard] aggSql:\n' + formatSqlForDebug(aggSql, aggParams));
     const aggResult = await query(c.env, aggSql, aggParams);
-
-    console.log('[Dashboard] groupSql:\n' + formatSqlForDebug(groupSql, aggParams));
     const groupResult = await query(c.env, groupSql, aggParams);
 
     // Build a label map: { meter_element_id -> display label }
@@ -326,7 +322,6 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
     if (selectedColumns.length > 0) {
       const placeholders = selectedColumns.map((_, i) => `$${i + 1}`).join(', ');
       const unitSql = `SELECT field_name, unit FROM register WHERE field_name IN (${placeholders})`;
-      console.log('[Dashboard] unitSql:\n' + formatSqlForDebug(unitSql, selectedColumns));
       const unitResult = await query(c.env, unitSql, selectedColumns);
       for (const row of unitResult.rows) {
         if (row.unit) column_units[row.field_name] = row.unit;
@@ -646,7 +641,6 @@ app.get('/cards/:id/readings', requirePermission('dashboard:read'), async (c) =>
     const pageParams = [...params, pageSize, (page - 1) * pageSize];
     const paramCount = params.length;
     const sql = `SELECT ${adjustedColumnsList.join(', ')} ${fromClause} ${whereClause} ORDER BY ${safeSortBy === 'meter_reading_id' || safeSortBy === 'created_at' || safeSortBy === 'meter_id' || safeSortBy === 'meter_element_id' || safeSortBy === 'updated_at' ? (safeSortBy === 'updated_at' ? '"mr"."updated_at"' : `mr.${safeSortBy}`) : `"mr"."${safeSortBy}"`} ${sortOrder} LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
-    console.log('[Dashboard] readings sql:\n' + formatSqlForDebug(sql, pageParams));
     const result = await query(c.env, sql, pageParams);
 
     return c.json({
@@ -760,7 +754,6 @@ app.get('/cards/:id/readings/export', requirePermission('dashboard:read'), async
     // Adjust column references for joined tables
     const adjustedExportColumnsList = columnsList.map((col: string) => col === 'meter_reading_id' ? 'mr.meter_reading_id' : col === 'created_at' ? 'mr.created_at' : col === 'meter_id' ? 'mr.meter_id' : col === 'meter_element_id' ? 'mr.meter_element_id' : `"mr"."${col}"`);
     const sql = `SELECT ${adjustedExportColumnsList.join(', ')} ${fromClause} ${whereClause} ORDER BY ${safeSortBy === 'meter_reading_id' || safeSortBy === 'created_at' || safeSortBy === 'meter_id' || safeSortBy === 'meter_element_id' ? `mr.${safeSortBy}` : `"mr"."${safeSortBy}"`} ${sortOrder}`;
-    console.log('[Dashboard] export sql:\n' + formatSqlForDebug(sql, exportParams));
     const result = await query(c.env, sql, exportParams);
 
     // Build CSV
@@ -975,8 +968,6 @@ app.get('/power-columns', requirePermission('dashboard:read'), async (c) => {
       ORDER BY r.name ASC
     `;
 
-    console.log('[Dashboard] power-columns sql:\n' + formatSqlForDebug(sql, [meterId]));
-
     const result = await query(c.env, sql, [meterId]);
     const columns = result.rows.map((r: any) => {
       const label = r.name.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -1029,9 +1020,6 @@ app.get('/total-active-energy', requirePermission('dashboard:read'), async (c) =
       ) AS latest_readings
     `;
 
-    console.log('[Dashboard] Total Active Energy SQL:', sql);
-    console.log('[Dashboard] Total Active Energy Params:', [tenantId]);
-
     const result = await query(c.env, sql, [tenantId]);
     const totalActiveEnergy = parseFloat(result.rows?.[0]?.total_active_energy || '0');
 
@@ -1072,9 +1060,6 @@ app.get('/total-power', requirePermission('dashboard:read'), async (c) => {
         ORDER BY mr.meter_element_id, mr.created_at DESC
       ) AS latest_readings
     `;
-
-    console.log('[Dashboard] Total Power SQL:', sql);
-    console.log('[Dashboard] Total Power Params:', [tenantId]);
 
     const result = await query(c.env, sql, [tenantId]);
     const totalPower = parseFloat(result.rows?.[0]?.total_power || '0');
