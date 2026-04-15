@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { versionPlugin } from './vite-plugins/version-plugin';
@@ -17,7 +16,7 @@ const errorLoggerPlugin = () => {
           console.error('\n❌ WebSocket Error:', error);
         });
       });
-      
+
       // Log HMR errors
       server.middlewares.use((err: any, _req: any, _res: any, next: any) => {
         if (err) {
@@ -37,8 +36,6 @@ const errorLoggerPlugin = () => {
   };
 };
 
-const basePath = process.env.VITE_BASE_PATH ?? '/';
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -52,37 +49,6 @@ export default defineConfig({
       },
     }),
     errorLoggerPlugin(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      manifest: {
-        name: 'MeterIt Pro',
-        short_name: 'MeterIt Pro',
-        description: 'Cloud-based meter management software for manufacturers, sellers, utilities, and BMS operators.',
-        theme_color: '#0f62fe',
-        background_color: '#ffffff',
-        display: 'standalone',
-        orientation: 'portrait',
-        start_url: basePath,
-        icons: [
-          {
-            src: '/icons/pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: '/icons/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable',
-          },
-        ],
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallback: `${basePath}index.html`,
-        navigateFallbackDenylist: [/^\/api\//],
-      },
-    }),
   ],
   resolve: {
     alias: {
@@ -148,7 +114,7 @@ export default defineConfig({
   // Log errors to terminal
   clearScreen: false, // Don't clear terminal on rebuild
   logLevel: 'info', // Show info, warnings, and errors
-  
+
   // Enhanced error handling
   build: {
     outDir: 'dist',

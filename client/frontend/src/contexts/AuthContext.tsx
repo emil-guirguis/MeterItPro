@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { AuthContextType, AuthState, LoginCredentials, User, UserRole } from '../types/auth';
+import type { AuthContextType, AuthState, AuthResponse, LoginCredentials, User, UserRole } from '../types/auth';
 import { ROLE_PERMISSIONS } from '../types/auth';
 import { authService } from '../services/authService';
 
@@ -110,6 +110,15 @@ interface AuthProviderProps {
 // Auth provider component
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+
+  // Listen for forced logout signals from the auth interceptor
+  useEffect(() => {
+    const handleForceLogout = () => {
+      dispatch({ type: 'LOGOUT' });
+    };
+    window.addEventListener('auth:force-logout', handleForceLogout);
+    return () => window.removeEventListener('auth:force-logout', handleForceLogout);
+  }, []);
 
   // Initialize authentication state on app load
   useEffect(() => {

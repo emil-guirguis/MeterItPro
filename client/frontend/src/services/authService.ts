@@ -36,15 +36,21 @@ class AuthService {
       async (error) => {
         const originalRequest = error.config;
 
-        // Only retry if it's a 401, not already retried, and not a refresh token request
-        if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
+        // Only retry if it's a 401, not already retried, and not a public auth endpoint
+        const isPublicAuthEndpoint = originalRequest.url?.includes('/auth/login') ||
+          originalRequest.url?.includes('/auth/refresh') ||
+          originalRequest.url?.includes('/auth/forgot-password') ||
+          originalRequest.url?.includes('/auth/reset-password');
+        if (error.response?.status === 401 && !originalRequest._retry && !isPublicAuthEndpoint) {
           originalRequest._retry = true;
 
           try {
             const refreshToken = tokenStorage.getRefreshToken();
             if (!refreshToken) {
-              // No refresh token, let the auth context handle cleanup
+              // No refresh token — clear storage and signal a forced logout
               console.error('[AUTH INTERCEPTOR] 401 received, no refresh token available.');
+              tokenStorage.clearTokens();
+              window.dispatchEvent(new CustomEvent('auth:force-logout'));
               return Promise.reject(error);
             }
 
