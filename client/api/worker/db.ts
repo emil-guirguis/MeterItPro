@@ -29,7 +29,7 @@ export interface Env {
   HYPERDRIVE: any;
   RESEND_API_KEY?: string;
   RESEND_FROM?: string;
-  ANTHROPIC_API_KEY?: string;
+  GROQ_API_KEY?: string;
 }
 
 export async function query(env: Env, text: string, params: any[] = []) {

@@ -204,8 +204,8 @@ export const AiChatPage: React.FC = () => {
                   px: 2,
                   py: 1.5,
                   bgcolor:
-                    msg.role === 'user' ? 'primary.main' : 'background.paper',
-                  color: msg.role === 'user' ? 'white' : 'text.primary',
+                    msg.role === 'user' ? 'primary.light' : 'background.paper',
+                  color: msg.role === 'user' ? '#fff' : 'text.primary',
                   borderRadius:
                     msg.role === 'user'
                       ? '16px 16px 4px 16px'
@@ -216,7 +216,7 @@ export const AiChatPage: React.FC = () => {
                   wordBreak: 'break-word',
                 }}
               >
-                <Typography variant="body2">{msg.content}</Typography>
+                <Typography variant="body2" sx={{ color: 'inherit' }}>{msg.content}</Typography>
               </Paper>
               {msg.toolsUsed && msg.toolsUsed.length > 0 && (
                 <Stack direction="row" gap={0.5} flexWrap="wrap" mt={0.5}>

@@ -4,12 +4,12 @@
  * POST /api/ai/chat
  * Body: { message: string, history?: { role: 'user' | 'assistant', content: string }[] }
  *
- * Uses Claude with tool use to answer questions about the tenant's meter data.
+ * Uses Groq (llama-3.3-70b) with tool use to answer questions about the tenant's meter data.
  * The agentic loop runs entirely inside the Worker — no external processes needed.
  */
 
 import { Hono } from 'hono';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { query, Env } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
@@ -19,78 +19,93 @@ app.use('*', authenticateToken);
 
 // ─── Tool definitions ─────────────────────────────────────────────────────────
 
-const TOOLS: Anthropic.Tool[] = [
+const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   {
-    name: 'list_meters',
-    description:
-      'List all meters for this tenant. Returns meter name, location, unit, and the most recent reading value and timestamp.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        limit: {
-          type: 'number',
-          description: 'Maximum number of meters to return (default 50)',
+    type: 'function',
+    function: {
+      name: 'list_meters',
+      description:
+        'List all meters for this tenant. Returns meter name, location, unit, and the most recent reading value and timestamp.',
+      parameters: {
+        type: 'object',
+        properties: {
+          limit: {
+            type: 'number',
+            description: 'Maximum number of meters to return (default 50)',
+          },
         },
+        required: [],
       },
-      required: [],
     },
   },
   {
-    name: 'get_meter_readings',
-    description:
-      'Get recent readings for a specific meter. Use this to check current consumption, look for anomalies, or compare values over time.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        meter_id: {
-          type: 'number',
-          description: 'The numeric meter_id to query',
+    type: 'function',
+    function: {
+      name: 'get_meter_readings',
+      description:
+        'Get recent readings for a specific meter. Use this to check current consumption, look for anomalies, or compare values over time.',
+      parameters: {
+        type: 'object',
+        properties: {
+          meter_id: {
+            type: 'number',
+            description: 'The numeric meter_id to query',
+          },
+          days: {
+            type: 'number',
+            description: 'How many days of history to return (default 7, max 90)',
+          },
+          limit: {
+            type: 'number',
+            description: 'Maximum number of readings to return (default 100)',
+          },
         },
-        days: {
-          type: 'number',
-          description: 'How many days of history to return (default 7, max 90)',
-        },
-        limit: {
-          type: 'number',
-          description: 'Maximum number of readings to return (default 100)',
-        },
+        required: ['meter_id'],
       },
-      required: ['meter_id'],
     },
   },
   {
-    name: 'list_notification_rules',
-    description:
-      'List all notification/alert rules configured for this tenant — thresholds, schedules, and which meters they monitor.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {},
-      required: [],
-    },
-  },
-  {
-    name: 'get_recent_alerts',
-    description:
-      'Get the most recent notification history — which rules fired, when, and whether emails were sent successfully.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        limit: {
-          type: 'number',
-          description: 'Number of recent alerts to return (default 20)',
-        },
+    type: 'function',
+    function: {
+      name: 'list_notification_rules',
+      description:
+        'List all notification/alert rules configured for this tenant — thresholds, schedules, and which meters they monitor.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
       },
-      required: [],
     },
   },
   {
-    name: 'get_dashboard_summary',
-    description:
-      'Get a high-level summary: total meters, devices, locations, readings in the last 24 hours, and any meters that have not reported recently.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {},
-      required: [],
+    type: 'function',
+    function: {
+      name: 'get_recent_alerts',
+      description:
+        'Get the most recent notification history — which rules fired, when, and whether emails were sent successfully.',
+      parameters: {
+        type: 'object',
+        properties: {
+          limit: {
+            type: 'number',
+            description: 'Number of recent alerts to return (default 20)',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_dashboard_summary',
+      description:
+        'Get a high-level summary: total meters, devices, locations, readings in the last 24 hours, and any meters that have not reported recently.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
     },
   },
 ];
@@ -109,17 +124,17 @@ async function executeTool(
         const limit = Math.min(toolInput.limit ?? 50, 200);
         const result = await query(
           env,
-          `SELECT m.meter_id, m.name, m.unit, m.type,
+          `SELECT m.meter_id, m.name, m.serial_number,
                   l.name AS location_name,
-                  (SELECT mr.value FROM meter_reading mr
+                  (SELECT mr.calculated_kwh FROM meter_reading mr
                    WHERE mr.meter_id = m.meter_id
-                   ORDER BY mr.timestamp DESC LIMIT 1) AS latest_value,
-                  (SELECT mr.timestamp FROM meter_reading mr
+                   ORDER BY mr.created_at DESC LIMIT 1) AS latest_kwh,
+                  (SELECT mr.created_at FROM meter_reading mr
                    WHERE mr.meter_id = m.meter_id
-                   ORDER BY mr.timestamp DESC LIMIT 1) AS latest_timestamp
+                   ORDER BY mr.created_at DESC LIMIT 1) AS latest_reading_at
            FROM meter m
            LEFT JOIN location l ON m.location_id = l.location_id
-           WHERE m.tenant_id = $1
+           WHERE m.tenant_id = $1 AND m.active = true
            ORDER BY m.name ASC
            LIMIT $2`,
           [tenantId, limit]
@@ -131,10 +146,9 @@ async function executeTool(
         const meterId = toolInput.meter_id;
         const days = Math.min(toolInput.days ?? 7, 90);
         const limit = Math.min(toolInput.limit ?? 100, 500);
-        // Verify meter belongs to tenant
         const meterCheck = await query(
           env,
-          `SELECT meter_id, name, unit FROM meter WHERE meter_id = $1 AND tenant_id = $2`,
+          `SELECT meter_id, name, serial_number FROM meter WHERE meter_id = $1 AND tenant_id = $2`,
           [meterId, tenantId]
         );
         if (meterCheck.rows.length === 0) {
@@ -142,12 +156,13 @@ async function executeTool(
         }
         const result = await query(
           env,
-          `SELECT value, timestamp, quality
+          `SELECT created_at, calculated_kwh, kwh, kw, kva, kvar, pf, amperage,
+                  voltage_a_n, voltage_b_n, voltage_c_n, peak_kw
            FROM meter_reading
            WHERE meter_id = $1
              AND tenant_id = $2
-             AND timestamp >= NOW() - ($3 || ' days')::INTERVAL
-           ORDER BY timestamp DESC
+             AND created_at >= NOW() - ($3 || ' days')::INTERVAL
+           ORDER BY created_at DESC
            LIMIT $4`,
           [meterId, tenantId, days, limit]
         );
@@ -194,18 +209,18 @@ async function executeTool(
           query(
             env,
             `SELECT COUNT(*) AS total FROM meter_reading
-             WHERE tenant_id = $1 AND timestamp >= NOW() - INTERVAL '24 hours'`,
+             WHERE tenant_id = $1 AND created_at >= NOW() - INTERVAL '24 hours'`,
             [tenantId]
           ),
           query(
             env,
             `SELECT m.meter_id, m.name,
-                    MAX(mr.timestamp) AS last_reading
+                    MAX(mr.created_at) AS last_reading
              FROM meter m
              LEFT JOIN meter_reading mr ON mr.meter_id = m.meter_id AND mr.tenant_id = m.tenant_id
-             WHERE m.tenant_id = $1
+             WHERE m.tenant_id = $1 AND m.active = true
              GROUP BY m.meter_id, m.name
-             HAVING MAX(mr.timestamp) < NOW() - INTERVAL '48 hours' OR MAX(mr.timestamp) IS NULL
+             HAVING MAX(mr.created_at) < NOW() - INTERVAL '48 hours' OR MAX(mr.created_at) IS NULL
              ORDER BY last_reading ASC NULLS FIRST
              LIMIT 10`,
             [tenantId]
@@ -234,9 +249,9 @@ async function executeTool(
 app.post('/', async (c) => {
   const tenantId = c.get('tenantId');
 
-  if (!c.env.ANTHROPIC_API_KEY) {
+  if (!c.env.GROQ_API_KEY) {
     return c.json(
-      { success: false, message: 'AI chat is not configured (ANTHROPIC_API_KEY missing)' },
+      { success: false, message: 'AI chat is not configured (GROQ_API_KEY missing)' },
       503
     );
   }
@@ -253,19 +268,10 @@ app.post('/', async (c) => {
     return c.json({ success: false, message: 'message is required' }, 400);
   }
 
-  const client = new Anthropic({ apiKey: c.env.ANTHROPIC_API_KEY });
-
-  // Build the message history — validate roles
-  const allowedRoles = new Set(['user', 'assistant']);
-  const messages: Anthropic.MessageParam[] = [
-    ...history
-      .filter((h) => allowedRoles.has(h.role) && typeof h.content === 'string')
-      .map((h) => ({
-        role: h.role as 'user' | 'assistant',
-        content: h.content,
-      })),
-    { role: 'user' as const, content: message.trim() },
-  ];
+  const client = new OpenAI({
+    apiKey: c.env.GROQ_API_KEY,
+    baseURL: 'https://api.groq.com/openai/v1',
+  });
 
   const systemPrompt = `You are an AI assistant for MeterItPro, a facility energy management platform.
 You help facility managers understand their meter data, identify issues, and make sense of their energy consumption.
@@ -280,71 +286,76 @@ Guidelines:
 - If a meter has not reported in over 48 hours, flag it as potentially offline.
 - Today's date: ${new Date().toISOString().split('T')[0]}`;
 
-  // Agentic loop — run until Claude stops using tools
+  // Build message history — validate roles
+  const allowedRoles = new Set(['user', 'assistant']);
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: 'system', content: systemPrompt },
+    ...history
+      .filter((h) => allowedRoles.has(h.role) && typeof h.content === 'string')
+      .map((h) => ({
+        role: h.role as 'user' | 'assistant',
+        content: h.content,
+      })),
+    { role: 'user', content: message.trim() },
+  ];
+
+  // Agentic loop — run until the model stops calling tools
   const toolsUsed: string[] = [];
-  let loopMessages = [...messages];
   const MAX_ITERATIONS = 8;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const response = await client.messages.create({
-      model: 'claude-opus-4-6',
-      max_tokens: 2048,
-      thinking: { type: 'adaptive' },
-      system: systemPrompt,
+    const response = await client.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages,
       tools: TOOLS,
-      messages: loopMessages,
+      tool_choice: 'auto',
     });
 
-    // If Claude is done (stop_reason = 'end_turn' and no tool use), return the response
-    const textBlocks = response.content.filter((b): b is Anthropic.TextBlock => b.type === 'text');
-    const toolUseBlocks = response.content.filter(
-      (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use'
-    );
+    const choice = response.choices[0];
+    const assistantMsg = choice.message;
+    messages.push(assistantMsg);
 
-    if (toolUseBlocks.length === 0) {
-      const responseText = textBlocks.map((b) => b.text).join('\n');
+    // No tool calls — we're done
+    if (!assistantMsg.tool_calls || assistantMsg.tool_calls.length === 0) {
       return c.json({
         success: true,
-        response: responseText,
+        response: assistantMsg.content ?? '',
         tools_used: toolsUsed,
       });
     }
 
-    // Execute all tool calls in parallel
+    // Execute all tool calls in parallel (only function-type calls)
+    const functionCalls = assistantMsg.tool_calls.filter((t) => t.type === 'function') as OpenAI.Chat.ChatCompletionMessageFunctionToolCall[];
     const toolResults = await Promise.all(
-      toolUseBlocks.map(async (block) => {
-        toolsUsed.push(block.name);
-        const result = await executeTool(c.env, tenantId, block.name, block.input as Record<string, any>);
+      functionCalls.map(async (toolCall) => {
+        toolsUsed.push(toolCall.function.name);
+        let toolInput: Record<string, any> = {};
+        try {
+          toolInput = JSON.parse(toolCall.function.arguments);
+        } catch {
+          // leave as empty object
+        }
+        const result = await executeTool(c.env, tenantId, toolCall.function.name, toolInput);
         return {
-          type: 'tool_result' as const,
-          tool_use_id: block.id,
+          role: 'tool' as const,
+          tool_call_id: toolCall.id,
           content: result,
         };
       })
     );
 
-    // Append assistant response + tool results to the conversation
-    loopMessages = [
-      ...loopMessages,
-      { role: 'assistant' as const, content: response.content },
-      { role: 'user' as const, content: toolResults },
-    ];
+    messages.push(...toolResults);
   }
 
-  // If we exhausted iterations, return whatever text we have
-  const lastAssistantMsg = [...loopMessages].reverse().find(
-    (m) => m.role === 'assistant'
-  );
-  const lastText =
-    Array.isArray(lastAssistantMsg?.content)
-      ? (lastAssistantMsg!.content as Anthropic.ContentBlock[])
-          .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-          .map((b) => b.text)
-          .join('\n')
-      : '';
+  // Exhausted iterations — return whatever text we have
+  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant') as
+    | OpenAI.Chat.ChatCompletionAssistantMessageParam
+    | undefined;
   return c.json({
     success: true,
-    response: lastText || 'I was unable to complete the analysis. Please try again.',
+    response:
+      (typeof lastAssistant?.content === 'string' ? lastAssistant.content : '') ||
+      'I was unable to complete the analysis. Please try again.',
     tools_used: toolsUsed,
   });
 });
