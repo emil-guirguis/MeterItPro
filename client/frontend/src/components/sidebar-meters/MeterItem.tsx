@@ -15,10 +15,41 @@ export const MeterItem: React.FC<MeterItemProps> = ({
   isFavorite,
   isExpanded,
   isSelected,
+  isVirtual = false,
   onExpand,
   onSelect,
   onFavoriteToggle,
 }) => {
+  if (isVirtual) {
+    return (
+      <div className={`meter-item ${isSelected ? 'selected' : ''}`}>
+        <div className="meter-item-content" onClick={onSelect}>
+          {/* Virtual meters have no expand arrow — indent to align with physical meters */}
+          <span className="expand-button-placeholder" />
+          <span className="meter-name">{meter.name}</span>
+        </div>
+
+        {/* Star button — favorites the virtual meter itself */}
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            onFavoriteToggle();
+          }}
+          className={`favorite-button ${isFavorite ? 'favorited' : 'not-favorited'}`}
+          aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          sx={{ padding: '4px' }}
+        >
+          {isFavorite
+            ? <Star sx={{ fontSize: '20px', color: '#ffc107' }} />
+            : <StarOutline sx={{ fontSize: '20px', color: '#9e9e9e' }} />
+          }
+        </IconButton>
+      </div>
+    );
+  }
+
   return (
     <div className={`meter-item ${isSelected ? 'selected' : ''}`}>
       <div className="meter-item-content" onClick={() => { onExpand(); onSelect(); }}>

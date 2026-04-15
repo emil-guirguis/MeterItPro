@@ -126,6 +126,23 @@ class MeterReadingService {
     }
   }
 
+  // Get summed last reading for a virtual meter (sums latest kwh from all components)
+  async getVirtualMeterLastReading(tenantId: string, meterId: string): Promise<any> {
+    try {
+      const response: AxiosResponse<{ success: boolean; data: any }> = await this.apiClient.get(
+        `/meterreadings/virtual-last`,
+        { params: { tenantId, meterId } }
+      );
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.message || 'Failed to fetch virtual meter reading';
+        throw new Error(message);
+      }
+      throw new Error('Network error occurred');
+    }
+  }
+
   // Get aggregated consumption data for graph display
   async getConsumptionData(meterId: string, meterElementId: string, timePeriod: string, startDate: string, endDate: string, tzOffset: number): Promise<{ label_key: string | number; calculated_kwh: number }[]> {
     try {
@@ -152,6 +169,54 @@ class MeterReadingService {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const message = error.response?.data?.message || 'Failed to fetch demand data';
+        throw new Error(message);
+      }
+      throw new Error('Network error occurred');
+    }
+  }
+
+  // Get per-component latest kWh for a virtual meter
+  async getVirtualComponentsLast(meterId: string): Promise<{ select_meter_element_id: number; kwh: number }[]> {
+    try {
+      const response: AxiosResponse<{ success: boolean; data: any[] }> = await this.apiClient.get('/meterreadings/virtual-components-last', {
+        params: { meterId },
+      });
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.message || 'Failed to fetch virtual component readings';
+        throw new Error(message);
+      }
+      throw new Error('Network error occurred');
+    }
+  }
+
+  // Get aggregated consumption summed across all meter_virtual components
+  async getVirtualConsumptionData(meterId: string, timePeriod: string, startDate: string, endDate: string, tzOffset: number, excludeIds?: number[]): Promise<{ label_key: string | number; calculated_kwh: number }[]> {
+    try {
+      const params: any = { meterId, timePeriod, startDate, endDate, tzOffset };
+      if (excludeIds && excludeIds.length > 0) params.excludeIds = excludeIds.join(',');
+      const response: AxiosResponse<{ success: boolean; data: any[] }> = await this.apiClient.get('/meterreadings/virtual-consumption', { params });
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.message || 'Failed to fetch virtual consumption data';
+        throw new Error(message);
+      }
+      throw new Error('Network error occurred');
+    }
+  }
+
+  // Get aggregated demand summed across all meter_virtual components
+  async getVirtualDemandData(meterId: string, timePeriod: string, startDate: string, endDate: string, tzOffset: number, excludeIds?: number[]): Promise<{ label_key: string | number; power: number }[]> {
+    try {
+      const params: any = { meterId, timePeriod, startDate, endDate, tzOffset };
+      if (excludeIds && excludeIds.length > 0) params.excludeIds = excludeIds.join(',');
+      const response: AxiosResponse<{ success: boolean; data: any[] }> = await this.apiClient.get('/meterreadings/virtual-demand', { params });
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.message || 'Failed to fetch virtual demand data';
         throw new Error(message);
       }
       throw new Error('Network error occurred');

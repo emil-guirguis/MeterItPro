@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import { useMeterSelection } from '../../contexts/MeterSelectionContext';
 import { useAuth } from '../../hooks/useAuth';
 import { ConsumptionGraph } from './ConsumptionGraph';
 import { DemandGraph } from './DemandGraph';
+import { meterService, formatItemLabel, type SelectedItem } from '../../services/meterService';
+import { meterReadingService } from '../../services/meterReadingService';
 import './DetailedMeterReadingView.css';
 
 interface MeterInfo {
@@ -50,6 +54,8 @@ interface DetailedMeterReadingViewProps {
   loading?: boolean;
   error?: string | null;
   onViewAllReadings?: () => void;
+  isVirtual?: boolean;
+  installationDate?: string | null;
 }
 
 type TimePeriod = 'today' | 'weekly' | 'monthly' | 'yearly';
@@ -61,22 +67,80 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
   loading = false,
   error = null,
   onViewAllReadings,
+  isVirtual = false,
+  installationDate,
 }) => {
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('today');
   const [selectedGraphType, setSelectedGraphType] = useState<GraphType>('consumption');
   const [offset, setOffset] = useState<number>(0);
+  const [virtualComponents, setVirtualComponents] = useState<SelectedItem[]>([]);
+  const [checkedComponents, setCheckedComponents] = useState<Set<string>>(new Set());
+  const [componentKwh, setComponentKwh] = useState<Map<number, number>>(new Map());
+  const [componentKwhLoaded, setComponentKwhLoaded] = useState(false);
 
   const { selectedMeter, selectedElement } = useMeterSelection();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (!isVirtual || !selectedMeter) return;
+    meterService.getVirtualMeterConfig(selectedMeter)
+      .then((items) => {
+        setVirtualComponents(items);
+        setCheckedComponents(new Set(items.map((item) => item.id)));
+      })
+      .catch(() => setVirtualComponents([]));
+  }, [isVirtual, selectedMeter]);
+
+  useEffect(() => {
+    if (!isVirtual || !selectedMeter) return;
+    setComponentKwhLoaded(false);
+    meterReadingService.getVirtualComponentsLast(selectedMeter)
+      .then((rows) => {
+        console.log('[VirtualMeter] virtual-components-last rows:', rows);
+        const map = new Map<number, number>();
+        rows.forEach((r) => map.set(Number(r.select_meter_element_id), Number(r.kwh)));
+        console.log('[VirtualMeter] componentKwh map:', [...map.entries()]);
+        setComponentKwh(map);
+        setComponentKwhLoaded(true);
+      })
+      .catch((err) => {
+        console.error('[VirtualMeter] virtual-components-last error:', err);
+        setComponentKwh(new Map());
+        setComponentKwhLoaded(true);
+      });
+  }, [isVirtual, selectedMeter]);
+
+  const excludeIds = useMemo(() => {
+    return virtualComponents
+      .filter((item) => !checkedComponents.has(item.id))
+      .map((item) => item.selectionType === 'element' ? item.meter_element_id : item.meter_id);
+  }, [virtualComponents, checkedComponents]);
+
+  const displayTotal = useMemo(() => {
+    console.log('[VirtualMeter] displayTotal calc — isVirtual:', isVirtual, 'mapSize:', componentKwh.size, 'checked:', checkedComponents.size, 'components:', virtualComponents.length);
+    if (!isVirtual || componentKwh.size === 0) return reading.activeEnergyTotal;
+    const result = virtualComponents
+      .filter((item) => checkedComponents.has(item.id))
+      .reduce((sum, item) => {
+        const elementId = item.selectionType === 'element' ? Number(item.meter_element_id) : Number(item.meter_id);
+        const kwh = componentKwh.get(elementId) ?? 0;
+        console.log('[VirtualMeter] item:', item.id, 'elementId:', elementId, 'kwh:', kwh);
+        return sum + kwh;
+      }, 0);
+    console.log('[VirtualMeter] displayTotal result:', result);
+    return result;
+  }, [isVirtual, virtualComponents, checkedComponents, componentKwh, reading.activeEnergyTotal]);
 
   const handleTimePeriodChange = (period: TimePeriod) => {
     setSelectedTimePeriod(period);
     setOffset(0);
   };
 
-  const formatNumber = (value: number | null | undefined, decimals: number = 2): string => {
-    if (value === null || value === undefined || isNaN(value)) return '0.00';
-    return value.toFixed(decimals);
+  const formatNumber = (value: number | string | null | undefined, decimals: number = 2): string => {
+    if (value === null || value === undefined) return '0.00';
+    const num = Number(value);
+    if (isNaN(num)) return '0.00';
+    return num.toFixed(decimals);
   };
 
   const getPeriodSubtitle = (): string => {
@@ -101,17 +165,27 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
   return (
     <div className="detailed-reading-view">
       {/* Main Content */}
-      <div className="main-content">
+      <div className={`main-content${isVirtual ? ' main-content--virtual' : ''}`}>
         {/* Left: Meter Information */}
         <div className="meter-info-card">
           <div className="info-row">
             <span className="info-label">Description</span>
             <span className="info-value info-value--bold">{meterInfo.description}</span>
           </div>
-          <div className="info-row">
-            <span className="info-label">Serial Number</span>
-            <span className="info-value">{meterInfo.serialNumber}</span>
-          </div>
+          {!isVirtual && (
+            <div className="info-row">
+              <span className="info-label">Serial Number</span>
+              <span className="info-value">{meterInfo.serialNumber}</span>
+            </div>
+          )}
+          {isVirtual && installationDate && (
+            <div className="info-row">
+              <span className="info-label">Installation Date</span>
+              <span className="info-value">
+                {new Date(installationDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </span>
+            </div>
+          )}
           <div className="info-row">
             <span className="info-label">Reading Date</span>
             <span className="info-value">
@@ -121,16 +195,20 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
           <hr className="meter-info-divider" />
           <div className="info-row">
             <span className="total-label">Total kWh</span>
-            <span className="total-value">{formatNumber(reading.activeEnergyTotal)} <span className="total-unit">kWh</span></span>
+            <span className="total-value">{formatNumber(displayTotal)} <span className="total-unit">kWh</span></span>
           </div>
-          <div className="info-row">
-            <span className="total-label">Peak Demand</span>
-            <span className="total-value">{formatNumber(reading.maximumDemandReal)} <span className="total-unit">kW</span></span>
-          </div>
-          <div className="info-row">
-            <span className="total-label">Frequency</span>
-            <span className="total-value">{formatNumber(reading.frequency)} <span className="total-unit">Hz</span></span>
-          </div>
+          {!isVirtual && (
+            <>
+              <div className="info-row">
+                <span className="total-label">Peak Demand</span>
+                <span className="total-value">{formatNumber(reading.maximumDemandReal)} <span className="total-unit">kW</span></span>
+              </div>
+              <div className="info-row">
+                <span className="total-label">Frequency</span>
+                <span className="total-value">{formatNumber(reading.frequency)} <span className="total-unit">Hz</span></span>
+              </div>
+            </>
+          )}
 
           {onViewAllReadings && (
             <div className="meter-info-card-actions">
@@ -145,9 +223,44 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
           )}
         </div>
 
-        {/* Right Column: Totals + Phase Table */}
-        <div className="right-column">
-          {/* Phase Data Table */}
+        {/* Right Column: Virtual components list OR Phase Table */}
+        {isVirtual && (
+          <div className="meter-info-card virtual-components-card">
+            <div className={`virtual-components-list${virtualComponents.length > 4 ? ' virtual-components-list--columns' : ''}`}>
+              {virtualComponents.length === 0 ? (
+                <span className="info-value" style={{ color: '#888' }}>No components configured</span>
+              ) : (
+                virtualComponents.map((item) => (
+                  <div key={item.id} className="virtual-component-item">
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={checkedComponents.has(item.id)}
+                          onChange={() => {
+                            setCheckedComponents((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(item.id)) {
+                                next.delete(item.id);
+                              } else {
+                                next.add(item.id);
+                              }
+                              return next;
+                            });
+                          }}
+                          size="small"
+                          sx={{ py: 0.25, pl: 0.5, pr: 0.75 }}
+                        />
+                      }
+                      label={formatItemLabel(item)}
+                      sx={{ margin: 0, '& .MuiFormControlLabel-label': { fontSize: 14, color: '#333' } }}
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+        {!isVirtual && <div className="right-column">
           <div className="phase-data-section">
             <table className="phase-data-table">
               <thead>
@@ -220,7 +333,7 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
               </tbody>
             </table>
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* Consumption Graphs Section - Updated Design */}
@@ -233,21 +346,25 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
         <div className="graph-container">
           {/* Graph Area */}
           <div className="graph-area">
-            {selectedGraphType === 'consumption' && selectedMeter && selectedElement && user?.client ? (
+            {selectedGraphType === 'consumption' && selectedMeter && (isVirtual || selectedElement) && user?.client ? (
               <ConsumptionGraph
                 meterId={selectedMeter}
-                meterElementId={selectedElement}
+                meterElementId={selectedElement || ''}
                 tenantId={user.client}
                 timePeriod={selectedTimePeriod}
                 offset={offset}
+                isVirtual={isVirtual}
+                excludeIds={isVirtual ? excludeIds : undefined}
               />
-            ) : selectedGraphType === 'demand' && selectedMeter && selectedElement && user?.client ? (
+            ) : selectedGraphType === 'demand' && selectedMeter && (isVirtual || selectedElement) && user?.client ? (
               <DemandGraph
                 meterId={selectedMeter}
-                meterElementId={selectedElement}
+                meterElementId={selectedElement || ''}
                 tenantId={user.client}
                 timePeriod={selectedTimePeriod}
                 offset={offset}
+                isVirtual={isVirtual}
+                excludeIds={isVirtual ? excludeIds : undefined}
               />
             ) : (
               <div className="graph-placeholder">

@@ -17,6 +17,8 @@ interface DemandGraphProps {
   tenantId: string;
   timePeriod: 'today' | 'weekly' | 'monthly' | 'yearly';
   offset?: number;
+  isVirtual?: boolean;
+  excludeIds?: number[];
 }
 
 interface ChartData {
@@ -123,6 +125,8 @@ export const DemandGraph: React.FC<DemandGraphProps> = ({
   meterElementId,
   timePeriod,
   offset = 0,
+  isVirtual = false,
+  excludeIds,
 }) => {
   const [data, setData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,18 +138,26 @@ export const DemandGraph: React.FC<DemandGraphProps> = ({
       setError(null);
       try {
         const now = new Date();
-        // getTimezoneOffset() returns minutes BEHIND UTC (negative for UTC+), so negate it
         const tzOffsetMinutes = -now.getTimezoneOffset();
         const { startDate, endDate } = getDateRange(timePeriod, offset);
 
-        const rows = await meterReadingService.getDemandData(
-          meterId,
-          meterElementId,
-          timePeriod,
-          startDate.toISOString(),
-          endDate.toISOString(),
-          tzOffsetMinutes,
-        );
+        const rows = isVirtual
+          ? await meterReadingService.getVirtualDemandData(
+              meterId,
+              timePeriod,
+              startDate.toISOString(),
+              endDate.toISOString(),
+              tzOffsetMinutes,
+              excludeIds,
+            )
+          : await meterReadingService.getDemandData(
+              meterId,
+              meterElementId,
+              timePeriod,
+              startDate.toISOString(),
+              endDate.toISOString(),
+              tzOffsetMinutes,
+            );
         setData(buildChartData(rows, timePeriod, offset));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch demand data');
@@ -155,7 +167,7 @@ export const DemandGraph: React.FC<DemandGraphProps> = ({
     };
 
     fetchData();
-  }, [meterId, meterElementId, timePeriod, offset]);
+  }, [meterId, meterElementId, timePeriod, offset, isVirtual, excludeIds]);
 
   if (loading) return <div className="demand-graph-loading">Loading chart...</div>;
   if (error) return <div className="demand-graph-error">Error: {error}</div>;

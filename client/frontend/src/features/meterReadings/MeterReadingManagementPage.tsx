@@ -31,12 +31,16 @@ export const MeterReadingManagementPage: React.FC = () => {
   const [detailedReading, setDetailedReading] = React.useState<{ meterInfo: MeterInfo; reading: MeterReadingData } | null>(null);
   const [detailedViewLoading, setDetailedViewLoading] = React.useState(false);
   const [detailedViewError, setDetailedViewError] = React.useState<string | null>(null);
+  const [virtualMeterData, setVirtualMeterData] = React.useState<any | null>(null);
+  const [virtualViewLoading, setVirtualViewLoading] = React.useState(false);
+  const [virtualViewError, setVirtualViewError] = React.useState<string | null>(null);
 
   const meterId = searchParams.get('meterId');
   const elementId = searchParams.get('elementId');
   const elementName = searchParams.get('elementName');
   const elementNumber = searchParams.get('elementNumber');
   const urlGridType = searchParams.get('gridType') as 'simple' | 'baselist' | null;
+  const isVirtual = searchParams.get('virtual') === 'true';
 
   console.log('[MeterReadingManagementPage] URL params - meterId:', meterId, 'elementId:', elementId, 'elementName:', elementName, 'elementNumber:', elementNumber, 'gridType:', urlGridType);
   console.log('[MeterReadingManagementPage] auth.user?.client:', auth.user?.client);
@@ -126,6 +130,31 @@ export const MeterReadingManagementPage: React.FC = () => {
   }, [meterId, elementId, auth.user?.client, urlGridType]);
 
   /**
+   * Fetch virtual meter data when virtual=true is in the URL
+   */
+  React.useEffect(() => {
+    const fetchVirtualMeter = async () => {
+      if (isVirtual && meterId && auth.user?.client) {
+        setVirtualViewLoading(true);
+        setVirtualViewError(null);
+        setVirtualMeterData(null);
+        try {
+          const data = await meterReadingService.getVirtualMeterLastReading(auth.user.client, meterId);
+          setVirtualMeterData(data);
+        } catch (error) {
+          setVirtualViewError(error instanceof Error ? error.message : 'Failed to load virtual meter');
+        } finally {
+          setVirtualViewLoading(false);
+        }
+      } else if (!isVirtual) {
+        setVirtualMeterData(null);
+        setVirtualViewError(null);
+      }
+    };
+    fetchVirtualMeter();
+  }, [isVirtual, meterId, auth.user?.client]);
+
+  /**
    * Handle navigation to the meter reading list
    */
   const handleNavigateToList = React.useCallback(() => {
@@ -148,7 +177,32 @@ export const MeterReadingManagementPage: React.FC = () => {
 
   return (
     <div className="meter-reading-management-page">
-      {showDetailedView && elementId ? (
+      {isVirtual && meterId ? (
+        <DetailedMeterReadingView
+          meterInfo={{
+            driver: 'Virtual',
+            description: virtualMeterData?.meter_name || '',
+            serialNumber: '',
+          }}
+          reading={{
+            activeEnergyTotal: virtualMeterData?.total_kwh ?? 0,
+            maximumDemandReal: 0,
+            voltagePhaseA: 0, voltagePhaseB: 0, voltagePhaseC: 0,
+            voltageAB: 0, voltageBC: 0, voltageCA: 0,
+            currentPhaseA: 0, currentPhaseB: 0, currentPhaseC: 0, currentTotal: 0,
+            powerPhaseA: 0, powerPhaseB: 0, powerPhaseC: 0, powerTotal: 0,
+            apparentPowerPhaseA: 0, apparentPowerPhaseB: 0, apparentPowerPhaseC: 0, apparentPowerTotal: 0,
+            reactivePowerPhaseA: 0, reactivePowerPhaseB: 0, reactivePowerPhaseC: 0, reactivePowerTotal: 0,
+            powerFactorPhaseA: 0, powerFactorPhaseB: 0, powerFactorPhaseC: 0, powerFactorTotal: 0,
+            frequency: 0,
+            timestamp: virtualMeterData?.last_reading_date ? new Date(virtualMeterData.last_reading_date) : new Date(),
+          }}
+          loading={virtualViewLoading}
+          error={virtualViewError}
+          isVirtual={true}
+          installationDate={virtualMeterData?.installation_date}
+        />
+      ) : showDetailedView && elementId ? (
         <>
           {console.log('[MeterReadingManagementPage] Rendering detailed view branch')}
           {detailedReading ? (

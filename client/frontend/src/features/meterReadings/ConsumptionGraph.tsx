@@ -17,6 +17,8 @@ interface ConsumptionGraphProps {
   tenantId: string;
   timePeriod: 'today' | 'weekly' | 'monthly' | 'yearly';
   offset?: number;
+  isVirtual?: boolean;
+  excludeIds?: number[];
 }
 
 interface ChartData {
@@ -123,6 +125,8 @@ export const ConsumptionGraph: React.FC<ConsumptionGraphProps> = ({
   meterElementId,
   timePeriod,
   offset = 0,
+  isVirtual = false,
+  excludeIds,
 }) => {
   const [data, setData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,18 +138,26 @@ export const ConsumptionGraph: React.FC<ConsumptionGraphProps> = ({
       setError(null);
       try {
         const now = new Date();
-        // getTimezoneOffset() returns minutes BEHIND UTC (negative for UTC+), so negate it
         const tzOffsetMinutes = -now.getTimezoneOffset();
         const { startDate, endDate } = getDateRange(timePeriod, offset);
 
-        const rows = await meterReadingService.getConsumptionData(
-          meterId,
-          meterElementId,
-          timePeriod,
-          startDate.toISOString(),
-          endDate.toISOString(),
-          tzOffsetMinutes,
-        );
+        const rows = isVirtual
+          ? await meterReadingService.getVirtualConsumptionData(
+              meterId,
+              timePeriod,
+              startDate.toISOString(),
+              endDate.toISOString(),
+              tzOffsetMinutes,
+              excludeIds,
+            )
+          : await meterReadingService.getConsumptionData(
+              meterId,
+              meterElementId,
+              timePeriod,
+              startDate.toISOString(),
+              endDate.toISOString(),
+              tzOffsetMinutes,
+            );
         setData(buildChartData(rows, timePeriod, offset));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch consumption data');
@@ -155,7 +167,7 @@ export const ConsumptionGraph: React.FC<ConsumptionGraphProps> = ({
     };
 
     fetchData();
-  }, [meterId, meterElementId, timePeriod, offset]);
+  }, [meterId, meterElementId, timePeriod, offset, isVirtual, excludeIds]);
 
   if (loading) return <div className="consumption-graph-loading">Loading chart...</div>;
   if (error) return <div className="consumption-graph-error">Error: {error}</div>;

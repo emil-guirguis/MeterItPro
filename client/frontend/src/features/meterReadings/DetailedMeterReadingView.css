@@ -15,6 +15,36 @@
   margin-bottom: 32px;
 }
 
+.main-content--virtual {
+  grid-template-columns: 1fr 1.65fr;
+}
+
+.virtual-components-card {
+  gap: 12px;
+}
+
+.virtual-components-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.virtual-components-list--columns {
+  column-width: 220px;
+  column-gap: 24px;
+  display: block;
+}
+
+.virtual-component-item {
+  font-size: 14px;
+  color: #333;
+  padding: 4px 0;
+  border-bottom: 1px solid #f0f0f0;
+  break-inside: avoid;
+}
+
+
 .right-column {
   display: flex;
   flex-direction: column;

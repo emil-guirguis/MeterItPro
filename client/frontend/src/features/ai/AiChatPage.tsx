@@ -108,7 +108,7 @@ export const AiChatPage: React.FC = () => {
       {/* Header */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h5" fontWeight={600}>
-          AI Assistant
+          AI Assistant (Zenith)
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Ask questions about your meters, readings, and alerts.

@@ -140,7 +140,7 @@ const staticMenuItems: MenuItem[] = [
   },
   {
     id: 'ai-chat',
-    label: 'AI Assistant',
+    label: 'AI Assistant (Zenith)',
     icon: 'smart_toy',
     path: '/ai-chat',
   },
@@ -224,13 +224,21 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
     (meterId: string, elementId: string, elementName?: string, elementNumber?: number, gridType?: 'simple' | 'baselist') => {
       setActiveSection('meters');
       setSelectedMeter(String(meterId));
-      setSelectedElement(String(elementId), elementName, elementNumber ? Number(elementNumber) : undefined);
       const params = new URLSearchParams();
       params.set('meterId', String(meterId));
-      params.set('elementId', String(elementId));
-      if (elementName) params.set('elementName', elementName);
-      if (elementNumber) params.set('elementNumber', String(elementNumber));
-      if (gridType) params.set('gridType', gridType);
+
+      if (elementId === '0') {
+        // Virtual meter — navigate using virtual=true flag, no elementId
+        setSelectedElement('0', elementName, undefined);
+        params.set('virtual', 'true');
+      } else {
+        setSelectedElement(String(elementId), elementName, elementNumber ? Number(elementNumber) : undefined);
+        params.set('elementId', String(elementId));
+        if (elementName) params.set('elementName', elementName);
+        if (elementNumber) params.set('elementNumber', String(elementNumber));
+        if (gridType) params.set('gridType', gridType);
+      }
+
       navigateToMeterReadings(params);
     },
     [setSelectedMeter, setSelectedElement, navigateToMeterReadings]
@@ -241,13 +249,21 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
     (meterId: string, elementId: string, elementName?: string, elementNumber?: number, gridType?: 'simple' | 'baselist') => {
       setActiveSection('favorites');
       setSelectedMeter(String(meterId));
-      setSelectedElement(String(elementId), elementName, elementNumber ? Number(elementNumber) : undefined);
       const params = new URLSearchParams();
       params.set('meterId', String(meterId));
-      params.set('elementId', String(elementId));
-      if (elementName) params.set('elementName', elementName);
-      if (elementNumber) params.set('elementNumber', String(elementNumber));
-      if (gridType) params.set('gridType', gridType);
+
+      if (elementId === '0') {
+        // Virtual meter — navigate using virtual=true flag, no elementId
+        setSelectedElement('0', elementName, undefined);
+        params.set('virtual', 'true');
+      } else {
+        setSelectedElement(String(elementId), elementName, elementNumber ? Number(elementNumber) : undefined);
+        params.set('elementId', String(elementId));
+        if (elementName) params.set('elementName', elementName);
+        if (elementNumber) params.set('elementNumber', String(elementNumber));
+        if (gridType) params.set('gridType', gridType);
+      }
+
       navigateToMeterReadings(params);
     },
     [setSelectedMeter, setSelectedElement, navigateToMeterReadings]

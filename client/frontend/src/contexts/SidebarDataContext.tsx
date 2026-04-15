@@ -50,6 +50,9 @@ export const SidebarDataProvider: React.FC<{
       const loadedMeters = metersData.map((m: any) => ({
         id: m.id,
         name: m.name,
+        is_virtual: m.is_virtual,
+        installation_date: m.installation_date,
+        is_favorited: m.is_favorited,
         tenantId,
         createdDate: new Date(),
         updatedDate: new Date(),
@@ -97,11 +100,19 @@ export const SidebarDataProvider: React.FC<{
 
       const meterIdNum = parseInt(meterId);
       const elementIdNum = parseInt(elementId);
+      const isVirtualMeter = elementIdNum === 0;
 
       try {
-        const elements = meterElements[meterIdNum] || meterElements[meterId] || [];
-        const element = elements.find((el: any) => Number(el.meter_element_id) === elementIdNum);
-        const isFavorited = element ? !!element.is_favorited : false;
+        let isFavorited: boolean;
+
+        if (isVirtualMeter) {
+          const meter = meters.find((m: any) => Number(m.id) === meterIdNum);
+          isFavorited = !!(meter as any)?.is_favorited;
+        } else {
+          const elements = meterElements[meterIdNum] || meterElements[meterId] || [];
+          const element = elements.find((el: any) => Number(el.meter_element_id) === elementIdNum);
+          isFavorited = element ? !!element.is_favorited : false;
+        }
 
         if (isFavorited) {
           const favorite = favorites.find(
@@ -114,45 +125,58 @@ export const SidebarDataProvider: React.FC<{
           setFavorites((prev) =>
             prev.filter((fav) => !(Number(fav.id1) === meterIdNum && Number(fav.id2) === elementIdNum))
           );
-          setMeterElements((prev) => {
-            const updated = { ...prev };
-            const key = (updated[meterIdNum] ? meterIdNum : meterId) as any;
-            if (updated[key]) {
-              updated[key] = updated[key].map((el: any) =>
-                Number(el.meter_element_id) === elementIdNum ? { ...el, is_favorited: false } : el
-              );
-            }
-            return updated;
-          });
+
+          if (isVirtualMeter) {
+            setMeters((prev) =>
+              prev.map((m: any) => Number(m.id) === meterIdNum ? { ...m, is_favorited: false } : m)
+            );
+          } else {
+            setMeterElements((prev) => {
+              const updated = { ...prev };
+              const key = (updated[meterIdNum] ? meterIdNum : meterId) as any;
+              if (updated[key]) {
+                updated[key] = updated[key].map((el: any) =>
+                  Number(el.meter_element_id) === elementIdNum ? { ...el, is_favorited: false } : el
+                );
+              }
+              return updated;
+            });
+          }
         } else {
           await favoritesService.addFavorite(
             parseInt(tenantId),
             parseInt(userId),
             'meter',
             meterIdNum,
-            elementIdNum
+            isVirtualMeter ? 0 : elementIdNum
           );
 
           const updatedFavorites = await favoritesService.getFavorites(parseInt(tenantId), parseInt(userId));
           setFavorites(updatedFavorites);
 
-          setMeterElements((prev) => {
-            const updated = { ...prev };
-            const key = (updated[meterIdNum] ? meterIdNum : meterId) as any;
-            if (updated[key]) {
-              updated[key] = updated[key].map((el: any) =>
-                Number(el.meter_element_id) === elementIdNum ? { ...el, is_favorited: true } : el
-              );
-            }
-            return updated;
-          });
+          if (isVirtualMeter) {
+            setMeters((prev) =>
+              prev.map((m: any) => Number(m.id) === meterIdNum ? { ...m, is_favorited: true } : m)
+            );
+          } else {
+            setMeterElements((prev) => {
+              const updated = { ...prev };
+              const key = (updated[meterIdNum] ? meterIdNum : meterId) as any;
+              if (updated[key]) {
+                updated[key] = updated[key].map((el: any) =>
+                  Number(el.meter_element_id) === elementIdNum ? { ...el, is_favorited: true } : el
+                );
+              }
+              return updated;
+            });
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to update favorite');
         console.error('Error toggling favorite:', err);
       }
     },
-    [tenantId, userId, favorites, meterElements]
+    [tenantId, userId, favorites, meterElements, meters]
   );
 
   const removeFavorite = useCallback(

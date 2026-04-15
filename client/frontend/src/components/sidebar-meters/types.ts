@@ -6,11 +6,14 @@
 import React from 'react';
 
 export interface Meter {
-  meter_id: string;
-  meter_element_id: string;
+  id: string;
+  meter_id?: string;
+  meter_element_id?: string;
   tenantId: string;
   name: string;
-  description?: string;
+  installation_date?: string;
+  is_virtual?: boolean;
+  is_favorited?: boolean;
   createdDate: Date;
   updatedDate: Date;
 }
@@ -63,6 +66,7 @@ export interface MeterItemProps {
   isFavorite: boolean;
   isExpanded: boolean;
   isSelected: boolean;
+  isVirtual?: boolean;
   onExpand: () => void;
   onSelect: () => void;
   onFavoriteToggle: () => void;

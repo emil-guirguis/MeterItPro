@@ -23,6 +23,10 @@ function transformMetersWithElements(rows: any[]) {
       metersMap[row.meter_id] = {
         id: row.meter_id,
         name: row.meter_name,
+        is_virtual: row.is_virtual,
+        installation_date: row.installation_date,
+        is_favorited: false,
+        favorite_id: null,
         elements: [],
       };
     }
@@ -36,6 +40,10 @@ function transformMetersWithElements(rows: any[]) {
         is_favorited: row.is_favorited,
         favorite_id: row.favorite_id,
       });
+    } else if (row.is_virtual) {
+      // Virtual meter has no elements — store its favorite status on the meter itself
+      metersMap[row.meter_id].is_favorited = row.is_favorited;
+      metersMap[row.meter_id].favorite_id = row.favorite_id;
     }
   });
 
@@ -56,6 +64,8 @@ app.get('/meters', async (c) => {
       SELECT
         m.meter_id,
         m.name as meter_name,
+        m.is_virtual,
+        m.installation_date,
         me.meter_element_id,
         me.element,
         me.name,
@@ -65,8 +75,12 @@ app.get('/meters', async (c) => {
           ELSE
             COALESCE(m.name, 'Unknown Meter/Element')
         END as favorite_name,
-        CASE WHEN f.favorite_id IS NOT NULL THEN true ELSE false END as is_favorited,
-        f.favorite_id
+        CASE
+          WHEN me.meter_element_id IS NOT NULL AND f.favorite_id IS NOT NULL THEN true
+          WHEN me.meter_element_id IS NULL AND fv.favorite_id IS NOT NULL THEN true
+          ELSE false
+        END as is_favorited,
+        COALESCE(f.favorite_id, fv.favorite_id) as favorite_id
       FROM public.meter m
       LEFT JOIN public.meter_element me ON m.meter_id = me.meter_id AND me.tenant_id = $1
       LEFT JOIN public.favorite f ON
@@ -75,6 +89,12 @@ app.get('/meters', async (c) => {
         AND f.table_name = 'meter'
         AND f.tenant_id = $1
         AND f.users_id = $2
+      LEFT JOIN public.favorite fv ON
+        fv.id1 = m.meter_id
+        AND fv.id2 = 0
+        AND fv.table_name = 'meter'
+        AND fv.tenant_id = $1
+        AND fv.users_id = $2
       WHERE m.tenant_id = $1
       ORDER BY me.element ASC
     `;

@@ -53,16 +53,26 @@ export const MetersList: React.FC<MetersListProps> = ({
         <div className="empty-state">No meters available</div>
       ) : (
         sortedMeters.map((meter) => {
+              const isVirtual = !!meter.is_virtual;
               const isExpanded = expandedMeters.has(meter.id);
-              const isMeterSelected = selectedItem?.type === 'meter' && selectedItem?.meterId === meter.id;
               const elements = meterElements[meter.id] || [];
 
-              // Meter star is filled only when ALL elements are favorited
-              const isMeterFavorite = elements.length > 0 && elements.every((el: any) => el.is_favorited);
+              // Virtual meters are selected when the sidebar navigated to them as elementId='0'
+              const isMeterSelected = isVirtual
+                ? (selectedItem?.type === 'element' && selectedItem?.meterId === meter.id && selectedItem?.elementId === '0')
+                : (selectedItem?.type === 'meter' && selectedItem?.meterId === meter.id);
 
-              // Bulk-toggle: if all favorited → remove all; otherwise → add all that aren't yet favorited
+              // Physical: star filled when ALL elements are favorited
+              // Virtual: star filled based on meter's own is_favorited flag
+              const isMeterFavorite = isVirtual
+                ? !!(meter as any).is_favorited
+                : elements.length > 0 && elements.every((el: any) => el.is_favorited);
+
               const handleMeterStarClick = () => {
-                if (isMeterFavorite) {
+                if (isVirtual) {
+                  // Toggle the virtual meter favorite using '0' as element sentinel
+                  onFavoriteToggle(meter.id, '0');
+                } else if (isMeterFavorite) {
                   elements.forEach((el: any) => {
                     onFavoriteToggle(meter.id, String(el.meter_element_id));
                   });
@@ -82,13 +92,17 @@ export const MetersList: React.FC<MetersListProps> = ({
                     isFavorite={isMeterFavorite}
                     isExpanded={isExpanded}
                     isSelected={isMeterSelected}
+                    isVirtual={isVirtual}
                     onExpand={() => handleMeterExpand(meter.id)}
-                    onSelect={() => onMeterSelect(meter.id, meter.name)}
+                    onSelect={() => isVirtual
+                      ? onMeterElementSelect(meter.id, '0', meter.name, undefined)
+                      : onMeterSelect(meter.id, meter.name)
+                    }
                     onFavoriteToggle={handleMeterStarClick}
                   />
 
-                  {/* Meter Elements (shown when expanded) */}
-                  {isExpanded && (
+                  {/* Meter Elements (shown when expanded — virtual meters have no elements) */}
+                  {!isVirtual && isExpanded && (
                     <div className="meter-elements">
                       {elements.length === 0 ? (
                         <div className="no-elements">No elements</div>
