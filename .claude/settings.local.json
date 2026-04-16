@@ -98,7 +98,8 @@
       "Bash(PGPASSWORD=postgres psql -U postgres -d meterItPro -c \"\\\\d meter\")",
       "Bash(\"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d \"meterItPro\" -c \"\\\\d meter\")",
       "Bash(PGPASSWORD=postgres \"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d \"meterItPro\" -c \"\\\\d meter\")",
-      "Bash(kill %1)"
+      "Bash(kill %1)",
+      "Bash(where node *)"
     ],
     "additionalDirectories": [
       "C:\\Program Files\\PostgreSQL\\18\\data"

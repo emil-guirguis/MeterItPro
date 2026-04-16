@@ -270,7 +270,7 @@ app.get('/virtual-consumption', requirePermission('meter:read'), async (c) => {
       sql = `
         SELECT
           EXTRACT(HOUR FROM (mr.created_at + ($3::int * INTERVAL '1 minute')))::int AS label_key,
-          SUM(mr.calculated_kwh) AS calculated_kwh
+          SUM(CASE WHEN mv.operation = '-' THEN -mr.calculated_kwh ELSE mr.calculated_kwh END) AS calculated_kwh
         FROM meter_reading mr
         JOIN public.meter_virtual mv
           ON mv.selected_meter_id = mr.meter_id
@@ -287,7 +287,7 @@ app.get('/virtual-consumption', requirePermission('meter:read'), async (c) => {
       sql = `
         SELECT
           (mr.created_at + ($3::int * INTERVAL '1 minute'))::date::text AS label_key,
-          SUM(mr.calculated_kwh) AS calculated_kwh
+          SUM(CASE WHEN mv.operation = '-' THEN -mr.calculated_kwh ELSE mr.calculated_kwh END) AS calculated_kwh
         FROM meter_reading mr
         JOIN public.meter_virtual mv
           ON mv.selected_meter_id = mr.meter_id
@@ -304,7 +304,7 @@ app.get('/virtual-consumption', requirePermission('meter:read'), async (c) => {
       sql = `
         SELECT
           EXTRACT(MONTH FROM (mr.created_at + ($3::int * INTERVAL '1 minute')))::int AS label_key,
-          SUM(mr.calculated_kwh) AS calculated_kwh
+          SUM(CASE WHEN mv.operation = '-' THEN -mr.calculated_kwh ELSE mr.calculated_kwh END) AS calculated_kwh
         FROM meter_reading mr
         JOIN public.meter_virtual mv
           ON mv.selected_meter_id = mr.meter_id
@@ -363,7 +363,7 @@ app.get('/virtual-demand', requirePermission('meter:read'), async (c) => {
       sql = `
         SELECT
           EXTRACT(HOUR FROM (mr.created_at + ($3::int * INTERVAL '1 minute')))::int AS label_key,
-          SUM(mr.kw) AS power
+          SUM(CASE WHEN mv.operation = '-' THEN -mr.kw ELSE mr.kw END) AS power
         FROM meter_reading mr
         JOIN public.meter_virtual mv
           ON mv.selected_meter_id = mr.meter_id
@@ -380,7 +380,7 @@ app.get('/virtual-demand', requirePermission('meter:read'), async (c) => {
       sql = `
         SELECT
           (mr.created_at + ($3::int * INTERVAL '1 minute'))::date::text AS label_key,
-          SUM(mr.kw) AS power
+          SUM(CASE WHEN mv.operation = '-' THEN -mr.kw ELSE mr.kw END) AS power
         FROM meter_reading mr
         JOIN public.meter_virtual mv
           ON mv.selected_meter_id = mr.meter_id
@@ -397,7 +397,7 @@ app.get('/virtual-demand', requirePermission('meter:read'), async (c) => {
       sql = `
         SELECT
           EXTRACT(MONTH FROM (mr.created_at + ($3::int * INTERVAL '1 minute')))::int AS label_key,
-          SUM(mr.kw) AS power
+          SUM(CASE WHEN mv.operation = '-' THEN -mr.kw ELSE mr.kw END) AS power
         FROM meter_reading mr
         JOIN public.meter_virtual mv
           ON mv.selected_meter_id = mr.meter_id
@@ -472,13 +472,13 @@ app.get('/virtual-last', requirePermission('meter:read'), async (c) => {
       return c.json({ success: false, message: 'meterId is required' }, 400);
     }
 
-    // Get meter info and sum of latest readings from all virtual meter components
+    // Get meter info and signed sum of latest readings from all virtual meter components
     const sql = `
       SELECT
         m.meter_id,
         m.name AS meter_name,
         m.installation_date,
-        COALESCE(SUM(latest.kwh), 0) AS total_kwh,
+        COALESCE(SUM(CASE WHEN mv.operation = '-' THEN -latest.kwh ELSE latest.kwh END), 0) AS total_kwh,
         MAX(latest.created_at) AS last_reading_date
       FROM public.meter m
       LEFT JOIN public.meter_virtual mv ON mv.meter_id = m.meter_id
@@ -530,7 +530,8 @@ app.get('/virtual-components-last', requirePermission('meter:read'), async (c) =
     const sql = `
       SELECT
         mv.select_meter_element_id,
-        COALESCE(latest.kwh, 0) AS kwh
+        mv.operation,
+        CASE WHEN mv.operation = '-' THEN -COALESCE(latest.kwh, 0) ELSE COALESCE(latest.kwh, 0) END AS kwh
       FROM public.meter_virtual mv
       LEFT JOIN LATERAL (
         SELECT mr.kwh
@@ -541,6 +542,7 @@ app.get('/virtual-components-last', requirePermission('meter:read'), async (c) =
         LIMIT 1
       ) latest ON true
       WHERE mv.meter_id = $2
+      ORDER BY mv.order_by ASC
     `;
 
     const params = [tenantId, parseInt(meterId)];

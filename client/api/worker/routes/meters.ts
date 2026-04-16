@@ -111,6 +111,7 @@ app.get('/:meterId/virtual-config', requirePermission('meter:read'), async (c) =
       `SELECT
         mv.selected_meter_id,
         mv.select_meter_element_id,
+        mv.operation,
         m.name AS meter_name,
         m.serial_number AS identifier,
         me.meter_element_id,
@@ -134,6 +135,7 @@ app.get('/:meterId/virtual-config', requirePermission('meter:read'), async (c) =
           meter_element_id: row.meter_element_id,
           element_name: row.element_name,
           element: row.element,
+          operation: row.operation ?? '+',
         };
       }
       return {
@@ -141,6 +143,7 @@ app.get('/:meterId/virtual-config', requirePermission('meter:read'), async (c) =
         meter_id: row.selected_meter_id,
         meter_name: row.meter_name,
         identifier: row.identifier,
+        operation: row.operation ?? '+',
       };
     });
 
@@ -172,7 +175,7 @@ app.post('/:meterId/virtual-config', requirePermission('meter:update'), async (c
   }
 
   const body = await c.req.json();
-  const { selectedMeterIds = [], selectedMeterElementIds = [] } = body;
+  const { selectedMeterIds = [], selectedMeterElementIds = [], operations = [] } = body;
 
   // Validate request body
   if (!Array.isArray(selectedMeterIds) || !Array.isArray(selectedMeterElementIds)) {
@@ -209,13 +212,15 @@ app.post('/:meterId/virtual-config', requirePermission('meter:update'), async (c
       // Insert new records
       if (selectedMeterIds.length > 0) {
         const insertQuery = `
-          INSERT INTO public.meter_virtual (meter_id, selected_meter_id, select_meter_element_id)
-          VALUES ${selectedMeterIds.map((_: any, i: number) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(', ')}
+          INSERT INTO public.meter_virtual (meter_id, selected_meter_id, select_meter_element_id, order_by, operation)
+          VALUES ${selectedMeterIds.map((_: any, i: number) => `($1, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4}, $${i * 4 + 5})`).join(', ')}
         `;
         const insertParams: any[] = [meterId];
         for (let i = 0; i < selectedMeterIds.length; i++) {
           insertParams.push(selectedMeterIds[i]);
           insertParams.push(selectedMeterElementIds[i]);
+          insertParams.push(i); // order_by
+          insertParams.push(i === 0 ? '+' : (operations[i] === '-' ? '-' : '+')); // operation; first is always '+'
         }
         await client.query(insertQuery, insertParams);
       }

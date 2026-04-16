@@ -44,6 +44,34 @@
   break-inside: avoid;
 }
 
+.virtual-component-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.virtual-component-op {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 3px;
+}
+
+.virtual-component-op--plus {
+  color: #1976d2;
+  background: #e3f2fd;
+}
+
+.virtual-component-op--minus {
+  color: #c62828;
+  background: #ffebee;
+}
+
 
 .right-column {
   display: flex;

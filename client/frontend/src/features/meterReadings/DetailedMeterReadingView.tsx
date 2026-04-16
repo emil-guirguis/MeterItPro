@@ -251,7 +251,14 @@ export const DetailedMeterReadingView: React.FC<DetailedMeterReadingViewProps> =
                           sx={{ py: 0.25, pl: 0.5, pr: 0.75 }}
                         />
                       }
-                      label={formatItemLabel(item)}
+                      label={
+                        <span className="virtual-component-label">
+                          <span className={`virtual-component-op virtual-component-op--${item.operation === '-' ? 'minus' : 'plus'}`}>
+                            {item.operation === '-' ? '−' : '+'}
+                          </span>
+                          {formatItemLabel(item)}
+                        </span>
+                      }
                       sx={{ margin: 0, '& .MuiFormControlLabel-label': { fontSize: 14, color: '#333' } }}
                     />
                   </div>

@@ -265,6 +265,7 @@ describe('MeterService', () => {
       expect(apiClient.post).toHaveBeenCalledWith('/meters/1/virtual-config', {
         selectedMeterIds: [2, 3],
         selectedMeterElementIds: [2, 10], // meter → meter_id, element → meter_element_id
+        operations: ['+', '+'],
       });
     });
 
@@ -288,6 +289,7 @@ describe('MeterService', () => {
       expect(apiClient.post).toHaveBeenCalledWith('/meters/1/virtual-config', {
         selectedMeterIds: [],
         selectedMeterElementIds: [],
+        operations: [],
       });
     });
 

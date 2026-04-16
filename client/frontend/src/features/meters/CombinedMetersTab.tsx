@@ -22,6 +22,14 @@ interface DragState {
   from: 'left' | 'right';
 }
 
+/** Ensure the first item always has operation '+'. */
+function enforceFirstPlus(items: SelectedItem[]): SelectedItem[] {
+  if (items.length > 0 && items[0].operation !== '+') {
+    return [{ ...items[0], operation: '+' as const }, ...items.slice(1)];
+  }
+  return items;
+}
+
 export const CombinedMetersTab: React.FC<CombinedMetersTabProps> = ({
   meterId,
   isParentSaved,
@@ -178,15 +186,27 @@ export const CombinedMetersTab: React.FC<CombinedMetersTabProps> = ({
         if (insertIdx === -1) insertIdx = next.length;
         else if (dropPosition === 'after') insertIdx += 1;
         next.splice(insertIdx, 0, draggedItem);
-        persist(next);
-        onMetersChange?.(next);
-        return next;
+        const enforced = enforceFirstPlus(next);
+        persist(enforced);
+        onMetersChange?.(enforced);
+        return enforced;
       });
     }
 
     dragRef.current = null;
     setDraggingId(null);
   }, [addItem, dropTargetIndex, dropPosition, persist, onMetersChange]);
+
+  const handleOperationChange = useCallback((id: string, op: '+' | '-') => {
+    setSelectedItems((prev) => {
+      const next = prev.map((item, i) =>
+        item.id === id && i !== 0 ? { ...item, operation: op } : item
+      );
+      persist(next);
+      onMetersChange?.(next);
+      return next;
+    });
+  }, [persist, onMetersChange]);
 
   const handleDropOnLeft = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -212,6 +232,7 @@ export const CombinedMetersTab: React.FC<CombinedMetersTabProps> = ({
     meter_id: m.meter_id,
     meter_name: m.name,
     identifier: m.identifier,
+    operation: '+',
   });
 
   const elementToItem = (el: MeterElement, meterName: string): SelectedItem => ({
@@ -223,6 +244,7 @@ export const CombinedMetersTab: React.FC<CombinedMetersTabProps> = ({
     meter_element_id: el.meter_element_id,
     element_name: el.name,
     element: el.element,
+    operation: '+',
   });
 
   // ── Filtering ────────────────────────────────────────────────────────────
@@ -467,6 +489,18 @@ export const CombinedMetersTab: React.FC<CombinedMetersTabProps> = ({
                     title="Drag to reorder · Double-click or drag back to remove"
                   >
                     <span className="material-symbols-outlined cmt__reorder-handle">drag_indicator</span>
+                    <select
+                      className={`cmt__op-select cmt__op-select--${item.operation === '-' ? 'minus' : 'plus'}`}
+                      value={item.operation}
+                      disabled={index === 0}
+                      onChange={(e) => handleOperationChange(item.id, e.target.value as '+' | '-')}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      title={index === 0 ? 'First item is always added (+)' : 'Add or subtract this meter'}
+                    >
+                      <option value="+">+</option>
+                      <option value="-">−</option>
+                    </select>
                     <span className="cmt__selected-name">
                       {formatItemLabel(item)}
                     </span>

@@ -295,6 +295,227 @@ describe('Meters Routes', () => {
     });
   });
 
+  describe('GET /:meterId/virtual-config', () => {
+    it('should return selected items for a virtual meter', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any)   // auth
+        .mockResolvedValueOnce({ rows: [{ meter_id: 5 }] } as any) // meter check
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              selected_meter_id: 10,
+              select_meter_element_id: null,
+              operation: '+',
+              meter_name: 'Meter A',
+              identifier: 'SN010',
+              meter_element_id: null,
+              element_name: null,
+              element: null,
+            },
+            {
+              selected_meter_id: 11,
+              select_meter_element_id: 201,
+              operation: '-',
+              meter_name: 'Meter B',
+              identifier: 'SN011',
+              meter_element_id: 201,
+              element_name: 'kWh Import',
+              element: 'kWh',
+            },
+          ],
+        } as any);
+
+      const res = await metersApp.request('/5/virtual-config', {
+        headers: { authorization: 'Bearer valid-token' },
+      }, TEST_ENV);
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.meterId).toBe('5');
+      expect(body.selectedItems).toHaveLength(2);
+      expect(body.selectedItems[0]).toMatchObject({
+        selectionType: 'meter',
+        meter_id: 10,
+        meter_name: 'Meter A',
+        operation: '+',
+      });
+      expect(body.selectedItems[1]).toMatchObject({
+        selectionType: 'element',
+        meter_id: 11,
+        meter_element_id: 201,
+        element_name: 'kWh Import',
+        operation: '-',
+      });
+    });
+
+    it('should return empty selectedItems when no config saved', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any)
+        .mockResolvedValueOnce({ rows: [{ meter_id: 5 }] } as any)
+        .mockResolvedValueOnce({ rows: [] } as any);
+
+      const res = await metersApp.request('/5/virtual-config', {
+        headers: { authorization: 'Bearer valid-token' },
+      }, TEST_ENV);
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.selectedItems).toHaveLength(0);
+    });
+
+    it('should return 404 when meter does not exist', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any)
+        .mockResolvedValueOnce({ rows: [] } as any); // meter not found
+
+      const res = await metersApp.request('/999/virtual-config', {
+        headers: { authorization: 'Bearer valid-token' },
+      }, TEST_ENV);
+
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.message).toBe('Meter not found');
+    });
+
+    it('should default operation to + when null', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any)
+        .mockResolvedValueOnce({ rows: [{ meter_id: 5 }] } as any)
+        .mockResolvedValueOnce({
+          rows: [{
+            selected_meter_id: 10, select_meter_element_id: null, operation: null,
+            meter_name: 'Meter A', identifier: 'SN010',
+            meter_element_id: null, element_name: null, element: null,
+          }],
+        } as any);
+
+      const res = await metersApp.request('/5/virtual-config', {
+        headers: { authorization: 'Bearer valid-token' },
+      }, TEST_ENV);
+
+      const body = await res.json();
+      expect(body.selectedItems[0].operation).toBe('+');
+    });
+  });
+
+  describe('POST /:meterId/virtual-config', () => {
+    const mockTransaction = vi.fn();
+
+    beforeEach(() => {
+      vi.mock('../db', () => ({
+        query: vi.fn(),
+        transaction: vi.fn(),
+      }));
+    });
+
+    it('should save virtual meter configuration', async () => {
+      const { transaction } = await import('../db');
+      const mockTxn = vi.mocked(transaction);
+      mockTxn.mockImplementationOnce(async (_env, fn) => {
+        const client = { query: vi.fn().mockResolvedValue({ rows: [] }) };
+        await fn(client as any);
+      });
+
+      mockQuery
+        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any)
+        .mockResolvedValueOnce({ rows: [{ meter_id: 5 }] } as any);
+
+      const res = await metersApp.request('/5/virtual-config', {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer valid-token',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          selectedMeterIds: [10, 11],
+          selectedMeterElementIds: [10, 201],
+          operations: ['+', '-'],
+        }),
+      }, TEST_ENV);
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.meterId).toBe('5');
+      expect(body.savedConfiguration.selectedMeterIds).toEqual([10, 11]);
+    });
+
+    it('should return 404 when meter does not exist', async () => {
+      const { transaction } = await import('../db');
+      vi.mocked(transaction).mockImplementation(async (_env, fn) => {
+        const client = { query: vi.fn().mockResolvedValue({ rows: [] }) };
+        await fn(client as any);
+      });
+
+      mockQuery
+        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any)
+        .mockResolvedValueOnce({ rows: [] } as any);
+
+      const res = await metersApp.request('/999/virtual-config', {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer valid-token',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ selectedMeterIds: [], selectedMeterElementIds: [] }),
+      }, TEST_ENV);
+
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 400 when arrays have mismatched lengths', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any);
+
+      const res = await metersApp.request('/5/virtual-config', {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer valid-token',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          selectedMeterIds: [10, 11],
+          selectedMeterElementIds: [10],
+        }),
+      }, TEST_ENV);
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.message).toContain('same length');
+    });
+
+    it('should clear existing config when saving empty selection', async () => {
+      const { transaction } = await import('../db');
+      const clientQueryMock = vi.fn().mockResolvedValue({ rows: [] });
+      vi.mocked(transaction).mockImplementationOnce(async (_env, fn) => {
+        await fn({ query: clientQueryMock } as any);
+      });
+
+      mockQuery
+        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any)
+        .mockResolvedValueOnce({ rows: [{ meter_id: 5 }] } as any);
+
+      const res = await metersApp.request('/5/virtual-config', {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer valid-token',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ selectedMeterIds: [], selectedMeterElementIds: [] }),
+      }, TEST_ENV);
+
+      expect(res.status).toBe(200);
+      expect(clientQueryMock).toHaveBeenCalledWith(
+        'DELETE FROM public.meter_virtual WHERE meter_id = $1',
+        ['5']
+      );
+      // No INSERT when empty
+      expect(clientQueryMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('GET /elements', () => {
     it('should return meter elements for selection', async () => {
       mockQuery

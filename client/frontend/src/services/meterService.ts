@@ -30,6 +30,7 @@ export interface MeterSelection {
   meter_id: number;
   meter_name: string;
   identifier: string;
+  operation: '+' | '-';
 }
 
 /**
@@ -44,6 +45,7 @@ export interface ElementSelection {
   meter_element_id: number;
   element_name: string;
   element: string;
+  operation: '+' | '-';
 }
 
 export type SelectedItem = MeterSelection | ElementSelection;
@@ -248,7 +250,9 @@ class MeterService {
 
         // Backend returns { success, meterId, selectedItems }
         const raw: any[] = body.selectedItems || [];
-        return raw.map((item) => {
+        return raw.map((item, index) => {
+          // First item is always '+'; fall back to '+' for old rows that pre-date the column.
+          const operation: '+' | '-' = index === 0 ? '+' : (item.operation === '-' ? '-' : '+');
           if (item.selectionType === 'element') {
             return {
               selectionType: 'element',
@@ -259,6 +263,7 @@ class MeterService {
               meter_element_id: item.meter_element_id,
               element_name: item.element_name,
               element: item.element,
+              operation,
             } as ElementSelection;
           }
           return {
@@ -267,6 +272,7 @@ class MeterService {
             meter_id: item.meter_id,
             meter_name: item.meter_name,
             identifier: item.identifier,
+            operation,
           } as MeterSelection;
         });
       } catch (error) {
@@ -290,10 +296,12 @@ class MeterService {
         const selectedMeterElementIds = selectedItems.map((item) =>
           item.selectionType === 'element' ? item.meter_element_id : item.meter_id
         );
+        const operations = selectedItems.map((item, i) => (i === 0 ? '+' : (item.operation ?? '+')));
 
         await apiClient.post(`/meters/${meterId}/virtual-config`, {
           selectedMeterIds,
           selectedMeterElementIds,
+          operations,
         });
       } catch (error) {
         const message = getErrorMessage(error);
