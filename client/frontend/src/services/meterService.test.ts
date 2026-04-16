@@ -168,23 +168,22 @@ describe('MeterService', () => {
   });
 
   describe('getVirtualMeterConfig', () => {
-    it('should fetch virtual meter configuration', async () => {
-      // Service reads body.meterId and body.selectedMeters (array of Meter objects with .id)
+    it('should fetch virtual meter configuration and return SelectedItem[]', async () => {
       vi.mocked(apiClient.get).mockResolvedValueOnce({
         data: {
           success: true,
-          meterId: '1',
-          selectedMeters: [{ id: '2' }, { id: '3' }],
+          selectedItems: [
+            { selectionType: 'meter', meter_id: 2, meter_name: 'Meter B', identifier: 'SN002' },
+            { selectionType: 'element', meter_id: 3, meter_name: 'Meter C', identifier: 'SN003', meter_element_id: 10, element_name: 'Energy', element: 'kWh' },
+          ],
         },
       } as any);
 
       const result = await meterService.getVirtualMeterConfig('1');
 
-      expect(result).toEqual({
-        meterId: '1',
-        selectedMeterIds: ['2', '3'],
-        selectedMeterElementIds: [],
-      });
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual(expect.objectContaining({ selectionType: 'meter', id: 'meter-2', meter_id: 2 }));
+      expect(result[1]).toEqual(expect.objectContaining({ selectionType: 'element', id: 'element-10', meter_element_id: 10 }));
       expect(apiClient.get).toHaveBeenCalledWith('/meters/1/virtual-config');
     });
 
@@ -192,30 +191,27 @@ describe('MeterService', () => {
       vi.mocked(apiClient.get).mockResolvedValueOnce({
         data: {
           success: true,
-          meterId: 1,
-          selectedMeters: [{ id: 2 }, { id: 3 }],
+          selectedItems: [
+            { selectionType: 'meter', meter_id: 2, meter_name: 'Meter B', identifier: 'SN002' },
+          ],
         },
       } as any);
 
       const result = await meterService.getVirtualMeterConfig(1);
 
-      expect(result).toEqual({
-        meterId: 1,
-        selectedMeterIds: [2, 3],
-        selectedMeterElementIds: [],
-      });
+      expect(result).toHaveLength(1);
+      expect(result[0].meter_id).toBe(2);
       expect(apiClient.get).toHaveBeenCalledWith('/meters/1/virtual-config');
     });
 
-    it('should return empty arrays if not present in response', async () => {
+    it('should return empty array when selectedItems is absent', async () => {
       vi.mocked(apiClient.get).mockResolvedValueOnce({
-        data: { success: true, meterId: '1' },
+        data: { success: true },
       } as any);
 
       const result = await meterService.getVirtualMeterConfig('1');
 
-      expect(result.selectedMeterIds).toEqual([]);
-      expect(result.selectedMeterElementIds).toEqual([]);
+      expect(result).toEqual([]);
     });
 
     it('should throw error when meter ID is missing', async () => {
@@ -254,78 +250,41 @@ describe('MeterService', () => {
   });
 
   describe('saveVirtualMeterConfig', () => {
+    const METER_ITEMS: import('./meterService').SelectedItem[] = [
+      { selectionType: 'meter', id: 'meter-2', meter_id: 2, meter_name: 'Meter B', identifier: 'SN002' },
+      { selectionType: 'element', id: 'element-10', meter_id: 3, meter_name: 'Meter C', identifier: 'SN003', meter_element_id: 10, element_name: 'Energy', element: 'kWh' },
+    ];
+
     it('should save virtual meter configuration', async () => {
-      const config: VirtualMeterConfig = {
-        meterId: '1',
-        selectedMeterIds: ['2', '3'],
-        selectedMeterElementIds: ['elem1', 'elem2'],
-      };
-
-      const mockResponse: VirtualMeterConfig = {
-        meterId: '1',
-        selectedMeterIds: ['2', '3'],
-        selectedMeterElementIds: ['elem1', 'elem2'],
-      };
-
       vi.mocked(apiClient.post).mockResolvedValueOnce({
-        data: { success: true, data: mockResponse },
+        data: { success: true },
       } as any);
 
-      const result = await meterService.saveVirtualMeterConfig('1', config);
+      await meterService.saveVirtualMeterConfig('1', METER_ITEMS);
 
-      expect(result).toEqual(mockResponse);
       expect(apiClient.post).toHaveBeenCalledWith('/meters/1/virtual-config', {
-        selectedMeterIds: ['2', '3'],
-        selectedMeterElementIds: ['elem1', 'elem2'],
+        selectedMeterIds: [2, 3],
+        selectedMeterElementIds: [2, 10], // meter → meter_id, element → meter_element_id
       });
     });
 
     it('should handle numeric meter ID', async () => {
-      const config: VirtualMeterConfig = {
-        meterId: 1,
-        selectedMeterIds: [2, 3],
-        selectedMeterElementIds: [1, 2],
-      };
-
-      const mockResponse: VirtualMeterConfig = {
-        meterId: 1,
-        selectedMeterIds: [2, 3],
-        selectedMeterElementIds: [1, 2],
-      };
-
       vi.mocked(apiClient.post).mockResolvedValueOnce({
-        data: { success: true, data: mockResponse },
+        data: { success: true },
       } as any);
 
-      const result = await meterService.saveVirtualMeterConfig(1, config);
+      await meterService.saveVirtualMeterConfig(1, METER_ITEMS);
 
-      expect(result).toEqual(mockResponse);
-      expect(apiClient.post).toHaveBeenCalledWith('/meters/1/virtual-config', {
-        selectedMeterIds: [2, 3],
-        selectedMeterElementIds: [1, 2],
-      });
+      expect(apiClient.post).toHaveBeenCalledWith('/meters/1/virtual-config', expect.any(Object));
     });
 
     it('should save empty selections', async () => {
-      const config: VirtualMeterConfig = {
-        meterId: '1',
-        selectedMeterIds: [],
-        selectedMeterElementIds: [],
-      };
-
-      const mockResponse: VirtualMeterConfig = {
-        meterId: '1',
-        selectedMeterIds: [],
-        selectedMeterElementIds: [],
-      };
-
       vi.mocked(apiClient.post).mockResolvedValueOnce({
-        data: { success: true, data: mockResponse },
+        data: { success: true },
       } as any);
 
-      const result = await meterService.saveVirtualMeterConfig('1', config);
+      await meterService.saveVirtualMeterConfig('1', []);
 
-      expect(result).toEqual(mockResponse);
       expect(apiClient.post).toHaveBeenCalledWith('/meters/1/virtual-config', {
         selectedMeterIds: [],
         selectedMeterElementIds: [],
@@ -333,107 +292,37 @@ describe('MeterService', () => {
     });
 
     it('should throw error when meter ID is missing', async () => {
-      const config: VirtualMeterConfig = {
-        meterId: '',
-        selectedMeterIds: ['2'],
-        selectedMeterElementIds: ['elem1'],
-      };
-
-      await expect(meterService.saveVirtualMeterConfig('', config)).rejects.toThrow('Meter ID is required');
-    });
-
-    it('should throw error when config is invalid', async () => {
-      await expect(meterService.saveVirtualMeterConfig('1', null as any)).rejects.toThrow(
-        'Invalid configuration'
-      );
-    });
-
-    it('should throw error when selectedMeterIds is not an array', async () => {
-      const config: any = {
-        meterId: '1',
-        selectedMeterIds: 'not-an-array',
-        selectedMeterElementIds: ['elem1'],
-      };
-
-      await expect(meterService.saveVirtualMeterConfig('1', config)).rejects.toThrow(
-        'Invalid configuration'
-      );
-    });
-
-    it('should throw error when selectedMeterElementIds is not an array', async () => {
-      const config: any = {
-        meterId: '1',
-        selectedMeterIds: ['2'],
-        selectedMeterElementIds: 'not-an-array',
-      };
-
-      await expect(meterService.saveVirtualMeterConfig('1', config)).rejects.toThrow(
-        'Invalid configuration'
-      );
+      await expect(meterService.saveVirtualMeterConfig('', METER_ITEMS)).rejects.toThrow('Meter ID is required');
     });
 
     it('should throw error on API failure', async () => {
-      const config: VirtualMeterConfig = {
-        meterId: '1',
-        selectedMeterIds: ['2'],
-        selectedMeterElementIds: ['elem1'],
-      };
-
       const error = new Error('Server error');
       vi.mocked(apiClient.post).mockRejectedValueOnce(error);
 
-      await expect(meterService.saveVirtualMeterConfig('1', config)).rejects.toThrow(
-        'Failed to save virtual meter configuration'
-      );
-    });
-
-    it('should throw error on invalid response format', async () => {
-      const config: VirtualMeterConfig = {
-        meterId: '1',
-        selectedMeterIds: ['2'],
-        selectedMeterElementIds: ['elem1'],
-      };
-
-      vi.mocked(apiClient.post).mockResolvedValueOnce({
-        data: { success: true }, // Missing data field
-      } as any);
-
-      await expect(meterService.saveVirtualMeterConfig('1', config)).rejects.toThrow(
+      await expect(meterService.saveVirtualMeterConfig('1', METER_ITEMS)).rejects.toThrow(
         'Failed to save virtual meter configuration'
       );
     });
 
     it('should retry on transient errors', async () => {
-      const config: VirtualMeterConfig = {
-        meterId: '1',
-        selectedMeterIds: ['2'],
-        selectedMeterElementIds: ['elem1'],
-      };
-
       // First call fails with non-retryable error (client error)
       const error: any = { response: { status: 400 } };
       vi.mocked(apiClient.post).mockRejectedValueOnce(error);
 
-      await expect(meterService.saveVirtualMeterConfig('1', config)).rejects.toThrow();
+      await expect(meterService.saveVirtualMeterConfig('1', METER_ITEMS)).rejects.toThrow();
 
       // Should only be called once (no retries for client errors)
       expect(apiClient.post).toHaveBeenCalledTimes(1);
     });
 
     it('should not retry on client errors (4xx)', async () => {
-      const config: VirtualMeterConfig = {
-        meterId: '1',
-        selectedMeterIds: ['2'],
-        selectedMeterElementIds: ['elem1'],
-      };
-
       const error: any = {
         response: { status: 400, data: { message: 'Bad request' } },
       };
 
       vi.mocked(apiClient.post).mockRejectedValueOnce(error);
 
-      await expect(meterService.saveVirtualMeterConfig('1', config)).rejects.toThrow(
+      await expect(meterService.saveVirtualMeterConfig('1', METER_ITEMS)).rejects.toThrow(
         'Failed to save virtual meter configuration'
       );
 

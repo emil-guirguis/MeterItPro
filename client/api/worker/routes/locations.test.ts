@@ -23,6 +23,7 @@ vi.mock('../crud', () => ({
 
 import { verify } from 'hono/jwt';
 import { query } from '../db';
+import { clearUserCache } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import locationsApp from './locations';
 import type { Env } from '../db';
@@ -46,13 +47,14 @@ const ADMIN_USER = {
 };
 
 function setupAuth() {
-  mockVerify.mockResolvedValue({ userId: 1 });
+  mockVerify.mockResolvedValue({ userId: 1, tenant_id: 1 });
   mockQuery.mockResolvedValue({ rows: [ADMIN_USER] } as any);
 }
 
 describe('Locations Routes', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    clearUserCache();
     setupAuth();
   });
 

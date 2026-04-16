@@ -22,6 +22,7 @@ vi.mock('../reportRunner', () => ({
 
 import { verify } from 'hono/jwt';
 import { query } from '../db';
+import { clearUserCache } from '../middleware';
 import { runReport } from '../reportRunner';
 import reportsApp from './reports';
 import type { Env } from '../db';
@@ -65,13 +66,13 @@ function authQuery() {
 }
 
 function setupAuth() {
-  mockVerify.mockResolvedValue({ userId: 1 });
-  mockQuery.mockResolvedValueOnce(authQuery());
+  mockVerify.mockResolvedValue({ userId: 1, tenant_id: 1 });
 }
 
 describe('Reports Routes', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    clearUserCache();
     setupAuth();
   });
 

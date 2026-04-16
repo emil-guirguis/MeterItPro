@@ -15,6 +15,7 @@ vi.mock('hono/jwt', () => ({
 
 import { verify } from 'hono/jwt';
 import { query, transaction } from '../db';
+import { clearUserCache } from '../middleware';
 import favoritesApp from './favorites';
 import type { Env } from '../db';
 
@@ -32,19 +33,19 @@ const ADMIN_USER = {
 };
 
 function setupAuth() {
-  mockVerify.mockResolvedValue({ userId: 1 });
+  mockVerify.mockResolvedValue({ userId: 1, tenant_id: 1 });
 }
 
 describe('Favorites Routes', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    clearUserCache();
     setupAuth();
   });
 
   describe('GET /', () => {
     it('should return favorites for a user', async () => {
       mockQuery
-        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any) // auth
         .mockResolvedValueOnce({
           rows: [
             { favorite_id: 1, table_name: 'meter', id1: 10, id2: 5, favorite_name: 'Meter A (kWh)' },
@@ -78,7 +79,6 @@ describe('Favorites Routes', () => {
   describe('POST /', () => {
     it('should create a new favorite', async () => {
       mockQuery
-        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any) // auth
         .mockResolvedValueOnce({ rows: [] } as any) // check existing
         .mockResolvedValueOnce({ rows: [{ next_order: 1 }] } as any) // next order
         .mockResolvedValueOnce({
@@ -104,7 +104,6 @@ describe('Favorites Routes', () => {
 
     it('should return 409 when favorite already exists', async () => {
       mockQuery
-        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any) // auth
         .mockResolvedValueOnce({ rows: [{ favorite_id: 1 }] } as any); // existing
 
       const res = await favoritesApp.request('/', {
@@ -122,7 +121,6 @@ describe('Favorites Routes', () => {
     });
 
     it('should return 400 when required fields are missing', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [ADMIN_USER] } as any);
 
       const res = await favoritesApp.request('/', {
         method: 'POST',
@@ -140,7 +138,6 @@ describe('Favorites Routes', () => {
   describe('DELETE /:favoriteId', () => {
     it('should delete a favorite', async () => {
       mockQuery
-        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any) // auth
         .mockResolvedValueOnce({
           rows: [{ favorite_id: 1, tenant_id: 1 }],
         } as any); // delete returning
@@ -157,7 +154,6 @@ describe('Favorites Routes', () => {
 
     it('should return 404 when favorite not found', async () => {
       mockQuery
-        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any) // auth
         .mockResolvedValueOnce({ rows: [] } as any); // delete returns nothing
 
       const res = await favoritesApp.request('/999?tenant_id=1', {
@@ -172,7 +168,6 @@ describe('Favorites Routes', () => {
   describe('GET /meters', () => {
     it('should return meters with elements and favorite status', async () => {
       mockQuery
-        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any) // auth
         .mockResolvedValueOnce({
           rows: [
             { meter_id: 1, meter_name: 'Meter A', meter_element_id: 10, element: 'kWh', name: 'Energy', favorite_name: '(kWh) Energy', is_favorited: true, favorite_id: 1 },

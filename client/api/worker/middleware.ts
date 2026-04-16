@@ -16,6 +16,11 @@ const userCache = new Map<string, { user: any; expiresAt: number }>();
 const userFetchPromises = new Map<string, Promise<any | null>>();
 const USER_CACHE_TTL_MS = 5 * 60_000; // 5 minutes
 
+export function clearUserCache(): void {
+  userCache.clear();
+  userFetchPromises.clear();
+}
+
 export async function getCachedUser(env: Env, userId: string): Promise<any | null> {
   const now = Date.now();
   const cached = userCache.get(userId);
@@ -109,23 +114,26 @@ export function requirePermission(permission: string) {
     }
 
     // Load full user (cached) to get role, permissions, and active flag.
+    // Skip if user is already fully loaded (has role set).
     let user: any;
-    try {
-      user = await getCachedUser(c.env, String(partial.users_id));
-      if (!user) {
-        return c.json({ success: false, message: 'User not found' }, 401);
+    if (partial.role !== undefined) {
+      user = partial;
+    } else {
+      try {
+        user = await getCachedUser(c.env, String(partial.users_id));
+        if (!user) {
+          return c.json({ success: false, message: 'User not found' }, 401);
+        }
+      } catch (e) {
+        console.error('[AUTH] User lookup error in requirePermission:', e);
+        return c.json({ success: false, message: 'Failed to verify user' }, 500);
       }
-    } catch (e) {
-      console.error('[AUTH] User lookup error in requirePermission:', e);
-      return c.json({ success: false, message: 'Failed to verify user' }, 500);
+      if (!user.active) {
+        return c.json({ success: false, message: 'Account is inactive' }, 401);
+      }
+      // Promote context to full user so downstream handlers can read name/email/etc.
+      c.set('user', user);
     }
-
-    if (!user.active) {
-      return c.json({ success: false, message: 'Account is inactive' }, 401);
-    }
-
-    // Promote context to full user so downstream handlers can read name/email/etc.
-    c.set('user', user);
 
     // Admin bypasses permission checks
     if (user.role === 'admin') {

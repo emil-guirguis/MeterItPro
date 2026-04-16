@@ -19,7 +19,7 @@ vi.mock('hono/jwt', () => ({
 import { Hono } from 'hono';
 import { verify } from 'hono/jwt';
 import { query } from './db';
-import { authenticateToken, requirePermission, authenticateSyncServer } from './middleware';
+import { authenticateToken, requirePermission, authenticateSyncServer, clearUserCache } from './middleware';
 import type { Env } from './db';
 import type { AuthVariables } from './middleware';
 
@@ -37,7 +37,8 @@ const TEST_ENV: Env = {
 
 describe('authenticateToken middleware', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    clearUserCache();
   });
 
   it('should return 401 when no authorization header is provided', async () => {
@@ -84,7 +85,7 @@ describe('authenticateToken middleware', () => {
   });
 
   it('should return 401 when token has no userId', async () => {
-    mockVerify.mockResolvedValueOnce({ someField: 'no-userId' });
+    mockVerify.mockResolvedValueOnce({ tenant_id: 1 });
 
     const app = createApp();
     app.use('*', authenticateToken);
@@ -95,75 +96,26 @@ describe('authenticateToken middleware', () => {
     }, TEST_ENV);
     expect(res.status).toBe(401);
     const body = await res.json();
-    expect(body.message).toBe('Invalid token - missing user ID');
+    expect(body.message).toBe('Invalid token - missing claims');
   });
 
-  it('should return 401 when user is not found in database', async () => {
-    mockVerify.mockResolvedValueOnce({ userId: 999 });
-    mockQuery.mockResolvedValueOnce({ rows: [] } as any);
+  it('should return 401 when token has no tenant_id', async () => {
+    mockVerify.mockResolvedValueOnce({ userId: 1 });
 
     const app = createApp();
     app.use('*', authenticateToken);
     app.get('/test', (c) => c.json({ ok: true }));
 
     const res = await app.request('/test', {
-      headers: { authorization: 'Bearer valid-token' },
+      headers: { authorization: 'Bearer no-tenant-token' },
     }, TEST_ENV);
     expect(res.status).toBe(401);
     const body = await res.json();
-    expect(body.message).toBe('Invalid token - user not found');
+    expect(body.message).toBe('Invalid token - missing claims');
   });
 
-  it('should return 401 when user is inactive', async () => {
-    mockVerify.mockResolvedValueOnce({ userId: 1 });
-    mockQuery.mockResolvedValueOnce({
-      rows: [{
-        users_id: 1, name: 'Test', email: 'test@test.com',
-        role: 'admin', active: false, tenant_id: 1, permissions: {},
-      }],
-    } as any);
-
-    const app = createApp();
-    app.use('*', authenticateToken);
-    app.get('/test', (c) => c.json({ ok: true }));
-
-    const res = await app.request('/test', {
-      headers: { authorization: 'Bearer valid-token' },
-    }, TEST_ENV);
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body.message).toBe('Account is inactive');
-  });
-
-  it('should return 401 when user has no tenant_id', async () => {
-    mockVerify.mockResolvedValueOnce({ userId: 1 });
-    mockQuery.mockResolvedValueOnce({
-      rows: [{
-        users_id: 1, name: 'Test', email: 'test@test.com',
-        role: 'admin', active: true, tenant_id: null, permissions: {},
-      }],
-    } as any);
-
-    const app = createApp();
-    app.use('*', authenticateToken);
-    app.get('/test', (c) => c.json({ ok: true }));
-
-    const res = await app.request('/test', {
-      headers: { authorization: 'Bearer valid-token' },
-    }, TEST_ENV);
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body.message).toBe('Tenant context required');
-  });
-
-  it('should set user and tenantId on context when token is valid', async () => {
-    mockVerify.mockResolvedValueOnce({ userId: 1 });
-    mockQuery.mockResolvedValueOnce({
-      rows: [{
-        users_id: 1, name: 'Test User', email: 'test@test.com',
-        role: 'admin', active: true, tenant_id: 42, permissions: {},
-      }],
-    } as any);
+  it('should set user and tenantId on context from JWT claims when token is valid', async () => {
+    mockVerify.mockResolvedValueOnce({ userId: 1, tenant_id: 42 });
 
     const app = createApp();
     app.use('*', authenticateToken);
@@ -263,7 +215,8 @@ describe('requirePermission middleware', () => {
 
 describe('authenticateSyncServer middleware', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    clearUserCache();
   });
 
   it('should return 401 when no API key header is provided', async () => {
