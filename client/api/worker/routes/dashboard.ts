@@ -269,11 +269,10 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
     // Determine aggregation function and grouping
     // When aggregation is 'none', use SUM as default (makes sense for consumption readings)
     const groupAggFn = isNoAgg ? 'SUM' : aggFn;
-    const groupCols = selectedColumns.map((col: string) => `${groupAggFn}("mr"."${col}") as "${col}"`).join(', ');
+    const groupCols = selectedColumns.map((col: string) => `${groupAggFn}(${col}) as "${col}"`).join(', ');
     const groupingType = card.grouping_type || 'daily';
 
-    // Always include meter_id, meter_element_id, and element label fields in the results
-    const meterCols = `mr.meter_id as meter_id, mr.meter_element_id as meter_element_id, m.name as meter_name, me.element as element_label, me.name as element_name`;
+    const meterCols = `mr.meter_id as meter_id, mr.meter_element_id as meter_element_id, (CASE WHEN mr.meter_element_id IS NOT NULL THEN CONCAT(COALESCE(m.name, 'Unknown Meter'), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, 'Unknown')) ELSE COALESCE(m.name, 'Unknown Meter') END) as name`;
 
     // Build both queries with the same grouping structure
     let aggSql: string;
@@ -310,10 +309,7 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
     for (const row of groupResult.rows) {
       const eid = row.meter_element_id;
       if (eid && !meter_element_labels[eid]) {
-        const rest = row.element_label ? `${row.element_label} - ${row.element_name}` : row.element_name;
-        meter_element_labels[eid] = row.meter_name
-          ? `${row.meter_name} - ${rest}`
-          : (rest || `Element ${eid}`);
+        meter_element_labels[eid] = row.name || `Element ${eid}`;
       }
     }
 
