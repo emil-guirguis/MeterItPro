@@ -1,6 +1,6 @@
-import { formatSqlForDebug } from './worker-logger';
+import { formatSqlForDebug } from './worker-logger.js';
 import type { Logger } from './logger';
-export { formatSqlForDebug } from './worker-logger';
+export { formatSqlForDebug } from './worker-logger.js';
 
 export interface Queryable {
   query(text: string, params?: any[]): Promise<{ rows: any[]; rowCount: number | null }>;

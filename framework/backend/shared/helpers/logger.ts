@@ -1,4 +1,4 @@
-export { formatSqlForDebug } from './worker-logger';
+export { formatSqlForDebug } from './worker-logger.js';
 
 /** Shared logger interface — satisfied structurally by winston or any compatible logger. */
 export interface Logger {
