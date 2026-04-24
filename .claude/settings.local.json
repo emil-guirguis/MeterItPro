@@ -99,7 +99,15 @@
       "Bash(\"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d \"meterItPro\" -c \"\\\\d meter\")",
       "Bash(PGPASSWORD=postgres \"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d \"meterItPro\" -c \"\\\\d meter\")",
       "Bash(kill %1)",
-      "Bash(where node *)"
+      "Bash(where node *)",
+      "Bash(\"C:/Program Files/PostgreSQL/18/bin/psql\" -U postgres -c \"\\\\d tenant\")",
+      "Bash(\"C:/Program Files/PostgreSQL/18/bin/psql\" -U postgres -d postgres -c \"\\\\d tenant\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(\"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d meteritsync -c \"\\\\d tenant\")",
+      "Bash(\"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d postgres -c \"\\\\d tenant\")",
+      "Bash(PGPASSWORD=\"ZfyUDh!_x4bSYXm\" \"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d postgres -c \"\\\\d tenant\")",
+      "Bash(PGPASSWORD=\"ZfyUDh!_x4bSYXm\" \"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d postgres -c \"\\\\d sync_log\")",
+      "Bash(wmic process:*)"
     ],
     "additionalDirectories": [
       "C:\\Program Files\\PostgreSQL\\18\\data"

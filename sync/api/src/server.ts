@@ -15,6 +15,8 @@ dotenv.config({ path: resolve(__dirname_local, '../../../.env') });
 
 import express, { Request, Response, NextFunction } from 'express';
 import swaggerUi from 'swagger-ui-express';
+import winston from 'winston';
+import { existsSync, mkdirSync } from 'fs';
 import {
   initializePools,
   closePools,
@@ -23,6 +25,24 @@ import {
   healthCheckSync,
   healthCheckRemote,
 } from './config/database.js';
+
+const _logDir = 'logs';
+if (!existsSync(_logDir)) mkdirSync(_logDir, { recursive: true });
+
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+    }),
+    new winston.transports.File({ filename: 'logs/sync-api.log', maxsize: 10_485_760, maxFiles: 5 }),
+  ],
+});
 
 const app = express();
 const PORT = parseInt(process.env.SYNC_API_PORT || '3002', 10);
@@ -94,7 +114,7 @@ app.get('/swagger/spec.json', (_req, res) => {
 
 // Request logging
 app.use((req, _res, next) => {
-  console.log(`\n🌐 [API] ${new Date().toISOString()} - ${req.method} ${req.path}`);
+  logger.info(`\n🌐 [API] ${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
@@ -358,7 +378,7 @@ app.get('/api/health/remote-api', async (_req, res) => {
  */
 app.get('/api/local/tenant', async (_req, res) => {
   try {
-    console.log('📥 [API] GET /api/local/tenant - Request received');
+    logger.info('📥 [API] GET /api/local/tenant - Request received');
 
     const query = `
       SELECT tenant_id, name, url, street, street2, city, state, zip, country, active, api_key
@@ -368,17 +388,17 @@ app.get('/api/local/tenant', async (_req, res) => {
     const result = await syncPool.query(query);
 
     if (result.rows.length === 0) {
-      console.log('📤 [API] GET /api/local/tenant - No tenant data available');
+      logger.info('📤 [API] GET /api/local/tenant - No tenant data available');
       return res.status(404).json({
         error: 'No tenant found',
         status: 'not_found'
       });
     }
 
-    console.log(`📤 [API] GET /api/local/tenant - Returning tenant: ${result.rows[0].name}`);
+    logger.info(`📤 [API] GET /api/local/tenant - Returning tenant: ${result.rows[0].name}`);
     res.json(result.rows[0]);
   } catch (error) {
-    console.error('❌ [API] GET /api/local/tenant - Error:', error);
+    logger.error('❌ [API] GET /api/local/tenant - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -388,20 +408,20 @@ app.get('/api/local/tenant', async (_req, res) => {
 // Save tenant data directly to local database (from remote API response)
 app.post('/api/local/tenant', async (req, res) => {
   try {
-    console.log('📥 [API] POST /api/local/tenant - Request received');
-    console.log('📥 [API] Request body:', req.body);
+    logger.info('📥 [API] POST /api/local/tenant - Request received');
+    logger.info('📥 [API] Request body:', req.body);
 
     const { tenant_id, name, url, street, street2, city, state, zip, country, active, api_key } = req.body;
 
     if (!tenant_id || !name) {
-      console.error('❌ [API] Missing required fields: tenant_id and name');
+      logger.error('❌ [API] Missing required fields: tenant_id and name');
       return res.status(400).json({
         error: 'tenant_id and name are required'
       });
     }
 
     // Upsert to local sync database
-    console.log('🔄 [API] Upserting tenant to local database...');
+    logger.info('🔄 [API] Upserting tenant to local database...');
     const upsertQuery = `
       INSERT INTO tenant (tenant_id, name, url, street, street2, city, state, zip, country, active, api_key)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -433,7 +453,7 @@ app.post('/api/local/tenant', async (req, res) => {
     ]);
 
     const savedTenant = upsertResult.rows[0];
-    console.log('✅ [API] Tenant saved successfully:', savedTenant.name);
+    logger.info('✅ [API] Tenant saved successfully:', savedTenant.name);
 
     // Return saved tenant (without api_key for security)
     const response = {
@@ -449,10 +469,10 @@ app.post('/api/local/tenant', async (req, res) => {
       active: savedTenant.active,
     };
 
-    console.log(`📤 [API] POST /api/local/tenant - Success`);
+    logger.info(`📤 [API] POST /api/local/tenant - Success`);
     res.json(response);
   } catch (error) {
-    console.error('❌ [API] POST /api/local/tenant - Error:', error);
+    logger.error('❌ [API] POST /api/local/tenant - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -475,18 +495,18 @@ app.post('/api/local/tenant', async (req, res) => {
  */
 app.delete('/api/local/tenant', async (_req, res) => {
   try {
-    console.log('📥 [API] DELETE /api/local/tenant - Request received');
+    logger.info('📥 [API] DELETE /api/local/tenant - Request received');
 
     const deleteQuery = `DELETE FROM tenant`;
     await syncPool.query(deleteQuery);
 
-    console.log('✅ [API] Tenant deleted successfully');
+    logger.info('✅ [API] Tenant deleted successfully');
     res.json({
       success: true,
       message: 'Tenant information deleted successfully'
     });
   } catch (error) {
-    console.error('❌ [API] DELETE /api/local/tenant - Error:', error);
+    logger.error('❌ [API] DELETE /api/local/tenant - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -496,22 +516,22 @@ app.delete('/api/local/tenant', async (_req, res) => {
 // Trigger tenant sync from remote to local database
 app.post('/api/local/tenant-sync', async (req, res) => {
   try {
-    console.log('📥 [API] POST /api/local/tenant-sync - Request received');
+    logger.info('📥 [API] POST /api/local/tenant-sync - Request received');
 
     const { tenant_id } = req.body;
 
     if (!tenant_id) {
-      console.error('❌ [API] Missing tenant_id in request body');
+      logger.error('❌ [API] Missing tenant_id in request body');
       return res.status(400).json({
         success: false,
         error: 'tenant_id is required'
       });
     }
 
-    console.log(`🔍 [API] Syncing tenant: ${tenant_id}`);
+    logger.info(`🔍 [API] Syncing tenant: ${tenant_id}`);
 
     if (!remotePool) {
-      console.error('❌ [API] Remote database pool not available');
+      logger.error('❌ [API] Remote database pool not available');
       return res.status(503).json({
         success: false,
         error: 'Remote database pool not available'
@@ -519,7 +539,7 @@ app.post('/api/local/tenant-sync', async (req, res) => {
     }
 
     // Query remote database for tenant data
-    console.log('🔄 [API] Querying remote database for tenant...');
+    logger.info('🔄 [API] Querying remote database for tenant...');
     const remoteQuery = `
       SELECT tenant_id, name, url, street, street2, city, state, zip, country, active, api_key
       FROM tenant
@@ -528,7 +548,7 @@ app.post('/api/local/tenant-sync', async (req, res) => {
     const remoteResult = await remotePool.query(remoteQuery, [tenant_id]);
 
     if (remoteResult.rows.length === 0) {
-      console.error(`❌ [API] Tenant ${tenant_id} not found in remote database`);
+      logger.error(`❌ [API] Tenant ${tenant_id} not found in remote database`);
       return res.status(404).json({
         success: false,
         error: `Tenant ${tenant_id} not found in remote database`
@@ -536,10 +556,10 @@ app.post('/api/local/tenant-sync', async (req, res) => {
     }
 
     const remoteTenant = remoteResult.rows[0];
-    console.log('✅ [API] Found tenant in remote database:', remoteTenant.name);
+    logger.info('✅ [API] Found tenant in remote database:', remoteTenant.name);
 
     // Upsert to local sync database
-    console.log('🔄 [API] Upserting tenant to local database...');
+    logger.info('🔄 [API] Upserting tenant to local database...');
     const upsertQuery = `
       INSERT INTO tenant (tenant_id, name, url, street, street2, city, state, zip, country, active, api_key)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -571,7 +591,7 @@ app.post('/api/local/tenant-sync', async (req, res) => {
     ]);
 
     const localTenant = upsertResult.rows[0];
-    console.log('✅ [API] Tenant synced successfully');
+    logger.info('✅ [API] Tenant synced successfully');
 
     const response = {
       success: true,
@@ -595,10 +615,10 @@ app.post('/api/local/tenant-sync', async (req, res) => {
       },
     };
 
-    console.log(`📤 [API] POST /api/local/tenant-sync - Success`);
+    logger.info(`📤 [API] POST /api/local/tenant-sync - Success`);
     res.json(response);
   } catch (error) {
-    console.error('❌ [API] POST /api/local/tenant-sync - Error:', error);
+    logger.error('❌ [API] POST /api/local/tenant-sync - Error:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -610,7 +630,7 @@ app.post('/api/local/tenant-sync', async (req, res) => {
 // Get all meters
 app.get('/api/local/meters', async (_req, res) => {
   try {
-    console.log('📥 [API] GET /api/local/meters - Request received');
+    logger.info('📥 [API] GET /api/local/meters - Request received');
 
     const query = `
       SELECT meter_id, device_id, name, active, ip, port, meter_element_id, element
@@ -620,10 +640,10 @@ app.get('/api/local/meters', async (_req, res) => {
     `;
     const result = await syncPool.query(query);
 
-    console.log(`📤 [API] GET /api/local/meters - Returning ${result.rows.length} meter(s)`);
+    logger.info(`📤 [API] GET /api/local/meters - Returning ${result.rows.length} meter(s)`);
     res.json(result.rows);
   } catch (error) {
-    console.error('❌ [API] GET /api/local/meters - Error:', error);
+    logger.error('❌ [API] GET /api/local/meters - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -633,7 +653,7 @@ app.get('/api/local/meters', async (_req, res) => {
 // Get meter connectivity status
 app.get('/api/meters/connectivity', async (_req, res) => {
   try {
-    console.log('📥 [API] GET /api/meters/connectivity - Request received');
+    logger.info('📥 [API] GET /api/meters/connectivity - Request received');
 
     const query = `
       SELECT meter_id, device_id, name, active, ip, port
@@ -641,10 +661,10 @@ app.get('/api/meters/connectivity', async (_req, res) => {
       WHERE active = true
       ORDER BY meter_id
     `;
-    console.log(`\n🔍 [API] /api/meters/connectivity SQL:\n   ${query}`);
+    logger.info(`\n🔍 [API] /api/meters/connectivity SQL:\n   ${query}`);
 
     const result = await syncPool.query(query);
-    console.log(`\n📊 [API] /api/meters/connectivity - ${result.rows.length} meter(s) found`);
+    logger.info(`\n📊 [API] /api/meters/connectivity - ${result.rows.length} meter(s) found`);
 
     const mcpHttpUrl = process.env.MCP_HTTP_URL || 'http://127.0.0.1:3001';
 
@@ -674,7 +694,7 @@ app.get('/api/meters/connectivity', async (_req, res) => {
             online = checkData.online ?? false;
           }
         } catch (err) {
-          console.warn(`Failed to check connectivity for ${row.ip}:`, err instanceof Error ? err.message : String(err));
+          logger.warn(`Failed to check connectivity for ${row.ip}:`, err instanceof Error ? err.message : String(err));
           online = false;
         }
 
@@ -689,10 +709,10 @@ app.get('/api/meters/connectivity', async (_req, res) => {
       })
     );
 
-    console.log(`📤 [API] GET /api/meters/connectivity - Returning ${meters.length} meter(s)`);
+    logger.info(`📤 [API] GET /api/meters/connectivity - Returning ${meters.length} meter(s)`);
     res.json(meters);
   } catch (error) {
-    console.error('❌ [API] GET /api/meters/connectivity - Error:', error);
+    logger.error('❌ [API] GET /api/meters/connectivity - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -724,7 +744,7 @@ app.post('/api/meters/:meterId/reinitialize', async (req, res) => {
     const data = await response.json() as any;
     res.json(data);
   } catch (error) {
-    console.error('❌ [API] POST /api/meters/:meterId/reinitialize - Error:', error);
+    logger.error('❌ [API] POST /api/meters/:meterId/reinitialize - Error:', error);
     res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
   }
 });
@@ -733,7 +753,7 @@ app.post('/api/meters/:meterId/reinitialize', async (req, res) => {
 app.get('/api/local/readings', async (req, res) => {
   try {
     const hours = parseInt(req.query.hours as string) || 24;
-    console.log(`📥 [API] GET /api/local/readings - Request received (hours: ${hours})`);
+    logger.info(`📥 [API] GET /api/local/readings - Request received (hours: ${hours})`);
 
     const query = `
       SELECT
@@ -751,10 +771,10 @@ app.get('/api/local/readings', async (req, res) => {
 
     const result = await syncPool.query(query);
 
-    console.log(`📤 [API] GET /api/local/readings - Returning ${result.rows.length} reading(s)`);
+    logger.info(`📤 [API] GET /api/local/readings - Returning ${result.rows.length} reading(s)`);
     res.json(result.rows);
   } catch (error) {
-    console.error('❌ [API] GET /api/local/readings - Error:', error);
+    logger.error('❌ [API] GET /api/local/readings - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -764,7 +784,7 @@ app.get('/api/local/readings', async (req, res) => {
 // Get sync status
 app.get('/api/local/sync-status', async (_req, res) => {
   try {
-    console.log('📥 [API] GET /api/local/sync-status - Request received');
+    logger.info('📥 [API] GET /api/local/sync-status - Request received');
 
     // Get queue size (unsynchronized readings)
     const queueQuery = `SELECT COUNT(*) as count FROM meter_reading WHERE is_synchronized = false`;
@@ -812,10 +832,10 @@ app.get('/api/local/sync-status', async (_req, res) => {
       sync_errors: errorLogs,
     };
 
-    console.log(`📤 [API] GET /api/local/sync-status - Queue size: ${queueSize}, Connected: ${isConnected}`);
+    logger.info(`📤 [API] GET /api/local/sync-status - Queue size: ${queueSize}, Connected: ${isConnected}`);
     res.json(response);
   } catch (error) {
-    console.error('❌ [API] GET /api/local/sync-status - Error:', error);
+    logger.error('❌ [API] GET /api/local/sync-status - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -825,7 +845,7 @@ app.get('/api/local/sync-status', async (_req, res) => {
 // Get meter reading upload status
 app.get('/api/sync/meter-reading-upload/status', async (_req, res) => {
   try {
-    console.log('📥 [API] GET /api/sync/meter-reading-upload/status - Request received');
+    logger.info('📥 [API] GET /api/sync/meter-reading-upload/status - Request received');
 
     // Get queue size
     const queueQuery = `SELECT COUNT(*) as count FROM meter_reading WHERE is_synchronized = false`;
@@ -862,10 +882,10 @@ app.get('/api/sync/meter-reading-upload/status', async (_req, res) => {
       is_client_connected: isClientConnected,
     };
 
-    console.log(`📤 [API] GET /api/sync/meter-reading-upload/status - Queue: ${queueSize}`);
+    logger.info(`📤 [API] GET /api/sync/meter-reading-upload/status - Queue: ${queueSize}`);
     res.json(response);
   } catch (error) {
-    console.error('❌ [API] GET /api/sync/meter-reading-upload/status - Error:', error);
+    logger.error('❌ [API] GET /api/sync/meter-reading-upload/status - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -875,10 +895,13 @@ app.get('/api/sync/meter-reading-upload/status', async (_req, res) => {
 // Get sync activity log (all operation types)
 app.get('/api/sync/meter-reading-upload/log', async (_req, res) => {
   try {
-    console.log('📥 [API] GET /api/sync/meter-reading-upload/log - Request received');
+    logger.info('📥 [API] GET /api/sync/meter-reading-upload/log - Request received');
+
+    // Ensure details column exists before querying (safe no-op if already present)
+    await syncPool.query(`ALTER TABLE sync_log ADD COLUMN IF NOT EXISTS details TEXT DEFAULT NULL`);
 
     const query = `
-      SELECT id as sync_operation_id, operation_type, batch_size as readings_count, success, error_message, details, synced_at as created_at
+      SELECT sync_log_id as sync_operation_id, operation_type, batch_size as readings_count, success, error_message, details, synced_at as created_at
       FROM sync_log
       ORDER BY synced_at DESC
       LIMIT 200
@@ -886,10 +909,10 @@ app.get('/api/sync/meter-reading-upload/log', async (_req, res) => {
 
     const result = await syncPool.query(query);
 
-    console.log(`📤 [API] GET /api/sync/meter-reading-upload/log - Returning ${result.rows.length} entries`);
+    logger.info(`📤 [API] GET /api/sync/meter-reading-upload/log - Returning ${result.rows.length} entries`);
     res.json(result.rows);
   } catch (error) {
-    console.error('❌ [API] GET /api/sync/meter-reading-upload/log - Error:', error);
+    logger.error('❌ [API] GET /api/sync/meter-reading-upload/log - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -898,7 +921,7 @@ app.get('/api/sync/meter-reading-upload/log', async (_req, res) => {
 
 // Trigger meter reading upload - fetches pending readings and posts to client API
 app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
-  console.log('📥 [API] POST /api/sync/meter-reading-upload/trigger - Request received');
+  logger.info('📥 [API] POST /api/sync/meter-reading-upload/trigger - Request received');
 
   try {
     // Get tenant API key
@@ -931,7 +954,7 @@ app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
     `, [batchSize]);
 
     const readings = readingsResult.rows;
-    console.log(`📤 [API] Found ${readings.length} pending readings to upload`);
+    logger.info(`📤 [API] Found ${readings.length} pending readings to upload`);
 
     if (readings.length === 0) {
       return res.json({ success: true, message: 'No pending readings to upload', recordsProcessed: 0 });
@@ -958,7 +981,7 @@ app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
         `INSERT INTO sync_log (operation_type, batch_size, success, synced_at) VALUES ('upload', $1, true, NOW())`,
         [readings.length]
       );
-      console.log(`✅ [API] Upload successful - ${data.recordsProcessed} records processed`);
+      logger.info(`✅ [API] Upload successful - ${data.recordsProcessed} records processed`);
       return res.json({ success: true, message: `Uploaded ${data.recordsProcessed} readings`, recordsProcessed: data.recordsProcessed });
     } else {
       // Increment retry count
@@ -971,17 +994,17 @@ app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
         `INSERT INTO sync_log (operation_type, batch_size, success, error_message, synced_at) VALUES ('upload', $1, false, $2, NOW())`,
         [readings.length, errorMsg]
       );
-      console.error(`❌ [API] Upload failed: ${errorMsg}`);
+      logger.error(`❌ [API] Upload failed: ${errorMsg}`);
       if (data.errors?.length > 0) {
         for (const e of data.errors) {
-          console.error(`   meter_id=${e.meter_id ?? 'unknown'} | code=${e.code ?? ''} | column=${e.column ?? ''} | ${e.detail ?? e.error ?? e.message ?? JSON.stringify(e)}`);
+          logger.error(`   meter_id=${e.meter_id ?? 'unknown'} | code=${e.code ?? ''} | column=${e.column ?? ''} | ${e.detail ?? e.error ?? e.message ?? JSON.stringify(e)}`);
         }
       }
       return res.status(500).json({ success: false, message: errorMsg, errors: data.errors });
     }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error('❌ [API] Upload trigger error:', msg);
+    logger.error('❌ [API] Upload trigger error:', msg);
     try {
       await syncPool.query(
         `INSERT INTO sync_log (operation_type, batch_size, success, error_message, synced_at) VALUES ('upload', 0, false, $1, NOW())`,
@@ -995,7 +1018,7 @@ app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
 // Get meter sync status (mirrors the old MCP API endpoint)
 app.get('/api/local/meter-sync-status', async (_req, res) => {
   try {
-    console.log('📥 [API] GET /api/local/meter-sync-status - Request received');
+    logger.info('📥 [API] GET /api/local/meter-sync-status - Request received');
 
     // Get last sync log entry
     const lastSyncQuery = `
@@ -1023,10 +1046,10 @@ app.get('/api/local/meter-sync-status', async (_req, res) => {
       is_syncing: false,
     };
 
-    console.log(`📤 [API] GET /api/local/meter-sync-status - Meters: ${meterCount}`);
+    logger.info(`📤 [API] GET /api/local/meter-sync-status - Meters: ${meterCount}`);
     res.json(response);
   } catch (error) {
-    console.error('❌ [API] GET /api/local/meter-sync-status - Error:', error);
+    logger.error('❌ [API] GET /api/local/meter-sync-status - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -1036,7 +1059,7 @@ app.get('/api/local/meter-sync-status', async (_req, res) => {
 // Trigger meter sync (delegates to MCP sync agent via remote database re-sync)
 app.post('/api/local/meter-sync-trigger', async (_req, res) => {
   try {
-    console.log('📥 [API] POST /api/local/meter-sync-trigger - Request received');
+    logger.info('📥 [API] POST /api/local/meter-sync-trigger - Request received');
 
     if (!remotePool) {
       return res.status(503).json({
@@ -1187,10 +1210,10 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
       },
     };
 
-    console.log(`📤 [API] POST /api/local/meter-sync-trigger - ${response.message}`);
+    logger.info(`📤 [API] POST /api/local/meter-sync-trigger - ${response.message}`);
     res.json(response);
   } catch (error) {
-    console.error('❌ [API] POST /api/local/meter-sync-trigger - Error:', error);
+    logger.error('❌ [API] POST /api/local/meter-sync-trigger - Error:', error);
 
     // Log the failed sync
     try {
@@ -1210,7 +1233,7 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
 // Get BACnet meter reading status (database-backed approximation)
 app.get('/api/meter-reading/status', async (_req, res) => {
   try {
-    console.log('📥 [API] GET /api/meter-reading/status - Request received');
+    logger.info('📥 [API] GET /api/meter-reading/status - Request received');
 
     // Get recent reading stats from the database
     const recentStatsQuery = `
@@ -1256,10 +1279,10 @@ app.get('/api/meter-reading/status', async (_req, res) => {
       note: 'Status is derived from database. BACnet agent runs in the MCP process.',
     };
 
-    console.log(`📤 [API] GET /api/meter-reading/status - Readings last hour: ${stats.readings_last_hour}`);
+    logger.info(`📤 [API] GET /api/meter-reading/status - Readings last hour: ${stats.readings_last_hour}`);
     res.json(response);
   } catch (error) {
-    console.error('❌ [API] GET /api/meter-reading/status - Error:', error);
+    logger.error('❌ [API] GET /api/meter-reading/status - Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
     });
@@ -1268,7 +1291,7 @@ app.get('/api/meter-reading/status', async (_req, res) => {
 
 // Trigger BACnet meter reading — proxied to MCP HTTP server
 app.post('/api/meter-reading/trigger', async (_req, res) => {
-  console.log('📥 [API] POST /api/meter-reading/trigger - Proxying to MCP process');
+  logger.info('📥 [API] POST /api/meter-reading/trigger - Proxying to MCP process');
   try {
     const mcpHttpUrl = process.env.MCP_HTTP_URL || 'http://127.0.0.1:3001';
     const controller = new AbortController();
@@ -1283,7 +1306,7 @@ app.post('/api/meter-reading/trigger', async (_req, res) => {
     res.status(mcpRes.status).json(data);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error('❌ [API] POST /api/meter-reading/trigger - Failed to reach MCP process:', errorMsg);
+    logger.error('❌ [API] POST /api/meter-reading/trigger - Failed to reach MCP process:', errorMsg);
     res.status(503).json({ success: false, error: `MCP process unreachable: ${errorMsg}` });
   }
 });
@@ -1292,13 +1315,13 @@ app.post('/api/meter-reading/trigger', async (_req, res) => {
 
 // 404 handler
 app.use((req, res) => {
-  console.warn(`⚠️  [API] 404 Not Found: ${req.method} ${req.path}`);
+  logger.warn(`⚠️  [API] 404 Not Found: ${req.method} ${req.path}`);
   res.status(404).json({ error: 'Not found' });
 });
 
 // Error handler
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('❌ [API] Internal Server Error:', err);
+  logger.error('❌ [API] Internal Server Error:', err);
   res.status(500).json({
     error: 'Internal server error',
     message: err.message,
@@ -1309,7 +1332,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 
 async function startServer() {
   try {
-    console.log('\n🚀 [Sync API] Starting server...');
+    logger.info('\n🚀 [Sync API] Starting server...');
 
     // Initialize database pools
     await initializePools();
@@ -1317,13 +1340,17 @@ async function startServer() {
     // Ensure required tables exist (sync/api doesn't rely on MCP having run first)
     await syncPool.query(`
       CREATE TABLE IF NOT EXISTS sync_log (
-        id SERIAL PRIMARY KEY,
+        sync_log_id SERIAL PRIMARY KEY,
         operation_type VARCHAR(50),
         batch_size INTEGER,
         success BOOLEAN,
         error_message TEXT,
         synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+    // Add details column if it doesn't exist (added in a later version)
+    await syncPool.query(`
+      ALTER TABLE sync_log ADD COLUMN IF NOT EXISTS details TEXT DEFAULT NULL
     `);
     await syncPool.query(`
       CREATE TABLE IF NOT EXISTS device_register (
@@ -1336,24 +1363,24 @@ async function startServer() {
       CREATE UNIQUE INDEX IF NOT EXISTS device_register_device_id_register_id_key
       ON device_register (device_id, register_id)
     `);
-    console.log('✅ [Sync API] Required tables verified');
+    logger.info('✅ [Sync API] Required tables verified');
 
     // Start listening (bind to all interfaces for Docker compatibility)
     const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n✅ [Sync API] Server listening on http://0.0.0.0:${PORT}`);
-      console.log(`   Health check: http://localhost:${PORT}/health`);
-      console.log(`   Tenant endpoint: http://localhost:${PORT}/api/local/tenant`);
-      console.log(`   Meters endpoint: http://localhost:${PORT}/api/local/meters`);
-      console.log(`   Readings endpoint: http://localhost:${PORT}/api/local/readings`);
-      console.log(`   Sync status endpoint: http://localhost:${PORT}/api/local/sync-status\n`);
+      logger.info(`\n✅ [Sync API] Server listening on http://0.0.0.0:${PORT}`);
+      logger.info(`   Health check: http://localhost:${PORT}/health`);
+      logger.info(`   Tenant endpoint: http://localhost:${PORT}/api/local/tenant`);
+      logger.info(`   Meters endpoint: http://localhost:${PORT}/api/local/meters`);
+      logger.info(`   Readings endpoint: http://localhost:${PORT}/api/local/readings`);
+      logger.info(`   Sync status endpoint: http://localhost:${PORT}/api/local/sync-status\n`);
     });
 
     // Graceful shutdown
     const shutdown = async (signal: string) => {
-      console.log(`\n🛑 [Sync API] Received ${signal}, shutting down...`);
+      logger.info(`\n🛑 [Sync API] Received ${signal}, shutting down...`);
       server.close(async () => {
         await closePools();
-        console.log('✅ [Sync API] Server stopped');
+        logger.info('✅ [Sync API] Server stopped');
         process.exit(0);
       });
     };
@@ -1362,7 +1389,7 @@ async function startServer() {
     process.on('SIGTERM', () => shutdown('SIGTERM'));
 
   } catch (error) {
-    console.error('❌ [Sync API] Failed to start server:', error);
+    logger.error('❌ [Sync API] Failed to start server:', error);
     process.exit(1);
   }
 }
