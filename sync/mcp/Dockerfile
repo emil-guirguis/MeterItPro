@@ -1,4 +1,4 @@
-FROM node:22 AS builder
+FROM node:24 AS builder
 WORKDIR /build/sync/mcp
 COPY sync/mcp/package*.json ./
 RUN npm ci
@@ -7,7 +7,7 @@ COPY sync/mcp/src ./src
 COPY framework /build/framework
 RUN npm run build
 
-FROM node:22-slim
+FROM node:24-slim
 WORKDIR /app
 ENV NODE_ENV=production
 COPY sync/mcp/package*.json ./
