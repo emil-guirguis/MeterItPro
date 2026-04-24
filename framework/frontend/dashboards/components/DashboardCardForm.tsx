@@ -5,16 +5,16 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Button,
   Box,
   Typography,
   CircularProgress,
   Alert,
   Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -46,12 +46,12 @@ interface FormData {
   card_name: string;
   card_description: string;
   meter_selections: MeterRowValue[];
-  time_frame_type: 'today' | 'custom' | 'last_month' | 'this_month_to_date' | 'yearly' | 'since_installation';
+  time_frame_type: string;
+  visualization_type: string;
+  grouping_type: string;
+  aggregation_type: string;
   custom_start_date: string;
   custom_end_date: string;
-  visualization_type: 'pie' | 'line' | 'candlestick' | 'bar' | 'area';
-  grouping_type: 'total' | 'hourly' | 'daily' | 'weekly' | 'monthly';
-  aggregation_type: 'none' | 'average' | 'min' | 'max' | 'sum';
 }
 
 interface FormErrors {
@@ -60,17 +60,14 @@ interface FormErrors {
 
 /** Convert an existing card's legacy fields into a MeterRowValue array. */
 function cardToMeterSelections(card: any): MeterRowValue[] {
-  // New format — may come back as array (JSONB) or string (text)
   let selections = card.meter_selections;
   if (typeof selections === 'string') {
     try { selections = JSON.parse(selections); } catch { selections = null; }
   }
   if (Array.isArray(selections)) {
-    // If meter_selections was explicitly saved (even as empty), use it — don't fall back to legacy
     if (selections.length > 0) return selections;
     if (card.meter_selections !== undefined && card.meter_selections !== null) return [];
   }
-  // Legacy single-row format
   if (card.meter_id) {
     return [
       {
@@ -91,11 +88,11 @@ const emptyForm = (): FormData => ({
   card_description: '',
   meter_selections: [],
   time_frame_type: 'last_month',
-  custom_start_date: '',
-  custom_end_date: '',
   visualization_type: 'line',
   grouping_type: 'daily',
   aggregation_type: 'none',
+  custom_start_date: '',
+  custom_end_date: '',
 });
 
 export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
@@ -114,8 +111,6 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
-  // ── Initialise form when modal opens ────────────────────────────────────────
-
   useEffect(() => {
     if (!isOpen) return;
     if (card) {
@@ -124,19 +119,17 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
         card_description: card.card_description || '',
         meter_selections: cardToMeterSelections(card),
         time_frame_type: card.time_frame_type || 'last_month',
-        custom_start_date: card.custom_start_date || '',
-        custom_end_date: card.custom_end_date || '',
         visualization_type: card.visualization_type || 'line',
         grouping_type: card.grouping_type || 'daily',
         aggregation_type: card.aggregation_type || 'none',
+        custom_start_date: card.custom_start_date || '',
+        custom_end_date: card.custom_end_date || '',
       });
     } else {
       setFormData(emptyForm());
     }
     setErrors({});
   }, [isOpen, card]);
-
-  // ── Validation ───────────────────────────────────────────────────────────────
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -170,15 +163,11 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // ── Field change ─────────────────────────────────────────────────────────────
-
   const handleFieldChange = (e: any) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
   };
-
-  // ── Submit ───────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,11 +175,6 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
 
     try {
       setSubmitting(true);
-
-      // Derive legacy compat fields from first concrete row (non-"all" meter)
-      const firstRow = formData.meter_selections.find(r => r.meter_id !== null)
-        ?? formData.meter_selections[0]
-        ?? null;
 
       const submitData: any = {
         card_name: formData.card_name,
@@ -207,13 +191,13 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
         submitData.custom_end_date   = formData.custom_end_date;
       }
 
-      console.log('📋 [DashboardCardModal] Submitting:', submitData);
       await onSubmit(submitData);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const isDisabled = submitting || loading;
   const title = card ? 'Edit Dashboard Card' : 'Create Dashboard Card';
 
   return (
@@ -227,7 +211,7 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
     >
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {title}
-        <Button onClick={onClose} disabled={submitting || loading} sx={{ minWidth: 'auto', p: 1 }}>
+        <Button onClick={onClose} disabled={isDisabled} sx={{ minWidth: 'auto', p: 1 }}>
           <CloseIcon />
         </Button>
       </DialogTitle>
@@ -237,7 +221,6 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
 
           {externalError && <Alert severity="error">{externalError}</Alert>}
 
-          {/* Card Name */}
           <TextField
             fullWidth
             label="Card Name"
@@ -247,11 +230,10 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
             placeholder="e.g., Monthly Energy Consumption"
             error={!!errors.card_name}
             helperText={errors.card_name}
-            disabled={submitting || loading}
+            disabled={isDisabled}
             required
           />
 
-          {/* Description */}
           <TextField
             fullWidth
             label="Description"
@@ -261,47 +243,57 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
             placeholder="Optional description for this card"
             multiline
             rows={2}
-            disabled={submitting || loading}
+            disabled={isDisabled}
           />
 
-          {/* Time Frame + Data Grouping — same row per schema halfWidth hint */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={submitting || loading}>
-                <InputLabel>Time Frame *</InputLabel>
-                <Select
-                  label="Time Frame *"
-                  name="time_frame_type"
-                  value={formData.time_frame_type}
-                  onChange={handleFieldChange}
-                >
-                  <MenuItem value="today">Today</MenuItem>
-                  <MenuItem value="last_month">Last Month</MenuItem>
-                  <MenuItem value="this_month_to_date">This Month to Date</MenuItem>
-                  <MenuItem value="yearly">Yearly</MenuItem>
-                  <MenuItem value="since_installation">Since Installation</MenuItem>
-                  <MenuItem value="custom">Custom Date Range</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={submitting || loading}>
-                <InputLabel>Data Grouping *</InputLabel>
-                <Select
-                  label="Data Grouping *"
-                  name="grouping_type"
-                  value={formData.grouping_type}
-                  onChange={handleFieldChange}
-                >
-                  <MenuItem value="total">Total</MenuItem>
-                  <MenuItem value="hourly">Hourly</MenuItem>
-                  <MenuItem value="daily">Daily</MenuItem>
-                  <MenuItem value="weekly">Weekly</MenuItem>
-                  <MenuItem value="monthly">Monthly</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+          {/* Report Settings */}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 180 }} disabled={isDisabled}>
+              <InputLabel>Time Frame</InputLabel>
+              <Select label="Time Frame" name="time_frame_type" value={formData.time_frame_type} onChange={handleFieldChange}>
+                <MenuItem value="today">Today</MenuItem>
+                <MenuItem value="last_month">Last Month</MenuItem>
+                <MenuItem value="this_month_to_date">This Month to Date</MenuItem>
+                <MenuItem value="yearly">This Year</MenuItem>
+                <MenuItem value="since_installation">Since Installation</MenuItem>
+                <MenuItem value="custom">Custom Date Range</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 150 }} disabled={isDisabled}>
+              <InputLabel>Visualization</InputLabel>
+              <Select label="Visualization" name="visualization_type" value={formData.visualization_type} onChange={handleFieldChange}>
+                <MenuItem value="bar">Bar Chart</MenuItem>
+                <MenuItem value="line">Line Chart</MenuItem>
+                <MenuItem value="pie">Pie Chart</MenuItem>
+                <MenuItem value="area">Area Chart</MenuItem>
+                <MenuItem value="candlestick">Candlestick</MenuItem>
+                <MenuItem value="list">List</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 130 }} disabled={isDisabled}>
+              <InputLabel>Grouping</InputLabel>
+              <Select label="Grouping" name="grouping_type" value={formData.grouping_type} onChange={handleFieldChange}>
+                <MenuItem value="total">Total</MenuItem>
+                <MenuItem value="hourly">Hourly</MenuItem>
+                <MenuItem value="daily">Daily</MenuItem>
+                <MenuItem value="weekly">Weekly</MenuItem>
+                <MenuItem value="monthly">Monthly</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 130 }} disabled={isDisabled}>
+              <InputLabel>Aggregation</InputLabel>
+              <Select label="Aggregation" name="aggregation_type" value={formData.aggregation_type} onChange={handleFieldChange}>
+                <MenuItem value="sum">Sum</MenuItem>
+                <MenuItem value="average">Average</MenuItem>
+                <MenuItem value="min">Min</MenuItem>
+                <MenuItem value="max">Max</MenuItem>
+                <MenuItem value="none">None</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
 
           {/* Custom Date Range */}
           {formData.time_frame_type === 'custom' && (
@@ -311,7 +303,7 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
                   fullWidth label="Start Date" name="custom_start_date" type="date"
                   value={formData.custom_start_date} onChange={handleFieldChange}
                   error={!!errors.custom_start_date} helperText={errors.custom_start_date}
-                  disabled={submitting || loading} required InputLabelProps={{ shrink: true }}
+                  disabled={isDisabled} required InputLabelProps={{ shrink: true }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -319,49 +311,11 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
                   fullWidth label="End Date" name="custom_end_date" type="date"
                   value={formData.custom_end_date} onChange={handleFieldChange}
                   error={!!errors.custom_end_date} helperText={errors.custom_end_date}
-                  disabled={submitting || loading} required InputLabelProps={{ shrink: true }}
+                  disabled={isDisabled} required InputLabelProps={{ shrink: true }}
                 />
               </Grid>
             </Grid>
           )}
-
-          {/* Visualization Type + Aggregation — same row */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={submitting || loading}>
-                <InputLabel>Visualization Type *</InputLabel>
-                <Select
-                  label="Visualization Type *"
-                  name="visualization_type"
-                  value={formData.visualization_type}
-                  onChange={handleFieldChange}
-                >
-                  <MenuItem value="line">Line Chart</MenuItem>
-                  <MenuItem value="bar">Bar Chart</MenuItem>
-                  <MenuItem value="pie">Pie Chart</MenuItem>
-                  <MenuItem value="area">Area Chart</MenuItem>
-                  <MenuItem value="candlestick">Candlestick Chart</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={submitting || loading}>
-                <InputLabel>Aggregation *</InputLabel>
-                <Select
-                  label="Aggregation *"
-                  name="aggregation_type"
-                  value={formData.aggregation_type}
-                  onChange={handleFieldChange}
-                >
-                  <MenuItem value="none">None</MenuItem>
-                  <MenuItem value="average">Average</MenuItem>
-                  <MenuItem value="min">Min</MenuItem>
-                  <MenuItem value="max">Max</MenuItem>
-                  <MenuItem value="sum">Sum</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
 
           {/* Meter / Element / Register Grid */}
           <Box>
@@ -377,7 +331,7 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
                   setErrors(prev => { const n = { ...prev }; delete n.meter_selections; return n; });
                 }
               }}
-              disabled={submitting || loading}
+              disabled={isDisabled}
               error={errors.meter_selections}
             />
           </Box>
@@ -386,12 +340,12 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
       </DialogContent>
 
       <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button onClick={onClose} disabled={submitting || loading} variant="outlined">
+        <Button onClick={onClose} disabled={isDisabled} variant="outlined">
           Cancel
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={submitting || loading}
+          disabled={isDisabled}
           variant="contained"
           startIcon={submitting ? <CircularProgress size={20} /> : undefined}
         >

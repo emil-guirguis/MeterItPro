@@ -5,15 +5,6 @@
  * Mounts all route sub-apps and shared middleware.
  */
 
-// Prepend HH:MM:SS timestamp to every console log line in wrangler dev output
-const _origLog = console.log.bind(console);
-const _origWarn = console.warn.bind(console);
-const _origError = console.error.bind(console);
-const _ts = () => new Date().toTimeString().slice(0, 8);
-console.log   = (...a) => _origLog  (`[${_ts()}]`, ...a);
-console.warn  = (...a) => _origWarn (`[${_ts()}]`, ...a);
-console.error = (...a) => _origError(`[${_ts()}]`, ...a);
-
 import { Hono } from 'hono';
 import { runAllActiveReports } from './reportRunner';
 import { runAllActiveNotificationRules } from './notificationRunner';
@@ -45,7 +36,6 @@ import emailLogRoutes from './routes/emailLogs';
 import aiSearchRoutes from './routes/aiSearch';
 import aiChatRoutes from './routes/aiChat';
 import registerRoutes from './routes/registers';
-import deviceRegisterRoutes from './routes/deviceRegisters';
 import uploadRoutes from './routes/upload';
 
 export const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -383,7 +373,7 @@ app.all('*', (c) => {
 
 export default {
   fetch: app.fetch,
-  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+  async scheduled(_event: { scheduledTime: number }, env: Env, ctx: { waitUntil(p: Promise<any>): void }) {
     const now = new Date(_event.scheduledTime);
     ctx.waitUntil(Promise.all([
       runAllActiveReports(env, now).catch(err =>

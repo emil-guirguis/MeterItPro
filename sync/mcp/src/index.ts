@@ -22,7 +22,9 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
+import type { Logger } from '../../../framework/backend/shared/helpers/logger.js';
 import winston from 'winston';
+import { existsSync, mkdirSync } from 'fs';
 import { Pool } from 'pg';
 import { initializePools, remotePool as globalRemotePool } from './data-sync/data-sync.js';
 import { ClientSystemApiClient } from './api/client-system-api.js';
@@ -39,27 +41,21 @@ import {
 
 import { cacheManager } from './cache/cache-manager.js';
 
-// Configure logger
-const logger = winston.createLogger({
+const _logDir = 'logs';
+if (!existsSync(_logDir)) mkdirSync(_logDir, { recursive: true });
+
+const logger: Logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
     winston.format.json()
   ),
   transports: [
     new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.printf(({ level, message }) => `${level}: ${message}`)
-      ),
+      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
     }),
-    new winston.transports.File({
-      filename: 'logs/sync-mcp-error.log',
-      level: 'error'
-    }),
-    new winston.transports.File({
-      filename: 'logs/sync-mcp.log'
-    }),
+    new winston.transports.File({ filename: 'logs/sync-mcp.log', maxsize: 10_485_760, maxFiles: 5 }),
   ],
 });
 

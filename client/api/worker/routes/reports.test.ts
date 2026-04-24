@@ -51,12 +51,15 @@ const TEST_ENV_WITH_RESEND: Env = {
 const SAMPLE_REPORT = {
   report_id: 1,
   name: 'Monthly Energy Report',
-  type: 'energy',
-  schedule: '0 8 1 * *',
-  recipients: ['user@example.com'],
-  config: {},
+  type: 'meter_readings',
+  cron: '0 8 1 * *',
+  recipients: { from: null, to: ['user@example.com'] },
   active: true,
   meter_selections: null,
+  time_frame: 'monthly',
+  visualization_type: 'bar',
+  grouping_type: 'daily',
+  attach_as: 'html',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
@@ -138,9 +141,9 @@ describe('Reports Routes', () => {
         headers: { authorization: 'Bearer valid-token', 'content-type': 'application/json' },
         body: JSON.stringify({
           name: 'Monthly Energy Report',
-          type: 'energy',
-          schedule: '0 8 1 * *',
-          recipients: ['user@example.com'],
+          type: 'meter_readings',
+          cron: '0 8 1 * *',
+          recipients: { from: null, to: ['user@example.com'] },
         }),
       }, TEST_ENV);
 
@@ -154,7 +157,7 @@ describe('Reports Routes', () => {
       const res = await reportsApp.request('/', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token', 'content-type': 'application/json' },
-        body: JSON.stringify({ type: 'energy', schedule: '0 8 1 * *', recipients: ['user@example.com'] }),
+        body: JSON.stringify({ type: 'meter_readings', cron: '0 8 1 * *', recipients: { to: ['user@example.com'] } }),
       }, TEST_ENV);
 
       expect(res.status).toBe(400);
@@ -166,7 +169,7 @@ describe('Reports Routes', () => {
       const res = await reportsApp.request('/', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token', 'content-type': 'application/json' },
-        body: JSON.stringify({ name: 'Test', type: 'energy', schedule: '0 8 1 * *', recipients: [] }),
+        body: JSON.stringify({ name: 'Test', type: 'meter_readings', cron: '0 8 1 * *', recipients: { to: [] } }),
       }, TEST_ENV);
 
       expect(res.status).toBe(400);
@@ -176,7 +179,7 @@ describe('Reports Routes', () => {
       const res = await reportsApp.request('/', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token', 'content-type': 'application/json' },
-        body: JSON.stringify({ name: 'Test', type: 'energy', schedule: 'not-a-cron', recipients: ['a@b.com'] }),
+        body: JSON.stringify({ name: 'Test', type: 'meter_readings', cron: 'not-a-cron', recipients: { to: ['a@b.com'] } }),
       }, TEST_ENV);
 
       expect(res.status).toBe(400);

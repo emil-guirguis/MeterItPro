@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Chip,
@@ -13,6 +13,10 @@ import {
   Button,
   Alert,
   Collapse,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { BaseForm, FormContainer } from '@framework/components/form';
 import { CronField } from '@framework/components/formfield/CronField';
@@ -24,6 +28,8 @@ import apiClient from '../../services/apiClient';
 import type { Report } from './types';
 import './ReportForm.css';
 
+// ── ReportForm ────────────────────────────────────────────────────────────────
+
 interface ReportFormProps {
   report?: Report;
   onSubmit: (data: Omit<Report, 'report_id' | 'created_at' | 'updated_at'>) => Promise<void>;
@@ -31,15 +37,13 @@ interface ReportFormProps {
   loading?: boolean;
 }
 
-/**
- * ReportForm Component
- * 
- * Refactored to use BaseForm with schema-driven rendering.
- * Removes manual state management and validation logic.
- * Uses custom field renderers for recipients, schedule, meter/element, and register fields.
- * 
- * **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 7.1, 7.2, 8.1, 8.2, 8.3, 8.4, 8.5**
- */
+const REPORT_TYPE_OPTIONS = [
+  { value: 'meter_readings', label: 'Meter Readings' },
+  { value: 'usage_summary', label: 'Usage Summary' },
+  { value: 'daily_summary', label: 'Daily Summary' },
+  { value: 'demand', label: 'Demand Report' },
+];
+
 export const ReportForm: React.FC<ReportFormProps> = ({
   report,
   onSubmit,
@@ -48,6 +52,13 @@ export const ReportForm: React.FC<ReportFormProps> = ({
 }) => {
   const reports = useReportsEnhanced();
 
+  const schemaBustedRef = useRef(false);
+  if (!schemaBustedRef.current) {
+    schemaBustedRef.current = true;
+    try { localStorage.removeItem('schema_cache_report'); } catch { /* ignore */ }
+  }
+
+  const [selectedType, setSelectedType] = useState<string>(report?.type || 'meter_readings');
   const [debugRunning, setDebugRunning] = useState(false);
   const [debugResult, setDebugResult] = useState<{ success: boolean; message: string } | null>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -88,19 +99,46 @@ export const ReportForm: React.FC<ReportFormProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [report?.report_id]);
 
+  const handlePreview = async () => {
+    if (!report?.report_id) return;
+    try {
+      const res = await apiClient.get(`/reports/${report.report_id}/preview`, { responseType: 'text' });
+      const blob = new Blob([res.data as string], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+      if (win) win.addEventListener('load', () => URL.revokeObjectURL(url));
+    } catch {
+      setDebugResult({ success: false, message: 'Failed to open preview.' });
+    }
+  };
+
   const runButton = report?.report_id ? (
-    <Box>
+    <Box sx={{ display: 'flex', gap: 1 }}>
       <Button
         variant="outlined"
         size="small"
-        startIcon={debugRunning ? <CircularProgress size={14} color="inherit" /> : <span className="material-symbols-outlined" style={{ fontSize: 16 }}>play_arrow</span>}
+        startIcon={<span className="material-symbols-outlined report-form__run-icon">preview</span>}
+        onClick={handlePreview}
+        disabled={debugRunning}
+      >
+        Preview
+      </Button>
+      <Button
+        variant="outlined"
+        size="small"
+        color="primary"
+        startIcon={debugRunning ? <CircularProgress size={14} color="inherit" /> : <span className="material-symbols-outlined report-form__run-icon">send</span>}
         onClick={handleDebugRun}
         disabled={debugRunning}
       >
-        {debugRunning ? 'Running...' : 'Run Now'}
+        {debugRunning ? 'Sending...' : 'Send Email'}
       </Button>
     </Box>
   ) : null;
+
+  const handleLegacySubmit = async (savedData: any) => {
+    await onSubmit(savedData);
+  };
 
   return (
     <FormContainer>
@@ -122,7 +160,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
           entity={report ? { ...report, id: report.report_id } : undefined}
           store={reports}
           onCancel={onCancel}
-          onLegacySubmit={onSubmit}
+          onLegacySubmit={handleLegacySubmit}
           loading={loading}
           showTabs={true}
           tabHeaderActions={runButton}
@@ -180,53 +218,72 @@ export const ReportForm: React.FC<ReportFormProps> = ({
             );
           }}
           renderCustomField={(fieldName, fieldDef, value, error, isDisabled, onChange) => {
-            // Custom rendering for schedule field
-            if (fieldName === 'schedule') {
+            if (fieldName === 'type') {
+              return (
+                <FormControl size="small" fullWidth disabled={isDisabled} error={!!error}>
+                  <InputLabel required={fieldDef?.required}>Report Type</InputLabel>
+                  <Select
+                    label="Report Type"
+                    value={value ?? 'meter_readings'}
+                    onChange={(e) => {
+                      const newType = e.target.value as string;
+                      setSelectedType(newType);
+                      onChange(newType);
+                    }}
+                  >
+                    {REPORT_TYPE_OPTIONS.map((opt) => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              );
+            }
+
+            if (fieldName === 'cron') {
               return (
                 <CronField
-                  name="schedule"
-                  label={fieldDef?.label}
+                  name="cron"
+                  label={fieldDef?.label ?? 'Schedule'}
                   value={value ?? '0 9 * * *'}
                   onChange={(e) => onChange(e.target.value)}
                   disabled={isDisabled}
                   error={error}
                   touched={!!error}
-                  help={fieldDef?.helpText}
+                  help={fieldDef?.helpText ?? 'When this report should be sent'}
                   required={fieldDef?.required}
                 />
               );
             }
 
-            // Custom rendering for recipients field
             if (fieldName === 'recipients') {
               return (
                 <RecipientsField
-                  value={value || []}
+                  value={value || { from: null, to: [] }}
                   error={error}
-                  isDisabled={isDisabled}
+                  disabled={isDisabled}
                   onChange={onChange}
                 />
               );
             }
 
-            // Custom rendering for meter_selections field
             if (fieldName === 'meter_selections') {
               const parsed: MeterRowValue[] = typeof value === 'string' ? JSON.parse(value || '[]') : (value || []);
               return (
-                <MeterElementRegisterSelectorGrid
-                  value={parsed}
-                  onChange={onChange}
-                  disabled={isDisabled}
-                  error={error}
-                  onSaveRow={() => {
-                    const formEl = document.getElementById('form-report') as HTMLFormElement | null;
-                    formEl?.requestSubmit();
-                  }}
-                />
+                <>
+                  <MeterElementRegisterSelectorGrid
+                    value={parsed}
+                    onChange={onChange}
+                    disabled={isDisabled}
+                    error={error}
+                    onSaveRow={() => {
+                      const formEl = document.getElementById('form-report') as HTMLFormElement | null;
+                      formEl?.requestSubmit();
+                    }}
+                  />
+                </>
               );
             }
 
-            // Return null to let BaseForm render default field
             return null;
           }}
         />

@@ -1,19 +1,62 @@
 .cron-field {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .cron-field__label {
   font-size: 0.875rem;
   font-weight: 500;
-  margin-bottom: -4px;
+  margin-bottom: -2px;
 }
 
+/* Two-panel card */
+.cron-field__panel {
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+/* Left column: frequency radios */
+.cron-field__freq-col {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px 12px 12px;
+  min-width: 170px;
+  flex-shrink: 0;
+}
+
+.cron-field__freq-option {
+  margin: 0 !important;
+  padding: 2px 0;
+}
+
+.cron-field__freq-option .MuiFormControlLabel-label {
+  line-height: 1.4;
+}
+
+/* Right column: detail controls */
+.cron-field__detail-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px;
+  flex: 1;
+  justify-content: center;
+}
+
+.cron-field__detail-label {
+  min-width: 36px;
+  color: rgba(0, 0, 0, 0.55);
+  flex-shrink: 0;
+  padding-top: 6px;
+}
+
+/* Time row */
 .cron-field__time-row {
   display: flex;
-  gap: 8px;
   align-items: flex-start;
+  gap: 10px;
 }
 
 .cron-field__time-hour {
@@ -24,30 +67,21 @@
   flex: 1;
 }
 
-.cron-field__summary {
+/* Day row */
+.cron-field__day-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* Summary bar */
+.cron-field__summary {
+  padding: 7px 12px;
   background: rgba(0, 0, 0, 0.04);
   border-radius: 6px;
   border-left: 3px solid var(--md-sys-color-primary, #1976d2);
 }
 
 .cron-field__summary-text {
-  flex: 1;
   color: rgba(0, 0, 0, 0.75);
-}
-
-.cron-field__preview {
-  color: rgba(0, 0, 0, 0.45);
-  white-space: nowrap;
-}
-
-.cron-field__preview code {
-  font-family: monospace;
-  background: rgba(0, 0, 0, 0.06);
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 0.75rem;
 }

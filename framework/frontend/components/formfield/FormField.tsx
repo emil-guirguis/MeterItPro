@@ -15,6 +15,7 @@ import {
 import { NumberSpinner } from './NumberSpinner';
 import { URLLink } from './URLLink';
 import { CronField } from './CronField';
+import './FormField.css';
 
 export interface FormFieldOption {
   value: string | number;
@@ -33,6 +34,7 @@ export interface FormFieldProps {
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
+  modified?: boolean;
   options?: FormFieldOption[];
   rows?: number;
   min?: number | string;
@@ -60,6 +62,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
     placeholder,
     required,
     disabled,
+    modified,
     options,
     rows = 4,
     min,
@@ -135,6 +138,8 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               error={showError}
               helperText={showError ? error : help}
               placeholder={placeholder}
+              data-field={name}
+              data-component="textarea"
               {...(showError && { 'aria-invalid': true })}
               aria-describedby={showError ? errorId : undefined}
             />
@@ -142,7 +147,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
 
         case 'select':
           return (
-            <FormControl fullWidth error={showError} disabled={disabled} variant="outlined">
+            <FormControl fullWidth error={showError} disabled={disabled} variant="outlined" data-field={name} data-component="select">
               <InputLabel id={`${fieldId}-label`}>{label}</InputLabel>
               <Select
                 labelId={`${fieldId}-label`}
@@ -210,7 +215,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
             { code: 'VE', name: 'Venezuela' },
           ];
           return (
-            <FormControl fullWidth error={showError} disabled={disabled} variant="outlined">
+            <FormControl fullWidth error={showError} disabled={disabled} variant="outlined" data-field={name} data-component="country">
               <InputLabel id={`${fieldId}-label`}>{label}</InputLabel>
               <Select
                 labelId={`${fieldId}-label`}
@@ -237,6 +242,8 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
         case 'checkbox':
           return (
             <FormControlLabel
+              data-field={name}
+              data-component="checkbox"
               control={
                 <Switch
                   id={fieldId}
@@ -255,7 +262,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
 
         case 'radio':
           return (
-            <FormControl error={showError} disabled={disabled} variant="outlined">
+            <FormControl error={showError} disabled={disabled} variant="outlined" data-field={name} data-component="radio">
               <InputLabel>{label}</InputLabel>
               <RadioGroup
                 name={name}
@@ -294,6 +301,8 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               helperText={showError ? error : help}
               placeholder={placeholder}
               autoComplete="email"
+              data-field={name}
+              data-component="email"
               {...(showError && { 'aria-invalid': true })}
               aria-describedby={showError ? errorId : undefined}
             />
@@ -301,21 +310,23 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
 
         case 'url':
           return (
-            <URLLink
-              value={value ?? ''}
-              onChange={(newValue) => {
-                const syntheticEvent = {
-                  target: {
-                    name,
-                    value: newValue,
-                  },
-                } as React.ChangeEvent<HTMLInputElement>;
-                onChange(syntheticEvent);
-              }}
-              onBlur={onBlur}
-              disabled={disabled}
-              placeholder={placeholder}
-            />
+            <div data-field={name} data-component="url">
+              <URLLink
+                value={value ?? ''}
+                onChange={(newValue) => {
+                  const syntheticEvent = {
+                    target: {
+                      name,
+                      value: newValue,
+                    },
+                  } as React.ChangeEvent<HTMLInputElement>;
+                  onChange(syntheticEvent);
+                }}
+                onBlur={onBlur}
+                disabled={disabled}
+                placeholder={placeholder}
+              />
+            </div>
           );
 
         case 'tel':
@@ -357,6 +368,8 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               placeholder={placeholder || '() -'}
               type="tel"
               inputProps={{ maxLength: 14 }}
+              data-field={name}
+              data-component="tel"
               {...(showError && { 'aria-invalid': true })}
               aria-describedby={showError ? errorId : undefined}
             />
@@ -411,6 +424,8 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               InputLabelProps={{
                 shrink: true,
               }}
+              data-field={name}
+              data-component={type}
               {...(showError && { 'aria-invalid': true })}
               aria-describedby={showError ? errorId : undefined}
             />
@@ -419,18 +434,20 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
 
         case 'cron':
           return (
-            <CronField
-              name={name}
-              label={label}
-              value={value ?? ''}
-              onChange={onChange}
-              onBlur={onBlur}
-              disabled={disabled}
-              error={error}
-              touched={touched}
-              help={help}
-              required={required}
-            />
+            <div data-field={name} data-component="cron">
+              <CronField
+                name={name}
+                label={label}
+                value={value ?? ''}
+                onChange={onChange}
+                onBlur={onBlur}
+                disabled={disabled}
+                error={error}
+                touched={touched}
+                help={help}
+                required={required}
+              />
+            </div>
           );
 
         default: {
@@ -452,6 +469,8 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               helperText={showError ? error : help}
               placeholder={placeholder}
               autoComplete="off"
+              data-field={name}
+              data-component={type}
               InputProps={
                 isNumberField ? {
                   endAdornment: (
@@ -500,7 +519,8 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
       }
     };
 
-return renderInput();
+  const cls = `form-field-root${modified ? ' form-field-root--modified' : ''}`;
+  return <div className={cls}>{renderInput()}</div>;
 });
 
 FormField.displayName = 'FormField';

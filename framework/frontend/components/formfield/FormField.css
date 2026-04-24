@@ -1,0 +1,16 @@
+.form-field-root {
+  border-left: 3px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.form-field-root--modified {
+  border-left-color: #1976d2;
+}
+
+.form-field-root .MuiInputBase-root.Mui-focused {
+  background-color: #fffde7 !important;
+}
+
+.form-field-root .MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #1976d2;
+}

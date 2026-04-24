@@ -13,7 +13,7 @@ import { MeterReadingUploadManager } from '../bacnet-collection/meter-reading-up
 import { SyncDatabase } from '../types/index.js';
 import { syncTenant } from '../remote_to_local-sync/sync-tenant.js';
 import { Pool } from 'pg';
-import { execQuery } from '../helpers/sql-functions.js';
+import { execQuery } from '../../../../framework/backend/shared/helpers/sql-functions.js';
 
 
 export interface LocalApiServerConfig {

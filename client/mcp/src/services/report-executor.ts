@@ -213,9 +213,8 @@ export class ReportExecutor {
 
     const result = await db.query(
       `SELECT
-         m.name                                                                  AS meter_name,
-         CONCAT(COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, '?'))   AS element,
-         r.*
+               CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
+       r.*
        FROM meter_reading r
        JOIN meter m ON m.meter_id = r.meter_id
        JOIN meter_element me ON me.meter_element_id = r.meter_element_id
@@ -253,8 +252,7 @@ export class ReportExecutor {
 
     const result = await db.query(
       `SELECT
-         m.name                                                               AS meter_name,
-         CONCAT(COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, '?')) AS element,
+                CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
          COUNT(*)                                                             AS reading_count,
          ROUND(SUM(r.kwh)::numeric, 2)                                       AS total_kwh,
          ROUND(AVG(r.kw)::numeric, 2)                                        AS avg_kw,
@@ -300,8 +298,7 @@ export class ReportExecutor {
     const result = await db.query(
       `SELECT
          DATE(r.created_at)                                                    AS date,
-         m.name                                                                AS meter_name,
-         CONCAT(COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, '?')) AS element,
+                CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
          COUNT(*)                                                              AS reading_count,
          ROUND(SUM(r.kwh)::numeric, 2)                                        AS total_kwh,
          ROUND(AVG(r.kw)::numeric, 2)                                         AS avg_kw,

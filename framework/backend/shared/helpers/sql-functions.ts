@@ -1,28 +1,33 @@
-import { Pool, QueryResult } from 'pg';
+import { formatSqlForDebug } from './worker-logger';
+import type { Logger } from './logger';
+export { formatSqlForDebug } from './worker-logger';
 
-/**
- * Execute a SQL query with console logging
- * @param pool - PostgreSQL connection pool
- * @param query - SQL query string
- * @param params - Optional query parameters (array)
- * @param logMessage - Optional message for logging
- * @returns Query result
- */
-export async function execQuery(pool: Pool, query: string, params?: any[], logMessage?: string): Promise<QueryResult> {
+export interface Queryable {
+  query(text: string, params?: any[]): Promise<{ rows: any[]; rowCount: number | null }>;
+}
+
+const consoleLogger: Logger = {
+  info:  (msg, ...args) => console.log(msg, ...args),
+  error: (msg, ...args) => console.error(msg, ...args),
+  warn:  (msg, ...args) => console.warn(msg, ...args),
+  debug: (msg, ...args) => console.log(msg, ...args),
+};
+
+export async function execQuery(
+  pool: Queryable,
+  query: string,
+  params?: any[],
+  logMessage?: string,
+  logger: Logger = consoleLogger
+): Promise<{ rows: any[]; rowCount: number | null }> {
+  const label = logMessage ? `[execQuery] ${logMessage}` : '[execQuery]';
   try {
-    logMessage = `[SQL]  ${logMessage}`; 
-    console.log(`\n📝 ${logMessage} Executing: `, query);
-    if (params && params.length > 0) {
-      console.log(`📋 ${logMessage} Parameters: `, JSON.stringify(params, null, 2));
-    }
+    logger.info(`${label} Executing:\n${formatSqlForDebug(query, params || [])}`);
     const result = await pool.query(query, params);
-    console.log(`📊 ${logMessage} Row: ${result.rows.length}`);
-    if (result.rows.length > 0) {
-      console.log(`📊 ${logMessage} Data: `, JSON.stringify(result.rows[0], null, 2));
-    }
+    logger.info(`${label} Rows: ${result.rows.length}`);
     return result;
   } catch (error) {
-    console.error(`❌ ${logMessage} Failed:`, error);
+    logger.error(`${label} Failed: ${error}`);
     throw error;
   }
 }

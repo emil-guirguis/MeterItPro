@@ -1,15 +1,19 @@
+import type { EmailFieldValue } from '@framework/components/formfield/EmailRecipientsField';
+
+export type { EmailFieldValue };
+
 export interface Report {
   report_id: number;
   name: string;
   type: string;
-  schedule: string;
-  recipients: string[];
-  config: Record<string, any>;
+  cron: string;
+  recipients: EmailFieldValue;
+  time_frame?: string;
+  visualization_type?: string;
+  grouping_type?: string;
+  attach_as?: string;
   active: boolean;
-  meter_ids?: string[];
-  element_ids?: string[];
-  register_ids?: string[];
-  html_format?: boolean;
+  meter_selections?: any[];
   created_at: string;
   updated_at: string;
 }

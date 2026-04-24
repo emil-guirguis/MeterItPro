@@ -7,7 +7,7 @@
 
 import { Pool, PoolClient, QueryResult } from 'pg';
 import { TenantEntity, MeterEntity, MeterReadingEntity, SyncLog } from '../entities/index.js';
-import { execQuery } from '../helpers/sql-functions.js';
+import { execQuery } from '../../../../framework/backend/shared/helpers/sql-functions.js';
 import { cacheManager } from '../cache/cache-manager.js';
 
 export interface DatabaseConfig {

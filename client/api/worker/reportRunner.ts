@@ -12,6 +12,7 @@
 
 import { query, Env } from './db';
 import { matchesCronSchedule } from './cronMatcher';
+import { getDateRange, queryConsumption, queryDemand, type TimePeriod } from './meterQueryHelpers';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,9 +20,13 @@ interface Report {
   report_id: number;
   name: string;
   type: string;
-  recipients: string[];
-  meter_selections: string | any[] | null;
-  config: Record<string, any>;
+  tenant_id: number | null;
+  recipients: { from?: string | null; to: string[] };
+  meter_selections: any[] | null;
+  time_frame: string | null;
+  visualization_type: string | null;
+  grouping_type: string | null;
+  attach_as: string | null;
 }
 
 interface MeterSelection {
@@ -50,9 +55,6 @@ interface ReportData {
 
 function parseMeterSelections(raw: any): MeterSelection[] | null {
   if (!raw) return null;
-  if (typeof raw === 'string') {
-    try { return JSON.parse(raw); } catch { return null; }
-  }
   if (Array.isArray(raw)) return raw as MeterSelection[];
   return null;
 }
@@ -71,7 +73,7 @@ async function getMeterElementPairs(env: Env, report: Report): Promise<MeterElem
           pairs.push({ meter_id: meterId, meter_element_id: String(elId) });
         }
       } else {
-        const elements = await query<{ meter_element_id: string }>(
+        const elements = await query(
           env,
           `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`,
           [meterId]
@@ -84,7 +86,7 @@ async function getMeterElementPairs(env: Env, report: Report): Promise<MeterElem
     return pairs;
   }
 
-  const all = await query<{ meter_id: string; meter_element_id: string }>(
+  const all = await query(
     env,
     `SELECT m.meter_id, me.meter_element_id
      FROM meter m
@@ -99,10 +101,10 @@ function buildPairFilter(
   startParamIdx: number
 ): { sql: string; params: any[] } | null {
   if (pairs.length === 0) return null;
-  const clauses = pairs.map((p, i) =>
+  const clauses = pairs.map((_, i) =>
     `(r.meter_id = $${startParamIdx + i * 2} AND r.meter_element_id = $${startParamIdx + i * 2 + 1})`
   );
-  const params = pairs.flatMap(p => [p.meter_id, p.meter_element_id]);
+  const params = pairs.flatMap(({ meter_id, meter_element_id }) => [meter_id, meter_element_id]);
   return { sql: `(${clauses.join(' OR ')})`, params };
 }
 
@@ -136,21 +138,145 @@ function formatValue(value: any): string {
   return String(value);
 }
 
+// ─── Date range helper ────────────────────────────────────────────────────────
+
+function getReportDateRange(config: Record<string, any>): { startDate: Date; endDate: Date } {
+  const timeFrame = config.time_frame || 'monthly';
+  return getDateRange(timeFrame, config.custom_start_date, config.custom_end_date);
+}
+
+// ─── Chart series data (same queries as the dashboard) ────────────────────────
+
+interface ChartSeriesData {
+  labels: string[];
+  series: Array<{ name: string; data: number[] }>;
+  unit: string;
+  timePeriod: string;
+}
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function buildTimeLabels(timePeriod: TimePeriod, startDate: Date, endDate: Date): string[] {
+  if (timePeriod === 'today') {
+    return Array.from({ length: 24 }, (_, h) =>
+      h === 0 ? '12AM' : h < 12 ? `${h}AM` : h === 12 ? '12PM' : `${h - 12}PM`
+    );
+  }
+  if (timePeriod === 'yearly') {
+    return MONTH_NAMES.slice();
+  }
+  // weekly / monthly — one label per day
+  const labels: string[] = [];
+  const cursor = new Date(startDate);
+  cursor.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
+  while (cursor <= end) {
+    labels.push(cursor.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return labels;
+}
+
+function buildLabelKeys(timePeriod: TimePeriod, startDate: Date, endDate: Date): string[] {
+  if (timePeriod === 'today') return Array.from({ length: 24 }, (_, h) => String(h));
+  if (timePeriod === 'yearly') return Array.from({ length: 12 }, (_, i) => String(i + 1));
+  const keys: string[] = [];
+  const cursor = new Date(startDate);
+  cursor.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
+  while (cursor <= end) {
+    keys.push([
+      cursor.getFullYear(),
+      String(cursor.getMonth() + 1).padStart(2, '0'),
+      String(cursor.getDate()).padStart(2, '0'),
+    ].join('-'));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return keys;
+}
+
+async function fetchChartSeriesData(env: Env, report: Report, tenantIdFallback?: number | null): Promise<ChartSeriesData> {
+  const isDemand = report.type === 'demand';
+  const timeFrame = report.time_frame || 'monthly';
+  const timePeriod = (['today', 'weekly', 'monthly', 'yearly'].includes(timeFrame) ? timeFrame : 'monthly') as TimePeriod;
+  const { startDate, endDate } = getReportDateRange(report);
+
+  const tenantId: number | null = report.tenant_id ?? tenantIdFallback ?? null;
+  if (!tenantId) return { labels: [], series: [], unit: isDemand ? 'kW' : 'kWh', timePeriod };
+
+  const pairs = await getMeterElementPairs(env, report);
+  if (pairs.length === 0) return { labels: [], series: [], unit: isDemand ? 'kW' : 'kWh', timePeriod };
+
+  // Fetch display names
+  const elementIds = [...new Set(pairs.map(p => Number(p.meter_element_id)))];
+  const nameRows = (await query(
+    env,
+    `SELECT me.meter_element_id,
+           CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name
+     FROM meter_element me
+     JOIN meter m ON me.meter_id = m.meter_id
+     WHERE me.meter_element_id = ANY($1)`,
+    [elementIds]
+  )).rows;
+  const nameMap = new Map(nameRows.map((r: any) => [String(r.meter_element_id), String(r.meter_name)]));
+
+  const labels = buildTimeLabels(timePeriod, startDate, endDate);
+  const keys   = buildLabelKeys(timePeriod, startDate, endDate);
+
+  const seriesResults = await Promise.all(pairs.map(async ({ meter_id, meter_element_id }) => {
+    const params = {
+      tenantId: Number(tenantId),
+      meterId: Number(meter_id),
+      meterElementId: Number(meter_element_id),
+      timePeriod,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+    };
+    const raw: Array<{ label_key: string | number; power?: number; calculated_kwh?: number }> = isDemand
+      ? await queryDemand(env, params)
+      : await queryConsumption(env, params);
+
+    const lookup = new Map<string, number>(
+      raw.map((r): [string, number] => [String(r.label_key), isDemand ? Number(r.power) : Number(r.calculated_kwh)])
+    );
+    const data: number[] = keys.map(k => lookup.get(k) ?? 0);
+    return {
+      name: nameMap.get(String(meter_element_id)) ?? `Element ${meter_element_id}`,
+      data,
+    };
+  }));
+
+  return { labels, series: seriesResults, unit: isDemand ? 'kW' : 'kWh', timePeriod };
+}
+
 // ─── Report data generators ───────────────────────────────────────────────────
 
 async function generateMeterReadingsReport(env: Env, report: Report): Promise<ReportData> {
+  const allowedFields = getRegisterFieldNames(report);
   const pairs = await getMeterElementPairs(env, report);
   const pairFilter = pairs.length > 0 ? buildPairFilter(pairs, 1) : null;
 
   const whereClause = [`r.created_at >= NOW() - INTERVAL '24 hours'`, pairFilter?.sql]
     .filter(Boolean).join(' AND ');
 
+  // Build explicit column list from register_field_names to avoid selecting r.*
+  // Sanitize each name to prevent injection (only allow word characters)
+  let registerSelect: string;
+  if (allowedFields && allowedFields.length > 0) {
+    const safe = allowedFields.filter(f => /^\w+$/.test(f));
+    registerSelect = ['r.created_at', ...safe.map(f => `r.${f}`)].join(',\n       ');
+  } else {
+    // No specific fields configured — exclude only internal ID columns
+    registerSelect = 'r.created_at, r.kwh, r.kw, r.power_factor, r.voltage, r.current';
+  }
+
   const result = await query(
     env,
     `SELECT
-       m.name                                                                  AS meter_name,
-       CONCAT(COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, '?'))   AS element,
-       r.*
+       CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
+       ${registerSelect}
      FROM meter_reading r
      JOIN meter m ON m.meter_id = r.meter_id
      JOIN meter_element me ON me.meter_element_id = r.meter_element_id
@@ -160,8 +286,7 @@ async function generateMeterReadingsReport(env: Env, report: Report): Promise<Re
     pairFilter?.params ?? []
   );
 
-  const data = filterColumns(result.rows, getRegisterFieldNames(report));
-  return { type: 'meter_readings', generatedAt: new Date().toISOString(), period: 'Last 24 hours', recordCount: data.length, data };
+  return { type: 'meter_readings', generatedAt: new Date().toISOString(), period: 'Last 24 hours', recordCount: result.rows.length, data: result.rows };
 }
 
 async function generateUsageSummaryReport(env: Env, report: Report): Promise<ReportData> {
@@ -174,8 +299,7 @@ async function generateUsageSummaryReport(env: Env, report: Report): Promise<Rep
   const result = await query(
     env,
     `SELECT
-       m.name                                                               AS meter_name,
-       CONCAT(COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, '?')) AS element,
+       CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
        COUNT(*)                                                             AS reading_count,
        ROUND(SUM(r.kwh)::numeric, 2)                                       AS total_kwh,
        ROUND(AVG(r.kw)::numeric, 2)                                        AS avg_kw,
@@ -207,8 +331,7 @@ async function generateDailySummaryReport(env: Env, report: Report): Promise<Rep
     env,
     `SELECT
        DATE(r.created_at)                                                    AS date,
-       m.name                                                                AS meter_name,
-       CONCAT(COALESCE(TRIM(me.element), '?'), '-', COALESCE(me.name, '?')) AS element,
+       CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
        COUNT(*)                                                              AS reading_count,
        ROUND(SUM(r.kwh)::numeric, 2)                                        AS total_kwh,
        ROUND(AVG(r.kw)::numeric, 2)                                         AS avg_kw,
@@ -232,15 +355,195 @@ async function generateDailySummaryReport(env: Env, report: Report): Promise<Rep
   };
 }
 
+export async function generateDemandReport(env: Env, report: Report): Promise<ReportData> {
+  const config = { time_frame: report.time_frame || 'monthly' };
+  const { startDate, endDate } = getReportDateRange(config);
+  const pairs = await getMeterElementPairs(env, report);
+  const pairFilter = pairs.length > 0 ? buildPairFilter(pairs, 3) : null;
+
+  const whereClause = [
+    `r.created_at >= $1`,
+    `r.created_at <= $2`,
+    pairFilter?.sql,
+  ].filter(Boolean).join(' AND ');
+
+  const result = await query(
+    env,
+    `SELECT
+       CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
+       ROUND(MAX(r.kw)::numeric, 2)                                            AS peak_demand_kw,
+       TO_CHAR(MAX(r.created_at), 'YYYY-MM-DD HH24:MI:SS')                    AS peak_reading_at,
+       COUNT(*)::int                                                            AS reading_count
+     FROM meter_reading r
+     JOIN meter m ON m.meter_id = r.meter_id
+     JOIN meter_element me ON me.meter_element_id = r.meter_element_id
+     WHERE ${whereClause}
+     GROUP BY m.meter_id, m.name, me.meter_element_id, me.element, me.name
+     ORDER BY peak_demand_kw DESC NULLS LAST`,
+    [startDate.toISOString(), endDate.toISOString(), ...(pairFilter?.params ?? [])]
+  );
+
+  const timeFrame = report.time_frame || 'monthly';
+  const periodLabel = timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1);
+
+  return {
+    type: 'demand',
+    generatedAt: new Date().toISOString(),
+    period: periodLabel,
+    meterCount: result.rows.length,
+    data: result.rows,
+  };
+}
+
 async function generateReportData(env: Env, report: Report): Promise<ReportData> {
   switch (report.type) {
-    case 'meter_readings':  return generateMeterReadingsReport(env, report);
-    case 'usage_summary':   return generateUsageSummaryReport(env, report);
-    case 'daily_summary':   return generateDailySummaryReport(env, report);
+    case 'meter_readings': return generateMeterReadingsReport(env, report);
+    case 'usage_summary': return generateUsageSummaryReport(env, report);
+    case 'daily_summary': return generateDailySummaryReport(env, report);
+    case 'demand': return generateDemandReport(env, report);
     default:
       console.warn(`[reportRunner] Unknown report type: ${report.type}`);
       return { type: report.type, generatedAt: new Date().toISOString(), data: [] };
   }
+}
+
+// ─── HTML preview (respects display_type / export_format from settings) ───────
+
+function buildPreviewHtml(report: Report, reportData: ReportData, chartData: ChartSeriesData): string {
+  const displayType: string = report.visualization_type || 'bar';
+  const exportFormat: string = report.attach_as || 'html';
+  const isPdf = exportFormat === 'pdf';
+
+  const rows = Array.isArray(reportData.data) ? reportData.data : [];
+  const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+  const hasChartData = chartData.series.length > 0 && chartData.labels.length > 0;
+  const useChart = ['bar', 'line', 'pie'].includes(displayType) && hasChartData;
+
+  const meta = [
+    reportData.period ? `<span>Period: <strong>${reportData.period}</strong></span>` : '',
+    reportData.recordCount != null ? `<span>Records: <strong>${reportData.recordCount}</strong></span>` : '',
+    reportData.meterCount != null ? `<span>Meters: <strong>${reportData.meterCount}</strong></span>` : '',
+    reportData.dayCount != null ? `<span>Days: <strong>${reportData.dayCount}</strong></span>` : '',
+  ].filter(Boolean).join('<span style="margin:0 10px;color:#d1d5db">|</span>');
+
+  // ── Table (grid) — always shown below the chart ──────────────────────────
+  const tableHtml = rows.length === 0
+    ? '<p style="color:#6b7280;font-style:italic;text-align:center;padding:40px 0">No data available for this report.</p>'
+    : `<div style="overflow-x:auto;margin-top:24px">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:#1a56db;color:#fff">
+              ${headers.map(h => `<th style="padding:8px 12px;text-align:left;white-space:nowrap;text-transform:capitalize">${h.replace(/_/g, ' ')}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((row, i) => `
+              <tr style="${i % 2 ? 'background:#f9fafb' : ''}">
+                ${headers.map(h => `<td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top">${formatValue(row[h])}</td>`).join('')}
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+  // ── Chart — uses the same aggregated time-series data as the dashboard ───
+  let dataScript = '';
+  let chartHtml = '';
+  let initScript = '';
+
+  if (useChart) {
+    const palette = ['#0ea5e9', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#06b6d4', '#f97316', '#ec4899', '#14b8a6', '#a855f7'];
+    const isPie = displayType === 'pie';
+    const isLine = displayType === 'line';
+
+    // For pie: sum each series into one value
+    const datasets = isPie
+      ? [{
+          data: chartData.series.map(s => parseFloat(s.data.reduce((a, b) => a + b, 0).toFixed(4))),
+          backgroundColor: chartData.series.map((_, i) => palette[i % palette.length]),
+          borderWidth: 1,
+        }]
+      : chartData.series.map((s, i) => ({
+          label: s.name,
+          data: s.data.map(v => parseFloat(v.toFixed(4))),
+          backgroundColor: isLine ? palette[i % palette.length] + '22' : palette[i % palette.length],
+          borderColor: palette[i % palette.length],
+          borderWidth: isLine ? 2 : 1,
+          borderRadius: !isLine ? 4 : 0,
+          fill: isLine,
+          tension: isLine ? 0.3 : 0,
+          pointRadius: isLine ? 0 : 3,
+        }));
+
+    const pieLabels = isPie ? chartData.series.map(s => s.name) : chartData.labels;
+
+    dataScript = `<script>window.__CD__=${JSON.stringify({
+      type: displayType,
+      labels: pieLabels,
+      datasets,
+      unit: chartData.unit,
+      isPdf,
+    })};</script>`;
+
+    chartHtml = `<div style="position:relative;max-width:900px;margin:0 auto 8px"><canvas id="rc"></canvas></div>`;
+
+    initScript = `<script>
+(function(){
+  var d=window.__CD__;
+  var isPie=d.type==='pie';
+  new Chart(document.getElementById('rc'),{
+    type: d.type,
+    data:{ labels: d.labels, datasets: d.datasets },
+    options:{
+      responsive:true,
+      maintainAspectRatio:true,
+      plugins:{
+        legend:{ display:true, position:'bottom', labels:{padding:16,usePointStyle:true,font:{size:12}} },
+        tooltip:{ callbacks:{ label:function(ctx){ return ' '+ctx.dataset.label+': '+Number(ctx.raw).toFixed(4)+' '+d.unit; } } }
+      },
+      scales: isPie ? {} : {
+        x:{ grid:{color:'rgba(0,0,0,0.05)',borderDash:[3,3]}, ticks:{maxRotation:45,minRotation:0,font:{size:11}} },
+        y:{ beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)',borderDash:[3,3]}, ticks:{font:{size:11}}, title:{display:true,text:d.unit,font:{size:11}} }
+      }
+    }
+  });
+  if(d.isPdf){window.addEventListener('load',function(){setTimeout(function(){window.print();},700);});}
+})();
+</script>`;
+  }
+
+  const pdfAutoprint = !useChart && isPdf
+    ? `<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},400);});</script>`
+    : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${report.name}</title>
+  ${useChart ? '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>' : ''}
+  ${dataScript}
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:Arial,sans-serif;font-size:13px;color:#111;background:#fff;padding:24px;margin:0}
+    @media print{.no-print{display:none}body{padding:12px}}
+  </style>
+</head>
+<body>
+  <div style="border-bottom:2px solid #1a56db;padding-bottom:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-end">
+    <div>
+      <h1 style="font-size:22px;color:#1a56db;margin:0">${report.name}</h1>
+      <p style="color:#555;margin:4px 0 0;font-size:11px">Type: ${report.type}&nbsp;|&nbsp;Generated: ${new Date().toLocaleString()}</p>
+    </div>
+    <button class="no-print" onclick="window.print()" style="padding:6px 14px;border:1px solid #1a56db;color:#1a56db;background:#fff;border-radius:4px;cursor:pointer;font-size:12px">Print / Save PDF</button>
+  </div>
+  ${meta ? `<div style="margin-bottom:16px;color:#555;font-size:12px;display:flex;gap:4px;flex-wrap:wrap">${meta}</div>` : ''}
+  ${useChart ? chartHtml : ''}
+  ${tableHtml}
+  ${initScript}
+  ${pdfAutoprint}
+</body>
+</html>`;
 }
 
 // ─── HTML email body ──────────────────────────────────────────────────────────
@@ -268,10 +571,10 @@ function buildEmailHtml(report: Report, reportData: ReportData): string {
        ${rows.length > 100 ? `<p style="color:#6b7280;font-size:11px;margin-top:8px">Showing first 100 of ${rows.length} records.</p>` : ''}`;
 
   const meta = [
-    reportData.period       ? `<p><strong>Period:</strong> ${reportData.period}</p>` : '',
+    reportData.period ? `<p><strong>Period:</strong> ${reportData.period}</p>` : '',
     reportData.recordCount != null ? `<p><strong>Records:</strong> ${reportData.recordCount}</p>` : '',
-    reportData.meterCount  != null ? `<p><strong>Meters:</strong> ${reportData.meterCount}</p>` : '',
-    reportData.dayCount    != null ? `<p><strong>Days:</strong> ${reportData.dayCount}</p>` : '',
+    reportData.meterCount != null ? `<p><strong>Meters:</strong> ${reportData.meterCount}</p>` : '',
+    reportData.dayCount != null ? `<p><strong>Days:</strong> ${reportData.dayCount}</p>` : '',
   ].filter(Boolean).join('\n');
 
   return `<!DOCTYPE html>
@@ -293,11 +596,12 @@ function buildEmailHtml(report: Report, reportData: ReportData): string {
 
 // ─── Email via Resend ─────────────────────────────────────────────────────────
 
-async function sendEmail(env: Env, to: string, subject: string, html: string): Promise<void> {
-  const apiKey = (env as any).RESEND_API_KEY;
+async function sendEmail(env: Env, to: string, subject: string, html: string, fromOverride?: string | null): Promise<void> {
+  const apiKey = env.RESEND_API_KEY;
+  console.log('[sendEmail] RESEND_API_KEY present:', !!apiKey);
   if (!apiKey) throw new Error('RESEND_API_KEY is not configured — run: npx wrangler secret put RESEND_API_KEY');
 
-  const from = (env as any).RESEND_FROM || 'MeterItPro <noreply@meteritpro.com>';
+  const from = fromOverride || (env as any).RESEND_FROM || 'MeterItPro <noreply@meteritpro.com>';
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -320,7 +624,7 @@ async function createHistoryEntry(
   status: 'pending' | 'success' | 'failed',
   errorMessage: string | null
 ): Promise<number> {
-  const result = await query<{ report_history_id: number }>(
+  const result = await query(
     env,
     `INSERT INTO report_history (report_id, executed_at, status, error_message, created_at)
      VALUES ($1, $2, $3, $4, $5)
@@ -366,10 +670,10 @@ async function createEmailLogEntry(
 /**
  * Generate and return the HTML preview for a report without sending emails.
  */
-export async function previewReport(env: Env, reportId: number): Promise<string> {
-  const reportResult = await query<Report>(
+export async function previewReport(env: Env, reportId: number, tenantId?: number): Promise<string> {
+  const reportResult = await query(
     env,
-    `SELECT report_id, name, type, recipients, meter_selections, config
+    `SELECT report_id, name, type, tenant_id, recipients, meter_selections, time_frame, visualization_type, grouping_type, attach_as
      FROM report WHERE report_id = $1`,
     [reportId]
   );
@@ -379,8 +683,11 @@ export async function previewReport(env: Env, reportId: number): Promise<string>
   }
 
   const report = reportResult.rows[0];
-  const reportData = await generateReportData(env, report);
-  return buildEmailHtml(report, reportData);
+  const [reportData, chartData] = await Promise.all([
+    generateReportData(env, report),
+    fetchChartSeriesData(env, report, tenantId),
+  ]);
+  return buildPreviewHtml(report, reportData, chartData);
 }
 
 /**
@@ -388,9 +695,9 @@ export async function previewReport(env: Env, reportId: number): Promise<string>
  * Throws on fatal errors; partial email failures are logged but not thrown.
  */
 export async function runReport(env: Env, reportId: number): Promise<void> {
-  const reportResult = await query<Report>(
+  const reportResult = await query(
     env,
-    `SELECT report_id, name, type, recipients, meter_selections, config
+    `SELECT report_id, name, type, tenant_id, recipients, meter_selections, time_frame, visualization_type, grouping_type, attach_as
      FROM report WHERE report_id = $1 AND active = true`,
     [reportId]
   );
@@ -400,25 +707,32 @@ export async function runReport(env: Env, reportId: number): Promise<void> {
   }
 
   const report = reportResult.rows[0];
+  console.log('[runReport] report fetched:', report.report_id, 'type:', report.type, 'recipients:', JSON.stringify(report.recipients));
   const executedAt = new Date();
   let historyId: number | null = null;
 
   try {
+    console.log('[runReport] calling generateReportData...');
     const reportData = await generateReportData(env, report);
+    console.log('[runReport] generateReportData ok, rows:', reportData.data.length);
     historyId = await createHistoryEntry(env, report.report_id, executedAt, 'pending', null);
+    console.log('[runReport] history entry created:', historyId);
 
     const html = buildEmailHtml(report, reportData);
     const subject = `Report: ${report.name}`;
     const failures: string[] = [];
 
-    for (const recipient of report.recipients) {
+    const toList = report.recipients?.to ?? [];
+    const fromOverride = report.recipients?.from;
+    console.log('[runReport] sending to', toList.length, 'recipients');
+    for (const recipient of toList) {
       try {
-        await sendEmail(env, recipient, subject, html);
+        await sendEmail(env, recipient, subject, html, fromOverride);
         await createEmailLogEntry(env, report.report_id, historyId, recipient, executedAt, 'delivered', null);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         failures.push(`${recipient}: ${msg}`);
-        await createEmailLogEntry(env, report.report_id, historyId, recipient, executedAt, 'failed', msg).catch(() => {});
+        await createEmailLogEntry(env, report.report_id, historyId, recipient, executedAt, 'failed', msg).catch(() => { });
       }
     }
 
@@ -430,9 +744,9 @@ export async function runReport(env: Env, reportId: number): Promise<void> {
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     if (historyId !== null) {
-      await updateHistoryEntry(env, historyId, 'failed', msg).catch(() => {});
+      await updateHistoryEntry(env, historyId, 'failed', msg).catch(() => { });
     } else {
-      await createHistoryEntry(env, reportId, executedAt, 'failed', msg).catch(() => {});
+      await createHistoryEntry(env, reportId, executedAt, 'failed', msg).catch(() => { });
     }
     throw error;
   }
@@ -443,14 +757,14 @@ export async function runReport(env: Env, reportId: number): Promise<void> {
  * Pass the scheduled event time so reports fire only at their configured time.
  */
 export async function runAllActiveReports(env: Env, now: Date = new Date()): Promise<void> {
-  const result = await query<{ report_id: number; schedule: string }>(
+  const result = await query(
     env,
-    `SELECT report_id, schedule FROM report WHERE active = true`
+    `SELECT report_id, cron FROM report WHERE active = true`
   );
 
   for (const row of result.rows) {
-    if (!matchesCronSchedule(row.schedule, now)) {
-      console.log(`[cron] Report ${row.report_id} skipped — schedule "${row.schedule}" does not match ${now.toISOString()}`);
+    if (!matchesCronSchedule(row.cron, now)) {
+      console.log(`[cron] Report ${row.report_id} skipped — schedule "${row.cron}" does not match ${now.toISOString()}`);
       continue;
     }
 

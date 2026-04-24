@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "allowJs": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "../../",
     "strict": true,
     "declaration": true,
     "skipLibCheck": true,
@@ -18,7 +18,8 @@
     "inlineSources": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "../../framework/backend/shared/**/*"
   ],
   "exclude": [
     "node_modules",

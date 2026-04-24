@@ -13,7 +13,7 @@
 
 import { Pool } from 'pg';
 import { EntityMetadata, ENTITY_METADATA } from '../types/index.js';
-import { execQuery } from '../helpers/sql-functions.js';
+import { execQuery } from '../../../../framework/backend/shared/helpers/sql-functions.js';
 
 /**
  * Get entities from the remote database based on entity type

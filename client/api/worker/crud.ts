@@ -3,7 +3,7 @@
  * Replaces BaseModel findAll/findById/create/update/delete with raw SQL.
  */
 
-import { query, transaction, Env } from './db';
+import { query as execQuery, transaction, Env } from './db';
 
 export interface FindAllOptions {
   table: string;
@@ -102,14 +102,14 @@ export async function findAll(env: Env, opts: FindAllOptions): Promise<FindAllRe
 
   // Count query
   const countSql = `SELECT COUNT(*) as total FROM ${table} ${joins} ${whereSQL}`;
-  const countResult = await query(env, countSql, params);
+  const countResult = await execQuery(env, countSql, params);
   const total = parseInt(countResult.rows[0].total, 10);
 
   // Data query
   const offset = (page - 1) * limit;
   const dataParams = [...params, limit, offset];
   const dataSql = `SELECT ${selectFields} FROM ${table} ${joins} ${whereSQL} ORDER BY ${orderBy} LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
-  const dataResult = await query(
+  const dataResult = await execQuery(
     env,
     dataSql,
     dataParams
@@ -136,7 +136,7 @@ export async function findById(env: Env, table: string, primaryKey: string, id: 
     params.push(tenantId);
   }
 
-  const result = await query(env, sql, params);
+  const result = await execQuery(env, sql, params);
   return result.rows.length > 0 ? result.rows[0] : null;
 }
 
@@ -146,7 +146,7 @@ export async function create(env: Env, table: string, data: Record<string, any>)
   const placeholders = keys.map((_, i) => `$${i + 1}`);
 
   const sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
-  const result = await query(env, sql, values);
+  const result = await execQuery(env, sql, values);
   return result.rows[0];
 }
 
@@ -159,12 +159,12 @@ export async function update(env: Env, table: string, primaryKey: string, id: an
   values.push(id);
 
   const sql = `UPDATE ${table} SET ${setClauses.join(', ')}, updated_at = NOW() WHERE ${primaryKey} = $${keys.length + 1} RETURNING *`;
-  const result = await query(env, sql, values);
+  const result = await execQuery(env, sql, values);
   return result.rows.length > 0 ? result.rows[0] : null;
 }
 
 export async function remove(env: Env, table: string, primaryKey: string, id: any) {
   const sql = `DELETE FROM ${table} WHERE ${primaryKey} = $1 RETURNING *`;
-  const result = await query(env, sql, [id]);
+  const result = await execQuery(env, sql, [id]);
   return result.rows.length > 0 ? result.rows[0] : null;
 }

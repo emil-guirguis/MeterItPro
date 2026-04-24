@@ -1,79 +1,49 @@
 /**
  * Reports routes - Hono worker
  * CRUD for reports, history, and email logs.
+ * Field list is driven by reportSchema — add/rename a field in the schema only.
  */
 
 import { Hono } from 'hono';
 import { query, Env } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
-import { runReport, previewReport } from '../reportRunner';
+import { runReport, previewReport, generateDemandReport } from '../reportRunner';
+import { create, update, findAll, findById } from '../crud';
+import { parsePagination, parseNumericId, extractBodyData, isValidCronExpression, validateEmailList } from '../routeHelpers';
+import { reportSchema } from './reportSchema';
+import { queryConsumption, queryDemand, getDateRange, TimePeriod } from '../meterQueryHelpers';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
 app.use('*', authenticateToken);
 
-// Simple cron validation
-function isValidCronExpression(expr: string): boolean {
-  if (!expr || typeof expr !== 'string') return false;
-  const parts = expr.trim().split(/\s+/);
-  return parts.length >= 5 && parts.length <= 7;
-}
-
-// Simple email validation
-function validateEmailList(emails: string[]): { isValid: boolean; invalidEmails: string[] } {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const invalid = emails.filter((e) => !emailRegex.test(e));
-  return { isValid: invalid.length === 0, invalidEmails: invalid };
-}
-
 // POST / - Create a new report
 app.post('/', async (c) => {
   try {
-    const { name, type, schedule, recipients, config, active, meter_selections } = await c.req.json();
+    const body = await c.req.json();
     const errors: string[] = [];
 
-    if (!name || typeof name !== 'string' || name.trim().length === 0) errors.push('Report name is required');
-    else if (name.length > 255) errors.push('Report name must not exceed 255 characters');
+    if (!body.name?.trim()) errors.push('Report name is required');
+    else if (body.name.length > 255) errors.push('Report name must not exceed 255 characters');
+    if (!body.type?.trim()) errors.push('Report type is required');
+    if (!body.cron || !isValidCronExpression(body.cron)) errors.push('A valid schedule is required');
+    const toList: string[] = Array.isArray(body.recipients?.to) ? body.recipients.to : [];
+    if (toList.length === 0) errors.push('At least one recipient is required');
+    else { const ev = validateEmailList(toList); if (!ev.isValid) errors.push(`Invalid emails: ${ev.invalidEmails.join(', ')}`); }
 
-    if (!type || typeof type !== 'string' || type.trim().length === 0) errors.push('Report type is required');
-    if (!schedule || !isValidCronExpression(schedule)) errors.push('Report schedule must be a valid cron expression');
+    if (errors.length > 0) return c.json({ success: false, message: 'Validation failed', errors }, 400);
 
-    if (!Array.isArray(recipients) || recipients.length === 0) {
-      errors.push('At least one recipient is required');
-    } else {
-      const emailValidation = validateEmailList(recipients);
-      if (!emailValidation.isValid) errors.push(`Invalid emails: ${emailValidation.invalidEmails.join(', ')}`);
-    }
+    const data = extractBodyData(body, reportSchema);
+    if (data.active === undefined) data.active = true;
+    data.tenant_id = c.get('tenantId');
+    data.created_at = new Date();
+    data.updated_at = new Date();
 
-    if (errors.length > 0) {
-      return c.json({ success: false, message: 'Validation failed', errors }, 400);
-    }
-
-    const now = new Date();
-    const result = await query(
-      c.env,
-      `INSERT INTO public.report (name, type, schedule, recipients, config, active, meter_selections, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING report_id, name, type, schedule, recipients, config, active, meter_selections, created_at, updated_at`,
-      [
-        name.trim(), type.trim(), schedule.trim(),
-        recipients,
-        config || {},
-        active !== false,
-        meter_selections !== undefined ? (typeof meter_selections === 'string' ? meter_selections : JSON.stringify(meter_selections)) : null,
-        now, now,
-      ]
-    );
-
-    if (result.rows.length === 0) {
-      return c.json({ success: false, message: 'Failed to create report' }, 500);
-    }
-
-    return c.json({ success: true, data: result.rows[0] }, 201);
+    const row = await create(c.env, 'report', data);
+    return c.json({ success: true, data: row }, 201);
   } catch (error: any) {
     if (error.code === '23505') return c.json({ success: false, message: 'Report name already exists' }, 409);
-    if (error.code === '23502') return c.json({ success: false, message: 'Missing required fields' }, 400);
     logError('Error creating report:', error);
     return c.json({ success: false, message: 'Failed to create report' }, 500);
   }
@@ -83,31 +53,18 @@ app.post('/', async (c) => {
 app.get('/', async (c) => {
   try {
     const qs = c.req.query();
-    let page = parseInt(qs.page || '1') || 1;
-    let limit = parseInt(qs.limit || '10') || 10;
-    if (page < 1) page = 1;
-    if (limit < 1 || limit > 100) limit = 10;
-    const offset = (page - 1) * limit;
-
-    const countResult = await query(c.env, 'SELECT COUNT(*) as total FROM public.report');
-    const total = parseInt(countResult.rows[0].total, 10);
-
-    const result = await query(
-      c.env,
-      `SELECT report_id, name, type, schedule, recipients, config, active, meter_selections, created_at, updated_at
-       FROM public.report ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-      [limit, offset]
-    );
-
+    const { page, limit } = parsePagination(qs, { limit: 10 });
+    const result = await findAll(c.env, {
+      table: 'report',
+      primaryKey: 'report_id',
+      page,
+      limit,
+      sortBy: 'created_at',
+      sortOrder: 'desc',
+    });
     return c.json({
       success: true,
-      data: {
-        items: result.rows,
-        total,
-        page,
-        pageSize: limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      data: { items: result.rows, total: result.pagination.total, page: result.pagination.page, pageSize: result.pagination.pageSize, totalPages: result.pagination.totalPages },
     });
   } catch (error: any) {
     logError('Error retrieving reports:', error);
@@ -119,17 +76,10 @@ app.get('/', async (c) => {
 app.get('/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    if (isNaN(Number(id))) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
-
-    const result = await query(
-      c.env,
-      `SELECT report_id, name, type, schedule, recipients, config, active, meter_selections, created_at, updated_at
-       FROM public.report WHERE report_id = $1`,
-      [id]
-    );
-
-    if (result.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
-    return c.json({ success: true, data: result.rows[0] });
+    if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
+    const row = await findById(c.env, 'report', 'report_id', id);
+    if (!row) return c.json({ success: false, message: 'Report not found' }, 404);
+    return c.json({ success: true, data: row });
   } catch (error: any) {
     logError('Error retrieving report:', error);
     return c.json({ success: false, message: 'Failed to retrieve report' }, 500);
@@ -140,69 +90,31 @@ app.get('/:id', async (c) => {
 app.put('/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    if (isNaN(Number(id))) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
+    if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
-    const existing = await query(c.env, 'SELECT report_id FROM public.report WHERE report_id = $1', [id]);
-    if (existing.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
+    const existing = await findById(c.env, 'report', 'report_id', id);
+    if (!existing) return c.json({ success: false, message: 'Report not found' }, 404);
 
-    const { name, type, schedule, recipients, config, active, meter_selections } = await c.req.json();
-    const updates: string[] = [];
-    const values: any[] = [];
-    let paramCount = 1;
-
-    if (name !== undefined) {
-      if (typeof name !== 'string' || name.trim().length === 0) return c.json({ success: false, message: 'Validation failed', errors: ['Report name must be a non-empty string'] }, 400);
-      if (name.length > 255) return c.json({ success: false, message: 'Validation failed', errors: ['Report name must not exceed 255 characters'] }, 400);
-      updates.push(`name = $${paramCount}`); values.push(name.trim()); paramCount++;
+    const body = await c.req.json();
+    const errors: string[] = [];
+    if (body.name !== undefined) {
+      if (!body.name?.trim()) errors.push('Report name must be non-empty');
+      else if (body.name.length > 255) errors.push('Report name must not exceed 255 characters');
     }
-
-    if (type !== undefined) {
-      if (typeof type !== 'string' || type.trim().length === 0) return c.json({ success: false, message: 'Validation failed', errors: ['Report type must be a non-empty string'] }, 400);
-      updates.push(`type = $${paramCount}`); values.push(type.trim()); paramCount++;
+    if (body.cron !== undefined && !isValidCronExpression(body.cron)) errors.push('Invalid cron expression');
+    if (body.recipients !== undefined) {
+      const toList: string[] = Array.isArray(body.recipients?.to) ? body.recipients.to : [];
+      if (toList.length === 0) errors.push('At least one recipient is required');
+      else { const ev = validateEmailList(toList); if (!ev.isValid) errors.push(`Invalid emails: ${ev.invalidEmails.join(', ')}`); }
     }
+    if (errors.length > 0) return c.json({ success: false, message: 'Validation failed', errors }, 400);
 
-    if (schedule !== undefined) {
-      if (!isValidCronExpression(schedule)) return c.json({ success: false, message: 'Validation failed', errors: ['Invalid cron expression'] }, 400);
-      updates.push(`schedule = $${paramCount}`); values.push(schedule.trim()); paramCount++;
-    }
+    const data = extractBodyData(body, reportSchema);
+    if (Object.keys(data).length === 0) return c.json({ success: true, data: existing });
 
-    if (recipients !== undefined) {
-      if (!Array.isArray(recipients) || recipients.length === 0) return c.json({ success: false, message: 'Validation failed', errors: ['Recipients must be a non-empty array'] }, 400);
-      const emailValidation = validateEmailList(recipients);
-      if (!emailValidation.isValid) return c.json({ success: false, message: 'Validation failed', errors: [`Invalid emails: ${emailValidation.invalidEmails.join(', ')}`] }, 400);
-      updates.push(`recipients = $${paramCount}`); values.push(recipients); paramCount++;
-    }
-
-    if (config !== undefined) {
-      if (typeof config !== 'object' || config === null) return c.json({ success: false, message: 'Validation failed', errors: ['Config must be an object'] }, 400);
-      updates.push(`config = $${paramCount}`); values.push(config); paramCount++;
-    }
-
-    if (active !== undefined) {
-      updates.push(`active = $${paramCount}`); values.push(active); paramCount++;
-    }
-
-    if (meter_selections !== undefined) {
-      const ms = typeof meter_selections === 'string' ? meter_selections : JSON.stringify(meter_selections);
-      updates.push(`meter_selections = $${paramCount}`); values.push(ms); paramCount++;
-    }
-
-    if (updates.length === 0) {
-      const result = await query(c.env, 'SELECT * FROM public.report WHERE report_id = $1', [id]);
-      return c.json({ success: true, data: result.rows[0] });
-    }
-
-    updates.push(`updated_at = $${paramCount}`); values.push(new Date()); paramCount++;
-    values.push(id);
-
-    const result = await query(
-      c.env,
-      `UPDATE public.report SET ${updates.join(', ')} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, active, meter_selections, created_at, updated_at`,
-      values
-    );
-
-    if (result.rows.length === 0) return c.json({ success: false, message: 'Failed to update report' }, 500);
-    return c.json({ success: true, data: result.rows[0] });
+    const row = await update(c.env, 'report', 'report_id', id, data);
+    if (!row) return c.json({ success: false, message: 'Failed to update report' }, 500);
+    return c.json({ success: true, data: row });
   } catch (error: any) {
     if (error.code === '23505') return c.json({ success: false, message: 'Report name already exists' }, 409);
     logError('Error updating report:', error);
@@ -214,7 +126,7 @@ app.put('/:id', async (c) => {
 app.delete('/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    if (isNaN(Number(id))) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
+    if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
     const existing = await query(c.env, 'SELECT report_id, name FROM public.report WHERE report_id = $1', [id]);
     if (existing.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
@@ -231,7 +143,7 @@ app.delete('/:id', async (c) => {
 app.patch('/:id/toggle', async (c) => {
   try {
     const id = c.req.param('id');
-    if (isNaN(Number(id))) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
+    if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
     const getResult = await query(c.env, 'SELECT report_id, name, active FROM public.report WHERE report_id = $1', [id]);
     if (getResult.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
@@ -264,9 +176,9 @@ app.patch('/:id/toggle', async (c) => {
 app.get('/:id/preview', async (c) => {
   try {
     const id = c.req.param('id');
-    if (isNaN(Number(id))) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
+    if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
-    const html = await previewReport(c.env, Number(id));
+    const html = await previewReport(c.env, Number(id), c.get('tenantId'));
     return c.html(html);
   } catch (error: any) {
     const msg = error?.message ?? 'Failed to preview report';
@@ -282,7 +194,7 @@ app.get('/:id/preview', async (c) => {
 app.post('/:id/run', async (c) => {
   try {
     const id = c.req.param('id');
-    if (isNaN(Number(id))) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
+    if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
     await runReport(c.env, Number(id));
     return c.json({ success: true, message: 'Report executed and emails sent.' });
@@ -300,13 +212,10 @@ app.post('/:id/run', async (c) => {
 app.get('/:id/history', async (c) => {
   try {
     const id = c.req.param('id');
-    if (isNaN(Number(id))) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
+    if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
     const qs = c.req.query();
-    let page = parseInt(qs.page || '1') || 1;
-    let limit = parseInt(qs.limit || '10') || 10;
-    if (page < 1) page = 1;
-    if (limit < 1 || limit > 100) limit = 10;
+    const { page, limit } = parsePagination(qs, { limit: 10 });
     const offset = (page - 1) * limit;
 
     const reportCheck = await query(c.env, 'SELECT report_id FROM public.report WHERE report_id = $1', [id]);
@@ -364,7 +273,7 @@ app.get('/:id/history/:historyId/emails', async (c) => {
     const id = c.req.param('id');
     const historyId = c.req.param('historyId');
 
-    if (isNaN(Number(id)) || isNaN(Number(historyId))) {
+    if (parseNumericId(id) === null || parseNumericId(historyId) === null) {
       return c.json({ success: false, message: 'Invalid report ID or history ID format' }, 400);
     }
 
@@ -385,6 +294,137 @@ app.get('/:id/history/:historyId/emails', async (c) => {
   } catch (error: any) {
     logError('Error retrieving email logs:', error);
     return c.json({ success: false, message: 'Failed to retrieve email logs' }, 500);
+  }
+});
+
+// GET /:id/graph-data - Time-series graph data using the same query logic as the dashboard
+app.get('/:id/graph-data', async (c) => {
+  try {
+    const id = c.req.param('id');
+    if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
+
+    const qs = c.req.query();
+    const tzOffset = qs.tzOffset ? parseInt(qs.tzOffset) : 0;
+    const tenantId = c.get('tenantId');
+    if (!tenantId) return c.json({ success: false, message: 'Unauthorized: tenant context required' }, 401);
+
+    const reportResult = await query(
+      c.env,
+      `SELECT report_id, name, type, time_frame, meter_selections FROM report WHERE report_id = $1`,
+      [id]
+    );
+    if (reportResult.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
+
+    const report = reportResult.rows[0];
+    const timeFrame: string = report.time_frame || 'monthly';
+    const timePeriod = (['today', 'weekly', 'monthly', 'yearly'].includes(timeFrame) ? timeFrame : 'monthly') as TimePeriod;
+    const { startDate, endDate } = getDateRange(timeFrame, qs.startDate, qs.endDate);
+    const isDemand = report.type === 'demand';
+
+    // Expand meter_selections into meter+element pairs
+    const selections: any[] = Array.isArray(report.meter_selections) ? report.meter_selections : [];
+    const pairs: Array<{ meterId: number; meterElementId: number }> = [];
+
+    for (const sel of selections) {
+      if (!sel.meter_id) continue;
+      const meterId = Number(sel.meter_id);
+      if (sel.meter_element_ids && sel.meter_element_ids.length > 0) {
+        for (const elId of sel.meter_element_ids) {
+          pairs.push({ meterId, meterElementId: Number(elId) });
+        }
+      } else {
+        const els = await query(c.env, `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`, [meterId]);
+        for (const el of els.rows) {
+          pairs.push({ meterId, meterElementId: Number(el.meter_element_id) });
+        }
+      }
+    }
+
+    // Fetch display names for all elements in one query
+    const elementIds = [...new Set(pairs.map(p => p.meterElementId))];
+    const nameRows = elementIds.length > 0
+      ? (await query(
+          c.env,
+          `SELECT me.meter_element_id,
+                CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name
+          FROM meter_element me
+           JOIN meter m ON me.meter_id = m.meter_id
+           WHERE me.meter_element_id = ANY($1)`,
+          [elementIds]
+        )).rows
+      : [];
+
+    const nameMap = new Map(nameRows.map((r: any) => [Number(r.meter_element_id), r]));
+
+    // Build meter_element_labels (same field as dashboard)
+    const meter_element_labels: Record<number, string> = {};
+    for (const [id, row] of nameMap.entries()) {
+      meter_element_labels[id] = row.meter_name ?? `Element ${id}`;
+    }
+
+    // column name matches the dashboard data column
+    const dataColumn = isDemand ? 'power' : 'calculated_kwh';
+    const unit       = isDemand ? 'kW'    : 'kWh';
+
+    // Query each pair and flatten into grouped_data rows (same shape as dashboard)
+    const grouped_data: Array<Record<string, any>> = [];
+    await Promise.all(pairs.map(async ({ meterId, meterElementId }) => {
+      const params = { tenantId, meterId, meterElementId, timePeriod, startDate: startDate.toISOString(), endDate: endDate.toISOString(), tzOffset };
+      const raw = isDemand
+        ? (await queryDemand(c.env, params)).map(r => ({ label_key: r.label_key, [dataColumn]: Number(r.power) }))
+        : (await queryConsumption(c.env, params)).map(r => ({ label_key: r.label_key, [dataColumn]: Number(r.calculated_kwh) }));
+
+      for (const row of raw) {
+        grouped_data.push({ ...row, meter_id: meterId, meter_element_id: meterElementId });
+      }
+    }));
+
+    // Sort by label_key so Visualization renders in time order
+    grouped_data.sort((a, b) => String(a.label_key).localeCompare(String(b.label_key)));
+
+    return c.json({
+      success: true,
+      data: {
+        grouped_data,
+        selected_columns: [dataColumn],
+        grouping_type: timePeriod === 'today' ? 'hourly' : timePeriod === 'yearly' ? 'monthly' : 'daily',
+        meter_element_labels,
+        column_units: { [dataColumn]: unit },
+        aggregated_values: {},
+        timeFrame,
+        timePeriod,
+        startDate: startDate.toISOString(),
+        endDate:   endDate.toISOString(),
+      },
+    });
+  } catch (error: any) {
+    logError('Error fetching report graph data:', error);
+    return c.json({ success: false, message: 'Failed to fetch report graph data' }, 500);
+  }
+});
+
+// GET /:id/demand-data - Return raw demand data as JSON for in-browser preview
+app.get('/:id/demand-data', async (c) => {
+  try {
+    const id = c.req.param('id');
+    if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
+
+    const result = await query(
+      c.env,
+      `SELECT report_id, name, type, time_frame, visualization_type, grouping_type, attach_as, meter_selections FROM public.report WHERE report_id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
+
+    const report = result.rows[0];
+    if (report.type !== 'demand') return c.json({ success: false, message: 'Not a demand report' }, 400);
+
+    const reportData = await generateDemandReport(c.env, report as any);
+    return c.json({ success: true, data: reportData });
+  } catch (error: any) {
+    logError('Error fetching demand data:', error);
+    return c.json({ success: false, message: error?.message ?? 'Failed to fetch demand data' }, 500);
   }
 });
 

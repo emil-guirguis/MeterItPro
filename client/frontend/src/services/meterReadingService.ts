@@ -192,10 +192,13 @@ class MeterReadingService {
   }
 
   // Get aggregated consumption summed across all meter_virtual components
-  async getVirtualConsumptionData(meterId: string, timePeriod: string, startDate: string, endDate: string, tzOffset: number, excludeIds?: number[]): Promise<{ label_key: string | number; calculated_kwh: number }[]> {
+  async getVirtualConsumptionData(meterId: string, timePeriod: string, startDate: string, endDate: string, tzOffset: number, excludeIds?: number[], operationOverrides?: Map<number, '+' | '-'>): Promise<{ label_key: string | number; calculated_kwh: number }[]> {
     try {
       const params: any = { meterId, timePeriod, startDate, endDate, tzOffset };
       if (excludeIds && excludeIds.length > 0) params.excludeIds = excludeIds.join(',');
+      if (operationOverrides && operationOverrides.size > 0) {
+        params.overrides = Array.from(operationOverrides.entries()).map(([id, op]) => `${id}:${op}`).join(',');
+      }
       const response: AxiosResponse<{ success: boolean; data: any[] }> = await this.apiClient.get('/meterreadings/virtual-consumption', { params });
       return response.data.data;
     } catch (error) {
@@ -208,10 +211,13 @@ class MeterReadingService {
   }
 
   // Get aggregated demand summed across all meter_virtual components
-  async getVirtualDemandData(meterId: string, timePeriod: string, startDate: string, endDate: string, tzOffset: number, excludeIds?: number[]): Promise<{ label_key: string | number; power: number }[]> {
+  async getVirtualDemandData(meterId: string, timePeriod: string, startDate: string, endDate: string, tzOffset: number, excludeIds?: number[], operationOverrides?: Map<number, '+' | '-'>): Promise<{ label_key: string | number; power: number }[]> {
     try {
       const params: any = { meterId, timePeriod, startDate, endDate, tzOffset };
       if (excludeIds && excludeIds.length > 0) params.excludeIds = excludeIds.join(',');
+      if (operationOverrides && operationOverrides.size > 0) {
+        params.overrides = Array.from(operationOverrides.entries()).map(([id, op]) => `${id}:${op}`).join(',');
+      }
       const response: AxiosResponse<{ success: boolean; data: any[] }> = await this.apiClient.get('/meterreadings/virtual-demand', { params });
       return response.data.data;
     } catch (error) {

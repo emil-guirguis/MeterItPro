@@ -294,7 +294,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
                 tab.sections.forEach((section: any) => {
                   if (section.fields) {
                     section.fields.forEach((field: any) => {
-                      allFormFields[field.name] = field;
+                      allFormFields[field.name] = (schema as any).formFields?.[field.name] ?? field;
                     });
                   }
                 });
@@ -319,7 +319,17 @@ export const BaseForm: React.FC<BaseFormProps> = ({
           
           const formSchema = createFormSchema(fieldsForForm);
           const formData = formSchema.fromApi(entityData);
-          
+
+          // Apply schema defaults for null/empty-string values so selects
+          // always show a valid option even if the DB column was never written to.
+          Object.entries(fieldsForForm).forEach(([fieldName, fieldDef]: [string, any]) => {
+            const v = formData[fieldName];
+            const def = fieldDef.default;
+            if ((v === null || v === undefined || v === '') && def !== undefined && def !== null && def !== '') {
+              formData[fieldName] = def;
+            }
+          });
+
           // Also include entityFields data
           Object.entries(schema.entityFields || {}).forEach(([fieldName, fieldDef]) => {
             if (fieldDef.showOn?.includes('form') && fieldDef.dbField !== null) {
@@ -342,7 +352,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
                 tab.sections.forEach((section: any) => {
                   if (section.fields) {
                     section.fields.forEach((field: any) => {
-                      allFormFields[field.name] = field;
+                      allFormFields[field.name] = (schema as any).formFields?.[field.name] ?? field;
                     });
                   }
                 });
@@ -404,7 +414,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
                 tab.sections.forEach((section: any) => {
                   if (section.fields) {
                     section.fields.forEach((field: any) => {
-                      allFormFields[field.name] = field;
+                      allFormFields[field.name] = (schema as any).formFields?.[field.name] ?? field;
                     });
                   }
                 });
@@ -502,12 +512,18 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       })
     : null;
 
-  // Re-initialize form defaults when schema loads in create mode.
-  // getDefaultFormData closes over `schema`, but useEntityForm's useEffect only
-  // watches `entity` — so when schema loads while entity stays undefined, defaults
-  // are never applied. This effect detects the first schema load and resets.
+  // Re-initialize form when schema loads or changes.
+  // Covers two scenarios:
+  // 1. Create mode: entity is undefined, so the entity-change effect never fires —
+  //    schema-change is the only trigger for applying defaults.
+  // 2. Edit mode with cached schema: if the schema is already in the in-memory cache
+  //    on the first render, `entity` is set immediately and never transitions from
+  //    undefined → defined, so the entity-change effect doesn't fire when the
+  //    schema is refreshed from the API. Re-initializing here ensures saved field
+  //    values (time_frame, visualization_type, etc.) are always loaded from the
+  //    current schema even after a cache-busting re-fetch.
   React.useEffect(() => {
-    if (schema && !prevSchemaRef.current && !entity && isDynamicForm && form) {
+    if (schema && isDynamicForm && form) {
       form.resetForm();
     }
     prevSchemaRef.current = schema;
@@ -697,27 +713,13 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   };
 
   const handleInputChange = (field: string, value: any) => {
-    console.log(`[BaseForm] handleInputChange called:`, { 
-      field, 
-      value, 
-      hasForm: !!form,
-      hasSetFormData: !!form?.setFormData,
-      formData: form?.formData 
-    });
-    
-    if (!form) {
-      console.error(`[BaseForm] Form is null or undefined!`);
-      return;
+    if (!form) return;
+
+    if (form.updateField) {
+      form.updateField(field, value);
+    } else {
+      form.setFormData((prev: any) => ({ ...prev, [field]: value }));
     }
-    
-    form.setFormData((prev: any) => {
-      const newData = {
-        ...prev,
-        [field]: value,
-      };
-      console.log(`[BaseForm] Form data updated:`, { field, oldValue: prev[field], newValue: value, newData });
-      return newData;
-    });
 
     if (errors[field]) {
       setErrors(prev => {
@@ -811,6 +813,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
             : (value || ''),
       error,
       touched: !!error,
+      modified: form?.dirtyFields?.has(fieldName),
       help: fieldDef.description,
       required: fieldDef.required,
       disabled: isFormDisabled || !!fieldDef.readOnly || !!fieldDef.disable,
@@ -831,7 +834,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
     };
 
     return (
-      <div key={fieldName} className={`${className}__field`}>
+      <div key={fieldName} className={`${className}__field`} data-field={fieldName} data-type={fieldDef.type || 'text'} data-component={fieldType}>
         <FormField {...validFormFieldProps} />
       </div>
     );

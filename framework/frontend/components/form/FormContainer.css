@@ -26,8 +26,8 @@
 
 /* Override BaseForm padding when inside FormContainer */
 .form-container .base-form {
-  padding: 1.25rem;
-  padding-top: 0.75rem;
+  padding: .25rem;
+  padding-top: 0.25rem;
   flex: 1;
   overflow: visible;
   margin: 0;
