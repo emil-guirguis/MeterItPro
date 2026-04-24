@@ -15,8 +15,9 @@ export class SyncService {
     readingsCount: number,
     success: boolean,
     errorMessage?: string,
+    details?: string,
   ): Promise<void> {
-    return this.syncDatabase.logSyncOperation(operationType, readingsCount, success, errorMessage);
+    return this.syncDatabase.logSyncOperation(operationType, readingsCount, success, errorMessage, details);
   }
 
   /**

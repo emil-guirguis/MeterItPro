@@ -47,7 +47,9 @@ export function useConnectionStatus() {
       return response.ok;
     } catch (err) {
       clearTimeout(timeoutId);
-      console.error(`Connection check failed for ${endpoint}:`, err);
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error(`Connection check failed for ${endpoint}:`, err);
+      }
       return false;
     }
   };

@@ -17,6 +17,7 @@ import {
   Paper,
   Collapse,
   IconButton,
+  Tooltip,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -24,6 +25,8 @@ import InfoIcon from '@mui/icons-material/Info';
 import SyncIcon from '@mui/icons-material/Sync';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { bacnetCollectionApi } from '../api/services';
+import { useConnectionStatus } from '../hooks/useConnectionStatus';
+import { ConnectionState } from '../types/connection';
 
 interface CollectionStatus {
   agent_status: {
@@ -56,6 +59,8 @@ export default function MeterCollectionCard() {
   const [isTriggering, setIsTriggering] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [expandErrors, setExpandErrors] = useState(false);
+  const { status: connectionStatus } = useConnectionStatus();
+  const mcpOnline = connectionStatus.mcpServer === ConnectionState.CONNECTED;
 
   const fetchStatus = async () => {
     try {
@@ -150,18 +155,28 @@ export default function MeterCollectionCard() {
                 />
               </Box>
             </Box>
-            <Button
-              variant="contained"
-              startIcon={isTriggering ? <CircularProgress size={20} /> : <SyncIcon />}
-              onClick={handleTriggerCollection}
-              disabled={isTriggering}
-              size="small"
-            >
-              {isTriggering ? 'Collecting...' : 'Collect Now'}
-            </Button>
+            <Tooltip title={!mcpOnline ? 'MCP server is offline — cannot trigger collection' : ''}>
+              <span>
+                <Button
+                  variant="contained"
+                  startIcon={isTriggering ? <CircularProgress size={20} /> : <SyncIcon />}
+                  onClick={handleTriggerCollection}
+                  disabled={isTriggering || !mcpOnline}
+                  size="small"
+                >
+                  {isTriggering ? 'Collecting...' : 'Collect Now'}
+                </Button>
+              </span>
+            </Tooltip>
           </Box>
 
-          {!agentStatus.isRunning && (
+          {!mcpOnline && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              MCP server is offline. Manual collection is unavailable. Data shown is from the local database.
+            </Alert>
+          )}
+
+          {mcpOnline && !agentStatus.isRunning && (
             <Alert severity="info" sx={{ mb: 2 }}>
               BACnet collection agent is managed by the MCP process. Data shown is from the local database.
             </Alert>

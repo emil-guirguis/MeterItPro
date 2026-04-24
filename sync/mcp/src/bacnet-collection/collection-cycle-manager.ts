@@ -191,6 +191,9 @@ async executeCycle(
           // Create a batcher for this meter's readings with unified cycle timestamp
           const batcher = new ReadingBatcher(this.logger, startTime);
 
+          // Track error count before this meter so we can detect new errors
+          const errorsBeforeThisMeter = errors.length;
+
           // Attempt to read all data points from this meter
           const meterReadings = await this.readMeterDataPoints(
             meter,
@@ -199,6 +202,28 @@ async executeCycle(
             errors,
             startTime
           );
+
+          // Log connectivity result to DB
+          const connectivityError = errors.slice(errorsBeforeThisMeter).find(
+            (e: CollectionError) => e.meterId === String(meter.meter_id) && e.operation === 'connectivity'
+          );
+          try {
+            if (connectivityError) {
+              await database.logSyncOperation(
+                'meter_connect', 0, false,
+                connectivityError.error,
+                JSON.stringify({ meter_id: meter.meter_id, name: meter.name, ip: meter.ip })
+              );
+            } else {
+              await database.logSyncOperation(
+                'meter_connect', 1, true,
+                undefined,
+                JSON.stringify({ meter_id: meter.meter_id, name: meter.name, ip: meter.ip })
+              );
+            }
+          } catch (logErr) {
+            this.logger.warn(`Failed to log meter_connect for meter ${meter.meter_id}: ${logErr}`);
+          }
 
           // Add readings to batcher
           for (const reading of meterReadings) {
@@ -219,6 +244,24 @@ async executeCycle(
               this.logger.info(
                 `Meter ${meter.meter_id}: inserted ${insertionResult.insertedCount} readings (${insertionResult.skippedCount} skipped, ${insertionResult.failedCount} failed)`
               );
+
+              // Log meter read result to DB
+              try {
+                await database.logSyncOperation(
+                  'meter_read', insertionResult.insertedCount, true,
+                  undefined,
+                  JSON.stringify({
+                    meter_id: meter.meter_id,
+                    name: meter.name,
+                    ip: meter.ip,
+                    inserted: insertionResult.insertedCount,
+                    skipped: insertionResult.skippedCount,
+                    failed: insertionResult.failedCount,
+                  })
+                );
+              } catch (logErr) {
+                this.logger.warn(`Failed to log meter_read for meter ${meter.meter_id}: ${logErr}`);
+              }
 
               // ─────────────────────────────────────────────────────────────
               // DEV-ONLY: Post-read connectivity check
@@ -302,6 +345,23 @@ async executeCycle(
         } catch (logError) {
           this.logger.warn(`Failed to log error to database: ${logError}`);
         }
+      }
+
+      // Log overall collection cycle summary to DB
+      try {
+        await database.logSyncOperation(
+          'collection_cycle', readingsCollected, result.success,
+          errors.length > 0 ? `${errors.length} error(s) during cycle` : undefined,
+          JSON.stringify({
+            cycleId,
+            metersProcessed,
+            readingsCollected,
+            errorCount: errors.length,
+            timeouts: result.timeoutMetrics?.totalTimeouts || 0,
+          })
+        );
+      } catch (logErr) {
+        this.logger.warn(`Failed to log collection_cycle summary: ${logErr}`);
       }
 
       this.logger.info(

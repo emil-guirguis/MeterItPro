@@ -872,16 +872,16 @@ app.get('/api/sync/meter-reading-upload/status', async (_req, res) => {
   }
 });
 
-// Get meter reading upload log
+// Get sync activity log (all operation types)
 app.get('/api/sync/meter-reading-upload/log', async (_req, res) => {
   try {
     console.log('📥 [API] GET /api/sync/meter-reading-upload/log - Request received');
 
     const query = `
-      SELECT sync_log_id as sync_operation_id, 'sync' as operation_type, batch_size as readings_count, success, error_message, synced_at as created_at
+      SELECT id as sync_operation_id, operation_type, batch_size as readings_count, success, error_message, details, synced_at as created_at
       FROM sync_log
       ORDER BY synced_at DESC
-      LIMIT 20
+      LIMIT 200
     `;
 
     const result = await syncPool.query(query);
@@ -955,7 +955,7 @@ app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
         [readingIds]
       );
       await syncPool.query(
-        `INSERT INTO sync_log (batch_size, success, synced_at) VALUES ($1, true, NOW())`,
+        `INSERT INTO sync_log (operation_type, batch_size, success, synced_at) VALUES ('upload', $1, true, NOW())`,
         [readings.length]
       );
       console.log(`✅ [API] Upload successful - ${data.recordsProcessed} records processed`);
@@ -968,7 +968,7 @@ app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
       );
       const errorMsg = data.message || `HTTP ${response.status}`;
       await syncPool.query(
-        `INSERT INTO sync_log (batch_size, success, error_message, synced_at) VALUES ($1, false, $2, NOW())`,
+        `INSERT INTO sync_log (operation_type, batch_size, success, error_message, synced_at) VALUES ('upload', $1, false, $2, NOW())`,
         [readings.length, errorMsg]
       );
       console.error(`❌ [API] Upload failed: ${errorMsg}`);
@@ -984,7 +984,7 @@ app.post('/api/sync/meter-reading-upload/trigger', async (_req, res) => {
     console.error('❌ [API] Upload trigger error:', msg);
     try {
       await syncPool.query(
-        `INSERT INTO sync_log (batch_size, success, error_message, synced_at) VALUES (0, false, $1, NOW())`,
+        `INSERT INTO sync_log (operation_type, batch_size, success, error_message, synced_at) VALUES ('upload', 0, false, $1, NOW())`,
         [msg]
       );
     } catch { /* ignore */ }
@@ -1170,7 +1170,7 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
 
     // Log the sync operation
     await syncPool.query(
-      `INSERT INTO sync_log (batch_size, success, synced_at) VALUES ($1, true, NOW())`,
+      `INSERT INTO sync_log (operation_type, batch_size, success, synced_at) VALUES ('remote_download_meter', $1, true, NOW())`,
       [remoteMeters.rows.length]
     );
 
@@ -1195,7 +1195,7 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
     // Log the failed sync
     try {
       await syncPool.query(
-        `INSERT INTO sync_log (batch_size, success, error_message, synced_at) VALUES (0, false, $1, NOW())`,
+        `INSERT INTO sync_log (operation_type, batch_size, success, error_message, synced_at) VALUES ('remote_download_meter', 0, false, $1, NOW())`,
         [error instanceof Error ? error.message : String(error)]
       );
     } catch { /* ignore logging errors */ }

@@ -190,6 +190,13 @@ export class RemoteToLocalSyncAgent {
       console.log(`${'='.repeat(60)}`);
 
       const tenantSyncResult = await syncTenant(this.remotePool, syncPool, this.tenantId as number, this.syncDatabase);
+      await this.syncDatabase.logSyncOperation(
+        'remote_download_tenant',
+        tenantSyncResult.inserted + tenantSyncResult.updated,
+        tenantSyncResult.success,
+        tenantSyncResult.error,
+        JSON.stringify({ inserted: tenantSyncResult.inserted, updated: tenantSyncResult.updated })
+      );
 
       // ==================== METER SYNC ====================
       console.log(`\n${'='.repeat(60)}`);
@@ -197,6 +204,13 @@ export class RemoteToLocalSyncAgent {
       console.log(`${'='.repeat(60)}`);
 
       const meterSyncResult = await syncMeters(this.remotePool, syncPool, this.tenantId as number, this.syncDatabase);
+      await this.syncDatabase.logSyncOperation(
+        'remote_download_meter',
+        meterSyncResult.inserted + meterSyncResult.updated + meterSyncResult.deleted,
+        meterSyncResult.success,
+        meterSyncResult.error,
+        JSON.stringify({ inserted: meterSyncResult.inserted, updated: meterSyncResult.updated, deleted: meterSyncResult.deleted })
+      );
 
       // ==================== REGISTER SYNC ====================
       console.log(`\n${'='.repeat(60)}`);
@@ -204,6 +218,13 @@ export class RemoteToLocalSyncAgent {
       console.log(`${'='.repeat(60)}`);
 
       const registerSyncResult = await syncRegisters(this.remotePool, syncPool, this.syncDatabase);
+      await this.syncDatabase.logSyncOperation(
+        'remote_download_register',
+        registerSyncResult.inserted + registerSyncResult.updated + registerSyncResult.deleted,
+        registerSyncResult.success,
+        registerSyncResult.error,
+        JSON.stringify({ inserted: registerSyncResult.inserted, updated: registerSyncResult.updated, deleted: registerSyncResult.deleted })
+      );
 
       // ==================== DEVICE REGISTER SYNC ====================
       console.log(`\n${'='.repeat(60)}`);
@@ -211,6 +232,13 @@ export class RemoteToLocalSyncAgent {
       console.log(`${'='.repeat(60)}`);
 
       const deviceRegisterSyncResult = await syncDeviceRegisters(this.remotePool, syncPool, this.syncDatabase);
+      await this.syncDatabase.logSyncOperation(
+        'remote_download_device_register',
+        deviceRegisterSyncResult.inserted + deviceRegisterSyncResult.updated + deviceRegisterSyncResult.deleted,
+        deviceRegisterSyncResult.success,
+        deviceRegisterSyncResult.error,
+        JSON.stringify({ inserted: deviceRegisterSyncResult.inserted, updated: deviceRegisterSyncResult.updated, deleted: deviceRegisterSyncResult.deleted, skipped: deviceRegisterSyncResult.skipped })
+      );
 
       // ==================== AGGREGATE RESULTS ====================
       console.log(`\n${'='.repeat(60)}`);

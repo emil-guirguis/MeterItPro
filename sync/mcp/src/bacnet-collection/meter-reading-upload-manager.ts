@@ -220,7 +220,11 @@ export class MeterReadingUploadManager {
 
       // Log overall operation result
       if (totalFailed === 0) {
-        await this.database.logSyncOperation('upload', totalUploaded, true);
+        await this.database.logSyncOperation(
+          'upload', totalUploaded, true,
+          undefined,
+          JSON.stringify({ uploaded: totalUploaded, batches: batchNumber, tenant_id: this.tenantId })
+        );
 
         this.status.lastUploadTime = new Date();
         this.status.lastUploadSuccess = true;
@@ -231,7 +235,8 @@ export class MeterReadingUploadManager {
           'upload',
           totalUploaded + totalFailed,
           false,
-          `${totalFailed} readings failed to upload`
+          `${totalFailed} readings failed to upload`,
+          JSON.stringify({ uploaded: totalUploaded, failed: totalFailed, batches: batchNumber, tenant_id: this.tenantId })
         );
 
         this.status.lastUploadTime = new Date();

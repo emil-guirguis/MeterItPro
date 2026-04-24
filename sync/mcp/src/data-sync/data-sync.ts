@@ -286,6 +286,11 @@ export class SyncDatabase {
         )
       `);
 
+      // Add details column to existing databases that predate it
+      await execQuery(this.pool,
+        `ALTER TABLE sync_log ADD COLUMN IF NOT EXISTS details TEXT DEFAULT NULL`
+      );
+
 
       console.log('✅ [SQL] Database schema initialized successfully');
     } catch (error) {
@@ -893,13 +898,14 @@ export class SyncDatabase {
     operationType: string,
     readingsCount: number,
     success: boolean,
-    errorMessage?: string
+    errorMessage?: string,
+    details?: string
   ): Promise<void> {
     try {
       await this.pool.query(
-        `INSERT INTO sync_log (operation_type, batch_size, success, error_message)
-         VALUES ($1, $2, $3, $4)`,
-        [operationType, readingsCount, success, errorMessage || null]
+        `INSERT INTO sync_log (operation_type, batch_size, success, error_message, details)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [operationType, readingsCount, success, errorMessage || null, details || null]
       );
       console.log(`✅ [SQL] Logged sync operation: type=${operationType}, count=${readingsCount}, success=${success}`);
     } catch (error) {

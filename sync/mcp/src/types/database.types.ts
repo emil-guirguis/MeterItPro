@@ -68,7 +68,7 @@ export interface SyncDatabase {
   getRecentReadings(hours: number): Promise<MeterReadingEntity[]>;
 
   // ==================== SYNC LOG METHODS ====================
-  logSyncOperation(operationType: string, readingsCount: number, success: boolean, errorMessage?: string): Promise<void>;
+  logSyncOperation(operationType: string, readingsCount: number, success: boolean, errorMessage?: string, details?: string): Promise<void>;
   getRecentSyncLogs(limit: number): Promise<SyncLog[]>;
   getSyncStats(hours: number): Promise<any>;
 }

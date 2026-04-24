@@ -183,7 +183,7 @@ export const meterDeviceApi = {
       const response = await apiClient.get('/api/meters/connectivity');
       return response.data;
     } catch (error) {
-      console.error('❌ [Meter Device] Failed to fetch connectivity:', error);
+      console.warn('⚠️ [Meter Device] Failed to fetch connectivity:', error);
       if (axios.isAxiosError(error)) {
         throw new Error(error.response?.data?.error || error.message || 'Failed to fetch meter connectivity');
       }

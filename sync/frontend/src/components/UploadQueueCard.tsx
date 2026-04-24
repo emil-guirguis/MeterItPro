@@ -19,6 +19,7 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { uploadQueueApi } from '../api/services';
 
 interface UploadQueueStatus {
@@ -34,12 +35,45 @@ interface UploadQueueStatus {
 
 interface UploadOperation {
   sync_operation_id: number;
-  tenant_id: number;
   operation_type: string;
   readings_count: number;
   success: boolean;
   error_message: string | null;
+  details: string | null;
   created_at: string;
+}
+
+const OPERATION_LABELS: Record<string, { label: string; color: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'info' | 'error' }> = {
+  upload:                          { label: 'Upload',            color: 'primary' },
+  sync:                            { label: 'Upload',            color: 'primary' },
+  meter_connect:                   { label: 'Meter Connect',     color: 'info' },
+  meter_read:                      { label: 'Meter Read',        color: 'success' },
+  collection_cycle:                { label: 'Collection Cycle',  color: 'warning' },
+  remote_download_tenant:          { label: 'Download Tenant',   color: 'secondary' },
+  remote_download_meter:           { label: 'Download Meters',   color: 'secondary' },
+  remote_download_register:        { label: 'Download Registers', color: 'secondary' },
+  remote_download_device_register: { label: 'Download DevRegs',  color: 'secondary' },
+};
+
+function parseDetails(details: string | null): string {
+  if (!details) return '';
+  try {
+    const d = JSON.parse(details);
+    const parts: string[] = [];
+    if (d.name)      parts.push(d.name);
+    if (d.ip)        parts.push(d.ip);
+    if (d.inserted !== undefined) parts.push(`ins:${d.inserted}`);
+    if (d.updated  !== undefined) parts.push(`upd:${d.updated}`);
+    if (d.deleted  !== undefined) parts.push(`del:${d.deleted}`);
+    if (d.skipped  !== undefined) parts.push(`skip:${d.skipped}`);
+    if (d.metersProcessed !== undefined) parts.push(`meters:${d.metersProcessed}`);
+    if (d.readingsCollected !== undefined) parts.push(`readings:${d.readingsCollected}`);
+    if (d.batches  !== undefined) parts.push(`batches:${d.batches}`);
+    if (d.failed   !== undefined && d.failed > 0) parts.push(`failed:${d.failed}`);
+    return parts.join(' · ');
+  } catch {
+    return '';
+  }
 }
 
 export default function UploadQueueCard() {
@@ -229,37 +263,57 @@ export default function UploadQueueCard() {
       {operations.length > 0 && (
         <Card sx={{ mt: 3 }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom>Recent Upload History</Typography>
+            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+              <Typography variant="h6">Activity Log</Typography>
+              <Button
+                size="small"
+                startIcon={isLoading ? <CircularProgress size={14} /> : <RefreshIcon />}
+                onClick={fetchStatus}
+                disabled={isLoading}
+              >
+                Refresh
+              </Button>
+            </Box>
             <TableContainer component={Paper}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
                     <TableCell>Timestamp</TableCell>
-                    <TableCell align="right">Readings</TableCell>
+                    <TableCell>Operation</TableCell>
+                    <TableCell align="right">Count</TableCell>
                     <TableCell>Status</TableCell>
-                    <TableCell>Error</TableCell>
+                    <TableCell>Details / Error</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {operations.map((op) => (
-                    <TableRow key={op.sync_operation_id}>
-                      <TableCell>{new Date(op.created_at).toLocaleString()}</TableCell>
-                      <TableCell align="right">{op.readings_count}</TableCell>
-                      <TableCell>
-                        <Chip
-                          icon={op.success ? <CheckCircleIcon /> : <ErrorIcon />}
-                          label={op.success ? 'Success' : 'Failed'}
-                          color={op.success ? 'success' : 'error'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {op.error_message ? (
-                          <Typography variant="caption" color="error">{op.error_message}</Typography>
-                        ) : '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {operations.map((op) => {
+                    const opMeta = OPERATION_LABELS[op.operation_type] ?? { label: op.operation_type ?? 'Unknown', color: 'default' as const };
+                    const detailStr = parseDetails(op.details);
+                    return (
+                      <TableRow key={op.sync_operation_id}>
+                        <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(op.created_at).toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Chip label={opMeta.label} color={opMeta.color} size="small" variant="outlined" />
+                        </TableCell>
+                        <TableCell align="right">{op.readings_count ?? '-'}</TableCell>
+                        <TableCell>
+                          <Chip
+                            icon={op.success ? <CheckCircleIcon /> : <ErrorIcon />}
+                            label={op.success ? 'OK' : 'Fail'}
+                            color={op.success ? 'success' : 'error'}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {op.error_message ? (
+                            <Typography variant="caption" color="error">{op.error_message}</Typography>
+                          ) : detailStr ? (
+                            <Typography variant="caption" color="text.secondary">{detailStr}</Typography>
+                          ) : '-'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
