@@ -6,6 +6,7 @@ export interface MeterListItem {
   id?: number;
   name: string;
   serial_number?: string;
+  is_virtual?: boolean;
 }
 
 // Module-level cache — shared across all hook instances, fetched only once per session

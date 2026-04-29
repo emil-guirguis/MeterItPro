@@ -3,7 +3,8 @@
  * Replaces BaseModel findAll/findById/create/update/delete with raw SQL.
  */
 
-import { query as execQuery, transaction, Env } from './db';
+import { transaction, Env, execQuery } from './db';
+
 
 export interface FindAllOptions {
   table: string;

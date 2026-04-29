@@ -4,7 +4,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, AuthVariables } from '../middleware';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -66,7 +67,7 @@ app.get('/', async (c) => {
     }
 
     // Verify meter exists and belongs to tenant
-    const meterResult = await query(
+    const meterResult = await execQuery(
       c.env,
       'SELECT meter_id FROM meter WHERE meter_id = $1 AND tenant_id = $2',
       [meterId, tenantId]
@@ -85,7 +86,7 @@ app.get('/', async (c) => {
      WHERE me.meter_id = $1
      ORDER BY me.element ASC`;
 
-    const elements = await query(c.env, sql, [meterId]);
+    const elements = await execQuery(c.env, sql, [meterId]);
 
     return c.json({ success: true, data: elements.rows });
   } catch (error: any) {
@@ -118,7 +119,7 @@ app.post('/', async (c) => {
     }
 
     // Verify meter exists and belongs to tenant
-    const meterResult = await query(
+    const meterResult = await execQuery(
       c.env,
       'SELECT meter_id FROM meter WHERE meter_id = $1 AND tenant_id = $2',
       [meterId, tenantId]
@@ -129,7 +130,7 @@ app.post('/', async (c) => {
     }
 
     // Check for duplicate element
-    const duplicateCheck = await query(
+    const duplicateCheck = await execQuery(
       c.env,
       'SELECT meter_element_id FROM meter_element WHERE meter_id = $1 AND element = $2',
       [meterId, element]
@@ -143,7 +144,7 @@ app.post('/', async (c) => {
       }, 400);
     }
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `INSERT INTO meter_element (meter_id, tenant_id, name, element)
        VALUES ($1, $2, $3, $4)
@@ -178,7 +179,7 @@ app.put('/:elementId', async (c) => {
     }
 
     // Verify meter exists and belongs to tenant
-    const meterResult = await query(
+    const meterResult = await execQuery(
       c.env,
       'SELECT meter_id FROM meter WHERE meter_id = $1 AND tenant_id = $2',
       [meterId, tenantId]
@@ -189,7 +190,7 @@ app.put('/:elementId', async (c) => {
     }
 
     // Verify element exists and belongs to meter
-    const elementResult = await query(
+    const elementResult = await execQuery(
       c.env,
       'SELECT meter_element_id, name, element FROM meter_element WHERE meter_element_id = $1 AND meter_id = $2',
       [elementId, meterId]
@@ -203,7 +204,7 @@ app.put('/:elementId', async (c) => {
 
     // Check for duplicate element (if element is being changed)
     if (element !== undefined && element !== currentElement.element) {
-      const duplicateCheck = await query(
+      const duplicateCheck = await execQuery(
         c.env,
         'SELECT meter_element_id FROM meter_element WHERE meter_id = $1 AND element = $2 AND meter_element_id != $3',
         [meterId, element, elementId]
@@ -246,7 +247,7 @@ app.put('/:elementId', async (c) => {
       RETURNING meter_element_id, meter_id, name, element
     `;
 
-    const result = await query(c.env, sql, values);
+    const result = await execQuery(c.env, sql, values);
 
     if (result.rows.length === 0) {
       return c.json({ success: false, message: 'Failed to update meter element' }, 500);
@@ -274,7 +275,7 @@ app.delete('/:elementId', async (c) => {
     }
 
     // Verify meter exists and belongs to tenant
-    const meterResult = await query(
+    const meterResult = await execQuery(
       c.env,
       'SELECT meter_id FROM meter WHERE meter_id = $1 AND tenant_id = $2',
       [meterId, tenantId]
@@ -285,7 +286,7 @@ app.delete('/:elementId', async (c) => {
     }
 
     // Verify element exists and belongs to meter
-    const elementResult = await query(
+    const elementResult = await execQuery(
       c.env,
       'SELECT meter_element_id FROM meter_element WHERE meter_element_id = $1 AND meter_id = $2',
       [elementId, meterId]
@@ -295,7 +296,7 @@ app.delete('/:elementId', async (c) => {
       return c.json({ success: false, message: 'Element not found' }, 404);
     }
 
-    await query(
+    await execQuery(
       c.env,
       'DELETE FROM meter_element WHERE meter_element_id = $1 AND meter_id = $2',
       [elementId, meterId]

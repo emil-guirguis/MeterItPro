@@ -6,15 +6,15 @@
  * - Email is sent via the Resend HTTP API (no TCP / nodemailer required).
  *
  * Required env vars (set via `npx wrangler secret put`):
- *   RESEND_API_KEY  — API key from resend.com (free tier: 3,000 emails/month)
- *   RESEND_FROM     — "From" address, e.g. "MeterItPro <noreply@meteritpro.com>"
+ *   RESEND_API_KEY  � API key from resend.com (free tier: 3,000 emails/month)
+ *   RESEND_FROM     � "From" address, e.g. "MeterItPro <noreply@meteritpro.com>"
  */
 
-import { query, Env } from './db';
+import { Env, execQuery } from './db';
 import { matchesCronSchedule } from './cronMatcher';
 import { getDateRange, queryConsumption, queryDemand, type TimePeriod } from './meterQueryHelpers';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// --- Types --------------------------------------------------------------------
 
 interface Report {
   report_id: number;
@@ -51,7 +51,7 @@ interface ReportData {
   data: Record<string, any>[];
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// --- Helpers ------------------------------------------------------------------
 
 function parseMeterSelections(raw: any): MeterSelection[] | null {
   if (!raw) return null;
@@ -73,7 +73,7 @@ async function getMeterElementPairs(env: Env, report: Report): Promise<MeterElem
           pairs.push({ meter_id: meterId, meter_element_id: String(elId) });
         }
       } else {
-        const elements = await query(
+        const elements = await execQuery(
           env,
           `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`,
           [meterId]
@@ -86,7 +86,7 @@ async function getMeterElementPairs(env: Env, report: Report): Promise<MeterElem
     return pairs;
   }
 
-  const all = await query(
+  const all = await execQuery(
     env,
     `SELECT m.meter_id, me.meter_element_id
      FROM meter m
@@ -138,14 +138,14 @@ function formatValue(value: any): string {
   return String(value);
 }
 
-// ─── Date range helper ────────────────────────────────────────────────────────
+// --- Date range helper --------------------------------------------------------
 
 function getReportDateRange(config: Record<string, any>): { startDate: Date; endDate: Date } {
   const timeFrame = config.time_frame || 'monthly';
   return getDateRange(timeFrame, config.custom_start_date, config.custom_end_date);
 }
 
-// ─── Chart series data (same queries as the dashboard) ────────────────────────
+// --- Chart series data (same queries as the dashboard) ------------------------
 
 interface ChartSeriesData {
   labels: string[];
@@ -165,7 +165,7 @@ function buildTimeLabels(timePeriod: TimePeriod, startDate: Date, endDate: Date)
   if (timePeriod === 'yearly') {
     return MONTH_NAMES.slice();
   }
-  // weekly / monthly — one label per day
+  // weekly / monthly � one label per day
   const labels: string[] = [];
   const cursor = new Date(startDate);
   cursor.setHours(0, 0, 0, 0);
@@ -211,7 +211,7 @@ async function fetchChartSeriesData(env: Env, report: Report, tenantIdFallback?:
 
   // Fetch display names
   const elementIds = [...new Set(pairs.map(p => Number(p.meter_element_id)))];
-  const nameRows = (await query(
+  const nameRows = (await execQuery(
     env,
     `SELECT me.meter_element_id,
            CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name
@@ -251,7 +251,7 @@ async function fetchChartSeriesData(env: Env, report: Report, tenantIdFallback?:
   return { labels, series: seriesResults, unit: isDemand ? 'kW' : 'kWh', timePeriod };
 }
 
-// ─── Report data generators ───────────────────────────────────────────────────
+// --- Report data generators ---------------------------------------------------
 
 async function generateMeterReadingsReport(env: Env, report: Report): Promise<ReportData> {
   const allowedFields = getRegisterFieldNames(report);
@@ -268,11 +268,11 @@ async function generateMeterReadingsReport(env: Env, report: Report): Promise<Re
     const safe = allowedFields.filter(f => /^\w+$/.test(f));
     registerSelect = ['r.created_at', ...safe.map(f => `r.${f}`)].join(',\n       ');
   } else {
-    // No specific fields configured — exclude only internal ID columns
+    // No specific fields configured � exclude only internal ID columns
     registerSelect = 'r.created_at, r.kwh, r.kw, r.power_factor, r.voltage, r.current';
   }
 
-  const result = await query(
+  const result = await execQuery(
     env,
     `SELECT
        CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
@@ -296,7 +296,7 @@ async function generateUsageSummaryReport(env: Env, report: Report): Promise<Rep
   const whereClause = [`r.created_at >= NOW() - INTERVAL '30 days'`, pairFilter?.sql]
     .filter(Boolean).join(' AND ');
 
-  const result = await query(
+  const result = await execQuery(
     env,
     `SELECT
        CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
@@ -327,7 +327,7 @@ async function generateDailySummaryReport(env: Env, report: Report): Promise<Rep
   const whereClause = [`r.created_at >= NOW() - INTERVAL '30 days'`, pairFilter?.sql]
     .filter(Boolean).join(' AND ');
 
-  const result = await query(
+  const result = await execQuery(
     env,
     `SELECT
        DATE(r.created_at)                                                    AS date,
@@ -367,7 +367,7 @@ export async function generateDemandReport(env: Env, report: Report): Promise<Re
     pairFilter?.sql,
   ].filter(Boolean).join(' AND ');
 
-  const result = await query(
+  const result = await execQuery(
     env,
     `SELECT
        CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
@@ -407,7 +407,7 @@ async function generateReportData(env: Env, report: Report): Promise<ReportData>
   }
 }
 
-// ─── HTML preview (respects display_type / export_format from settings) ───────
+// --- HTML preview (respects display_type / export_format from settings) -------
 
 function buildPreviewHtml(report: Report, reportData: ReportData, chartData: ChartSeriesData): string {
   const displayType: string = report.visualization_type || 'bar';
@@ -426,7 +426,7 @@ function buildPreviewHtml(report: Report, reportData: ReportData, chartData: Cha
     reportData.dayCount != null ? `<span>Days: <strong>${reportData.dayCount}</strong></span>` : '',
   ].filter(Boolean).join('<span style="margin:0 10px;color:#d1d5db">|</span>');
 
-  // ── Table (grid) — always shown below the chart ──────────────────────────
+  // -- Table (grid) � always shown below the chart --------------------------
   const tableHtml = rows.length === 0
     ? '<p style="color:#6b7280;font-style:italic;text-align:center;padding:40px 0">No data available for this report.</p>'
     : `<div style="overflow-x:auto;margin-top:24px">
@@ -445,7 +445,7 @@ function buildPreviewHtml(report: Report, reportData: ReportData, chartData: Cha
         </table>
       </div>`;
 
-  // ── Chart — uses the same aggregated time-series data as the dashboard ───
+  // -- Chart � uses the same aggregated time-series data as the dashboard ---
   let dataScript = '';
   let chartHtml = '';
   let initScript = '';
@@ -546,7 +546,7 @@ function buildPreviewHtml(report: Report, reportData: ReportData, chartData: Cha
 </html>`;
 }
 
-// ─── HTML email body ──────────────────────────────────────────────────────────
+// --- HTML email body ----------------------------------------------------------
 
 function buildEmailHtml(report: Report, reportData: ReportData): string {
   const rows = Array.isArray(reportData.data) ? reportData.data : [];
@@ -594,12 +594,12 @@ function buildEmailHtml(report: Report, reportData: ReportData): string {
 </html>`;
 }
 
-// ─── Email via Resend ─────────────────────────────────────────────────────────
+// --- Email via Resend ---------------------------------------------------------
 
 async function sendEmail(env: Env, to: string, subject: string, html: string, fromOverride?: string | null): Promise<void> {
   const apiKey = env.RESEND_API_KEY;
   console.log('[sendEmail] RESEND_API_KEY present:', !!apiKey);
-  if (!apiKey) throw new Error('RESEND_API_KEY is not configured — run: npx wrangler secret put RESEND_API_KEY');
+  if (!apiKey) throw new Error('RESEND_API_KEY is not configured � run: npx wrangler secret put RESEND_API_KEY');
 
   const from = fromOverride || (env as any).RESEND_FROM || 'MeterItPro <noreply@meteritpro.com>';
 
@@ -615,7 +615,7 @@ async function sendEmail(env: Env, to: string, subject: string, html: string, fr
   }
 }
 
-// ─── History helpers ──────────────────────────────────────────────────────────
+// --- History helpers ----------------------------------------------------------
 
 async function createHistoryEntry(
   env: Env,
@@ -624,7 +624,7 @@ async function createHistoryEntry(
   status: 'pending' | 'success' | 'failed',
   errorMessage: string | null
 ): Promise<number> {
-  const result = await query(
+  const result = await execQuery(
     env,
     `INSERT INTO report_history (report_id, executed_at, status, error_message, created_at)
      VALUES ($1, $2, $3, $4, $5)
@@ -641,7 +641,7 @@ async function updateHistoryEntry(
   status: 'success' | 'failed',
   errorMessage: string | null
 ): Promise<void> {
-  await query(
+  await execQuery(
     env,
     `UPDATE report_history SET status = $1, error_message = $2 WHERE report_history_id = $3`,
     [status, errorMessage, historyId]
@@ -657,7 +657,7 @@ async function createEmailLogEntry(
   status: 'delivered' | 'failed',
   errorDetails: string | null
 ): Promise<void> {
-  await query(
+  await execQuery(
     env,
     `INSERT INTO report_email_logs (report_id, report_history_id, recipient, sent_at, status, error_details, created_at)
      VALUES ($1, $2, $3, $4, $5, $6, $7)`,
@@ -665,13 +665,13 @@ async function createEmailLogEntry(
   );
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// --- Public API ---------------------------------------------------------------
 
 /**
  * Generate and return the HTML preview for a report without sending emails.
  */
 export async function previewReport(env: Env, reportId: number, tenantId?: number): Promise<string> {
-  const reportResult = await query(
+  const reportResult = await execQuery(
     env,
     `SELECT report_id, name, type, tenant_id, recipients, meter_selections, time_frame, visualization_type, grouping_type, attach_as
      FROM report WHERE report_id = $1`,
@@ -695,7 +695,7 @@ export async function previewReport(env: Env, reportId: number, tenantId?: numbe
  * Throws on fatal errors; partial email failures are logged but not thrown.
  */
 export async function runReport(env: Env, reportId: number): Promise<void> {
-  const reportResult = await query(
+  const reportResult = await execQuery(
     env,
     `SELECT report_id, name, type, tenant_id, recipients, meter_selections, time_frame, visualization_type, grouping_type, attach_as
      FROM report WHERE report_id = $1 AND active = true`,
@@ -753,18 +753,18 @@ export async function runReport(env: Env, reportId: number): Promise<void> {
 }
 
 /**
- * Run all active reports whose cron schedule matches `now` — used by the cron trigger.
+ * Run all active reports whose cron schedule matches `now` � used by the cron trigger.
  * Pass the scheduled event time so reports fire only at their configured time.
  */
 export async function runAllActiveReports(env: Env, now: Date = new Date()): Promise<void> {
-  const result = await query(
+  const result = await execQuery(
     env,
     `SELECT report_id, cron FROM report WHERE active = true`
   );
 
   for (const row of result.rows) {
     if (!matchesCronSchedule(row.cron, now)) {
-      console.log(`[cron] Report ${row.report_id} skipped — schedule "${row.cron}" does not match ${now.toISOString()}`);
+      console.log(`[cron] Report ${row.report_id} skipped � schedule "${row.cron}" does not match ${now.toISOString()}`);
       continue;
     }
 

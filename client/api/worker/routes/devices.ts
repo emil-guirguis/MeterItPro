@@ -7,7 +7,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, transaction, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { deviceSchema } from './deviceSchema';

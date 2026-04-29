@@ -3,7 +3,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
@@ -30,7 +31,7 @@ app.get('/', async (c) => {
       paramIndex++;
     }
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT notification_history_id, tenant_id, notification_rule_id, users_id, meter_id, title, description, status, sent_at, created_at
        FROM public.notification_history
@@ -40,7 +41,7 @@ app.get('/', async (c) => {
       [...params, limit, offset]
     );
 
-    const countResult = await query(
+    const countResult = await execQuery(
       c.env,
       `SELECT COUNT(*) as count FROM public.notification_history ${whereClause}`,
       params
@@ -70,7 +71,7 @@ app.get('/meter/:meterId', async (c) => {
     }
 
     // Get notifications for this meter in the last 24 hours
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT notification_history_id, notification_rule_id, title, description, status, sent_at
        FROM public.notification_history
@@ -112,7 +113,7 @@ app.post('/', async (c) => {
       return c.json({ success: false, message: 'Title is required' }, 400);
     }
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `INSERT INTO public.notification_history
        (tenant_id, notification_rule_id, users_id, meter_id, title, description, status)

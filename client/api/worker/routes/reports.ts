@@ -1,11 +1,12 @@
 /**
  * Reports routes - Hono worker
  * CRUD for reports, history, and email logs.
- * Field list is driven by reportSchema â€” add/rename a field in the schema only.
+ * Field list is driven by reportSchema — add/rename a field in the schema only.
  */
 
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 import { runReport, previewReport, generateDemandReport } from '../reportRunner';
@@ -128,10 +129,10 @@ app.delete('/:id', async (c) => {
     const id = c.req.param('id');
     if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
-    const existing = await query(c.env, 'SELECT report_id, name FROM public.report WHERE report_id = $1', [id]);
+    const existing = await execQuery(c.env, 'SELECT report_id, name FROM public.report WHERE report_id = $1', [id]);
     if (existing.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
 
-    await query(c.env, 'DELETE FROM public.report WHERE report_id = $1', [id]);
+    await execQuery(c.env, 'DELETE FROM public.report WHERE report_id = $1', [id]);
     return c.json({ success: true, message: 'Report deleted successfully' });
   } catch (error: any) {
     logError('Error deleting report:', error);
@@ -145,11 +146,11 @@ app.patch('/:id/toggle', async (c) => {
     const id = c.req.param('id');
     if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
-    const getResult = await query(c.env, 'SELECT report_id, name, active FROM public.report WHERE report_id = $1', [id]);
+    const getResult = await execQuery(c.env, 'SELECT report_id, name, active FROM public.report WHERE report_id = $1', [id]);
     if (getResult.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
 
     const newActive = !getResult.rows[0].active;
-    const result = await query(
+    const result = await execQuery(
       c.env,
       'UPDATE public.report SET active = $1, updated_at = $2 WHERE report_id = $3 RETURNING report_id, name, active, updated_at',
       [newActive, new Date(), id]
@@ -218,7 +219,7 @@ app.get('/:id/history', async (c) => {
     const { page, limit } = parsePagination(qs, { limit: 10 });
     const offset = (page - 1) * limit;
 
-    const reportCheck = await query(c.env, 'SELECT report_id FROM public.report WHERE report_id = $1', [id]);
+    const reportCheck = await execQuery(c.env, 'SELECT report_id FROM public.report WHERE report_id = $1', [id]);
     if (reportCheck.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
 
     let countSql = 'SELECT COUNT(*) as total FROM public.report_history WHERE report_id = $1';
@@ -245,14 +246,14 @@ app.get('/:id/history', async (c) => {
       historyParams.push(end);
     }
 
-    const countResult = await query(c.env, countSql, countParams);
+    const countResult = await execQuery(c.env, countSql, countParams);
     const total = parseInt(countResult.rows[0].total, 10);
 
     const paramIdx = historyParams.length + 1;
     historySql += ` ORDER BY executed_at DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
     historyParams.push(limit, offset);
 
-    const historyResult = await query(c.env, historySql, historyParams);
+    const historyResult = await execQuery(c.env, historySql, historyParams);
 
     return c.json({
       success: true,
@@ -277,13 +278,13 @@ app.get('/:id/history/:historyId/emails', async (c) => {
       return c.json({ success: false, message: 'Invalid report ID or history ID format' }, 400);
     }
 
-    const reportCheck = await query(c.env, 'SELECT report_id FROM public.report WHERE report_id = $1', [id]);
+    const reportCheck = await execQuery(c.env, 'SELECT report_id FROM public.report WHERE report_id = $1', [id]);
     if (reportCheck.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
 
-    const historyCheck = await query(c.env, 'SELECT report_history_id FROM public.report_history WHERE report_history_id = $1 AND report_id = $2', [historyId, id]);
+    const historyCheck = await execQuery(c.env, 'SELECT report_history_id FROM public.report_history WHERE report_history_id = $1 AND report_id = $2', [historyId, id]);
     if (historyCheck.rows.length === 0) return c.json({ success: false, message: 'History entry not found' }, 404);
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT report_email_logs_id, report_id, report_history_id, recipient, sent_at, status, error_details, created_at
        FROM public.report_email_logs WHERE report_history_id = $1 ORDER BY sent_at DESC`,
@@ -308,7 +309,7 @@ app.get('/:id/graph-data', async (c) => {
     const tenantId = c.get('tenantId');
     if (!tenantId) return c.json({ success: false, message: 'Unauthorized: tenant context required' }, 401);
 
-    const reportResult = await query(
+    const reportResult = await execQuery(
       c.env,
       `SELECT report_id, name, type, time_frame, meter_selections FROM report WHERE report_id = $1`,
       [id]
@@ -333,7 +334,7 @@ app.get('/:id/graph-data', async (c) => {
           pairs.push({ meterId, meterElementId: Number(elId) });
         }
       } else {
-        const els = await query(c.env, `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`, [meterId]);
+        const els = await execQuery(c.env, `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`, [meterId]);
         for (const el of els.rows) {
           pairs.push({ meterId, meterElementId: Number(el.meter_element_id) });
         }
@@ -343,7 +344,7 @@ app.get('/:id/graph-data', async (c) => {
     // Fetch display names for all elements in one query
     const elementIds = [...new Set(pairs.map(p => p.meterElementId))];
     const nameRows = elementIds.length > 0
-      ? (await query(
+      ? (await execQuery(
           c.env,
           `SELECT me.meter_element_id,
                 CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name
@@ -409,7 +410,7 @@ app.get('/:id/demand-data', async (c) => {
     const id = c.req.param('id');
     if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT report_id, name, type, time_frame, visualization_type, grouping_type, attach_as, meter_selections FROM public.report WHERE report_id = $1`,
       [id]

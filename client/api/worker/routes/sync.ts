@@ -4,7 +4,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, transaction, Env } from '../db';
+import { transaction, Env, execQuery } from '../db';
+
 import { authenticateSyncServer, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
@@ -182,7 +183,7 @@ app.get('/getmeters', authenticateSyncServer, async (c) => {
                     JOIN meter_element me ON me.meter_id = m.meter_id
                  WHERE m.tenant_id = $1`;
 
-    const result = await query(c.env, sql, [tenantId]);
+    const result = await execQuery(c.env, sql, [tenantId]);
 
     const meter = result.rows[0];
     if (!meter) {
@@ -231,7 +232,7 @@ app.get('/getmregisters', authenticateSyncServer, async (c) => {
                     JOIN device_register dr ON dr.register_id = r.register_id
                  WHERE dr.device_id = $1`;
 
-    const result = await query(c.env, sql, [deviceId]);
+    const result = await execQuery(c.env, sql, [deviceId]);
 
     const register = result.rows[0];
     if (!register) {
@@ -272,7 +273,7 @@ app.post('/connect', async (c) => {
     }
 
     // Find user by email
-    const userResult = await query(
+    const userResult = await execQuery(
       c.env,
       'SELECT users_id, name, email, active, tenant_id FROM users WHERE LOWER(email) = LOWER($1)',
       [email]
@@ -289,7 +290,7 @@ app.post('/connect', async (c) => {
     }
 
     // Get tenant and verify API key
-    const tenantResult = await query(
+    const tenantResult = await execQuery(
       c.env,
       'SELECT * FROM tenant WHERE tenant_id = $1',
       [user.tenant_id]

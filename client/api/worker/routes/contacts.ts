@@ -3,7 +3,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, transaction, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { logError } from '../errorHandler';
@@ -22,7 +23,7 @@ app.get('/stats/overview', requirePermission('contact:read'), async (c) => {
     const tenantId = c.get('tenantId');
 
     // Overview stats using SQL aggregation
-    const overviewResult = await query(
+    const overviewResult = await execQuery(
       c.env,
       `SELECT
         COUNT(*) as "totalContacts",
@@ -36,7 +37,7 @@ app.get('/stats/overview', requirePermission('contact:read'), async (c) => {
     );
 
     // Top industries
-    const industryResult = await query(
+    const industryResult = await execQuery(
       c.env,
       `SELECT industry as "_id", COUNT(*) as count
       FROM contact

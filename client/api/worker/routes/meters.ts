@@ -3,7 +3,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, transaction, Env } from '../db';
+import { transaction, Env, execQuery } from '../db';
+
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { logError } from '../errorHandler';
@@ -55,7 +56,7 @@ app.get('/elements', requirePermission('meter:read'), async (c) => {
 
     sql += ' ORDER BY m.name ASC';
 
-    const result = await query(c.env, sql, params);
+    const result = await execQuery(c.env, sql, params);
 
     // Validate response data
     const validatedData = result.rows.filter((row: any) => {
@@ -95,7 +96,7 @@ app.get('/:meterId/virtual-config', requirePermission('meter:read'), async (c) =
 
   try {
     // Verify that the meter exists and belongs to the tenant
-    const meterCheckResult = await query(
+    const meterCheckResult = await execQuery(
       c.env,
       'SELECT meter_id FROM public.meter WHERE meter_id = $1 AND tenant_id = $2',
       [meterId, tenantId]
@@ -106,7 +107,7 @@ app.get('/:meterId/virtual-config', requirePermission('meter:read'), async (c) =
     }
 
     // Query meter_virtual joined with meter and meter_element for full detail
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT
         mv.selected_meter_id,
@@ -194,7 +195,7 @@ app.post('/:meterId/virtual-config', requirePermission('meter:update'), async (c
 
   try {
     // Verify that the meter exists and belongs to the tenant
-    const meterCheckResult = await query(
+    const meterCheckResult = await execQuery(
       c.env,
       'SELECT meter_id FROM public.meter WHERE meter_id = $1 AND tenant_id = $2',
       [meterId, tenantId]

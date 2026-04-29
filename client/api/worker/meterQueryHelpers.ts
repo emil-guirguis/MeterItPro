@@ -3,7 +3,7 @@
  * Shared by meterReadings routes and report graph data so both produce identical results.
  */
 
-import { query, Env } from './db';
+import { Env, execQuery } from './db';
 
 export type TimePeriod = 'today' | 'weekly' | 'monthly' | 'yearly';
 
@@ -71,7 +71,7 @@ export function getDateRange(
   };
 }
 
-// ─── SQL builders ─────────────────────────────────────────────────────────────
+// --- SQL builders -------------------------------------------------------------
 // Params are always: $1=tenantId, $2=meterId, $3=meterElementId, $4=tzOffset, $5=startDate, $6=endDate
 
 function consumptionSql(period: TimePeriod): string {
@@ -99,7 +99,7 @@ function consumptionSql(period: TimePeriod): string {
         AND (created_at + ${tz}) <= $6::timestamptz
       GROUP BY 1 ORDER BY 1`;
   }
-  // weekly / monthly — group by local date
+  // weekly / monthly � group by local date
   return `
     SELECT (created_at + ${tz})::date::text AS label_key,
            SUM(calculated_kwh) AS calculated_kwh
@@ -143,16 +143,16 @@ function demandSql(period: TimePeriod): string {
     GROUP BY 1 ORDER BY 1`;
 }
 
-// ─── Public query functions ───────────────────────────────────────────────────
+// --- Public query functions ---------------------------------------------------
 
 export async function queryConsumption(env: Env, p: GraphQueryParams): Promise<ConsumptionPoint[]> {
   const { tenantId, meterId, meterElementId, timePeriod, startDate, endDate, tzOffset = 0 } = p;
-  const result = await query(env, consumptionSql(timePeriod), [tenantId, meterId, meterElementId, tzOffset, startDate, endDate]);
+  const result = await execQuery(env, consumptionSql(timePeriod), [tenantId, meterId, meterElementId, tzOffset, startDate, endDate]);
   return result.rows;
 }
 
 export async function queryDemand(env: Env, p: GraphQueryParams): Promise<DemandPoint[]> {
   const { tenantId, meterId, meterElementId, timePeriod, startDate, endDate, tzOffset = 0 } = p;
-  const result = await query(env, demandSql(timePeriod), [tenantId, meterId, meterElementId, tzOffset, startDate, endDate]);
+  const result = await execQuery(env, demandSql(timePeriod), [tenantId, meterId, meterElementId, tzOffset, startDate, endDate]);
   return result.rows;
 }

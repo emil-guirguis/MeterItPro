@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "npm run clean && tsc",
     "start": "node --env-file=../../.env dist/index.js",
     "dev": "node dev-watch.mjs",
     "dev:blocking": "npm run build && concurrently \"npm run watch\" \"npm run start:dev\"",
@@ -17,7 +17,7 @@
     "restart": "powershell -ExecutionPolicy Bypass -File manage-agent.ps1 -Action restart",
     "status": "powershell -ExecutionPolicy Bypass -File manage-agent.ps1 -Action status",
     "dev:watch": "tsx --env-file=../../.env watch src/index.ts",
-    "clean": "rm -rf dist",
+    "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true})\"",
     "watch": "tsc --watch",
     "type-check": "tsc --noEmit",
     "db:backfill": "node scripts/backfill-meterreadings.mjs",

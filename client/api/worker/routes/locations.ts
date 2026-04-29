@@ -3,7 +3,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, transaction, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { logError } from '../errorHandler';
@@ -157,7 +158,7 @@ app.delete('/:id', requirePermission('location:delete'), async (c) => {
     }
 
     // Check for associated meters before deleting
-    const meterCountResult = await query(
+    const meterCountResult = await execQuery(
       c.env,
       'SELECT COUNT(*) as count FROM meter WHERE location_id = $1 AND tenant_id = $2',
       [id, tenantId]

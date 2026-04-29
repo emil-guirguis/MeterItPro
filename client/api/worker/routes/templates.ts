@@ -4,7 +4,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { logError } from '../errorHandler';
@@ -64,7 +65,7 @@ app.get('/', requirePermission('template:read'), async (c) => {
 app.get('/stats', requirePermission('template:read'), async (c) => {
   try {
     const tenantId = c.get('tenantId');
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT
         COUNT(*) as total,
@@ -128,7 +129,7 @@ app.get('/search', requirePermission('template:read'), async (c) => {
     sql += ` ORDER BY name ASC LIMIT $${paramIdx}`;
     params.push(limit);
 
-    const result = await query(c.env, sql, params);
+    const result = await execQuery(c.env, sql, params);
     return c.json({ success: true, data: result.rows });
   } catch (error: any) {
     logError('Error searching templates:', error);
@@ -158,7 +159,7 @@ app.get('/export', requirePermission('template:read'), async (c) => {
 
     sql += ' ORDER BY category ASC, name ASC';
 
-    const result = await query(c.env, sql, params);
+    const result = await execQuery(c.env, sql, params);
     let templates = result.rows;
 
     if (qs.includeDefault === 'false') {
@@ -193,7 +194,7 @@ app.get('/export', requirePermission('template:read'), async (c) => {
 app.get('/usage-analytics', requirePermission('template:read'), async (c) => {
   try {
     const tenantId = c.get('tenantId');
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT email_template_id, name, category, usagecount, lastused
        FROM email_template WHERE tenant_id = $1
@@ -216,7 +217,7 @@ app.get('/category/:category', requirePermission('template:read'), async (c) => 
     }
 
     const tenantId = c.get('tenantId');
-    const result = await query(
+    const result = await execQuery(
       c.env,
       'SELECT * FROM email_template WHERE tenant_id = $1 AND category = $2 ORDER BY name ASC',
       [tenantId, category]
@@ -297,7 +298,7 @@ app.post('/import', requirePermission('template:create'), async (c) => {
 
     for (const templateData of templatesList) {
       try {
-        const existing = await query(
+        const existing = await execQuery(
           c.env,
           'SELECT email_template_id FROM email_template WHERE tenant_id = $1 AND name = $2 LIMIT 1',
           [tenantId, templateData.name]
@@ -486,7 +487,7 @@ app.post('/:id/usage', requirePermission('template:read'), async (c) => {
     const id = c.req.param('id');
     const tenantId = c.get('tenantId');
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `UPDATE email_template SET usagecount = COALESCE(usagecount, 0) + 1, lastused = NOW(), updated_at = NOW()
        WHERE email_template_id = $1 AND tenant_id = $2 RETURNING email_template_id, usagecount, lastused`,

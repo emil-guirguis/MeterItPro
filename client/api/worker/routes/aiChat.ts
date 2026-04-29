@@ -1,23 +1,23 @@
 /**
- * AI Chat route — Cloudflare Worker
+ * AI Chat route � Cloudflare Worker
  *
  * POST /api/ai/chat
  * Body: { message: string, history?: { role: 'user' | 'assistant', content: string }[] }
  *
  * Uses Groq (llama-3.3-70b) with tool use to answer questions about the tenant's meter data.
- * The agentic loop runs entirely inside the Worker — no external processes needed.
+ * The agentic loop runs entirely inside the Worker � no external processes needed.
  */
 
 import { Hono } from 'hono';
 import OpenAI from 'openai';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 app.use('*', authenticateToken);
 
-// ─── Tool definitions ─────────────────────────────────────────────────────────
+// --- Tool definitions ---------------------------------------------------------
 
 const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   {
@@ -69,7 +69,7 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'list_notification_rules',
       description:
-        'List all notification/alert rules configured for this tenant — thresholds, schedules, and which meters they monitor.',
+        'List all notification/alert rules configured for this tenant � thresholds, schedules, and which meters they monitor.',
       parameters: {
         type: 'object',
         properties: {},
@@ -82,7 +82,7 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'get_recent_alerts',
       description:
-        'Get the most recent notification history — which rules fired, when, and whether emails were sent successfully.',
+        'Get the most recent notification history � which rules fired, when, and whether emails were sent successfully.',
       parameters: {
         type: 'object',
         properties: {
@@ -110,7 +110,7 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   },
 ];
 
-// ─── Tool executor ────────────────────────────────────────────────────────────
+// --- Tool executor ------------------------------------------------------------
 
 async function executeTool(
   env: Env,
@@ -122,7 +122,7 @@ async function executeTool(
     switch (toolName) {
       case 'list_meters': {
         const limit = Math.min(toolInput.limit ?? 50, 200);
-        const result = await query(
+        const result = await execQuery(
           env,
           `SELECT m.meter_id, m.name, m.serial_number,
                   l.name AS location_name,
@@ -146,7 +146,7 @@ async function executeTool(
         const meterId = toolInput.meter_id;
         const days = Math.min(toolInput.days ?? 7, 90);
         const limit = Math.min(toolInput.limit ?? 100, 500);
-        const meterCheck = await query(
+        const meterCheck = await execQuery(
           env,
           `SELECT meter_id, name, serial_number FROM meter WHERE meter_id = $1 AND tenant_id = $2`,
           [meterId, tenantId]
@@ -154,7 +154,7 @@ async function executeTool(
         if (meterCheck.rows.length === 0) {
           return JSON.stringify({ error: 'Meter not found or does not belong to this tenant' });
         }
-        const result = await query(
+        const result = await execQuery(
           env,
           `SELECT created_at, calculated_kwh, kwh, kw, kva, kvar, pf, amperage,
                   voltage_a_n, voltage_b_n, voltage_c_n, peak_kw
@@ -170,7 +170,7 @@ async function executeTool(
       }
 
       case 'list_notification_rules': {
-        const result = await query(
+        const result = await execQuery(
           env,
           `SELECT nr.notification_rule_id, nr.name, nr.description, nr.rule_type,
                   nr.active, nr.threshold_hours, nr.demand_threshold, nr.schedule_cron,
@@ -186,7 +186,7 @@ async function executeTool(
 
       case 'get_recent_alerts': {
         const limit = Math.min(toolInput.limit ?? 20, 100);
-        const result = await query(
+        const result = await execQuery(
           env,
           `SELECT nh.notification_history_id, nh.title, nh.description,
                   nh.status, nh.sent_at,
@@ -244,7 +244,7 @@ async function executeTool(
   }
 }
 
-// ─── Route ────────────────────────────────────────────────────────────────────
+// --- Route --------------------------------------------------------------------
 
 app.post('/', async (c) => {
   const tenantId = c.get('tenantId');
@@ -277,7 +277,7 @@ app.post('/', async (c) => {
 You help facility managers understand their meter data, identify issues, and make sense of their energy consumption.
 
 You have access to tools that query the live database. Use them to answer questions accurately.
-When the user asks about meters, readings, alerts, or energy usage — always fetch fresh data using the tools rather than guessing.
+When the user asks about meters, readings, alerts, or energy usage � always fetch fresh data using the tools rather than guessing.
 
 Guidelines:
 - Be concise and actionable. Lead with the key insight, then supporting data.
@@ -286,7 +286,7 @@ Guidelines:
 - If a meter has not reported in over 48 hours, flag it as potentially offline.
 - Today's date: ${new Date().toISOString().split('T')[0]}`;
 
-  // Build message history — validate roles
+  // Build message history � validate roles
   const allowedRoles = new Set(['user', 'assistant']);
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
@@ -299,7 +299,7 @@ Guidelines:
     { role: 'user', content: message.trim() },
   ];
 
-  // Agentic loop — run until the model stops calling tools
+  // Agentic loop � run until the model stops calling tools
   const toolsUsed: string[] = [];
   const MAX_ITERATIONS = 8;
 
@@ -315,7 +315,7 @@ Guidelines:
     const assistantMsg = choice.message;
     messages.push(assistantMsg);
 
-    // No tool calls — we're done
+    // No tool calls � we're done
     if (!assistantMsg.tool_calls || assistantMsg.tool_calls.length === 0) {
       return c.json({
         success: true,
@@ -347,7 +347,7 @@ Guidelines:
     messages.push(...toolResults);
   }
 
-  // Exhausted iterations — return whatever text we have
+  // Exhausted iterations � return whatever text we have
   const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant') as
     | OpenAI.Chat.ChatCompletionAssistantMessageParam
     | undefined;

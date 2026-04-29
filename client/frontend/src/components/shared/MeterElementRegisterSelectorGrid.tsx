@@ -25,6 +25,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import apiClient from '../../services/apiClient';
 import { useMetersList } from '../../hooks/useMetersList';
+import { meterService, formatItemLabel } from '../../services/meterService';
+import type { SelectedItem } from '../../services/meterService';
 import './MeterElementRegisterSelectorGrid.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -45,6 +47,7 @@ interface Meter {
   meter_id?: number;
   name: string;
   serial_number?: string;
+  is_virtual?: boolean;
 }
 
 interface MeterElement {
@@ -104,12 +107,60 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
   const [registersCache, setRegistersCache] = useState<Record<number, Register[]>>({});
   const [loadingEl, setLoadingEl] = useState<Record<number, boolean>>({});
   const [loadingReg, setLoadingReg] = useState<Record<number, boolean>>({});
+  const [virtualConfigCache, setVirtualConfigCache] = useState<Record<number, SelectedItem[]>>({});
+  const [loadingVirtual, setLoadingVirtual] = useState<Record<number, boolean>>({});
   const [touchedRegRows, setTouchedRegRows] = useState<Set<string>>(new Set());
   const requested = useRef<Set<number>>(new Set());
+  const virtualRequested = useRef<Set<number>>(new Set());
 
   const rows = value;
 
   // ── Data loading ────────────────────────────────────────────────────────────
+
+  const loadVirtualData = useCallback(async (meterId: number) => {
+    if (virtualRequested.current.has(meterId)) return;
+    virtualRequested.current.add(meterId);
+
+    setLoadingVirtual(prev => ({ ...prev, [meterId]: true }));
+    try {
+      const config = await meterService.getVirtualMeterConfig(meterId);
+      setVirtualConfigCache(prev => ({ ...prev, [meterId]: config }));
+
+      const uniqueComponentIds = [...new Set(config.map(item => item.meter_id))];
+      const componentRegisters = await Promise.all(
+        uniqueComponentIds.map(async (cid) => {
+          try {
+            const res = await apiClient.get(`/meters/${cid}/registers`);
+            const d = res.data;
+            const raw: any[] = Array.isArray(d) ? d : (d.success && Array.isArray(d.data)) ? d.data : [];
+            return raw.map((r: any) => r.register ?? r).filter((r: any) => r.field_name) as Register[];
+          } catch {
+            return [] as Register[];
+          }
+        })
+      );
+
+      // Only update registersCache when the meter has components — this prevents
+      // overwriting correct physical registers when loadVirtualData is called speculatively.
+      if (uniqueComponentIds.length > 0) {
+        const seen = new Set<string>();
+        const union: Register[] = [];
+        componentRegisters.forEach(regs => {
+          regs.forEach(r => {
+            if (!seen.has(r.field_name)) {
+              seen.add(r.field_name);
+              union.push(r);
+            }
+          });
+        });
+        setRegistersCache(prev => ({ ...prev, [meterId]: union }));
+      }
+    } catch {
+      setVirtualConfigCache(prev => ({ ...prev, [meterId]: [] }));
+    } finally {
+      setLoadingVirtual(prev => ({ ...prev, [meterId]: false }));
+    }
+  }, []);
 
   const loadMeterData = useCallback(async (meterId: number) => {
     if (requested.current.has(meterId)) return;
@@ -146,12 +197,15 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
     }
   }, []);
 
-  // Preload data for any meters already in the value + all meters (for All Meters rows)
+  // Preload data for all meters in the current value — both physical and virtual paths.
   useEffect(() => {
     rows.forEach(row => {
-      if (row.meter_id !== null) loadMeterData(row.meter_id);
+      if (row.meter_id !== null) {
+        loadVirtualData(row.meter_id);
+        loadMeterData(row.meter_id);
+      }
     });
-    meters.forEach(m => loadMeterData(getMeterId(m)));
+    meters.forEach(m => { if (!m.is_virtual) loadMeterData(getMeterId(m)); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // only on mount
 
@@ -168,11 +222,14 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
 
   const handleMeterChange = (rowId: string, val: string) => {
     if (val === ALL) {
-      // All Meters → force All Elements + All Registers
       updateRow(rowId, { meter_id: null, meter_element_ids: null, register_field_names: [] });
     } else {
       const meterId = parseInt(val);
       updateRow(rowId, { meter_id: meterId, meter_element_ids: null, register_field_names: [] });
+      // Always load virtual config — its presence (non-empty) is the definitive virtual signal.
+      // Also load physical data as fallback; loadVirtualData only overwrites registers when
+      // the meter actually has virtual components.
+      loadVirtualData(meterId);
       loadMeterData(meterId);
     }
   };
@@ -343,10 +400,13 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
             ) : (
               rows.map(row => {
                 const mid = row.meter_id;
-                const elements = mid !== null ? (elementsCache[mid] ?? []) : [];
+                const m = mid !== null ? meters.find(m => getMeterId(m) === mid) : null;
+                // Detect virtual via the flag OR the config data (handles is_virtual = null in DB)
+                const isVirtual = !!(m?.is_virtual) || (mid !== null && (virtualConfigCache[mid]?.length ?? 0) > 0);
+                const elements = !isVirtual && mid !== null ? (elementsCache[mid] ?? []) : [];
                 const isAllMeters = mid === null;
-                const elLoading = mid !== null && !!loadingEl[mid];
-                const regLoading = mid !== null && !!loadingReg[mid];
+                const elLoading = !isVirtual && mid !== null && !!loadingEl[mid];
+                const regLoading = mid !== null && (isVirtual ? !!loadingVirtual[mid] : !!loadingReg[mid]);
                 const registers = mid !== null ? (registersCache[mid] ?? []) : allRegistersUnion;
                 const regError = row.register_field_names.length === 0 && touchedRegRows.has(row.id);
                 const isDuplicate = duplicateRowIds.has(row.id);
@@ -368,24 +428,33 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
                             if (metersLoading) return <span className="merseg-placeholder">Loading meters…</span>;
                             if (!v) return <span className="merseg-placeholder">Select meter…</span>;
                             if (v === ALL) return 'All Meters';
-                            const m = meters.find(m => String(getMeterId(m)) === v);
-                            return m?.name ?? v;
+                            const found = meters.find(m => String(getMeterId(m)) === v);
+                            if (!found) return v;
+                            const virt = found.is_virtual === true || (found as any).is_virtual === 'virtual';
+                            return (
+                              <span className={virt ? 'merseg-meter-virtual' : 'merseg-meter-physical'}>{found.name}</span>
+                            );
                           }}
                         >
                           <MenuItem value={ALL}>
                             <em>All Meters</em>
                           </MenuItem>
                           <MenuItem disabled divider />
-                          {meters.map(m => (
-                            <MenuItem key={getMeterId(m)} value={String(getMeterId(m))}>
-                              {m.name}
-                              {m.serial_number && (
-                                <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                                  {m.serial_number}
-                                </Typography>
-                              )}
-                            </MenuItem>
-                          ))}
+                          {meters.map(m => {
+                            const virt = m.is_virtual === true || (m as any).is_virtual === 'virtual';
+                            return (
+                              <MenuItem key={getMeterId(m)} value={String(getMeterId(m))}>
+                                <span className={virt ? 'merseg-meter-virtual' : 'merseg-meter-physical'}>
+                                  {m.name}
+                                </span>
+                                {m.serial_number && (
+                                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                                    {m.serial_number}
+                                  </Typography>
+                                )}
+                              </MenuItem>
+                            );
+                          })}
                         </Select>
                       </FormControl>
                     </TableCell>
@@ -394,6 +463,26 @@ export const MeterElementRegisterSelectorGrid: React.FC<MeterElementRegisterSele
                     <TableCell className="merseg-cell" data-label="Elements">
                       {isAllMeters ? (
                         <Chip label="All Elements" size="small" className="merseg-chip merseg-chip--all" />
+                      ) : mid !== null && loadingVirtual[mid] ? (
+                        <CircularProgress size={18} className="merseg-spinner" />
+                      ) : isVirtual ? (
+                        <Box className="merseg-chips">
+                            {(virtualConfigCache[mid!] ?? []).length === 0 ? (
+                              <Typography variant="caption" color="text.secondary" sx={{ px: 1 }}>
+                                No components configured
+                              </Typography>
+                            ) : (
+                              (virtualConfigCache[mid!] ?? []).map(item => (
+                                <Chip
+                                  key={item.id}
+                                  label={`${item.operation === '-' ? '−' : '+'} ${formatItemLabel(item)}`}
+                                  size="small"
+                                  className="merseg-chip"
+                                  variant={item.operation === '-' ? 'outlined' : 'filled'}
+                                />
+                              ))
+                            )}
+                          </Box>
                       ) : elLoading ? (
                         <CircularProgress size={18} className="merseg-spinner" />
                       ) : (

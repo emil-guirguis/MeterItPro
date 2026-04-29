@@ -106,6 +106,10 @@
   display: none !important;
 }
 
+/* Meter type color coding */
+.merseg-meter-virtual { color: #7b1fa2; }
+.merseg-meter-physical { color: #1565c0; }
+
 /* Error message below grid */
 .merseg-error {
   display: block;

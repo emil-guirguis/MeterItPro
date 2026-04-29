@@ -3,7 +3,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 import { runNotificationRule } from '../notificationRunner';
@@ -31,7 +32,7 @@ app.get('/', async (c) => {
       paramIndex++;
     }
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, meter_selections, created_at, updated_at
        FROM public.notification_rule
@@ -41,7 +42,7 @@ app.get('/', async (c) => {
       [...params, limit, offset]
     );
 
-    const countResult = await query(
+    const countResult = await execQuery(
       c.env,
       `SELECT COUNT(*) as count FROM public.notification_rule ${whereClause}`,
       params
@@ -70,7 +71,7 @@ app.get('/:id', async (c) => {
       return c.json({ success: false, message: 'Invalid rule ID' }, 400);
     }
 
-    const ruleResult = await query(
+    const ruleResult = await execQuery(
       c.env,
       `SELECT notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, meter_selections, created_at, updated_at
        FROM public.notification_rule
@@ -85,7 +86,7 @@ app.get('/:id', async (c) => {
     const rule = ruleResult.rows[0];
 
     // Get recipients
-    const recipientsResult = await query(
+    const recipientsResult = await execQuery(
       c.env,
       `SELECT notification_rule_recipient_id, email_address
        FROM public.notification_rule_recipient
@@ -135,7 +136,7 @@ app.post('/', async (c) => {
       ? (typeof meter_selections === 'string' ? meter_selections : JSON.stringify(meter_selections))
       : null;
 
-    const ruleResult = await query(
+    const ruleResult = await execQuery(
       c.env,
       `INSERT INTO public.notification_rule
        (tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, created_by, meter_selections)
@@ -150,7 +151,7 @@ app.post('/', async (c) => {
     // Add recipients
     for (const recipient of recipients) {
       if (!recipient.email_address) continue;
-      await query(
+      await execQuery(
         c.env,
         `INSERT INTO public.notification_rule_recipient
          (notification_rule_id, email_address)
@@ -216,7 +217,7 @@ app.put('/:id', async (c) => {
     if (updates.length > 0) {
       updates.push(`updated_at = CURRENT_TIMESTAMP`);
       values.push(id, tenantId);
-      updateResult = await query(
+      updateResult = await execQuery(
         c.env,
         `UPDATE public.notification_rule
          SET ${updates.join(', ')}
@@ -229,7 +230,7 @@ app.put('/:id', async (c) => {
         return c.json({ success: false, message: 'Rule not found' }, 404);
       }
     } else {
-      updateResult = await query(
+      updateResult = await execQuery(
         c.env,
         `SELECT notification_rule_id, tenant_id, name, description, rule_type, active, threshold_hours, demand_threshold, schedule_cron, meter_selections, created_at, updated_at
          FROM public.notification_rule WHERE notification_rule_id = $1 AND tenant_id = $2`,
@@ -243,10 +244,10 @@ app.put('/:id', async (c) => {
     // Update recipients if provided
     if (recipients !== undefined) {
       const recipientList: any[] = Array.isArray(recipients) ? recipients : [];
-      await query(c.env, 'DELETE FROM public.notification_rule_recipient WHERE notification_rule_id = $1', [id]);
+      await execQuery(c.env, 'DELETE FROM public.notification_rule_recipient WHERE notification_rule_id = $1', [id]);
       for (const recipient of recipientList) {
         if (!recipient.email_address) continue;
-        await query(
+        await execQuery(
           c.env,
           `INSERT INTO public.notification_rule_recipient (notification_rule_id, email_address)
            VALUES ($1, $2)
@@ -280,14 +281,14 @@ app.get('/:id/history', async (c) => {
     if (limit < 1 || limit > 100) limit = 20;
     const offset = (page - 1) * limit;
 
-    const countResult = await query(
+    const countResult = await execQuery(
       c.env,
       `SELECT COUNT(*) as total FROM public.notification_history WHERE notification_rule_id = $1 AND tenant_id = $2`,
       [id, tenantId]
     );
     const total = parseInt(countResult.rows[0].total, 10);
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT notification_history_id, title, description, status, sent_at, created_at
        FROM public.notification_history
@@ -320,7 +321,7 @@ app.delete('/:id', async (c) => {
       return c.json({ success: false, message: 'Invalid rule ID' }, 400);
     }
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `DELETE FROM public.notification_rule WHERE notification_rule_id = $1 AND tenant_id = $2`,
       [id, tenantId]

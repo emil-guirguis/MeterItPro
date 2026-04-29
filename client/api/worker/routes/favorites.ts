@@ -4,7 +4,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, transaction, Env } from '../db';
+import { transaction, Env, execQuery } from '../db';
+
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
@@ -41,7 +42,7 @@ function transformMetersWithElements(rows: any[]) {
         favorite_id: row.favorite_id,
       });
     } else if (row.is_virtual) {
-      // Virtual meter has no elements â€” store its favorite status on the meter itself
+      // Virtual meter has no elements — store its favorite status on the meter itself
       metersMap[row.meter_id].is_favorited = row.is_favorited;
       metersMap[row.meter_id].favorite_id = row.favorite_id;
     }
@@ -99,7 +100,7 @@ app.get('/meters', async (c) => {
       ORDER BY me.element ASC
     `;
 
-    const result = await query(c.env, sql, [tenant_id, users_id]);
+    const result = await execQuery(c.env, sql, [tenant_id, users_id]);
     const meters = transformMetersWithElements(result.rows);
 
     return c.json({ success: true, data: meters });
@@ -152,7 +153,7 @@ app.get('/', async (c) => {
 
     sql += ' ORDER BY COALESCE(f.order_by, 999999) ASC, f.favorite_id ASC';
 
-    const result = await query(c.env, sql, params);
+    const result = await execQuery(c.env, sql, params);
     return c.json({ success: true, data: result.rows });
   } catch (error: any) {
     logError('Error fetching favorites:', error);
@@ -199,7 +200,7 @@ app.post('/', async (c) => {
     }
 
     // Check if favorite already exists
-    const existingResult = await query(
+    const existingResult = await execQuery(
       c.env,
       'SELECT * FROM public.favorite WHERE tenant_id = $1 AND users_id = $2 AND table_name = $3 AND id1 = $4 AND id2 = $5',
       [tenant_id, users_id, table_name, id1, id2Value]
@@ -210,14 +211,14 @@ app.post('/', async (c) => {
     }
 
     // Get the next order_by value
-    const maxOrderResult = await query(
+    const maxOrderResult = await execQuery(
       c.env,
       'SELECT COALESCE(MAX(order_by), 0) + 1 as next_order FROM public.favorite WHERE tenant_id = $1 AND users_id = $2',
       [tenant_id, users_id]
     );
     const nextOrder = maxOrderResult.rows[0].next_order;
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       'INSERT INTO public.favorite (tenant_id, users_id, table_name, id1, id2, order_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [tenant_id, users_id, table_name, id1, id2Value, nextOrder]
@@ -240,7 +241,7 @@ app.delete('/:favoriteId', async (c) => {
     if (!favoriteId) return c.json({ success: false, message: 'favoriteId is required' }, 400);
     if (!tenant_id) return c.json({ success: false, message: 'tenant_id is required' }, 400);
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       'DELETE FROM public.favorite WHERE favorite_id = $1 AND tenant_id = $2 RETURNING *',
       [favoriteId, tenant_id]

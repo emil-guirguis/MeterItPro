@@ -3,7 +3,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
@@ -66,7 +67,7 @@ app.get('/company', requirePermission('settings:read'), async (c) => {
       return c.json({ success: false, message: 'Tenant ID not found in user context' }, 400);
     }
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       'SELECT * FROM public.tenant WHERE tenant_id = $1 LIMIT 1',
       [tenantId]
@@ -126,7 +127,7 @@ app.put('/company', requirePermission('settings:update'), async (c) => {
     values.push(tenantId);
 
     const sql = `UPDATE public.tenant SET ${setClause.join(', ')} WHERE tenant_id = $${idx} RETURNING *`;
-    const result = await query(c.env, sql, values);
+    const result = await execQuery(c.env, sql, values);
 
     return c.json({
       success: true,
@@ -148,7 +149,7 @@ app.get('/notifications', async (c) => {
   try {
     const tenantId = c.get('tenantId');
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       'SELECT * FROM public.notification_settings WHERE tenant_id = $1 LIMIT 1',
       [tenantId]
@@ -192,7 +193,7 @@ app.put('/notifications', async (c) => {
     const body = await c.req.json();
     const { health_check_cron, daily_email_cron, email_template_id, enabled, stale_threshold_hours } = body;
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `INSERT INTO public.notification_settings
          (tenant_id, health_check_cron, daily_email_cron, email_template_id, enabled, stale_threshold_hours, created_at, updated_at)
@@ -244,7 +245,7 @@ app.get('/', requirePermission('settings:read'), async (c) => {
       return c.json({ success: false, message: 'Tenant ID not found in user context' }, 400);
     }
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       'SELECT * FROM public.tenant WHERE tenant_id = $1 LIMIT 1',
       [tenantId]

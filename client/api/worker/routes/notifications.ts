@@ -3,7 +3,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
@@ -17,7 +18,7 @@ app.get('/count', async (c) => {
     const tenantId = c.get('tenantId');
     const userId = c.get('user').users_id;
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT COUNT(*) as count FROM public.notification
        WHERE tenant_id = $1 AND (users_id IS NULL OR users_id = $2)`,
@@ -41,7 +42,7 @@ app.get('/', async (c) => {
     const limit = Math.min(parseInt(qs.limit || '100') || 100, 200);
     const offset = parseInt(qs.offset || '0') || 0;
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT notification_id, tenant_id, users_id, meter_id, meter_element_id,
               notification_type, severity, title, description, created_at
@@ -52,7 +53,7 @@ app.get('/', async (c) => {
       [tenantId, userId, limit, offset]
     );
 
-    const countResult = await query(
+    const countResult = await execQuery(
       c.env,
       `SELECT COUNT(*) as count FROM public.notification
        WHERE tenant_id = $1 AND (users_id IS NULL OR users_id = $2)`,
@@ -91,7 +92,7 @@ app.post('/', async (c) => {
       return c.json({ success: false, message: 'notification_type and title are required' }, 400);
     }
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `INSERT INTO public.notification
          (tenant_id, users_id, meter_id, meter_element_id, notification_type, severity, title, description)
@@ -131,7 +132,7 @@ app.delete('/:id', async (c) => {
       return c.json({ success: false, message: 'Invalid notification ID' }, 400);
     }
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `DELETE FROM public.notification WHERE notification_id = $1 AND tenant_id = $2`,
       [id, tenantId]
@@ -154,7 +155,7 @@ app.delete('/', async (c) => {
     const tenantId = c.get('tenantId');
     const userId = c.get('user').users_id;
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `DELETE FROM public.notification
        WHERE tenant_id = $1 AND (users_id IS NULL OR users_id = $2)`,

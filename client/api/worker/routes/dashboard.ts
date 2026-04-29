@@ -4,7 +4,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { logError } from '../errorHandler';
@@ -202,7 +203,7 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
       return c.json({ success: true, data: { card_id: card.dashboard_id, aggregated_values: {}, grouped_data: [] } });
     }
 
-    // Calculate time frame â€” query params override the card's stored settings
+    // Calculate time frame — query params override the card's stored settings
     const now = new Date();
     let startDate: Date;
     let endDate: Date;
@@ -230,7 +231,7 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
       endDate = (timeFrameType === 'custom' && card.custom_end_date) ? new Date(card.custom_end_date) : now;
     }
 
-    // Aggregation type â€” used for both aggregated_values and grouped_data
+    // Aggregation type — used for both aggregated_values and grouped_data
     const rawAggType = (card.aggregation_type || 'avg').toLowerCase();
     const isNoAgg = rawAggType === 'none';
     const aggFn = rawAggType === 'min' ? 'MIN' : rawAggType === 'max' ? 'MAX' : rawAggType === 'sum' ? 'SUM' : 'AVG';
@@ -301,8 +302,8 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
       groupSql = aggSql;
     }
 
-    const aggResult = await query(c.env, aggSql, aggParams);
-    const groupResult = await query(c.env, groupSql, aggParams);
+    const aggResult = await execQuery(c.env, aggSql, aggParams);
+    const groupResult = await execQuery(c.env, groupSql, aggParams);
 
     // Build a label map: { meter_element_id -> display label }
     const meter_element_labels: Record<number, string> = {};
@@ -318,7 +319,7 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
     if (selectedColumns.length > 0) {
       const placeholders = selectedColumns.map((_, i) => `$${i + 1}`).join(', ');
       const unitSql = `SELECT field_name, unit FROM register WHERE field_name IN (${placeholders})`;
-      const unitResult = await query(c.env, unitSql, selectedColumns);
+      const unitResult = await execQuery(c.env, unitSql, selectedColumns);
       for (const row of unitResult.rows) {
         if (row.unit) column_units[row.field_name] = row.unit;
       }
@@ -379,7 +380,7 @@ app.post('/cards', requirePermission('dashboard:create'), async (c) => {
       }
     }
 
-    // Determine grid position â€” scan for first available space (left-to-right, top-to-bottom)
+    // Determine grid position — scan for first available space (left-to-right, top-to-bottom)
     const existingCards = await findAll(c.env, {
       table: 'dashboard',
       primaryKey: 'dashboard_id',
@@ -628,7 +629,7 @@ app.get('/cards/:id/readings', requirePermission('dashboard:read'), async (c) =>
 
     // Count
     const countSql = `SELECT COUNT(*) as total ${fromClause} ${whereClause}`;
-    const countResult = await query(c.env, countSql, params);
+    const countResult = await execQuery(c.env, countSql, params);
     const total = parseInt(countResult.rows[0]?.total || '0');
     const totalPages = Math.ceil(total / pageSize);
 
@@ -637,7 +638,7 @@ app.get('/cards/:id/readings', requirePermission('dashboard:read'), async (c) =>
     const pageParams = [...params, pageSize, (page - 1) * pageSize];
     const paramCount = params.length;
     const sql = `SELECT ${adjustedColumnsList.join(', ')} ${fromClause} ${whereClause} ORDER BY ${safeSortBy === 'meter_reading_id' || safeSortBy === 'created_at' || safeSortBy === 'meter_id' || safeSortBy === 'meter_element_id' || safeSortBy === 'updated_at' ? (safeSortBy === 'updated_at' ? '"mr"."updated_at"' : `mr.${safeSortBy}`) : `"mr"."${safeSortBy}"`} ${sortOrder} LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
-    const result = await query(c.env, sql, pageParams);
+    const result = await execQuery(c.env, sql, pageParams);
 
     return c.json({
       success: true,
@@ -750,7 +751,7 @@ app.get('/cards/:id/readings/export', requirePermission('dashboard:read'), async
     // Adjust column references for joined tables
     const adjustedExportColumnsList = columnsList.map((col: string) => col === 'meter_reading_id' ? 'mr.meter_reading_id' : col === 'created_at' ? 'mr.created_at' : col === 'meter_id' ? 'mr.meter_id' : col === 'meter_element_id' ? 'mr.meter_element_id' : `"mr"."${col}"`);
     const sql = `SELECT ${adjustedExportColumnsList.join(', ')} ${fromClause} ${whereClause} ORDER BY ${safeSortBy === 'meter_reading_id' || safeSortBy === 'created_at' || safeSortBy === 'meter_id' || safeSortBy === 'meter_element_id' ? `mr.${safeSortBy}` : `"mr"."${safeSortBy}"`} ${sortOrder}`;
-    const result = await query(c.env, sql, exportParams);
+    const result = await execQuery(c.env, sql, exportParams);
 
     // Build CSV
     const escapeCSV = (v: any) => {
@@ -798,7 +799,7 @@ app.get('/meters', authenticateToken, async (c) => {
     const tenantId = c.get('tenantId');
     if (!tenantId) return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       'SELECT meter_id as id, name FROM meter WHERE tenant_id = $1 AND active = true ORDER BY name ASC',
       [tenantId]
@@ -823,14 +824,14 @@ app.get('/meters/:meterId/elements', authenticateToken, async (c) => {
     console.log('[DASHBOARD] GET /meters/:meterId/elements - meterId:', meterId, 'tenantId from context:', tenantId, 'type:', typeof tenantId);
 
     // Verify meter belongs to tenant
-    const meterResult = await query(c.env, 'SELECT meter_id, tenant_id FROM meter WHERE meter_id = $1', [meterId]);
+    const meterResult = await execQuery(c.env, 'SELECT meter_id, tenant_id FROM meter WHERE meter_id = $1', [meterId]);
     if (meterResult.rows.length === 0) return c.json({ success: false, message: 'Meter not found' }, 404);
 
     console.log('[DASHBOARD] Meter found - meterResult.tenant_id:', meterResult.rows[0].tenant_id, 'type:', typeof meterResult.rows[0].tenant_id, 'user tenantId:', tenantId, 'type:', typeof tenantId);
 
     if (Number(meterResult.rows[0].tenant_id) !== Number(tenantId)) return c.json({ success: false, message: 'You do not have permission to access this meter' }, 403);
 
-    const result = await query(
+    const result = await execQuery(
       c.env,
       'SELECT meter_element_id, meter_id, element, name FROM meter_element WHERE meter_id = $1 AND tenant_id = $2 ORDER BY element ASC',
       [meterId, tenantId]
@@ -964,7 +965,7 @@ app.get('/power-columns', requirePermission('dashboard:read'), async (c) => {
       ORDER BY r.name ASC
     `;
 
-    const result = await query(c.env, sql, [meterId]);
+    const result = await execQuery(c.env, sql, [meterId]);
     const columns = result.rows.map((r: any) => {
       const label = r.name.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       return { name: r.name, label, type: 'numeric' };
@@ -1016,7 +1017,7 @@ app.get('/total-active-energy', requirePermission('dashboard:read'), async (c) =
       ) AS latest_readings
     `;
 
-    const result = await query(c.env, sql, [tenantId]);
+    const result = await execQuery(c.env, sql, [tenantId]);
     const totalActiveEnergy = parseFloat(result.rows?.[0]?.total_active_energy || '0');
 
     return c.json({
@@ -1057,7 +1058,7 @@ app.get('/total-power', requirePermission('dashboard:read'), async (c) => {
       ) AS latest_readings
     `;
 
-    const result = await query(c.env, sql, [tenantId]);
+    const result = await execQuery(c.env, sql, [tenantId]);
     const totalPower = parseFloat(result.rows?.[0]?.total_power || '0');
 
     return c.json({

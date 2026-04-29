@@ -22,18 +22,34 @@ export interface Env {
 
 export async function query(env: Env, text: string, params: any[] = []) {
   const connectionString = env.DATABASE_URL || env.HYPERDRIVE?.connectionString;
-  console.log('[SQL]\n' + formatSqlForDebug(text, params));
   const client = new Client({ connectionString });
   await client.connect();
   try {
     return await client.query(text, params);
   } catch (error: any) {
-    // Include SQL information in error for debugging
     error.sql = text;
     error.sqlParams = params;
     throw error;
   } finally {
     await client.end();
+  }
+}
+
+export async function execQuery(
+  env: Env,
+  sql: string,
+  params?: any[],
+  logMessage?: string
+): Promise<{ rows: any[]; rowCount: number | null }> {
+  const label = logMessage ? `[execQuery] ${logMessage}` : '[execQuery]';
+  console.log(`${label} Executing:\n${formatSqlForDebug(sql, params || [])}`);
+  try {
+    const result = await query(env, sql, params);
+    console.log(`${label} Rows: ${result.rows.length}`);
+    return result;
+  } catch (error) {
+    console.error(`${label} Failed: ${error}`);
+    throw error;
   }
 }
 

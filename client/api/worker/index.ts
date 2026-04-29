@@ -9,7 +9,8 @@ import { Hono } from 'hono';
 import { runAllActiveReports } from './reportRunner';
 import { runAllActiveNotificationRules } from './notificationRunner';
 import { cors } from 'hono/cors';
-import { query, Env } from './db';
+import { Env, execQuery } from './db';
+
 import { AuthVariables, authenticateToken } from './middleware';
 
 // Import route modules
@@ -35,7 +36,7 @@ import notificationHistoryRoutes from './routes/notificationHistory';
 import emailLogRoutes from './routes/emailLogs';
 import aiSearchRoutes from './routes/aiSearch';
 import aiChatRoutes from './routes/aiChat';
-import registerRoutes from './routes/registers';
+import registerRoutes, { deviceRegistersApp, meterRegistersApp } from './routes/registers';
 import uploadRoutes from './routes/upload';
 
 export const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -92,7 +93,7 @@ app.onError((err, c) => {
 
 app.get('/api/health', async (c) => {
   try {
-    const result = await query(c.env, 'SELECT NOW()');
+    const result = await execQuery(c.env, 'SELECT NOW()');
     return c.json({
       status: 'OK',
       timestamp: new Date().toISOString(),
@@ -247,119 +248,9 @@ app.route('/api/email-logs', emailLogRoutes);
 app.route('/api/registers', registerRoutes);
 app.route('/api/upload', uploadRoutes);
 
-// Meter elements and device registers use nested param paths
-// In Express: /api/meters/:meterId/elements and /api/devices/:deviceId/registers
-// In Hono: mount as sub-routes
 app.route('/api/meters/:meterId/elements', meterElementRoutes);
-
-// Direct route handler for device registers to ensure proper param access in Hono
-app.get('/api/devices/:deviceId/registers', authenticateToken, async (c) => {
-  const deviceId = c.req.param('deviceId');
-  console.log('[direct-route] Device registers direct route - deviceId:', deviceId);
-  if (!deviceId) {
-    return c.json({ success: false, message: 'Device ID is required' }, 400);
-  }
-
-  try {
-    const deviceResult = await query(c.env,
-      'SELECT device_id FROM device WHERE device_id = $1', [deviceId]
-    );
-    if (deviceResult.rows.length === 0) {
-      return c.json({ success: false, message: 'Device not found' }, 404);
-    }
-
-    const result = await query(c.env,
-      `SELECT dr.device_register_id, dr.device_id, dr.register_id,
-              r.register, r.name, r.unit, r.field_name, r.description
-       FROM device_register dr
-       JOIN register r ON dr.register_id = r.register_id
-       WHERE dr.device_id = $1
-       ORDER BY r.register ASC`,
-      [deviceId]
-    );
-
-    const data = result.rows.map((row: any) => ({
-      device_register_id: row.device_register_id,
-      register_id: row.register_id,
-      device_id: row.device_id,
-      register: {
-        id: row.device_register_id,
-        register: row.register,
-        name: row.name,
-        unit: row.unit,
-        field_name: row.field_name,
-        description: row.description,
-      },
-    }));
-
-    return c.json({ success: true, data });
-  } catch (error: any) {
-    console.error('[direct-route] Error fetching device registers:', error);
-    return c.json({ success: false, message: 'Failed to fetch device registers' }, 500);
-  }
-});
-
-// Route handler for meter registers (meter_id instead of device_id)
-// Fetches device registers associated with a meter via the meter's device_id relationship
-app.get('/api/meters/:meterId/registers', authenticateToken, async (c) => {
-  const meterId = c.req.param('meterId');
-  console.log('[meter-registers] Fetching registers for meter:', meterId);
-  if (!meterId) {
-    return c.json({ success: false, message: 'Meter ID is required' }, 400);
-  }
-
-  try {
-    // Get the device_id associated with this meter
-    const meterResult = await query(c.env,
-      'SELECT device_id FROM meter WHERE meter_id = $1', [meterId]
-    );
-    if (meterResult.rows.length === 0) {
-      return c.json({ success: false, message: 'Meter not found' }, 404);
-    }
-
-    const deviceId = meterResult.rows[0].device_id;
-    if (!deviceId) {
-      // Meter exists but has no device_id
-      return c.json({ success: true, data: [] });
-    }
-
-    // Get registers for the device associated with this meter.
-    // Also includes computed registers (register = 0) from the register table
-    // regardless of device_register assignment, as they apply to all devices.
-    const result = await query(c.env,
-      `SELECT dr.device_register_id as id, dr.device_id, dr.register_id,
-              r.register, r.name, r.unit, r.field_name
-       FROM device_register dr
-       JOIN register r ON dr.register_id = r.register_id
-       WHERE dr.device_id = $1
-       UNION
-       SELECT NULL as id, NULL as device_id, r.register_id,
-              r.register, r.name, r.unit, r.field_name
-       FROM register r
-       WHERE r.register = 0
-       ORDER BY register ASC`,
-      [deviceId]
-    );
-
-    const data = result.rows.map((row: any) => ({
-      id: row.id,
-      device_id: row.device_id,
-      register_id: row.register_id,
-      register: {
-        id: row.id,
-        register: row.register,
-        name: row.name,
-        unit: row.unit,
-        field_name: row.field_name,
-      },
-    }));
-
-    return c.json({ success: true, data });
-  } catch (error: any) {
-    console.error('[meter-registers] Error fetching meter registers:', error);
-    return c.json({ success: false, message: 'Failed to fetch meter registers' }, 500);
-  }
-});
+app.route('/api/devices/:deviceId/registers', deviceRegistersApp);
+app.route('/api/meters/:meterId/registers', meterRegistersApp);
 
 // --- Catch-all ---
 
@@ -367,7 +258,7 @@ app.all('*', (c) => {
   return c.json({ success: false, message: 'Route not found' }, 404);
 });
 
-// ─── Cron trigger (Cloudflare scheduled event) ────────────────────────────────
+// --- Cron trigger (Cloudflare scheduled event) --------------------------------
 // Runs every hour per wrangler.toml [triggers] crons setting.
 // Executes all active reports whose schedule matches the current time.
 

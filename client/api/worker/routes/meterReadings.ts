@@ -3,7 +3,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 import { queryConsumption, queryDemand, TimePeriod } from '../meterQueryHelpers';
@@ -46,14 +47,14 @@ app.get('/', requirePermission('meter:read'), async (c) => {
 
     // Get total count
     const countSql = `SELECT COUNT(*) as count FROM meter_reading ${whereClause}`;
-    const countResult = await query(c.env, countSql, filterParams);
+    const countResult = await execQuery(c.env, countSql, filterParams);
     const total = parseInt(countResult.rows?.[0]?.count || '0');
 
     // Get paginated data
     const dataSql = `SELECT * FROM meter_reading ${whereClause} ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
     const dataParams = [...filterParams, pageSize, skip];
 
-    const result = await query(c.env, dataSql, dataParams);
+    const result = await execQuery(c.env, dataSql, dataParams);
     const items = result.rows || [];
 
     const totalPages = Math.ceil(total / pageSize) || 1;
@@ -160,7 +161,7 @@ app.get('/virtual-consumption', requirePermission('meter:read'), async (c) => {
       ? qs.excludeIds.split(',').map(Number).filter((n) => !isNaN(n))
       : [];
 
-    // overrides format: "elementId:op,elementId2:op2" â€” overrides mv.operation for matching elements
+    // overrides format: "elementId:op,elementId2:op2" — overrides mv.operation for matching elements
     const overrideMinusIds: number[] = [];
     const overridePlusIds: number[] = [];
     if (qs.overrides) {
@@ -187,7 +188,7 @@ app.get('/virtual-consumption', requirePermission('meter:read'), async (c) => {
       params.push(...excludeIds);
     }
 
-    // Build operation CASE â€” overrides take precedence over mv.operation
+    // Build operation CASE — overrides take precedence over mv.operation
     let operationExpr: string;
     if (overrideMinusIds.length === 0 && overridePlusIds.length === 0) {
       operationExpr = `CASE WHEN mv.operation = '-' THEN -mr.calculated_kwh ELSE mr.calculated_kwh END`;
@@ -263,7 +264,7 @@ app.get('/virtual-consumption', requirePermission('meter:read'), async (c) => {
       `;
     }
 
-    const result = await query(c.env, sql, params);
+    const result = await execQuery(c.env, sql, params);
     return c.json({ success: true, data: result.rows || [] });
   } catch (error: any) {
     logError('[MeterReadings] Error fetching virtual consumption data:', error);
@@ -289,7 +290,7 @@ app.get('/virtual-demand', requirePermission('meter:read'), async (c) => {
       ? qs.excludeIds.split(',').map(Number).filter((n) => !isNaN(n))
       : [];
 
-    // overrides format: "elementId:op,elementId2:op2" â€” overrides mv.operation for matching elements
+    // overrides format: "elementId:op,elementId2:op2" — overrides mv.operation for matching elements
     const overrideMinusIds: number[] = [];
     const overridePlusIds: number[] = [];
     if (qs.overrides) {
@@ -316,7 +317,7 @@ app.get('/virtual-demand', requirePermission('meter:read'), async (c) => {
       params.push(...excludeIds);
     }
 
-    // Build operation CASE â€” overrides take precedence over mv.operation
+    // Build operation CASE — overrides take precedence over mv.operation
     let operationExpr: string;
     if (overrideMinusIds.length === 0 && overridePlusIds.length === 0) {
       operationExpr = `CASE WHEN mv.operation = '-' THEN -mr.kw ELSE mr.kw END`;
@@ -392,7 +393,7 @@ app.get('/virtual-demand', requirePermission('meter:read'), async (c) => {
       `;
     }
 
-    const result = await query(c.env, sql, params);
+    const result = await execQuery(c.env, sql, params);
     return c.json({ success: true, data: result.rows || [] });
   } catch (error: any) {
     logError('[MeterReadings] Error fetching virtual demand data:', error);
@@ -419,7 +420,7 @@ app.get('/last', requirePermission('meter:read'), async (c) => {
     const sql = `SELECT mr.*, m.serial_number FROM meter_reading mr LEFT JOIN meter m ON mr.meter_id = m.meter_id WHERE mr.tenant_id = $1 AND mr.meter_id = $2 AND mr.meter_element_id = $3 ORDER BY mr.created_at DESC LIMIT 1`;
 
     const params = [tenantId, parseInt(meterId), parseInt(meterElementId)];
-    const result = await query(c.env, sql, params);
+    const result = await execQuery(c.env, sql, params);
     const reading = result.rows && result.rows.length > 0 ? result.rows[0] : null;
 
     if (!reading) {
@@ -475,7 +476,7 @@ app.get('/virtual-last', requirePermission('meter:read'), async (c) => {
       GROUP BY m.meter_id, m.name, m.installation_date
     `;
 
-    const result = await query(c.env, sql, [tenantId, parseInt(meterId)]);
+    const result = await execQuery(c.env, sql, [tenantId, parseInt(meterId)]);
 
     if (!result.rows || result.rows.length === 0) {
       return c.json({ success: false, message: 'Virtual meter not found' }, 404);
@@ -526,7 +527,7 @@ app.get('/virtual-components-last', requirePermission('meter:read'), async (c) =
     `;
 
     const params = [tenantId, parseInt(meterId)];
-    const result = await query(c.env, sql, params);
+    const result = await execQuery(c.env, sql, params);
     return c.json({ success: true, data: result.rows || [] });
   } catch (error: any) {
     logError('[MeterReadings] Error fetching virtual component readings:', error);

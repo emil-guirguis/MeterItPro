@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
@@ -21,13 +22,13 @@ app.get('/search', async (c) => {
     if (limit < 1 || limit > 100) limit = 10;
     const offset = (page - 1) * limit;
 
-    const countResult = await query(c.env,
+    const countResult = await execQuery(c.env,
       `SELECT COUNT(*) as total FROM public.report_email_logs WHERE recipient ILIKE $1`,
       [`%${recipient}%`]
     );
     const total = parseInt(countResult.rows[0].total, 10);
 
-    const emailsResult = await query(c.env,
+    const emailsResult = await execQuery(c.env,
       `SELECT report_email_logs_id, report_id, report_history_id, recipient, sent_at, status, error_details, created_at
        FROM public.report_email_logs WHERE recipient ILIKE $1 ORDER BY sent_at DESC LIMIT $2 OFFSET $3`,
       [`%${recipient}%`, limit, offset]
@@ -81,7 +82,7 @@ app.get('/export', async (c) => {
     }
 
     sql += ' ORDER BY sent_at DESC';
-    const result = await query(c.env, sql, params);
+    const result = await execQuery(c.env, sql, params);
     const emailLogs = result.rows;
 
     if (format === 'json') {

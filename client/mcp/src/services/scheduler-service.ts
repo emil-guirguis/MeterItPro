@@ -9,7 +9,7 @@ export interface Report {
   id: string;
   name: string;
   type: string;
-  schedule: string;
+  cron: string;
   recipients: string[];
   config: Record<string, any>;
   active: boolean;
@@ -234,7 +234,7 @@ export class SchedulerService {
   private async loadActiveReports(): Promise<Report[]> {
     try {
       const result = await db.query<Report>(
-        `SELECT report_id as id, name, type, schedule, recipients, config,
+        `SELECT report_id as id, name, type, cron, recipients, config,
                 active, meter_selections, created_at, updated_at
          FROM report
          WHERE active = true
@@ -292,7 +292,7 @@ export class SchedulerService {
     // Add or update jobs for active reports
     for (const report of activeReports) {
       const jobKey = `report_${report.id}`;
-      const cronExpr = this.isValidCronExpression(report.schedule) ? report.schedule : '0 9 * * *';
+      const cronExpr = this.isValidCronExpression(report.cron) ? report.cron : '0 9 * * *';
       const existingCron = this.reportCrons.get(jobKey);
 
       if (this.jobs.has(jobKey) && existingCron === cronExpr) continue;
@@ -392,7 +392,7 @@ export class SchedulerService {
    */
   private async loadReportById(reportId: string): Promise<Report | null> {
     const result = await db.query<Report>(
-      `SELECT report_id as id, name, type, schedule, recipients, config,
+      `SELECT report_id as id, name, type, cron, recipients, config,
               active, meter_selections, created_at, updated_at
        FROM report
        WHERE report_id = $1`,

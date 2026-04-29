@@ -19039,12 +19039,11 @@ function validateEmailList(emails) {
 __name(validateEmailList, "validateEmailList");
 app15.post("/", async (c) => {
   try {
-    const { name, type, schedule, recipients, config: config2, active, meter_ids, element_ids, register_ids, html_format } = await c.req.json();
+    const { name, type, cron, recipients, config: config2, active, meter_ids, element_ids, register_ids, html_format } = await c.req.json();
     const errors = [];
     if (!name || typeof name !== "string" || name.trim().length === 0) errors.push("Report name is required");
     else if (name.length > 255) errors.push("Report name must not exceed 255 characters");
     if (!type || typeof type !== "string" || type.trim().length === 0) errors.push("Report type is required");
-    if (!schedule || !isValidCronExpression(schedule)) errors.push("Report schedule must be a valid cron expression");
     if (!Array.isArray(recipients) || recipients.length === 0) {
       errors.push("At least one recipient is required");
     } else {
@@ -19057,13 +19056,13 @@ app15.post("/", async (c) => {
     const now = /* @__PURE__ */ new Date();
     const result = await query(
       c.env,
-      `INSERT INTO public.report (name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at)
+      `INSERT INTO public.report (name, type, cron, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-       RETURNING report_id, name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at`,
+       RETURNING report_id, name, type, cron, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at`,
       [
         name.trim(),
         type.trim(),
-        schedule.trim(),
+        cron.trim(),
         recipients,
         config2 || {},
         active !== false,
@@ -19098,7 +19097,7 @@ app15.get("/", async (c) => {
     const total = parseInt(countResult.rows[0].total, 10);
     const result = await query(
       c.env,
-      `SELECT report_id, name, type, schedule, recipients, config, active , created_at, updated_at
+      `SELECT report_id, name, type, cron, recipients, config, active , created_at, updated_at
        FROM public.report ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
@@ -19123,7 +19122,7 @@ app15.get("/:id", async (c) => {
     if (isNaN(Number(id))) return c.json({ success: false, message: "Invalid report ID format" }, 400);
     const result = await query(
       c.env,
-      `SELECT report_id, name, type, schedule, recipients, config, active, created_at, updated_at
+      `SELECT report_id, name, type, cron, recipients, config, active, created_at, updated_at
        FROM public.report WHERE report_id = $1`,
       [id]
     );
@@ -19140,7 +19139,7 @@ app15.put("/:id", async (c) => {
     if (isNaN(Number(id))) return c.json({ success: false, message: "Invalid report ID format" }, 400);
     const existing = await query(c.env, "SELECT report_id FROM public.report WHERE report_id = $1", [id]);
     if (existing.rows.length === 0) return c.json({ success: false, message: "Report not found" }, 404);
-    const { name, type, schedule, recipients, config: config2, active, meter_ids, element_ids, register_ids, html_format } = await c.req.json();
+    const { name, type, cron, recipients, config: config2, active, meter_ids, element_ids, register_ids, html_format } = await c.req.json();
     const updates = [];
     const values = [];
     let paramCount = 1;
@@ -19157,10 +19156,10 @@ app15.put("/:id", async (c) => {
       values.push(type.trim());
       paramCount++;
     }
-    if (schedule !== void 0) {
-      if (!isValidCronExpression(schedule)) return c.json({ success: false, message: "Validation failed", errors: ["Invalid cron expression"] }, 400);
-      updates.push(`schedule = $${paramCount}`);
-      values.push(schedule.trim());
+    if (cron !== void 0) {
+      if (!isValidCronExpression(cron)) return c.json({ success: false, message: "Validation failed", errors: ["Invalid cron expression"] }, 400);
+      updates.push(`cron = $${paramCount}`);
+      values.push(cron.trim());
       paramCount++;
     }
     if (recipients !== void 0) {
@@ -19212,7 +19211,7 @@ app15.put("/:id", async (c) => {
     values.push(id);
     const result = await query(
       c.env,
-      `UPDATE public.report SET ${updates.join(", ")} WHERE report_id = $${paramCount} RETURNING report_id, name, type, schedule, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at`,
+      `UPDATE public.report SET ${updates.join(", ")} WHERE report_id = $${paramCount} RETURNING report_id, name, type, cron, recipients, config, active, meter_ids, element_ids, register_ids, html_format, created_at, updated_at`,
       values
     );
     if (result.rows.length === 0) return c.json({ success: false, message: "Failed to update report" }, 500);

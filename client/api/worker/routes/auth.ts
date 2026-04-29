@@ -7,7 +7,8 @@ import { Hono } from 'hono';
 import { sign, verify } from 'hono/jwt';
 import bcrypt from 'bcryptjs';
 import speakeasy from 'speakeasy';
-import { query, transaction, Env } from '../db';
+import { transaction, Env, execQuery } from '../db';
+
 import { authenticateToken, getCachedUser, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
@@ -100,7 +101,7 @@ async function logAuthEvent(
   }
 ) {
   try {
-    await query(
+    await execQuery(
       env,
       `INSERT INTO auth_logs (user_id, event_type, status, ip_address, user_agent, details, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
@@ -122,7 +123,7 @@ async function logAuthEvent(
 
 async function checkLoginLockout(env: Env, userId: number): Promise<{ isLocked: boolean; lockedUntil: string | null }> {
   try {
-    const result = await query(env, 'SELECT locked_until, failed_login_attempts FROM users WHERE users_id = $1', [userId]);
+    const result = await execQuery(env, 'SELECT locked_until, failed_login_attempts FROM users WHERE users_id = $1', [userId]);
     if (result.rows.length === 0) {
       return { isLocked: false, lockedUntil: null };
     }
@@ -135,7 +136,7 @@ async function checkLoginLockout(env: Env, userId: number): Promise<{ isLocked: 
 
     // Reset failed attempts if lockout has expired
     if (lockedUntil && new Date() >= new Date(lockedUntil)) {
-      await query(env, 'UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE users_id = $1', [userId]);
+      await execQuery(env, 'UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE users_id = $1', [userId]);
     }
 
     return { isLocked: false, lockedUntil: null };
@@ -150,7 +151,7 @@ async function incrementFailedLoginAttempts(
   userId: number
 ): Promise<{ attempts: number; isLocked: boolean; lockedUntil: string | null }> {
   try {
-    const result = await query(env, 'SELECT failed_login_attempts FROM users WHERE users_id = $1', [userId]);
+    const result = await execQuery(env, 'SELECT failed_login_attempts FROM users WHERE users_id = $1', [userId]);
     if (result.rows.length === 0) {
       return { attempts: 0, isLocked: false, lockedUntil: null };
     }
@@ -162,7 +163,7 @@ async function incrementFailedLoginAttempts(
       lockedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
     }
 
-    await query(env, 'UPDATE users SET failed_login_attempts = $1, locked_until = $2 WHERE users_id = $3', [
+    await execQuery(env, 'UPDATE users SET failed_login_attempts = $1, locked_until = $2 WHERE users_id = $3', [
       newAttempts,
       lockedUntil,
       userId,
@@ -177,7 +178,7 @@ async function incrementFailedLoginAttempts(
 
 async function resetFailedLoginAttempts(env: Env, userId: number): Promise<void> {
   try {
-    await query(
+    await execQuery(
       env,
       'UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login_at = NOW() WHERE users_id = $1',
       [userId]
@@ -189,7 +190,7 @@ async function resetFailedLoginAttempts(env: Env, userId: number): Promise<void>
 
 async function get2FAMethods(env: Env, userId: number): Promise<string[]> {
   try {
-    const result = await query(
+    const result = await execQuery(
       env,
       `SELECT method_type FROM user_2fa_methods
        WHERE user_id = $1 AND is_enabled = true`,
@@ -210,7 +211,7 @@ async function checkPasswordResetRateLimit(
 ): Promise<boolean> {
   try {
     const oneHourAgo = new Date(Date.now() - windowMs);
-    const result = await query(
+    const result = await execQuery(
       env,
       `SELECT COUNT(*) as count FROM auth_logs
        WHERE event_type = 'password_reset_requested'
@@ -266,12 +267,12 @@ function generateBackupCodes(count = 10): { code: string; hash?: string }[] {
 
 async function storeBackupCodes(env: Env, userId: number, codes: { code: string }[]): Promise<void> {
   // Delete existing codes
-  await query(env, 'DELETE FROM user_2fa_backup_codes WHERE user_id = $1', [userId]);
+  await execQuery(env, 'DELETE FROM user_2fa_backup_codes WHERE user_id = $1', [userId]);
 
   // Insert new codes
   for (const bc of codes) {
     const codeHash = await bcrypt.hash(bc.code, await bcrypt.genSalt(10));
-    await query(
+    await execQuery(
       env,
       `INSERT INTO user_2fa_backup_codes (user_id, code_hash, is_used, created_at)
        VALUES ($1, $2, false, NOW())`,
@@ -281,7 +282,7 @@ async function storeBackupCodes(env: Env, userId: number, codes: { code: string 
 }
 
 async function verifyBackupCode(env: Env, userId: number, code: string): Promise<boolean> {
-  const result = await query(
+  const result = await execQuery(
     env,
     `SELECT user_2fa_backup_codes_id, code_hash FROM user_2fa_backup_codes
      WHERE user_id = $1 AND is_used = false`,
@@ -292,7 +293,7 @@ async function verifyBackupCode(env: Env, userId: number, code: string): Promise
     const matches = await bcrypt.compare(code, row.code_hash);
     if (matches) {
       // Mark as used
-      await query(
+      await execQuery(
         env,
         'UPDATE user_2fa_backup_codes SET is_used = true WHERE user_2fa_backup_codes_id = $1',
         [row.user_2fa_backup_codes_id]
@@ -433,7 +434,7 @@ auth.post('/login', async (c) => {
     const userAgent = c.req.header('user-agent') || '';
 
     // Find user by email
-    const userResult = await query(env(c), 'SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email]);
+    const userResult = await execQuery(env(c), 'SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email]);
 
     if (userResult.rows.length === 0) {
       await logAuthEvent(env(c), {
@@ -554,7 +555,7 @@ auth.post('/login', async (c) => {
     let tenantInfo = null;
     if (user.tenant_id) {
       try {
-        const tenantResult = await query(
+        const tenantResult = await execQuery(
           env(c),
           'SELECT tenant_id, name, url, street, street2, city, state, zip, country, active, created_at, updated_at, api_key FROM tenant WHERE tenant_id = $1',
           [user.tenant_id]
@@ -643,7 +644,7 @@ auth.post('/verify-2fa', async (c) => {
     const tenantId = decoded.tenant_id;
 
     // Get user
-    const userResult = await query(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
+    const userResult = await execQuery(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
     if (userResult.rows.length === 0) {
       return c.json({ success: false, message: 'User not found' }, 404);
     }
@@ -654,7 +655,7 @@ auth.post('/verify-2fa', async (c) => {
 
     // Verify 2FA code based on method
     if (method === 'totp') {
-      const result = await query(
+      const result = await execQuery(
         env(c),
         `SELECT secret_key FROM user_2fa_methods
          WHERE user_id = $1 AND method_type = 'totp' AND is_enabled = true`,
@@ -728,7 +729,7 @@ auth.post('/verify-2fa', async (c) => {
     let tenantInfo = null;
     if (tenantId) {
       try {
-        const tenantResult = await query(
+        const tenantResult = await execQuery(
           env(c),
           'SELECT tenant_id, name, url, street, street2, city, state, zip, country, active, created_at, updated_at FROM tenant WHERE tenant_id = $1',
           [tenantId]
@@ -791,7 +792,7 @@ auth.post('/forgot-password', async (c) => {
     }
 
     // Find user by email
-    const userResult = await query(env(c), 'SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email]);
+    const userResult = await execQuery(env(c), 'SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email]);
 
     if (userResult.rows.length > 0) {
       const user = userResult.rows[0];
@@ -802,7 +803,7 @@ auth.post('/forgot-password', async (c) => {
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       // Store token in database
-      await query(
+      await execQuery(
         env(c),
         `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, is_used, created_at)
          VALUES ($1, $2, $3, false, NOW())`,
@@ -870,7 +871,7 @@ auth.post('/reset-password', async (c) => {
     }
 
     // Find token in database to get user ID
-    const tokenResult = await query(
+    const tokenResult = await execQuery(
       env(c),
       `SELECT user_id, token_hash, expires_at, is_used
        FROM password_reset_tokens
@@ -901,7 +902,7 @@ auth.post('/reset-password', async (c) => {
     }
 
     // Get user
-    const userResult = await query(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
+    const userResult = await execQuery(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
     if (userResult.rows.length === 0) {
       return c.json({ success: false, message: 'User not found' }, 404);
     }
@@ -927,13 +928,13 @@ auth.post('/reset-password', async (c) => {
     const newPasswordHash = await bcrypt.hash(newPassword, await bcrypt.genSalt(10));
 
     // Update password
-    await query(env(c), 'UPDATE users SET passwordhash = $1, password_changed_at = NOW() WHERE users_id = $2', [
+    await execQuery(env(c), 'UPDATE users SET passwordhash = $1, password_changed_at = NOW() WHERE users_id = $2', [
       newPasswordHash,
       userId,
     ]);
 
     // Invalidate token
-    await query(
+    await execQuery(
       env(c),
       'UPDATE password_reset_tokens SET is_used = true WHERE user_id = $1 AND is_used = false',
       [userId]
@@ -1007,7 +1008,7 @@ auth.post('/change-password', async (c) => {
     }
 
     // Get user with password hash
-    const userResult = await query(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
+    const userResult = await execQuery(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
     if (userResult.rows.length === 0) {
       return c.json({ success: false, message: 'User not found' }, 404);
     }
@@ -1059,7 +1060,7 @@ auth.post('/change-password', async (c) => {
     const newPasswordHash = await bcrypt.hash(newPassword, await bcrypt.genSalt(10));
 
     // Update password
-    await query(env(c), 'UPDATE users SET passwordhash = $1, password_changed_at = NOW() WHERE users_id = $2', [
+    await execQuery(env(c), 'UPDATE users SET passwordhash = $1, password_changed_at = NOW() WHERE users_id = $2', [
       newPasswordHash,
       userId,
     ]);
@@ -1101,7 +1102,7 @@ auth.post('/2fa/setup', async (c) => {
     const userId = currentUser.users_id;
 
     // Get user
-    const userResult = await query(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
+    const userResult = await execQuery(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
     if (userResult.rows.length === 0) {
       return c.json({ success: false, message: 'User not found' }, 404);
     }
@@ -1199,7 +1200,7 @@ auth.post('/2fa/verify-setup', async (c) => {
 
     // Store 2FA method in database
     try {
-      await query(
+      await execQuery(
         env(c),
         `INSERT INTO user_2fa_methods (user_id, method_type, secret_key, phone_number, is_enabled, created_at, updated_at)
          VALUES ($1, $2, $3, $4, true, NOW(), NOW())
@@ -1263,7 +1264,7 @@ auth.get('/2fa/methods', async (c) => {
     const currentUser = c.get('user');
     const userId = currentUser.users_id;
 
-    const result = await query(
+    const result = await execQuery(
       env(c),
       `SELECT method_type, is_enabled, created_at FROM user_2fa_methods
        WHERE user_id = $1 AND is_enabled = true
@@ -1310,7 +1311,7 @@ auth.post('/2fa/disable', async (c) => {
     const userId = currentUser.users_id;
 
     // Get user with password hash
-    const userResult = await query(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
+    const userResult = await execQuery(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
     if (userResult.rows.length === 0) {
       return c.json({ success: false, message: 'User not found' }, 404);
     }
@@ -1330,7 +1331,7 @@ auth.post('/2fa/disable', async (c) => {
     }
 
     // Disable 2FA method
-    const result = await query(
+    const result = await execQuery(
       env(c),
       `UPDATE user_2fa_methods SET is_enabled = false, updated_at = NOW()
        WHERE user_id = $1 AND method_type = $2
@@ -1344,7 +1345,7 @@ auth.post('/2fa/disable', async (c) => {
 
     // If disabling TOTP, also delete backup codes
     if (method === 'totp') {
-      await query(env(c), 'DELETE FROM user_2fa_backup_codes WHERE user_id = $1', [userId]);
+      await execQuery(env(c), 'DELETE FROM user_2fa_backup_codes WHERE user_id = $1', [userId]);
     }
 
     // Log 2FA disable
@@ -1383,7 +1384,7 @@ auth.post('/2fa/regenerate-backup-codes', async (c) => {
     const userId = currentUser.users_id;
 
     // Get user with password hash
-    const userResult = await query(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
+    const userResult = await execQuery(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
     if (userResult.rows.length === 0) {
       return c.json({ success: false, message: 'User not found' }, 404);
     }
@@ -1396,7 +1397,7 @@ auth.post('/2fa/regenerate-backup-codes', async (c) => {
     }
 
     // Check if user has TOTP enabled
-    const totpResult = await query(
+    const totpResult = await execQuery(
       env(c),
       `SELECT user_2fa_methods_id FROM user_2fa_methods
        WHERE user_id = $1 AND method_type = 'totp' AND is_enabled = true`,
@@ -1439,7 +1440,7 @@ auth.get('/verify', async (c) => {
   try {
     const partial = c.get('user');
 
-    // Load full user from DB (cached) â€” authenticateToken only sets users_id/tenant_id from JWT
+    // Load full user from DB (cached) — authenticateToken only sets users_id/tenant_id from JWT
     const currentUser = await getCachedUser(c.env, String(partial.users_id));
     if (!currentUser) {
       return c.json({ success: false, message: 'User not found' }, 401);
@@ -1505,7 +1506,7 @@ auth.post('/refresh', async (c) => {
     const tenantId = decoded.tenant_id;
 
     // Look up user to ensure they still exist and are active
-    const userResult = await query(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
+    const userResult = await execQuery(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
     if (userResult.rows.length === 0) {
       return c.json({ success: false, message: 'User not found' }, 401);
     }

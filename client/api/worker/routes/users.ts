@@ -4,7 +4,8 @@
 
 import { Hono } from 'hono';
 import bcrypt from 'bcryptjs';
-import { query, transaction, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { logError } from '../errorHandler';
@@ -312,7 +313,7 @@ app.put('/:id/password', requirePermission('user:update'), async (c) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    await query(
+    await execQuery(
       c.env,
       'UPDATE users SET passwordhash = $1, updated_at = NOW() WHERE users_id = $2',
       [passwordHash, userId]
@@ -348,7 +349,7 @@ app.post('/:id/reset-password', requirePermission('user:update'), async (c) => {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Store token in database
-    await query(
+    await execQuery(
       c.env,
       'UPDATE users SET password_reset_token = $1, password_reset_expires_at = $2, updated_at = NOW() WHERE users_id = $3',
       [tokenHash, expiresAt.toISOString(), userId]
@@ -356,7 +357,7 @@ app.post('/:id/reset-password', requirePermission('user:update'), async (c) => {
 
     // Log the admin password reset event
     try {
-      await query(
+      await execQuery(
         c.env,
         'INSERT INTO auth_logs (user_id, event_type, status, details, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)',
         [userId, 'password_reset_admin', 'success', JSON.stringify({ admin_id: adminId, email: targetUser.email })]

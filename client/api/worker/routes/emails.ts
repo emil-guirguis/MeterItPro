@@ -5,7 +5,8 @@
  */
 
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
@@ -36,7 +37,7 @@ app.post('/send-bulk', requirePermission('email:send'), (c) => {
 // GET /delivery-stats - Get email delivery statistics
 app.get('/delivery-stats', requirePermission('email:read'), async (c) => {
   try {
-    const result = await query(
+    const result = await execQuery(
       c.env,
       `SELECT
         status,
@@ -102,7 +103,7 @@ app.get('/logs', requirePermission('email:read'), async (c) => {
       'SELECT \n        el.*,\n        et.name as template_name',
       'SELECT COUNT(*)'
     );
-    const countResult = await query(c.env, countSql, values);
+    const countResult = await execQuery(c.env, countSql, values);
     const total = parseInt(countResult.rows[0].count);
 
     // Paginated query
@@ -114,7 +115,7 @@ app.get('/logs', requirePermission('email:read'), async (c) => {
     sql += ` OFFSET $${paramCount}`;
     values.push(offset);
 
-    const result = await query(c.env, sql, values);
+    const result = await execQuery(c.env, sql, values);
     const totalPages = Math.ceil(total / limit);
 
     return c.json({
@@ -140,7 +141,7 @@ app.get('/track/open/:trackingId', async (c) => {
   try {
     const trackingId = c.req.param('trackingId');
 
-    await query(
+    await execQuery(
       c.env,
       `UPDATE email_logs
        SET opened_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
@@ -225,7 +226,7 @@ app.get('/notifications/logs', requirePermission('notification:read'), async (c)
       'SELECT \n        nl.*,\n        et.name as template_name',
       'SELECT COUNT(*)'
     );
-    const countResult = await query(c.env, countSql, values);
+    const countResult = await execQuery(c.env, countSql, values);
     const total = parseInt(countResult.rows[0].count);
 
     // Data
@@ -237,7 +238,7 @@ app.get('/notifications/logs', requirePermission('notification:read'), async (c)
     sql += ` OFFSET $${paramCount}`;
     values.push(offset);
 
-    const result = await query(c.env, sql, values);
+    const result = await execQuery(c.env, sql, values);
     const totalPages = Math.ceil(total / limit);
 
     return c.json({

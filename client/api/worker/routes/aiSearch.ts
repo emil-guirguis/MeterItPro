@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import { query, Env } from '../db';
+import { Env, execQuery } from '../db';
+
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
@@ -24,7 +25,7 @@ app.post('/', async (c) => {
 
     const startTime = Date.now();
 
-    const devicesResult = await query(c.env,
+    const devicesResult = await execQuery(c.env,
       `SELECT device_id as id, tenant_id as "tenantId", name, type, location, status, metadata
        FROM public.device WHERE tenant_id = $1 ORDER BY name ASC`, [tenantId]);
     const devices: any[] = devicesResult.rows || [];
@@ -33,12 +34,12 @@ app.post('/', async (c) => {
       return c.json({ success: true, data: { results: [], total: 0, clarifications: [], executionTime: Date.now() - startTime } });
     }
 
-    const metersResult = await query(c.env,
+    const metersResult = await execQuery(c.env,
       `SELECT meter_id as id, tenant_id as "tenantId", device_id as "deviceId", name, unit, type
        FROM public.meter WHERE tenant_id = $1`, [tenantId]);
     const meters: any[] = metersResult.rows || [];
 
-    const readingsResult = await query(c.env,
+    const readingsResult = await execQuery(c.env,
       `SELECT mr.meter_id as "meterId", mr.value, mr.timestamp, mr.quality
        FROM public.meter_reading mr WHERE mr.tenant_id = $1 AND mr.timestamp >= NOW() - INTERVAL '30 days'
        ORDER BY mr.meter_id, mr.timestamp DESC`, [tenantId]);
