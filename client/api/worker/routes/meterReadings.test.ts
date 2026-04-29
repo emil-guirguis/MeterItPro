@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../db', () => ({
-  query: vi.fn(),
-}));
+vi.mock('../db', () => {
+  const queryFn = vi.fn();
+  return {
+    query: queryFn,
+    execQuery: vi.fn((env: any, sql: string, params?: any[]) => queryFn(env, sql, params)),
+    transaction: vi.fn(),
+  };
+});
 
 vi.mock('hono/jwt', () => ({
   verify: vi.fn(),

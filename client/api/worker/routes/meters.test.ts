@@ -5,10 +5,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock db module
-vi.mock('../db', () => ({
-  query: vi.fn(),
-  transaction: vi.fn(),
-}));
+vi.mock('../db', () => {
+  const queryFn = vi.fn();
+  return {
+    query: queryFn,
+    execQuery: vi.fn((env: any, sql: string, params?: any[]) => queryFn(env, sql, params)),
+    transaction: vi.fn(),
+  };
+});
 
 // Mock hono/jwt
 vi.mock('hono/jwt', () => ({
@@ -402,13 +406,6 @@ describe('Meters Routes', () => {
 
   describe('POST /:meterId/virtual-config', () => {
     const mockTransaction = vi.fn();
-
-    beforeEach(() => {
-      vi.mock('../db', () => ({
-        query: vi.fn(),
-        transaction: vi.fn(),
-      }));
-    });
 
     it('should save virtual meter configuration', async () => {
       const { transaction } = await import('../db');

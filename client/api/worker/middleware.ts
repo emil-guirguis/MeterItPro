@@ -5,7 +5,7 @@
 
 import { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
-import { query, Env } from './db';
+import { query, execQuery, Env } from './db';
 
 
 // Module-level cache shared within a Worker isolate.
@@ -63,7 +63,7 @@ export type AuthVariables = {
 /**
  * JWT authentication middleware
  *
- * Validates the token and sets context from JWT claims only — no DB query.
+ * Validates the token and sets context from JWT claims only ï¿½ no DB query.
  * Both userId and tenant_id are embedded in the token at sign time, so polling
  * endpoints like /notifications/count never touch the users table.
  *
@@ -92,7 +92,7 @@ export async function authenticateToken(c: Context<{ Bindings: Env; Variables: A
     return c.json({ success: false, message: 'Invalid token - missing claims' }, 401);
   }
 
-  // Minimal user object from JWT claims — no DB round-trip.
+  // Minimal user object from JWT claims ï¿½ no DB round-trip.
   // Routes that need full user data (role, permissions, name, email) call
   // requirePermission(), which does the cached DB lookup lazily.
   c.set('user', { users_id: decoded.userId, tenant_id: decoded.tenant_id });
@@ -104,7 +104,7 @@ export async function authenticateToken(c: Context<{ Bindings: Env; Variables: A
  * Permission check middleware factory.
  * Usage: requirePermission('meter:read')
  *
- * This is where the DB lookup happens — lazily and cached. Routes that don't
+ * This is where the DB lookup happens ï¿½ lazily and cached. Routes that don't
  * call requirePermission() never hit the users table.
  */
 export function requirePermission(permission: string) {

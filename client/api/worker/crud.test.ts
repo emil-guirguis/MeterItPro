@@ -5,10 +5,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the db module directly
-vi.mock('./db', () => ({
-  query: vi.fn(),
-  transaction: vi.fn(),
-}));
+vi.mock('./db', () => {
+  const queryFn = vi.fn();
+  return {
+    query: queryFn,
+    execQuery: vi.fn((env: any, sql: string, params?: any[]) => queryFn(env, sql, params)),
+    transaction: vi.fn(),
+  };
+});
 
 import { query } from './db';
 import { findAll, findById, create, update, remove } from './crud';
