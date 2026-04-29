@@ -6,13 +6,13 @@
  * - Email is sent via the Resend HTTP API (no TCP / nodemailer required).
  *
  * Required env vars (set via `npx wrangler secret put`):
- *   RESEND_API_KEY  — API key from resend.com (free tier: 3,000 emails/month)
- *   RESEND_FROM     — "From" address, e.g. "MeterItPro <noreply@meteritpro.com>"
+ *   RESEND_API_KEY  ï¿½ API key from resend.com (free tier: 3,000 emails/month)
+ *   RESEND_FROM     ï¿½ "From" address, e.g. "MeterItPro <noreply@meteritpro.com>"
  */
 
 import { Env, execQuery } from './db';
 import { matchesCronSchedule } from './cronMatcher';
-import { getDateRange, queryConsumption, queryDemand, type TimePeriod } from './meterQueryHelpers';
+import { getDateRange, queryConsumption, queryDemand, queryVirtualConsumption, queryVirtualDemand, type TimePeriod } from './meterQueryHelpers';
 
 // --- Types --------------------------------------------------------------------
 
@@ -59,41 +59,61 @@ function parseMeterSelections(raw: any): MeterSelection[] | null {
   return null;
 }
 
-async function getMeterElementPairs(env: Env, report: Report): Promise<MeterElementPair[]> {
+interface SplitSelections {
+  physicalPairs: MeterElementPair[];
+  virtualMeterIds: number[];
+}
+
+async function splitMeterSelections(env: Env, report: Report): Promise<SplitSelections> {
   const selections = parseMeterSelections(report.meter_selections);
 
-  if (selections && selections.length > 0) {
-    const pairs: MeterElementPair[] = [];
-    for (const sel of selections) {
-      if (!sel.meter_id) continue;
-      const meterId = String(sel.meter_id);
+  if (!selections || selections.length === 0) {
+    // No explicit selections â€” return all physical pairs, no virtual
+    const all = await execQuery(
+      env,
+      `SELECT m.meter_id, me.meter_element_id
+       FROM meter m
+       JOIN meter_element me ON me.meter_id = m.meter_id
+       WHERE m.active = true AND m.meter_id NOT IN (SELECT DISTINCT meter_id FROM meter_virtual)`
+    );
+    return { physicalPairs: all.rows.map(r => ({ meter_id: String(r.meter_id), meter_element_id: String(r.meter_element_id) })), virtualMeterIds: [] };
+  }
 
+  const meterIds = [...new Set(selections.map(s => Number(s.meter_id)).filter(id => !isNaN(id) && id > 0))];
+  const virtualIdRows = meterIds.length > 0
+    ? (await execQuery(env, `SELECT DISTINCT meter_id FROM meter_virtual WHERE meter_id = ANY($1)`, [meterIds])).rows
+    : [];
+  const virtualMeterIdSet = new Set(virtualIdRows.map((r: any) => Number(r.meter_id)));
+
+  const physicalPairs: MeterElementPair[] = [];
+  const virtualMeterIds: number[] = [];
+
+  for (const sel of selections) {
+    if (!sel.meter_id) continue;
+    const meterId = Number(sel.meter_id);
+
+    if (virtualMeterIdSet.has(meterId)) {
+      virtualMeterIds.push(meterId);
+    } else {
       if (sel.meter_element_ids && sel.meter_element_ids.length > 0) {
         for (const elId of sel.meter_element_ids) {
-          pairs.push({ meter_id: meterId, meter_element_id: String(elId) });
+          physicalPairs.push({ meter_id: String(meterId), meter_element_id: String(elId) });
         }
       } else {
-        const elements = await execQuery(
-          env,
-          `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`,
-          [meterId]
-        );
+        const elements = await execQuery(env, `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`, [meterId]);
         for (const el of elements.rows) {
-          pairs.push({ meter_id: meterId, meter_element_id: el.meter_element_id });
+          physicalPairs.push({ meter_id: String(meterId), meter_element_id: String(el.meter_element_id) });
         }
       }
     }
-    return pairs;
   }
 
-  const all = await execQuery(
-    env,
-    `SELECT m.meter_id, me.meter_element_id
-     FROM meter m
-     JOIN meter_element me ON me.meter_id = m.meter_id
-     WHERE m.active = true`
-  );
-  return all.rows;
+  return { physicalPairs, virtualMeterIds };
+}
+
+async function getMeterElementPairs(env: Env, report: Report): Promise<MeterElementPair[]> {
+  const { physicalPairs } = await splitMeterSelections(env, report);
+  return physicalPairs;
 }
 
 function buildPairFilter(
@@ -165,7 +185,7 @@ function buildTimeLabels(timePeriod: TimePeriod, startDate: Date, endDate: Date)
   if (timePeriod === 'yearly') {
     return MONTH_NAMES.slice();
   }
-  // weekly / monthly — one label per day
+  // weekly / monthly ï¿½ one label per day
   const labels: string[] = [];
   const cursor = new Date(startDate);
   cursor.setHours(0, 0, 0, 0);
@@ -206,26 +226,30 @@ async function fetchChartSeriesData(env: Env, report: Report, tenantIdFallback?:
   const tenantId: number | null = report.tenant_id ?? tenantIdFallback ?? null;
   if (!tenantId) return { labels: [], series: [], unit: isDemand ? 'kW' : 'kWh', timePeriod };
 
-  const pairs = await getMeterElementPairs(env, report);
-  if (pairs.length === 0) return { labels: [], series: [], unit: isDemand ? 'kW' : 'kWh', timePeriod };
-
-  // Fetch display names
-  const elementIds = [...new Set(pairs.map(p => Number(p.meter_element_id)))];
-  const nameRows = (await execQuery(
-    env,
-    `SELECT me.meter_element_id,
-           CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name
-     FROM meter_element me
-     JOIN meter m ON me.meter_id = m.meter_id
-     WHERE me.meter_element_id = ANY($1)`,
-    [elementIds]
-  )).rows;
-  const nameMap = new Map(nameRows.map((r: any) => [String(r.meter_element_id), String(r.meter_name)]));
+  const { physicalPairs, virtualMeterIds } = await splitMeterSelections(env, report);
+  if (physicalPairs.length === 0 && virtualMeterIds.length === 0) {
+    return { labels: [], series: [], unit: isDemand ? 'kW' : 'kWh', timePeriod };
+  }
 
   const labels = buildTimeLabels(timePeriod, startDate, endDate);
   const keys   = buildLabelKeys(timePeriod, startDate, endDate);
 
-  const seriesResults = await Promise.all(pairs.map(async ({ meter_id, meter_element_id }) => {
+  // Physical meters â€” one series per element
+  const elementIds = [...new Set(physicalPairs.map(p => Number(p.meter_element_id)))];
+  const nameRows = elementIds.length > 0
+    ? (await execQuery(
+        env,
+        `SELECT me.meter_element_id,
+               CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name
+         FROM meter_element me
+         JOIN meter m ON me.meter_id = m.meter_id
+         WHERE me.meter_element_id = ANY($1)`,
+        [elementIds]
+      )).rows
+    : [];
+  const nameMap = new Map(nameRows.map((r: any) => [String(r.meter_element_id), String(r.meter_name)]));
+
+  const physicalSeries = await Promise.all(physicalPairs.map(async ({ meter_id, meter_element_id }) => {
     const params = {
       tenantId: Number(tenantId),
       meterId: Number(meter_id),
@@ -241,14 +265,40 @@ async function fetchChartSeriesData(env: Env, report: Report, tenantIdFallback?:
     const lookup = new Map<string, number>(
       raw.map((r): [string, number] => [String(r.label_key), isDemand ? Number(r.power) : Number(r.calculated_kwh)])
     );
-    const data: number[] = keys.map(k => lookup.get(k) ?? 0);
     return {
       name: nameMap.get(String(meter_element_id)) ?? `Element ${meter_element_id}`,
-      data,
+      data: keys.map(k => lookup.get(k) ?? 0),
     };
   }));
 
-  return { labels, series: seriesResults, unit: isDemand ? 'kW' : 'kWh', timePeriod };
+  // Virtual meters â€” one aggregated series per virtual meter
+  const virtualNameRows = virtualMeterIds.length > 0
+    ? (await execQuery(env, `SELECT meter_id, name FROM meter WHERE meter_id = ANY($1)`, [virtualMeterIds])).rows
+    : [];
+  const virtualNameMap = new Map(virtualNameRows.map((r: any) => [Number(r.meter_id), r.name as string]));
+
+  const virtualSeries = await Promise.all(virtualMeterIds.map(async (meterId) => {
+    const params = {
+      tenantId: Number(tenantId),
+      meterId,
+      timePeriod,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+    };
+    const raw: Array<{ label_key: string | number; power?: number; calculated_kwh?: number }> = isDemand
+      ? await queryVirtualDemand(env, params)
+      : await queryVirtualConsumption(env, params);
+
+    const lookup = new Map<string, number>(
+      raw.map((r): [string, number] => [String(r.label_key), isDemand ? Number(r.power) : Number(r.calculated_kwh)])
+    );
+    return {
+      name: virtualNameMap.get(meterId) ?? `Virtual Meter ${meterId}`,
+      data: keys.map(k => lookup.get(k) ?? 0),
+    };
+  }));
+
+  return { labels, series: [...physicalSeries, ...virtualSeries], unit: isDemand ? 'kW' : 'kWh', timePeriod };
 }
 
 // --- Report data generators ---------------------------------------------------
@@ -268,7 +318,7 @@ async function generateMeterReadingsReport(env: Env, report: Report): Promise<Re
     const safe = allowedFields.filter(f => /^\w+$/.test(f));
     registerSelect = ['r.created_at', ...safe.map(f => `r.${f}`)].join(',\n       ');
   } else {
-    // No specific fields configured — exclude only internal ID columns
+    // No specific fields configured ï¿½ exclude only internal ID columns
     registerSelect = 'r.created_at, r.kwh, r.kw, r.power_factor, r.voltage, r.current';
   }
 
@@ -290,62 +340,146 @@ async function generateMeterReadingsReport(env: Env, report: Report): Promise<Re
 }
 
 async function generateUsageSummaryReport(env: Env, report: Report): Promise<ReportData> {
-  const pairs = await getMeterElementPairs(env, report);
-  const pairFilter = pairs.length > 0 ? buildPairFilter(pairs, 1) : null;
+  const { physicalPairs, virtualMeterIds } = await splitMeterSelections(env, report);
+  const pairFilter = physicalPairs.length > 0 ? buildPairFilter(physicalPairs, 1) : null;
 
-  const whereClause = [`r.created_at >= NOW() - INTERVAL '30 days'`, pairFilter?.sql]
-    .filter(Boolean).join(' AND ');
+  const physicalRows = pairFilter
+    ? (await execQuery(
+        env,
+        `SELECT
+           CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name,
+           COUNT(*)                                                             AS reading_count,
+           ROUND(SUM(r.kwh)::numeric, 2)                                       AS total_kwh,
+           ROUND(AVG(r.kw)::numeric, 2)                                        AS avg_kw,
+           ROUND(MAX(r.kw)::numeric, 2)                                        AS peak_kw,
+           ROUND(MIN(r.kw)::numeric, 2)                                        AS min_kw,
+           ROUND(AVG(r.power_factor)::numeric, 4)                              AS avg_pf,
+           MAX(r.created_at)                                                    AS last_reading_at
+         FROM meter_reading r
+         JOIN meter m ON m.meter_id = r.meter_id
+         JOIN meter_element me ON me.meter_element_id = r.meter_element_id
+         WHERE r.created_at >= NOW() - INTERVAL '30 days' AND ${pairFilter.sql}
+         GROUP BY m.meter_id, m.name, me.meter_element_id, me.element, me.name
+         ORDER BY m.name, element`,
+        pairFilter.params
+      )).rows
+    : physicalPairs.length === 0 && virtualMeterIds.length === 0
+      // No selections at all â€” fetch all physical meters
+      ? (await execQuery(
+          env,
+          `SELECT
+             CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name,
+             COUNT(*)                                                             AS reading_count,
+             ROUND(SUM(r.kwh)::numeric, 2)                                       AS total_kwh,
+             ROUND(AVG(r.kw)::numeric, 2)                                        AS avg_kw,
+             ROUND(MAX(r.kw)::numeric, 2)                                        AS peak_kw,
+             ROUND(MIN(r.kw)::numeric, 2)                                        AS min_kw,
+             ROUND(AVG(r.power_factor)::numeric, 4)                              AS avg_pf,
+             MAX(r.created_at)                                                    AS last_reading_at
+           FROM meter_reading r
+           JOIN meter m ON m.meter_id = r.meter_id
+           JOIN meter_element me ON me.meter_element_id = r.meter_element_id
+           WHERE r.created_at >= NOW() - INTERVAL '30 days'
+           GROUP BY m.meter_id, m.name, me.meter_element_id, me.element, me.name
+           ORDER BY m.name, element`
+        )).rows
+      : [];
 
-  const result = await execQuery(
-    env,
-    `SELECT
-       CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
-       COUNT(*)                                                             AS reading_count,
-       ROUND(SUM(r.kwh)::numeric, 2)                                       AS total_kwh,
-       ROUND(AVG(r.kw)::numeric, 2)                                        AS avg_kw,
-       ROUND(MAX(r.kw)::numeric, 2)                                        AS peak_kw,
-       ROUND(MIN(r.kw)::numeric, 2)                                        AS min_kw,
-       ROUND(AVG(r.power_factor)::numeric, 4)                              AS avg_pf,
-       MAX(r.created_at)                                                    AS last_reading_at
-     FROM meter_reading r
-     JOIN meter m ON m.meter_id = r.meter_id
-     JOIN meter_element me ON me.meter_element_id = r.meter_element_id
-     WHERE ${whereClause}
-     GROUP BY m.meter_id, m.name, me.meter_element_id, me.element, me.name
-     ORDER BY m.name, element`,
-    pairFilter?.params ?? []
-  );
+  const virtualResults = await Promise.all(virtualMeterIds.map(vmId =>
+    execQuery(
+      env,
+      `SELECT
+         m.name AS meter_name,
+         COUNT(*) AS reading_count,
+         ROUND(SUM(CASE WHEN mv.operation = '-' THEN -r.kwh ELSE r.kwh END)::numeric, 2) AS total_kwh,
+         ROUND(AVG(r.kw)::numeric, 2)                                        AS avg_kw,
+         ROUND(MAX(r.kw)::numeric, 2)                                        AS peak_kw,
+         ROUND(MIN(r.kw)::numeric, 2)                                        AS min_kw,
+         ROUND(AVG(r.power_factor)::numeric, 4)                              AS avg_pf,
+         MAX(r.created_at)                                                    AS last_reading_at
+       FROM meter_reading r
+       JOIN meter_virtual mv
+         ON mv.selected_meter_id = r.meter_id
+         AND mv.select_meter_element_id = r.meter_element_id
+       JOIN meter m ON m.meter_id = mv.meter_id
+       WHERE mv.meter_id = $1
+         AND r.created_at >= NOW() - INTERVAL '30 days'
+       GROUP BY m.meter_id, m.name`,
+      [vmId]
+    ).then(res => res.rows)
+  ));
 
-  const data = filterColumns(result.rows, getRegisterFieldNames(report));
+  const data = filterColumns([...physicalRows, ...virtualResults.flat()], getRegisterFieldNames(report));
   return { type: 'usage_summary', generatedAt: new Date().toISOString(), period: 'Last 30 days', meterCount: data.length, data };
 }
 
 async function generateDailySummaryReport(env: Env, report: Report): Promise<ReportData> {
-  const pairs = await getMeterElementPairs(env, report);
-  const pairFilter = pairs.length > 0 ? buildPairFilter(pairs, 1) : null;
+  const { physicalPairs, virtualMeterIds } = await splitMeterSelections(env, report);
+  const pairFilter = physicalPairs.length > 0 ? buildPairFilter(physicalPairs, 1) : null;
 
-  const whereClause = [`r.created_at >= NOW() - INTERVAL '30 days'`, pairFilter?.sql]
-    .filter(Boolean).join(' AND ');
+  const physicalRows = pairFilter
+    ? (await execQuery(
+        env,
+        `SELECT
+           DATE(r.created_at)                                                    AS date,
+           CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name,
+           COUNT(*)                                                              AS reading_count,
+           ROUND(SUM(r.kwh)::numeric, 2)                                        AS total_kwh,
+           ROUND(AVG(r.kw)::numeric, 2)                                         AS avg_kw,
+           ROUND(MAX(r.kw)::numeric, 2)                                         AS peak_kw
+         FROM meter_reading r
+         JOIN meter m ON m.meter_id = r.meter_id
+         JOIN meter_element me ON me.meter_element_id = r.meter_element_id
+         WHERE r.created_at >= NOW() - INTERVAL '30 days' AND ${pairFilter.sql}
+         GROUP BY DATE(r.created_at), m.meter_id, m.name, me.meter_element_id, me.element, me.name
+         ORDER BY date DESC, m.name, element`,
+        pairFilter.params
+      )).rows
+    : physicalPairs.length === 0 && virtualMeterIds.length === 0
+      ? (await execQuery(
+          env,
+          `SELECT
+             DATE(r.created_at)                                                    AS date,
+             CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name,
+             COUNT(*)                                                              AS reading_count,
+             ROUND(SUM(r.kwh)::numeric, 2)                                        AS total_kwh,
+             ROUND(AVG(r.kw)::numeric, 2)                                         AS avg_kw,
+             ROUND(MAX(r.kw)::numeric, 2)                                         AS peak_kw
+           FROM meter_reading r
+           JOIN meter m ON m.meter_id = r.meter_id
+           JOIN meter_element me ON me.meter_element_id = r.meter_element_id
+           WHERE r.created_at >= NOW() - INTERVAL '30 days'
+           GROUP BY DATE(r.created_at), m.meter_id, m.name, me.meter_element_id, me.element, me.name
+           ORDER BY date DESC, m.name, element`
+        )).rows
+      : [];
 
-  const result = await execQuery(
-    env,
-    `SELECT
-       DATE(r.created_at)                                                    AS date,
-       CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
-       COUNT(*)                                                              AS reading_count,
-       ROUND(SUM(r.kwh)::numeric, 2)                                        AS total_kwh,
-       ROUND(AVG(r.kw)::numeric, 2)                                         AS avg_kw,
-       ROUND(MAX(r.kw)::numeric, 2)                                         AS peak_kw
-     FROM meter_reading r
-     JOIN meter m ON m.meter_id = r.meter_id
-     JOIN meter_element me ON me.meter_element_id = r.meter_element_id
-     WHERE ${whereClause}
-     GROUP BY DATE(r.created_at), m.meter_id, m.name, me.meter_element_id, me.element, me.name
-     ORDER BY date DESC, m.name, element`,
-    pairFilter?.params ?? []
-  );
+  const virtualResults = await Promise.all(virtualMeterIds.map(vmId =>
+    execQuery(
+      env,
+      `SELECT
+         DATE(r.created_at) AS date,
+         m.name AS meter_name,
+         COUNT(*) AS reading_count,
+         ROUND(SUM(CASE WHEN mv.operation = '-' THEN -r.kwh ELSE r.kwh END)::numeric, 2) AS total_kwh,
+         ROUND(AVG(r.kw)::numeric, 2)                                        AS avg_kw,
+         ROUND(MAX(r.kw)::numeric, 2)                                        AS peak_kw
+       FROM meter_reading r
+       JOIN meter_virtual mv
+         ON mv.selected_meter_id = r.meter_id
+         AND mv.select_meter_element_id = r.meter_element_id
+       JOIN meter m ON m.meter_id = mv.meter_id
+       WHERE mv.meter_id = $1
+         AND r.created_at >= NOW() - INTERVAL '30 days'
+       GROUP BY DATE(r.created_at), m.meter_id, m.name
+       ORDER BY date DESC, m.name`,
+      [vmId]
+    ).then(res => res.rows)
+  ));
 
-  const data = filterColumns(result.rows, getRegisterFieldNames(report));
+  const data = filterColumns([...physicalRows, ...virtualResults.flat()], getRegisterFieldNames(report));
+  data.sort((a: any, b: any) => String(b.date).localeCompare(String(a.date)));
+
   return {
     type: 'daily_summary',
     generatedAt: new Date().toISOString(),
@@ -358,40 +492,83 @@ async function generateDailySummaryReport(env: Env, report: Report): Promise<Rep
 export async function generateDemandReport(env: Env, report: Report): Promise<ReportData> {
   const config = { time_frame: report.time_frame || 'monthly' };
   const { startDate, endDate } = getReportDateRange(config);
-  const pairs = await getMeterElementPairs(env, report);
-  const pairFilter = pairs.length > 0 ? buildPairFilter(pairs, 3) : null;
+  const { physicalPairs, virtualMeterIds } = await splitMeterSelections(env, report);
+  const pairFilter = physicalPairs.length > 0 ? buildPairFilter(physicalPairs, 3) : null;
 
-  const whereClause = [
-    `r.created_at >= $1`,
-    `r.created_at <= $2`,
-    pairFilter?.sql,
-  ].filter(Boolean).join(' AND ');
+  const physicalRows = pairFilter
+    ? (await execQuery(
+        env,
+        `SELECT
+           CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name,
+           ROUND(MAX(r.kw)::numeric, 2)                                            AS peak_demand_kw,
+           TO_CHAR(MAX(r.created_at), 'YYYY-MM-DD HH24:MI:SS')                    AS peak_reading_at,
+           COUNT(*)::int                                                            AS reading_count
+         FROM meter_reading r
+         JOIN meter m ON m.meter_id = r.meter_id
+         JOIN meter_element me ON me.meter_element_id = r.meter_element_id
+         WHERE r.created_at >= $1 AND r.created_at <= $2 AND ${pairFilter.sql}
+         GROUP BY m.meter_id, m.name, me.meter_element_id, me.element, me.name
+         ORDER BY peak_demand_kw DESC NULLS LAST`,
+        [startDate.toISOString(), endDate.toISOString(), ...pairFilter.params]
+      )).rows
+    : physicalPairs.length === 0 && virtualMeterIds.length === 0
+      ? (await execQuery(
+          env,
+          `SELECT
+             CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name,
+             ROUND(MAX(r.kw)::numeric, 2)                                            AS peak_demand_kw,
+             TO_CHAR(MAX(r.created_at), 'YYYY-MM-DD HH24:MI:SS')                    AS peak_reading_at,
+             COUNT(*)::int                                                            AS reading_count
+           FROM meter_reading r
+           JOIN meter m ON m.meter_id = r.meter_id
+           JOIN meter_element me ON me.meter_element_id = r.meter_element_id
+           WHERE r.created_at >= $1 AND r.created_at <= $2
+           GROUP BY m.meter_id, m.name, me.meter_element_id, me.element, me.name
+           ORDER BY peak_demand_kw DESC NULLS LAST`,
+          [startDate.toISOString(), endDate.toISOString()]
+        )).rows
+      : [];
 
-  const result = await execQuery(
-    env,
-    `SELECT
-       CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?'))   AS meter_name,
-       ROUND(MAX(r.kw)::numeric, 2)                                            AS peak_demand_kw,
-       TO_CHAR(MAX(r.created_at), 'YYYY-MM-DD HH24:MI:SS')                    AS peak_reading_at,
-       COUNT(*)::int                                                            AS reading_count
-     FROM meter_reading r
-     JOIN meter m ON m.meter_id = r.meter_id
-     JOIN meter_element me ON me.meter_element_id = r.meter_element_id
-     WHERE ${whereClause}
-     GROUP BY m.meter_id, m.name, me.meter_element_id, me.element, me.name
-     ORDER BY peak_demand_kw DESC NULLS LAST`,
-    [startDate.toISOString(), endDate.toISOString(), ...(pairFilter?.params ?? [])]
-  );
+  // Virtual demand: instantaneous sum per timestamp â†’ peak of those sums
+  const virtualResults = await Promise.all(virtualMeterIds.map(vmId =>
+    execQuery(
+      env,
+      `WITH virtual_ts AS (
+         SELECT r.created_at,
+                SUM(CASE WHEN mv.operation = '-' THEN -r.kw ELSE r.kw END) AS instant_kw
+         FROM meter_reading r
+         JOIN meter_virtual mv
+           ON mv.selected_meter_id = r.meter_id
+           AND mv.select_meter_element_id = r.meter_element_id
+         WHERE mv.meter_id = $1
+           AND r.created_at >= $2::timestamptz
+           AND r.created_at <= $3::timestamptz
+         GROUP BY r.created_at
+       )
+       SELECT
+         (SELECT name FROM meter WHERE meter_id = $1) AS meter_name,
+         ROUND(MAX(instant_kw)::numeric, 2) AS peak_demand_kw,
+         TO_CHAR(
+           (SELECT created_at FROM virtual_ts ORDER BY instant_kw DESC LIMIT 1),
+           'YYYY-MM-DD HH24:MI:SS'
+         ) AS peak_reading_at,
+         COUNT(*)::int AS reading_count
+       FROM virtual_ts`,
+      [vmId, startDate.toISOString(), endDate.toISOString()]
+    ).then(res => res.rows)
+  ));
 
   const timeFrame = report.time_frame || 'monthly';
   const periodLabel = timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1);
+  const allRows = [...physicalRows, ...virtualResults.flat()];
+  allRows.sort((a: any, b: any) => (Number(b.peak_demand_kw) || 0) - (Number(a.peak_demand_kw) || 0));
 
   return {
     type: 'demand',
     generatedAt: new Date().toISOString(),
     period: periodLabel,
-    meterCount: result.rows.length,
-    data: result.rows,
+    meterCount: allRows.length,
+    data: allRows,
   };
 }
 
@@ -426,7 +603,7 @@ function buildPreviewHtml(report: Report, reportData: ReportData, chartData: Cha
     reportData.dayCount != null ? `<span>Days: <strong>${reportData.dayCount}</strong></span>` : '',
   ].filter(Boolean).join('<span style="margin:0 10px;color:#d1d5db">|</span>');
 
-  // -- Table (grid) — always shown below the chart --------------------------
+  // -- Table (grid) ï¿½ always shown below the chart --------------------------
   const tableHtml = rows.length === 0
     ? '<p style="color:#6b7280;font-style:italic;text-align:center;padding:40px 0">No data available for this report.</p>'
     : `<div style="overflow-x:auto;margin-top:24px">
@@ -445,7 +622,7 @@ function buildPreviewHtml(report: Report, reportData: ReportData, chartData: Cha
         </table>
       </div>`;
 
-  // -- Chart — uses the same aggregated time-series data as the dashboard ---
+  // -- Chart ï¿½ uses the same aggregated time-series data as the dashboard ---
   let dataScript = '';
   let chartHtml = '';
   let initScript = '';
@@ -599,7 +776,7 @@ function buildEmailHtml(report: Report, reportData: ReportData): string {
 async function sendEmail(env: Env, to: string, subject: string, html: string, fromOverride?: string | null): Promise<void> {
   const apiKey = env.RESEND_API_KEY;
   console.log('[sendEmail] RESEND_API_KEY present:', !!apiKey);
-  if (!apiKey) throw new Error('RESEND_API_KEY is not configured — run: npx wrangler secret put RESEND_API_KEY');
+  if (!apiKey) throw new Error('RESEND_API_KEY is not configured ï¿½ run: npx wrangler secret put RESEND_API_KEY');
 
   const from = fromOverride || (env as any).RESEND_FROM || 'MeterItPro <noreply@meteritpro.com>';
 
@@ -753,7 +930,7 @@ export async function runReport(env: Env, reportId: number): Promise<void> {
 }
 
 /**
- * Run all active reports whose cron schedule matches `now` — used by the cron trigger.
+ * Run all active reports whose cron schedule matches `now` ï¿½ used by the cron trigger.
  * Pass the scheduled event time so reports fire only at their configured time.
  */
 export async function runAllActiveReports(env: Env, now: Date = new Date()): Promise<void> {
@@ -764,7 +941,7 @@ export async function runAllActiveReports(env: Env, now: Date = new Date()): Pro
 
   for (const row of result.rows) {
     if (!matchesCronSchedule(row.cron, now)) {
-      console.log(`[cron] Report ${row.report_id} skipped — schedule "${row.cron}" does not match ${now.toISOString()}`);
+      console.log(`[cron] Report ${row.report_id} skipped ï¿½ schedule "${row.cron}" does not match ${now.toISOString()}`);
       continue;
     }
 

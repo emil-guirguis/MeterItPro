@@ -1,7 +1,7 @@
 /**
  * Reports routes - Hono worker
  * CRUD for reports, history, and email logs.
- * Field list is driven by reportSchema � add/rename a field in the schema only.
+ * Field list is driven by reportSchema � add/rename a field in the schema only.
  */
 
 import { Hono } from 'hono';
@@ -13,7 +13,7 @@ import { runReport, previewReport, generateDemandReport } from '../reportRunner'
 import { create, update, findAll, findById } from '../crud';
 import { parsePagination, parseNumericId, extractBodyData, isValidCronExpression, validateEmailList } from '../routeHelpers';
 import { reportSchema } from './reportSchema';
-import { queryConsumption, queryDemand, getDateRange, TimePeriod } from '../meterQueryHelpers';
+import { queryConsumption, queryDemand, queryVirtualConsumption, queryVirtualDemand, getDateRange, TimePeriod } from '../meterQueryHelpers';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -322,27 +322,40 @@ app.get('/:id/graph-data', async (c) => {
     const { startDate, endDate } = getDateRange(timeFrame, qs.startDate, qs.endDate);
     const isDemand = report.type === 'demand';
 
-    // Expand meter_selections into meter+element pairs
+    // Split meter_selections into virtual and physical meters
     const selections: any[] = Array.isArray(report.meter_selections) ? report.meter_selections : [];
-    const pairs: Array<{ meterId: number; meterElementId: number }> = [];
+    const allMeterIds = [...new Set(selections.map((s: any) => Number(s.meter_id)).filter(id => !isNaN(id) && id > 0))];
+
+    const virtualIdRows = allMeterIds.length > 0
+      ? (await execQuery(c.env, `SELECT DISTINCT meter_id FROM meter_virtual WHERE meter_id = ANY($1)`, [allMeterIds])).rows
+      : [];
+    const virtualMeterIdSet = new Set(virtualIdRows.map((r: any) => Number(r.meter_id)));
+
+    const physicalPairs: Array<{ meterId: number; meterElementId: number }> = [];
+    const virtualMeterIds: number[] = [];
 
     for (const sel of selections) {
       if (!sel.meter_id) continue;
       const meterId = Number(sel.meter_id);
-      if (sel.meter_element_ids && sel.meter_element_ids.length > 0) {
-        for (const elId of sel.meter_element_ids) {
-          pairs.push({ meterId, meterElementId: Number(elId) });
-        }
+
+      if (virtualMeterIdSet.has(meterId)) {
+        virtualMeterIds.push(meterId);
       } else {
-        const els = await execQuery(c.env, `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`, [meterId]);
-        for (const el of els.rows) {
-          pairs.push({ meterId, meterElementId: Number(el.meter_element_id) });
+        if (sel.meter_element_ids && sel.meter_element_ids.length > 0) {
+          for (const elId of sel.meter_element_ids) {
+            physicalPairs.push({ meterId, meterElementId: Number(elId) });
+          }
+        } else {
+          const els = await execQuery(c.env, `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`, [meterId]);
+          for (const el of els.rows) {
+            physicalPairs.push({ meterId, meterElementId: Number(el.meter_element_id) });
+          }
         }
       }
     }
 
-    // Fetch display names for all elements in one query
-    const elementIds = [...new Set(pairs.map(p => p.meterElementId))];
+    // Fetch display names for physical elements
+    const elementIds = [...new Set(physicalPairs.map(p => p.meterElementId))];
     const nameRows = elementIds.length > 0
       ? (await execQuery(
           c.env,
@@ -354,22 +367,29 @@ app.get('/:id/graph-data', async (c) => {
           [elementIds]
         )).rows
       : [];
-
     const nameMap = new Map(nameRows.map((r: any) => [Number(r.meter_element_id), r]));
 
-    // Build meter_element_labels (same field as dashboard)
+    // Fetch display names for virtual meters
+    const virtualNameRows = virtualMeterIds.length > 0
+      ? (await execQuery(c.env, `SELECT meter_id, name FROM meter WHERE meter_id = ANY($1)`, [virtualMeterIds])).rows
+      : [];
+    const virtualNameMap = new Map(virtualNameRows.map((r: any) => [Number(r.meter_id), r.name as string]));
+
+    // Build meter_element_labels — physical elements use element_id; virtual meters use meter_id as surrogate key
     const meter_element_labels: Record<number, string> = {};
     for (const [id, row] of nameMap.entries()) {
       meter_element_labels[id] = row.meter_name ?? `Element ${id}`;
     }
+    for (const [id, name] of virtualNameMap.entries()) {
+      meter_element_labels[id] = name ?? `Virtual Meter ${id}`;
+    }
 
-    // column name matches the dashboard data column
     const dataColumn = isDemand ? 'power' : 'calculated_kwh';
     const unit       = isDemand ? 'kW'    : 'kWh';
 
-    // Query each pair and flatten into grouped_data rows (same shape as dashboard)
+    // Query each physical pair and flatten into grouped_data rows (same shape as dashboard)
     const grouped_data: Array<Record<string, any>> = [];
-    await Promise.all(pairs.map(async ({ meterId, meterElementId }) => {
+    await Promise.all(physicalPairs.map(async ({ meterId, meterElementId }) => {
       const params = { tenantId, meterId, meterElementId, timePeriod, startDate: startDate.toISOString(), endDate: endDate.toISOString(), tzOffset };
       const raw = isDemand
         ? (await queryDemand(c.env, params)).map(r => ({ label_key: r.label_key, [dataColumn]: Number(r.power) }))
@@ -377,6 +397,19 @@ app.get('/:id/graph-data', async (c) => {
 
       for (const row of raw) {
         grouped_data.push({ ...row, meter_id: meterId, meter_element_id: meterElementId });
+      }
+    }));
+
+    // Query each virtual meter — one aggregated series per virtual meter
+    await Promise.all(virtualMeterIds.map(async (meterId) => {
+      const params = { tenantId, meterId, timePeriod, startDate: startDate.toISOString(), endDate: endDate.toISOString(), tzOffset };
+      const raw = isDemand
+        ? (await queryVirtualDemand(c.env, params)).map(r => ({ label_key: r.label_key, [dataColumn]: Number(r.power) }))
+        : (await queryVirtualConsumption(c.env, params)).map(r => ({ label_key: r.label_key, [dataColumn]: Number(r.calculated_kwh) }));
+
+      for (const row of raw) {
+        // Use meterId as surrogate meter_element_id so the pivot function assigns the right label
+        grouped_data.push({ ...row, meter_id: meterId, meter_element_id: meterId });
       }
     }));
 

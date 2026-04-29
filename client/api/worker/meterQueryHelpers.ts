@@ -99,7 +99,7 @@ function consumptionSql(period: TimePeriod): string {
         AND (created_at + ${tz}) <= $6::timestamptz
       GROUP BY 1 ORDER BY 1`;
   }
-  // weekly / monthly — group by local date
+  // weekly / monthly ï¿½ group by local date
   return `
     SELECT (created_at + ${tz})::date::text AS label_key,
            SUM(calculated_kwh) AS calculated_kwh
@@ -143,6 +143,83 @@ function demandSql(period: TimePeriod): string {
     GROUP BY 1 ORDER BY 1`;
 }
 
+// --- Virtual meter SQL builders -----------------------------------------------
+// Params: $1=tenantId, $2=virtualMeterId, $3=tzOffset, $4=startDate, $5=endDate
+
+function virtualConsumptionSql(period: TimePeriod): string {
+  const tz  = `($3::int * INTERVAL '1 minute')`;
+  const op  = `CASE WHEN mv.operation = '-' THEN -mr.calculated_kwh ELSE mr.calculated_kwh END`;
+  const base = `FROM meter_reading mr
+    JOIN meter_virtual mv
+      ON mv.selected_meter_id = mr.meter_id
+      AND mv.select_meter_element_id = mr.meter_element_id
+    WHERE mr.tenant_id = $1
+      AND mv.meter_id = $2`;
+
+  if (period === 'today') {
+    return `
+      SELECT EXTRACT(HOUR FROM (mr.created_at + ${tz}))::int AS label_key,
+             SUM(${op}) AS calculated_kwh
+      ${base}
+        AND mr.created_at >= $4::timestamptz
+        AND mr.created_at <= $5::timestamptz
+      GROUP BY 1 ORDER BY 1`;
+  }
+  if (period === 'yearly') {
+    return `
+      SELECT EXTRACT(MONTH FROM (mr.created_at + ${tz}))::int AS label_key,
+             SUM(${op}) AS calculated_kwh
+      ${base}
+        AND (mr.created_at + ${tz}) >= $4::timestamptz
+        AND (mr.created_at + ${tz}) <= $5::timestamptz
+      GROUP BY 1 ORDER BY 1`;
+  }
+  return `
+    SELECT (mr.created_at + ${tz})::date::text AS label_key,
+           SUM(${op}) AS calculated_kwh
+    ${base}
+      AND (mr.created_at + ${tz}) >= $4::timestamptz
+      AND (mr.created_at + ${tz}) <= $5::timestamptz
+    GROUP BY 1 ORDER BY 1`;
+}
+
+function virtualDemandSql(period: TimePeriod): string {
+  const tz  = `($3::int * INTERVAL '1 minute')`;
+  const op  = `CASE WHEN mv.operation = '-' THEN -mr.kw ELSE mr.kw END`;
+  const base = `FROM meter_reading mr
+    JOIN meter_virtual mv
+      ON mv.selected_meter_id = mr.meter_id
+      AND mv.select_meter_element_id = mr.meter_element_id
+    WHERE mr.tenant_id = $1
+      AND mv.meter_id = $2`;
+
+  if (period === 'today') {
+    return `
+      SELECT EXTRACT(HOUR FROM (mr.created_at + ${tz}))::int AS label_key,
+             SUM(${op}) AS power
+      ${base}
+        AND mr.created_at >= $4::timestamptz
+        AND mr.created_at <= $5::timestamptz
+      GROUP BY 1 ORDER BY 1`;
+  }
+  if (period === 'yearly') {
+    return `
+      SELECT EXTRACT(MONTH FROM (mr.created_at + ${tz}))::int AS label_key,
+             SUM(${op}) AS power
+      ${base}
+        AND (mr.created_at + ${tz}) >= $4::timestamptz
+        AND (mr.created_at + ${tz}) <= $5::timestamptz
+      GROUP BY 1 ORDER BY 1`;
+  }
+  return `
+    SELECT (mr.created_at + ${tz})::date::text AS label_key,
+           SUM(${op}) AS power
+    ${base}
+      AND (mr.created_at + ${tz}) >= $4::timestamptz
+      AND (mr.created_at + ${tz}) <= $5::timestamptz
+    GROUP BY 1 ORDER BY 1`;
+}
+
 // --- Public query functions ---------------------------------------------------
 
 export async function queryConsumption(env: Env, p: GraphQueryParams): Promise<ConsumptionPoint[]> {
@@ -154,5 +231,26 @@ export async function queryConsumption(env: Env, p: GraphQueryParams): Promise<C
 export async function queryDemand(env: Env, p: GraphQueryParams): Promise<DemandPoint[]> {
   const { tenantId, meterId, meterElementId, timePeriod, startDate, endDate, tzOffset = 0 } = p;
   const result = await execQuery(env, demandSql(timePeriod), [tenantId, meterId, meterElementId, tzOffset, startDate, endDate]);
+  return result.rows;
+}
+
+export interface VirtualGraphQueryParams {
+  tenantId: number;
+  meterId: number;
+  timePeriod: TimePeriod;
+  startDate: string;
+  endDate: string;
+  tzOffset?: number;
+}
+
+export async function queryVirtualConsumption(env: Env, p: VirtualGraphQueryParams): Promise<ConsumptionPoint[]> {
+  const { tenantId, meterId, timePeriod, startDate, endDate, tzOffset = 0 } = p;
+  const result = await execQuery(env, virtualConsumptionSql(timePeriod), [tenantId, meterId, tzOffset, startDate, endDate]);
+  return result.rows;
+}
+
+export async function queryVirtualDemand(env: Env, p: VirtualGraphQueryParams): Promise<DemandPoint[]> {
+  const { tenantId, meterId, timePeriod, startDate, endDate, tzOffset = 0 } = p;
+  const result = await execQuery(env, virtualDemandSql(timePeriod), [tenantId, meterId, tzOffset, startDate, endDate]);
   return result.rows;
 }
