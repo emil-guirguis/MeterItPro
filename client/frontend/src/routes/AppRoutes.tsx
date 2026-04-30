@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Box, CircularProgress } from '@mui/material';
 import { ProtectedRoute, AuthGuard } from '../components/auth';
 import { Permission } from '../types/auth';
 
@@ -35,7 +36,11 @@ const UnauthorizedPage = () => (
 
 const AppRoutes: React.FC = () => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
+    }>
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />

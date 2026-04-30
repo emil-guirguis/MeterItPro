@@ -35,21 +35,19 @@ export default function SystemStatusPage() {
 
   const fetchStatus = async () => {
     try {
-      let currentTenant = null;
-      try {
-        const tenantData = await tenantApi.getTenantInfo();
-        setTenantInfo(tenantData);
-        currentTenant = tenantData;
-      } catch (err) {
-        console.warn('Could not fetch tenant info:', err);
-        setLastUpdate(new Date());
-        setError(null);
-        return;
+      const [tenantResult, statusResult] = await Promise.allSettled([
+        tenantApi.getTenantInfo(),
+        localSyncApi.getStatus(),
+      ]);
+
+      if (tenantResult.status === 'fulfilled') {
+        setTenantInfo(tenantResult.value);
+      } else {
+        console.warn('Could not fetch tenant info:', tenantResult.reason);
       }
 
-      if (currentTenant) {
-        const status = await localSyncApi.getStatus();
-        setSyncStatus(status);
+      if (statusResult.status === 'fulfilled') {
+        setSyncStatus(statusResult.value);
       }
 
       setLastUpdate(new Date());

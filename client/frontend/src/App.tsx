@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import AppRoutes from './routes/AppRoutes';
 import AppLayoutWrapper from './components/layout/AppLayoutWrapper';
-import { prefetchAppSchemas } from './utils/schemaPrefetch';
+import { prefetchAppSchemas, prefetchAppRoutes } from './utils/schemaPrefetch';
 import { invalidateExpiredCache } from '@framework/components/form/utils/schemaLoader';
 import { useAuth } from './hooks/useAuth';
 import { setupDebugConsole } from './utils/debugConsole';
@@ -21,10 +21,11 @@ function App() {
     console.log(`[App +${(performance.now() - appStartTime).toFixed(0)}ms] isAuthenticated=${isAuthenticated} isLoading=${isLoading}`);
   }, [isAuthenticated, isLoading]);
 
-  // Prefetch schemas after user is authenticated and wait for completion
+  // Prefetch schemas and route chunks after auth resolves
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      console.log(`[App +${(performance.now() - appStartTime).toFixed(0)}ms] Auth resolved — layout mounting, starting schema prefetch`);
+      console.log(`[App +${(performance.now() - appStartTime).toFixed(0)}ms] Auth resolved — layout mounting, starting prefetch`);
+      prefetchAppRoutes();
       prefetchAppSchemas().catch((error) => {
         console.error('[App] Schema prefetch failed:', error);
       });

@@ -56,40 +56,22 @@ export function useConnectionStatus() {
 
   const checkAllConnections = async () => {
     try {
-      // Check sync API server
-      const syncApiConnected = await checkConnection('/health');
-      setStatus((prev) => ({
-        ...prev,
+      const [syncApiConnected, mcpServerConnected, syncDbConnected, remoteDbConnected, remoteApiConnected] =
+        await Promise.all([
+          checkConnection('/health'),
+          checkConnection('/api/health/mcp'),
+          checkConnection('/api/health/sync-db'),
+          checkConnection('/api/health/remote-db'),
+          checkConnection('/api/health/remote-api'),
+        ]);
+
+      setStatus({
         syncApi: syncApiConnected ? ConnectionState.CONNECTED : ConnectionState.DISCONNECTED,
-      }));
-
-      // Check MCP server status
-      const mcpServerConnected = await checkConnection('/api/health/mcp');
-      setStatus((prev) => ({
-        ...prev,
         mcpServer: mcpServerConnected ? ConnectionState.CONNECTED : ConnectionState.DISCONNECTED,
-      }));
-
-      // Check local sync database
-      const syncDbConnected = await checkConnection('/api/health/sync-db');
-      setStatus((prev) => ({
-        ...prev,
         syncDb: syncDbConnected ? ConnectionState.CONNECTED : ConnectionState.DISCONNECTED,
-      }));
-
-      // Check remote database
-      const remoteDbConnected = await checkConnection('/api/health/remote-db');
-      setStatus((prev) => ({
-        ...prev,
         remoteDb: remoteDbConnected ? ConnectionState.CONNECTED : ConnectionState.DISCONNECTED,
-      }));
-
-      // Check remote client API
-      const remoteApiConnected = await checkConnection('/api/health/remote-api');
-      setStatus((prev) => ({
-        ...prev,
         remoteApi: remoteApiConnected ? ConnectionState.CONNECTED : ConnectionState.DISCONNECTED,
-      }));
+      });
     } catch (err) {
       console.error('Error during connection checks:', err);
     }

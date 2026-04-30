@@ -42,7 +42,7 @@ export async function prefetchAppSchemas(): Promise<void> {
 /**
  * Prefetch schemas for a specific feature
  * Useful for lazy-loaded routes
- * 
+ *
  * @param entityNames - Array of entity names to prefetch
  */
 export async function prefetchFeatureSchemas(entityNames: string[]): Promise<void> {
@@ -51,4 +51,23 @@ export async function prefetchFeatureSchemas(entityNames: string[]): Promise<voi
   } catch (error) {
     console.error('[Schema Prefetch] Failed to prefetch feature schemas:', error);
   }
+}
+
+/**
+ * Kick off background downloads for the most-visited lazy route chunks.
+ * Calling import() primes the Vite/browser module cache — when React.lazy later
+ * resolves the same specifier it gets the cached module with no network round-trip.
+ */
+export function prefetchAppRoutes(): void {
+  // High-priority: users land here first
+  import('../pages/DashboardPage').catch(() => null);
+  import('../pages/MeterReadingsPage').catch(() => null);
+  // Medium-priority: common modules
+  import('../features/contacts').catch(() => null);
+  import('../pages').catch(() => null); // MetersPage, SettingsPage, ReportsPage barrel
+  // Lower-priority: admin modules
+  import('../features/users').catch(() => null);
+  import('../features/locations').catch(() => null);
+  import('../features/devices').catch(() => null);
+  import('../features/notifications').catch(() => null);
 }
