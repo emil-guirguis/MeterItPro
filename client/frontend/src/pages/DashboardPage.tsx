@@ -36,6 +36,38 @@ function pivotByMeterElement(data: AggregatedData): AggregatedData {
     return data;
   }
 
+  // Special case: MAX aggregation + total grouping → one bar per element with peak date on x-axis
+  const peakTimes = (data as any).peak_times as Record<string, Array<{
+    meter_element_id: number; peaked_at: string; max_value: number | null;
+  }>> | undefined;
+  const isTotalGrouping = !grouped_data?.some(r =>
+    r.date !== undefined || r.hour !== undefined ||
+    r.week_start !== undefined || r.month_start !== undefined
+  );
+  if (peakTimes && Object.keys(peakTimes).length > 0 && isTotalGrouping) {
+    const firstColPeaks = peakTimes[cols[0]] || [];
+    const elementRows: Record<string, any>[] = firstColPeaks.map(({ meter_element_id, peaked_at }) => {
+      const elementLabel = meter_element_labels[meter_element_id] || `Element ${meter_element_id}`;
+      const dateStr = peaked_at
+        ? new Date(peaked_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : '';
+      const row: Record<string, any> = {
+        label_key: dateStr || elementLabel,
+        element_name: elementLabel,
+      };
+      for (const col of cols) {
+        const peak = (peakTimes[col] || []).find((p: any) => p.meter_element_id === meter_element_id);
+        row[col] = peak?.max_value ?? null;
+      }
+      return row;
+    });
+    const newSeriesLabels: Record<string, string> = {};
+    for (const col of cols) {
+      newSeriesLabels[col] = colLabel(col, column_units);
+    }
+    return { ...data, grouped_data: elementRows, selected_columns: cols, series_labels: newSeriesLabels };
+  }
+
   const getTimeKey = (row: Record<string, any>): string => {
     const parts: any[] = [];
     if (row.date !== undefined) parts.push(row.date);
@@ -54,7 +86,7 @@ function pivotByMeterElement(data: AggregatedData): AggregatedData {
       if (row.hour !== undefined) base.hour = row.hour;
       if (row.week_start !== undefined) base.week_start = row.week_start;
       if (row.month_start !== undefined) base.month_start = row.month_start;
-      pivotMap.set(key, base);
+pivotMap.set(key, base);
     }
     const pivotRow = pivotMap.get(key)!;
     for (const col of cols) {

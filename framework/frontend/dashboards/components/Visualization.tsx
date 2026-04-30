@@ -173,6 +173,9 @@ export const Visualization: React.FC<VisualizationProps> = ({
   }
 
   // ── Time-series (line / bar / area) ─────────────────────────────────────────
+
+  const allHaveLabelKey = rows.length > 0 && rows.every(r => 'label_key' in r);
+
   const categories = rows.map(r => {
     const x = getXKey(r);
     if ('hour' in r) {
@@ -180,6 +183,7 @@ export const Visualization: React.FC<VisualizationProps> = ({
       return isNaN(h) ? x : (h === 0 ? '12AM' : h < 12 ? `${h}AM` : h === 12 ? '12PM' : `${h - 12}PM`);
     }
     if (typeof x === 'string' && x.includes('T')) return x.split('T')[0];
+    if (x.includes('\n')) return x.split('\n');
     return x;
   });
 
@@ -194,21 +198,29 @@ export const Visualization: React.FC<VisualizationProps> = ({
     color: COLORS[i % COLORS.length],
   }));
 
-  const legendItems: LegendItem[] = columns.map((col, i) => ({
-    col,
-    name: seriesLabels?.[col] ?? labelForKey(col),
-    color: COLORS[i % COLORS.length],
-  }));
+  const legendItems: LegendItem[] = (allHaveLabelKey && columns.length === 1)
+    ? rows.map((r, i) => ({
+        col: String(i),
+        name: (r as any).element_name ?? getXKey(r),
+        color: COLORS[i % COLORS.length],
+      }))
+    : columns.map((col, i) => ({
+        col,
+        name: seriesLabels?.[col] ?? labelForKey(col),
+        color: COLORS[i % COLORS.length],
+      }));
 
   const xaxis: ApexXAxis = {
     categories,
     labels: {
-      rotate: -45,
+      rotate: allHaveLabelKey ? 0 : -45,
       style: { fontSize: '11px', colors: '#64748b' },
+      hideOverlappingLabels: false,
     },
     axisBorder: { show: false },
     axisTicks: { show: false },
   };
+
 
   const yaxis: ApexYAxis = {
     labels: {
@@ -228,7 +240,7 @@ export const Visualization: React.FC<VisualizationProps> = ({
     : { opacity: 1 };
 
   const plotOptions = type === 'bar'
-    ? { bar: { borderRadius: 4, columnWidth: '60%' } }
+    ? { bar: { borderRadius: 4, columnWidth: allHaveLabelKey ? '50%' : '60%', distributed: allHaveLabelKey && columns.length === 1 } }
     : {};
 
   const apexType = type === 'candlestick' ? 'bar' : type;
@@ -246,6 +258,7 @@ export const Visualization: React.FC<VisualizationProps> = ({
           fill,
           plotOptions,
           colors: COLORS,
+          dataLabels: { enabled: false },
         }}
         width="100%"
         height={height}

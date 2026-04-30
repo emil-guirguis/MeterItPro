@@ -54,6 +54,7 @@ export interface AggregatedData {
   column_units?: Record<string, string>;
   meter_element_labels?: Record<number, string>;
   series_labels?: Record<string, string>;
+  peak_times?: Record<string, Array<{ meter_element_id: number; peaked_at: string; max_value: number | null }>>;
   daily_values?: Array<{
     date: string;
     [key: string]: any;

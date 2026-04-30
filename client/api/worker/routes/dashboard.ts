@@ -203,7 +203,7 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
       return c.json({ success: true, data: { card_id: card.dashboard_id, aggregated_values: {}, grouped_data: [] } });
     }
 
-    // Calculate time frame — query params override the card's stored settings
+    // Calculate time frame ï¿½ query params override the card's stored settings
     const now = new Date();
     let startDate: Date;
     let endDate: Date;
@@ -231,7 +231,7 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
       endDate = (timeFrameType === 'custom' && card.custom_end_date) ? new Date(card.custom_end_date) : now;
     }
 
-    // Aggregation type — used for both aggregated_values and grouped_data
+    // Aggregation type ï¿½ used for both aggregated_values and grouped_data
     const rawAggType = (card.aggregation_type || 'avg').toLowerCase();
     const isNoAgg = rawAggType === 'none';
     const aggFn = rawAggType === 'min' ? 'MIN' : rawAggType === 'max' ? 'MAX' : rawAggType === 'sum' ? 'SUM' : 'AVG';
@@ -305,6 +305,31 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
     const aggResult = await execQuery(c.env, aggSql, aggParams);
     const groupResult = await execQuery(c.env, groupSql, aggParams);
 
+    // When aggregation is MAX, find per-meter-element the record where each selected column peaked
+    const peak_times: Record<string, Array<{ meter_element_id: number; peaked_at: string; max_value: number | null }>> = {};
+    if (aggFn === 'MAX' && selectedColumns.length > 0) {
+      for (const col of selectedColumns) {
+        const peakSql = `
+          SELECT DISTINCT ON (mr.meter_element_id)
+            mr.meter_element_id,
+            mr.${col} AS max_value,
+            mr.created_at AS peaked_at
+          ${fromClause}
+          ${whereClause}
+          ORDER BY mr.meter_element_id, mr.${col} DESC NULLS LAST`;
+        const peakResult = await execQuery(c.env, peakSql, aggParams);
+        if (peakResult.rows.length > 0) {
+          peak_times[col] = peakResult.rows
+            .filter((r: any) => r.peaked_at != null)
+            .map((r: any) => ({
+              meter_element_id: Number(r.meter_element_id),
+              peaked_at: String(r.peaked_at),
+              max_value: r.max_value != null ? Number(r.max_value) : null,
+            }));
+        }
+      }
+    }
+
     // Build a label map: { meter_element_id -> display label }
     const meter_element_labels: Record<number, string> = {};
     for (const row of groupResult.rows) {
@@ -344,6 +369,7 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
         grouped_data: groupResult.rows,
         grouping_type: card.grouping_type || 'daily',
         visualization_type: card.visualization_type,
+        peak_times,
       },
     });
   } catch (error: any) {
@@ -380,7 +406,7 @@ app.post('/cards', requirePermission('dashboard:create'), async (c) => {
       }
     }
 
-    // Determine grid position — scan for first available space (left-to-right, top-to-bottom)
+    // Determine grid position ï¿½ scan for first available space (left-to-right, top-to-bottom)
     const existingCards = await findAll(c.env, {
       table: 'dashboard',
       primaryKey: 'dashboard_id',
