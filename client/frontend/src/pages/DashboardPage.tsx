@@ -36,35 +36,38 @@ function pivotByMeterElement(data: AggregatedData): AggregatedData {
     return data;
   }
 
-  // Special case: MAX aggregation + total grouping → one bar per element with peak date on x-axis
-  const peakTimes = (data as any).peak_times as Record<string, Array<{
-    meter_element_id: number; peaked_at: string; max_value: number | null;
-  }>> | undefined;
-  const isTotalGrouping = !grouped_data?.some(r =>
-    r.date !== undefined || r.hour !== undefined ||
-    r.week_start !== undefined || r.month_start !== undefined
-  );
-  if (peakTimes && Object.keys(peakTimes).length > 0 && isTotalGrouping) {
-    const firstColPeaks = peakTimes[cols[0]] || [];
-    const elementRows: Record<string, any>[] = firstColPeaks.map(({ meter_element_id, peaked_at }) => {
-      const elementLabel = meter_element_labels[meter_element_id] || `Element ${meter_element_id}`;
-      const dateStr = peaked_at
-        ? new Date(peaked_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  // When rows include peaked_at (MAX aggregation), show one bar per element using the
+  // record with the highest value across all time buckets.
+  const hasPeakedAt = grouped_data.some(r => 'peaked_at' in r);
+  if (hasPeakedAt) {
+    const primaryCol = cols[0];
+    // For each element, find the row with the highest value for the primary column
+    const bestByElement = new Map<number, Record<string, any>>();
+    for (const row of grouped_data) {
+      const eid = Number(row.meter_element_id);
+      const val = typeof row[primaryCol] === 'number' ? row[primaryCol] : parseFloat(String(row[primaryCol] ?? ''));
+      const prev = bestByElement.get(eid);
+      const prevVal = prev ? (typeof prev[primaryCol] === 'number' ? prev[primaryCol] : parseFloat(String(prev[primaryCol] ?? ''))) : -Infinity;
+      if (!prev || val > prevVal) bestByElement.set(eid, row);
+    }
+    const elementRows: Record<string, any>[] = elementIds.map(eid => {
+      const best = bestByElement.get(eid);
+      const elementLabel = meter_element_labels[eid] || `Element ${eid}`;
+      const peakedAt = best?.peaked_at ? String(best.peaked_at) : '';
+      const dateStr = peakedAt
+        ? new Date(peakedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
         : '';
       const row: Record<string, any> = {
         label_key: dateStr || elementLabel,
         element_name: elementLabel,
       };
       for (const col of cols) {
-        const peak = (peakTimes[col] || []).find((p: any) => p.meter_element_id === meter_element_id);
-        row[col] = peak?.max_value ?? null;
+        row[col] = best?.[col] ?? null;
       }
       return row;
     });
     const newSeriesLabels: Record<string, string> = {};
-    for (const col of cols) {
-      newSeriesLabels[col] = colLabel(col, column_units);
-    }
+    for (const col of cols) newSeriesLabels[col] = colLabel(col, column_units);
     return { ...data, grouped_data: elementRows, selected_columns: cols, series_labels: newSeriesLabels };
   }
 

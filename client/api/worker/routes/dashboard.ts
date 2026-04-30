@@ -275,60 +275,55 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
 
     const meterCols = `mr.meter_id as meter_id, mr.meter_element_id as meter_element_id, (CASE WHEN mr.meter_element_id IS NOT NULL THEN CONCAT(COALESCE(m.name, 'Unknown Meter'), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, 'Unknown')) ELSE COALESCE(m.name, 'Unknown Meter') END) as name`;
 
+    // Raw columns for DISTINCT ON queries (no aggregation — returns the actual peak row)
+    const rawCols = selectedColumns.map((col: string) => `mr.${col} as "${col}"`).join(', ');
+    const primaryCol = selectedColumns[0];
+
     // Build both queries with the same grouping structure
+    // aggSql  → GROUP BY + agg fn  → used for aggregated_values summary
+    // groupSql → for MAX: DISTINCT ON with peaked_at; for others: same as aggSql
     let aggSql: string;
     let groupSql: string;
 
     if (groupingType === 'total') {
-      // For 'total' grouping, just aggregate without time grouping
       aggSql = `SELECT ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY mr.meter_id, mr.meter_element_id, m.name, me.element, me.name`;
-      groupSql = aggSql;
+      groupSql = aggFn === 'MAX'
+        ? `SELECT DISTINCT ON (mr.meter_element_id) ${meterCols}, ${rawCols}, mr.created_at as peaked_at ${fromClause} ${whereClause} ORDER BY mr.meter_element_id, mr.${primaryCol} DESC NULLS LAST`
+        : aggSql;
     } else if (groupingType === 'hourly') {
-      const dateHourCols = `DATE(mr.created_at AT TIME ZONE '${tz}') as date, EXTRACT(HOUR FROM mr.created_at AT TIME ZONE '${tz}') as hour`;
-      aggSql = `SELECT ${dateHourCols}, ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY DATE(mr.created_at AT TIME ZONE '${tz}'), EXTRACT(HOUR FROM mr.created_at AT TIME ZONE '${tz}'), mr.meter_id, mr.meter_element_id, m.name, me.element, me.name ORDER BY date, hour`;
-      groupSql = aggSql;
+      const hourExpr = `DATE(mr.created_at AT TIME ZONE '${tz}'), EXTRACT(HOUR FROM mr.created_at AT TIME ZONE '${tz}')::int`;
+      const hourCols  = `DATE(mr.created_at AT TIME ZONE '${tz}') as date, EXTRACT(HOUR FROM mr.created_at AT TIME ZONE '${tz}') as hour`;
+      aggSql = `SELECT ${hourCols}, ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY ${hourExpr}, mr.meter_id, mr.meter_element_id, m.name, me.element, me.name ORDER BY date, hour`;
+      groupSql = aggFn === 'MAX'
+        ? `SELECT DISTINCT ON (${hourExpr}, mr.meter_element_id) ${hourCols}, ${meterCols}, ${rawCols}, mr.created_at as peaked_at ${fromClause} ${whereClause} ORDER BY ${hourExpr}, mr.meter_element_id, mr.${primaryCol} DESC NULLS LAST`
+        : aggSql;
     } else if (groupingType === 'weekly') {
-      const weekCols = `DATE_TRUNC('week', mr.created_at AT TIME ZONE '${tz}')::date as week_start`;
+      const weekExpr = `DATE_TRUNC('week', mr.created_at AT TIME ZONE '${tz}')::date`;
+      const weekCols  = `${weekExpr} as week_start`;
       aggSql = `SELECT ${weekCols}, ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY DATE_TRUNC('week', mr.created_at AT TIME ZONE '${tz}'), mr.meter_id, mr.meter_element_id, m.name, me.element, me.name ORDER BY week_start`;
-      groupSql = aggSql;
+      groupSql = aggFn === 'MAX'
+        ? `SELECT DISTINCT ON (${weekExpr}, mr.meter_element_id) ${weekCols}, ${meterCols}, ${rawCols}, mr.created_at as peaked_at ${fromClause} ${whereClause} ORDER BY ${weekExpr}, mr.meter_element_id, mr.${primaryCol} DESC NULLS LAST`
+        : aggSql;
     } else if (groupingType === 'monthly') {
-      const monthCols = `DATE_TRUNC('month', mr.created_at AT TIME ZONE '${tz}')::date as month_start`;
+      const monthExpr = `DATE_TRUNC('month', mr.created_at AT TIME ZONE '${tz}')::date`;
+      const monthCols  = `${monthExpr} as month_start`;
       aggSql = `SELECT ${monthCols}, ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY DATE_TRUNC('month', mr.created_at AT TIME ZONE '${tz}'), mr.meter_id, mr.meter_element_id, m.name, me.element, me.name ORDER BY month_start`;
-      groupSql = aggSql;
+      groupSql = aggFn === 'MAX'
+        ? `SELECT DISTINCT ON (${monthExpr}, mr.meter_element_id) ${monthCols}, ${meterCols}, ${rawCols}, mr.created_at as peaked_at ${fromClause} ${whereClause} ORDER BY ${monthExpr}, mr.meter_element_id, mr.${primaryCol} DESC NULLS LAST`
+        : aggSql;
     } else {
       // daily (default)
-      const dateCols = `DATE(mr.created_at AT TIME ZONE '${tz}') as date`;
-      aggSql = `SELECT ${dateCols}, ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY DATE(mr.created_at AT TIME ZONE '${tz}'), mr.meter_id, mr.meter_element_id, m.name, me.element, me.name ORDER BY date`;
-      groupSql = aggSql;
+      const dateExpr = `DATE(mr.created_at AT TIME ZONE '${tz}')`;
+      const dateCols  = `${dateExpr} as date`;
+      aggSql = `SELECT ${dateCols}, ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY ${dateExpr}, mr.meter_id, mr.meter_element_id, m.name, me.element, me.name ORDER BY date`;
+      groupSql = aggFn === 'MAX'
+        ? `SELECT DISTINCT ON (${dateExpr}, mr.meter_element_id) ${dateCols}, ${meterCols}, ${rawCols}, mr.created_at as peaked_at ${fromClause} ${whereClause} ORDER BY ${dateExpr}, mr.meter_element_id, mr.${primaryCol} DESC NULLS LAST`
+        : aggSql;
     }
 
     const aggResult = await execQuery(c.env, aggSql, aggParams);
     const groupResult = await execQuery(c.env, groupSql, aggParams);
 
-    // When aggregation is MAX, find per-meter-element the record where each selected column peaked
-    const peak_times: Record<string, Array<{ meter_element_id: number; peaked_at: string; max_value: number | null }>> = {};
-    if (aggFn === 'MAX' && selectedColumns.length > 0) {
-      for (const col of selectedColumns) {
-        const peakSql = `
-          SELECT DISTINCT ON (mr.meter_element_id)
-            mr.meter_element_id,
-            mr.${col} AS max_value,
-            mr.created_at AS peaked_at
-          ${fromClause}
-          ${whereClause}
-          ORDER BY mr.meter_element_id, mr.${col} DESC NULLS LAST`;
-        const peakResult = await execQuery(c.env, peakSql, aggParams);
-        if (peakResult.rows.length > 0) {
-          peak_times[col] = peakResult.rows
-            .filter((r: any) => r.peaked_at != null)
-            .map((r: any) => ({
-              meter_element_id: Number(r.meter_element_id),
-              peaked_at: String(r.peaked_at),
-              max_value: r.max_value != null ? Number(r.max_value) : null,
-            }));
-        }
-      }
-    }
 
     // Build a label map: { meter_element_id -> display label }
     const meter_element_labels: Record<number, string> = {};
@@ -369,7 +364,6 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
         grouped_data: groupResult.rows,
         grouping_type: card.grouping_type || 'daily',
         visualization_type: card.visualization_type,
-        peak_times,
       },
     });
   } catch (error: any) {

@@ -183,7 +183,7 @@ export const Visualization: React.FC<VisualizationProps> = ({
       return isNaN(h) ? x : (h === 0 ? '12AM' : h < 12 ? `${h}AM` : h === 12 ? '12PM' : `${h - 12}PM`);
     }
     if (typeof x === 'string' && x.includes('T')) return x.split('T')[0];
-    if (x.includes('\n')) return x.split('\n');
+    if ('label_key' in r) return x.includes('\n') ? x.split('\n') : [x];
     return x;
   });
 

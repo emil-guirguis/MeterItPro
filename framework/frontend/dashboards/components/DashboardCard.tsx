@@ -9,6 +9,13 @@
 import React, { useState, useEffect } from 'react';
 import type { DashboardCard as DashboardCardType, AggregatedData, VisualizationType } from '../types';
 import {
+  TIME_FRAME_OPTIONS,
+  VISUALIZATION_OPTIONS,
+  GROUPING_OPTIONS,
+  AGGREGATION_OPTIONS,
+  normaliseAggregation,
+} from '../dashboardOptions';
+import {
   Card,
   CardContent,
   Box,
@@ -44,16 +51,6 @@ export interface DashboardCardProps {
   className?: string;
   isSaving?: boolean;
 }
-
-// Grouping options available per time frame
-const GROUPING_OPTIONS: Record<string, { value: string; label: string }[]> = {
-  today:              [{ value: 'hourly',  label: 'Hourly'  }],
-  last_month:         [{ value: 'daily',   label: 'Daily'   }, { value: 'weekly', label: 'Weekly' }],
-  this_month_to_date: [{ value: 'daily',   label: 'Daily'   }, { value: 'weekly', label: 'Weekly' }],
-  since_installation: [{ value: 'daily',   label: 'Daily'   }, { value: 'weekly', label: 'Weekly'   }, { value: 'monthly', label: 'Monthly' }],
-  yearly:             [{ value: 'monthly', label: 'Monthly' }],
-  custom:             [{ value: 'daily',   label: 'Daily'   }, { value: 'weekly', label: 'Weekly'   }, { value: 'monthly', label: 'Monthly' }],
-};
 
 // Small icon-button helper — avoids MUI Button overhead for icon-only actions
 const IconBtn: React.FC<{
@@ -163,11 +160,6 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
     const newTimeFrame = e.target.value;
     console.log('[DashboardCard] timeFrame changed - card.id:', card.id, 'value:', newTimeFrame);
     onTimeFrameChange?.(card.id, newTimeFrame);
-    const validGroupings = GROUPING_OPTIONS[newTimeFrame] ?? GROUPING_OPTIONS['last_month'];
-    const isCurrentValid = validGroupings.some(o => o.value === groupingType);
-    if (!isCurrentValid) {
-      onGroupingChange?.(card.id, validGroupings[0].value);
-    }
   };
   const handleAggregationChange = (e: any) => {
     console.log('[DashboardCard] aggregation changed - card.id:', card.id, 'value:', e.target.value);
@@ -199,9 +191,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
   const currentVisualization = (card.visualization_type || 'line') as VisualizationType;
   const groupingType = (card as any).grouping_type || 'daily';
   const timeFrameType = (card as any).time_frame_type || 'last_month';
-  const VALID_AGGREGATIONS = ['avg', 'min', 'max'];
-  const rawAggregation = (card as any).aggregation_type;
-  const aggregationType = VALID_AGGREGATIONS.includes(rawAggregation) ? rawAggregation : 'avg';
+  const aggregationType = normaliseAggregation((card as any).aggregation_type);
   // Prefer the mapped column names returned by the API in data.selected_columns,
   // which match the keys inside grouped_data. Fall back to the card's stored raw names.
   const selectedColumns: string[] = (data as any)?.selected_columns || (card as any).selected_columns || [];
@@ -329,35 +319,22 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
       <Box sx={{ px: 2, pb: 1.5, display: 'flex', gap: 1 }}>
         {onTimeFrameChange && (
           <Select value={timeFrameType} onChange={handleTimeFrameChange} disabled={isSaving || loading} size="small" sx={selectSx}>
-            <MenuItem value="today" sx={menuItemSx}>Today</MenuItem>
-            <MenuItem value="this_month_to_date" sx={menuItemSx}>This Month</MenuItem>
-            <MenuItem value="last_month" sx={menuItemSx}>Last Month</MenuItem>
-            <MenuItem value="since_installation" sx={menuItemSx}>Since Install</MenuItem>
-            <MenuItem value="custom" sx={menuItemSx}>Custom</MenuItem>
-            <MenuItem value="yearly" sx={menuItemSx}>Yearly</MenuItem>
+            {TIME_FRAME_OPTIONS.map(o => <MenuItem key={o.value} value={o.value} sx={menuItemSx}>{o.label}</MenuItem>)}
           </Select>
         )}
         {onVisualizationChange && (
           <Select value={currentVisualization} onChange={handleVisualizationChange} disabled={isSaving || loading} size="small" sx={selectSx}>
-            {(['pie', 'line', 'bar', 'area', 'candlestick'] as VisualizationType[]).map(t => (
-              <MenuItem key={t} value={t} sx={menuItemSx}>{t.charAt(0).toUpperCase() + t.slice(1)}</MenuItem>
-            ))}
+            {VISUALIZATION_OPTIONS.map(o => <MenuItem key={o.value} value={o.value} sx={menuItemSx}>{o.label}</MenuItem>)}
           </Select>
         )}
-        {onGroupingChange && (() => {
-          const opts = GROUPING_OPTIONS[timeFrameType] ?? GROUPING_OPTIONS['last_month'];
-          const onlyOne = opts.length === 1;
-          return (
-            <Select value={groupingType} onChange={handleGroupingChange} disabled={isSaving || loading || onlyOne} size="small" sx={selectSx}>
-              {opts.map(o => <MenuItem key={o.value} value={o.value} sx={menuItemSx}>{o.label}</MenuItem>)}
-            </Select>
-          );
-        })()}
+        {onGroupingChange && (
+          <Select value={groupingType} onChange={handleGroupingChange} disabled={isSaving || loading} size="small" sx={selectSx}>
+            {GROUPING_OPTIONS.map(o => <MenuItem key={o.value} value={o.value} sx={menuItemSx}>{o.label}</MenuItem>)}
+          </Select>
+        )}
         {onAggregationChange && (
           <Select value={aggregationType} onChange={handleAggregationChange} disabled={isSaving || loading} size="small" sx={selectSx}>
-            <MenuItem value="avg" sx={menuItemSx}>Average</MenuItem>
-            <MenuItem value="min" sx={menuItemSx}>Minimum</MenuItem>
-            <MenuItem value="max" sx={menuItemSx}>Maximum</MenuItem>
+            {AGGREGATION_OPTIONS.map(o => <MenuItem key={o.value} value={o.value} sx={menuItemSx}>{o.label}</MenuItem>)}
           </Select>
         )}
       </Box>

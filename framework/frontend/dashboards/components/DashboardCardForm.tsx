@@ -24,6 +24,12 @@ import {
   type MeterRowValue,
 } from '../../../../client/frontend/src/components/shared/MeterElementRegisterSelectorGrid';
 import './DashboardCardForm.css';
+import {
+  TIME_FRAME_OPTIONS,
+  VISUALIZATION_OPTIONS,
+  GROUPING_OPTIONS,
+  AGGREGATION_OPTIONS,
+} from '../dashboardOptions';
 
 export interface DashboardCardModalProps {
   isOpen: boolean;
@@ -251,46 +257,28 @@ export const DashboardCardForm: React.FC<DashboardCardModalProps> = ({
             <FormControl size="small" sx={{ minWidth: 180 }} disabled={isDisabled}>
               <InputLabel>Time Frame</InputLabel>
               <Select label="Time Frame" name="time_frame_type" value={formData.time_frame_type} onChange={handleFieldChange}>
-                <MenuItem value="today">Today</MenuItem>
-                <MenuItem value="last_month">Last Month</MenuItem>
-                <MenuItem value="this_month_to_date">This Month to Date</MenuItem>
-                <MenuItem value="yearly">This Year</MenuItem>
-                <MenuItem value="since_installation">Since Installation</MenuItem>
-                <MenuItem value="custom">Custom Date Range</MenuItem>
+                {TIME_FRAME_OPTIONS.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
               </Select>
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 150 }} disabled={isDisabled}>
               <InputLabel>Visualization</InputLabel>
               <Select label="Visualization" name="visualization_type" value={formData.visualization_type} onChange={handleFieldChange}>
-                <MenuItem value="bar">Bar Chart</MenuItem>
-                <MenuItem value="line">Line Chart</MenuItem>
-                <MenuItem value="pie">Pie Chart</MenuItem>
-                <MenuItem value="area">Area Chart</MenuItem>
-                <MenuItem value="candlestick">Candlestick</MenuItem>
-                <MenuItem value="list">List</MenuItem>
+                {VISUALIZATION_OPTIONS.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
               </Select>
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 130 }} disabled={isDisabled}>
               <InputLabel>Grouping</InputLabel>
               <Select label="Grouping" name="grouping_type" value={formData.grouping_type} onChange={handleFieldChange}>
-                <MenuItem value="total">Total</MenuItem>
-                <MenuItem value="hourly">Hourly</MenuItem>
-                <MenuItem value="daily">Daily</MenuItem>
-                <MenuItem value="weekly">Weekly</MenuItem>
-                <MenuItem value="monthly">Monthly</MenuItem>
+                {GROUPING_OPTIONS.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
               </Select>
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 130 }} disabled={isDisabled}>
               <InputLabel>Aggregation</InputLabel>
               <Select label="Aggregation" name="aggregation_type" value={formData.aggregation_type} onChange={handleFieldChange}>
-                <MenuItem value="sum">Sum</MenuItem>
-                <MenuItem value="average">Average</MenuItem>
-                <MenuItem value="min">Min</MenuItem>
-                <MenuItem value="max">Max</MenuItem>
-                <MenuItem value="none">None</MenuItem>
+                {AGGREGATION_OPTIONS.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
               </Select>
             </FormControl>
           </Box>
