@@ -6,7 +6,7 @@ echo "[provisioner] Polling ${CLIENT_API_URL} for tunnel token..."
 
 while true; do
   RESPONSE=$(curl -sf \
-    "${CLIENT_API_URL}/api/sync-servers/${SYNC_SERVER_ID}/bootstrap?key=${SYNC_SERVER_BOOTSTRAP_KEY}" \
+    "${CLIENT_API_URL}/sync-servers/${SYNC_SERVER_ID}/bootstrap?key=${SYNC_SERVER_BOOTSTRAP_KEY}" \
     2>/dev/null) || true
 
   if [ -n "$RESPONSE" ]; then
