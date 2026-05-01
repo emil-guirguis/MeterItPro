@@ -20,7 +20,10 @@ export const FieldTypes = {
   URL: 'url',
   OBJECT: 'object',
   ARRAY: 'array',
-  JSON: 'json'
+  JSON: 'json',
+  TIMEZONE: 'timezone',
+  CURRENCY: 'currency',
+  LANGUAGE: 'language',
 } as const;
 
 export type FieldType = typeof FieldTypes[keyof typeof FieldTypes];

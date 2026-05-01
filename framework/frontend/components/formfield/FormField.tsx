@@ -10,8 +10,12 @@ import {
   RadioGroup,
   Radio,
   InputAdornment,
+  IconButton,
   Switch,
+  Autocomplete,
 } from '@mui/material';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import { NumberSpinner } from './NumberSpinner';
 import { URLLink } from './URLLink';
 import { CronField } from './CronField';
@@ -26,7 +30,7 @@ export interface FormFieldOption {
 export interface FormFieldProps {
   name: string;
   label?: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'textarea' | 'select' | 'checkbox' | 'radio' | 'date' | 'time' | 'datetime' | 'url' | 'tel' | 'search' | 'file' | 'country' | 'cron';
+  type?: 'text' | 'email' | 'password' | 'number' | 'textarea' | 'select' | 'checkbox' | 'radio' | 'date' | 'time' | 'datetime' | 'url' | 'tel' | 'search' | 'file' | 'country' | 'cron' | 'timezone' | 'currency' | 'language';
   value?: any;
   error?: string;
   touched?: boolean;
@@ -35,6 +39,7 @@ export interface FormFieldProps {
   required?: boolean;
   disabled?: boolean;
   modified?: boolean;
+  searchable?: boolean;
   options?: FormFieldOption[];
   rows?: number;
   min?: number | string;
@@ -63,6 +68,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
     required,
     disabled,
     modified,
+    searchable,
     options,
     rows = 4,
     min,
@@ -146,6 +152,43 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
           );
 
         case 'select':
+        case 'timezone':
+        case 'currency':
+        case 'language': {
+          if (searchable || type === 'timezone' || type === 'currency' || type === 'language') {
+            const selectedOption = (options ?? []).find(o => String(o.value) === String(value ?? '')) ?? null;
+            return (
+              <Autocomplete
+                id={fieldId}
+                options={options ?? []}
+                getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt.label)}
+                isOptionEqualToValue={(opt, val) => String(opt.value) === String(val?.value ?? val)}
+                value={selectedOption}
+                onChange={(_e, newOpt) => {
+                  onChange?.({ target: { name, value: newOpt?.value ?? '' } } as any);
+                }}
+                onBlur={onBlur}
+                disabled={disabled}
+                data-field={name}
+                data-component="select-searchable"
+                sx={{
+                  '& .MuiOutlinedInput-root': { padding: '0 !important' },
+                  '& .MuiAutocomplete-input': { padding: '8px 12px !important' },
+                  '& .MuiAutocomplete-endAdornment': { right: '9px' },
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={label}
+                    required={required}
+                    error={!!showError}
+                    helperText={showError ? error : help}
+                    placeholder={placeholder}
+                  />
+                )}
+              />
+            );
+          }
           return (
             <FormControl fullWidth error={showError} disabled={disabled} variant="outlined" data-field={name} data-component="select">
               <InputLabel id={`${fieldId}-label`}>{label}</InputLabel>
@@ -170,6 +213,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               {!showError && help && <FormHelperText>{help}</FormHelperText>}
             </FormControl>
           );
+        }
 
         case 'country':
           const countries = [
@@ -305,28 +349,63 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               data-component="email"
               {...(showError && { 'aria-invalid': true })}
               aria-describedby={showError ? errorId : undefined}
+              InputProps={{
+                sx: value ? { color: '#1a73e8' } : {},
+                endAdornment: value ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      tabIndex={-1}
+                      title="Send email"
+                      onClick={(e) => { e.stopPropagation(); window.open(`mailto:${value}`, '_self'); }}
+                    >
+                      <EmailOutlinedIcon fontSize="small" sx={{ color: '#1a73e8' }} />
+                    </IconButton>
+                  </InputAdornment>
+                ) : undefined,
+              }}
             />
           );
 
         case 'url':
           return (
-            <div data-field={name} data-component="url">
-              <URLLink
-                value={value ?? ''}
-                onChange={(newValue) => {
-                  const syntheticEvent = {
-                    target: {
-                      name,
-                      value: newValue,
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>;
-                  onChange(syntheticEvent);
-                }}
-                onBlur={onBlur}
-                disabled={disabled}
-                placeholder={placeholder}
-              />
-            </div>
+            <TextField
+              id={fieldId}
+              name={name}
+              label={label}
+              type="url"
+              value={value ?? ''}
+              onChange={onChange}
+              onBlur={onBlur}
+              required={required}
+              disabled={disabled}
+              fullWidth
+              variant="outlined"
+              error={showError}
+              helperText={showError ? error : help}
+              placeholder={placeholder}
+              data-field={name}
+              data-component="url"
+              InputProps={{
+                sx: value ? { color: '#1a73e8' } : {},
+                endAdornment: value ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      tabIndex={-1}
+                      title="Open URL"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const url = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }}
+                    >
+                      <OpenInNewIcon fontSize="small" sx={{ color: '#1a73e8' }} />
+                    </IconButton>
+                  </InputAdornment>
+                ) : undefined,
+              }}
+            />
           );
 
         case 'tel':

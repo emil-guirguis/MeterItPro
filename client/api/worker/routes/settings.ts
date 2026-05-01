@@ -28,13 +28,15 @@ function tenantToSettings(tenant: any) {
     },
     contactInfo: {
       url: tenant.url ?? '',
+      email: tenant.contact_email ?? '',
     },
     systemConfig: {
       timezone: tenant.timezone ?? '',
       dateFormat: tenant.date_format ?? '',
-      timeFormat: tenant.time_format ?? '',
+      timeFormat: tenant.time_format ?? '12h',
       currency: tenant.currency ?? '',
       language: tenant.language ?? '',
+      defaultPageSize: tenant.default_page_size ?? 20,
     },
     features: {
       userManagement: true,
@@ -101,13 +103,20 @@ app.put('/company', requirePermission('settings:update'), async (c) => {
     // Map CompanySettings fields to tenant columns
     const updateData: Record<string, any> = {};
     if (body.name !== undefined)                   updateData.name    = body.name;
-    if (body.contactInfo?.url !== undefined)        updateData.url     = body.contactInfo.url;
+    if (body.contactInfo?.url !== undefined)           updateData.url           = body.contactInfo.url;
+    if (body.contactInfo?.email !== undefined)         updateData.contact_email = body.contactInfo.email;
     if (body.address?.street !== undefined)         updateData.street  = body.address.street;
     if (body.address?.street2 !== undefined)        updateData.street2 = body.address.street2;
     if (body.address?.city !== undefined)           updateData.city    = body.address.city;
     if (body.address?.state !== undefined)          updateData.state   = body.address.state;
     if (body.address?.zip !== undefined)            updateData.zip     = body.address.zip;
-    if (body.address?.country !== undefined)        updateData.country = body.address.country;
+    if (body.address?.country !== undefined)        updateData.country       = body.address.country;
+    if (body.systemConfig?.timezone !== undefined)  updateData.timezone      = body.systemConfig.timezone;
+    if (body.systemConfig?.dateFormat !== undefined) updateData.date_format  = body.systemConfig.dateFormat;
+    if (body.systemConfig?.timeFormat !== undefined) updateData.time_format  = body.systemConfig.timeFormat;
+    if (body.systemConfig?.currency !== undefined)  updateData.currency      = body.systemConfig.currency;
+    if (body.systemConfig?.language !== undefined)  updateData.language      = body.systemConfig.language;
+    if (body.systemConfig?.defaultPageSize !== undefined) updateData.default_page_size = body.systemConfig.defaultPageSize;
 
     if (Object.keys(updateData).length === 0) {
       return c.json({ success: true, message: 'No fields to update' });
@@ -141,99 +150,6 @@ app.put('/company', requirePermission('settings:update'), async (c) => {
       message: 'Failed to update company settings',
       error: error.message,
     }, 500);
-  }
-});
-
-// GET /notifications - Get notification settings for current tenant
-app.get('/notifications', async (c) => {
-  try {
-    const tenantId = c.get('tenantId');
-
-    const result = await execQuery(
-      c.env,
-      'SELECT * FROM public.notification_settings WHERE tenant_id = $1 LIMIT 1',
-      [tenantId]
-    );
-
-    let settings;
-    if (result.rows.length === 0) {
-      settings = {
-        id: null,
-        health_check_cron: '0 * * * *',
-        daily_email_cron: '0 9 * * *',
-        email_template_id: null,
-        enabled: true,
-        stale_threshold_hours: 2,
-        updated_at: null,
-      };
-    } else {
-      const row = result.rows[0];
-      settings = {
-        id: String(row.notification_settings_id),
-        health_check_cron: row.health_check_cron,
-        daily_email_cron: row.daily_email_cron,
-        email_template_id: row.email_template_id ? String(row.email_template_id) : null,
-        enabled: row.enabled,
-        stale_threshold_hours: row.stale_threshold_hours,
-        updated_at: row.updated_at,
-      };
-    }
-
-    return c.json({ success: true, data: { settings } });
-  } catch (error: any) {
-    logError('Error fetching notification settings:', error);
-    return c.json({ success: false, message: 'Failed to fetch notification settings' }, 500);
-  }
-});
-
-// PUT /notifications - Upsert notification settings for current tenant
-app.put('/notifications', async (c) => {
-  try {
-    const tenantId = c.get('tenantId');
-    const body = await c.req.json();
-    const { health_check_cron, daily_email_cron, email_template_id, enabled, stale_threshold_hours } = body;
-
-    const result = await execQuery(
-      c.env,
-      `INSERT INTO public.notification_settings
-         (tenant_id, health_check_cron, daily_email_cron, email_template_id, enabled, stale_threshold_hours, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-       ON CONFLICT (tenant_id) DO UPDATE SET
-         health_check_cron = COALESCE(EXCLUDED.health_check_cron, notification_settings.health_check_cron),
-         daily_email_cron = COALESCE(EXCLUDED.daily_email_cron, notification_settings.daily_email_cron),
-         email_template_id = EXCLUDED.email_template_id,
-         enabled = COALESCE(EXCLUDED.enabled, notification_settings.enabled),
-         stale_threshold_hours = COALESCE(EXCLUDED.stale_threshold_hours, notification_settings.stale_threshold_hours),
-         updated_at = NOW()
-       RETURNING *`,
-      [
-        tenantId,
-        health_check_cron || '0 * * * *',
-        daily_email_cron || '0 9 * * *',
-        email_template_id || null,
-        enabled !== undefined ? enabled : true,
-        stale_threshold_hours || 2,
-      ]
-    );
-
-    const row = result.rows[0];
-    return c.json({
-      success: true,
-      data: {
-        settings: {
-          id: String(row.notification_settings_id),
-          health_check_cron: row.health_check_cron,
-          daily_email_cron: row.daily_email_cron,
-          email_template_id: row.email_template_id ? String(row.email_template_id) : null,
-          enabled: row.enabled,
-          stale_threshold_hours: row.stale_threshold_hours,
-          updated_at: row.updated_at,
-        },
-      },
-    });
-  } catch (error: any) {
-    logError('Error updating notification settings:', error);
-    return c.json({ success: false, message: 'Failed to update notification settings' }, 500);
   }
 });
 

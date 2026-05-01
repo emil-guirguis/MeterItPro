@@ -7,9 +7,7 @@
 import { apiClient } from './apiClient';
 import type {
   Notification,
-  NotificationSettings,
   NotificationListResponse,
-  UpdateNotificationSettingsRequest
 } from '../types/notifications';
 
 export const notificationService = {
@@ -62,19 +60,4 @@ export const notificationService = {
     return response.data.data.deleted_count;
   },
 
-  /**
-   * Get notification settings
-   */
-  async getSettings(): Promise<NotificationSettings> {
-    const response = await apiClient.get('/settings/notifications');
-    return response.data.data.settings;
-  },
-
-  /**
-   * Update notification settings
-   */
-  async updateSettings(updates: UpdateNotificationSettingsRequest): Promise<NotificationSettings> {
-    const response = await apiClient.put('/settings/notifications', updates);
-    return response.data.data.settings;
-  }
 };

@@ -32,6 +32,9 @@ const FieldTypes = {
   ARRAY: 'array',
   JSON: 'json',
   SELECT: 'select',
+  TIMEZONE: 'timezone',
+  CURRENCY: 'currency',
+  LANGUAGE: 'language',
 };
 
 /**

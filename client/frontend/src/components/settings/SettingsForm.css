@@ -1,82 +1,30 @@
-.settings-form {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  padding: 2rem;
-  max-width: 100%;
-  margin: 0 auto;
+.settings-form .MuiOutlinedInput-root {
+  min-height: 40px !important;
 }
-.settings-form__section {
-  margin-bottom: 2rem;
+
+.settings-form .MuiOutlinedInput-input {
+  padding: 8px 12px !important;
 }
-.settings-form__section-title {
-  font-size: 1.1rem;
-  font-weight: 600;
+
+.settings-form__fields {
   margin-bottom: 1rem;
-  color: #111827;
 }
+
 .settings-form__row {
   display: flex;
-  gap: 2rem;
-  margin-bottom: 1rem;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
 }
+
+.settings-form__row--full {
+  display: block;
+}
+
 .settings-form__field {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.settings-form__label {
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #374151;
-  font-size: 0.875rem;
-}
-.settings-form__input {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 1rem;
-  background-color: #ffffff !important;
-  color: #111827 !important;
-  transition: border-color 0.2s ease;
+  min-width: 0;
 }
 
-.settings-form__input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.settings-form__input::placeholder {
-  color: #9ca3af;
-}
-
-.settings-form__input:disabled {
-  background-color: #f3f4f6 !important;
-  color: #6b7280 !important;
-  cursor: not-allowed;
-}
-.settings-form__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-.settings-form__btn {
-  padding: 0.5rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-}
-.settings-form__btn--primary {
-  background: #2563eb;
-  color: #fff;
-}
-.settings-form__btn--secondary {
-  background: #f3f4f6;
-  color: #111;
-}
 .settings-form__error {
   color: #b91c1c;
   background: #fee2e2;
@@ -84,10 +32,4 @@
   padding: 0.75rem 1rem;
   border-radius: 4px;
   margin-bottom: 1rem;
-}
-
-.meter-types-display {
-  font-size: 12px;
-  margin: 0;
-  font-family: 'Courier New', Courier, monospace;
 }

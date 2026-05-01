@@ -1,4 +1,7 @@
 import React from 'react';
+import { FormField } from '@framework/components/formfield/FormField';
+import { FormActions } from '@framework/components/formactions/FormActions';
+import { TIMEZONE_OPTIONS, CURRENCY_OPTIONS, LANGUAGE_OPTIONS } from '@framework/components/formfield/fieldOptions';
 import './SettingsForm.css';
 
 export interface SystemConfigFormProps {
@@ -14,27 +17,27 @@ const SystemConfigForm: React.FC<SystemConfigFormProps> = ({ values, onChange, o
   return (
     <form className="settings-form" onSubmit={e => { e.preventDefault(); onSubmit(); }}>
       {error && <div className="settings-form__error">{error}</div>}
-      <div className="settings-form__section">
-        <h3 className="settings-form__section-title">System Configuration</h3>
+      <div className="settings-form__fields">
         <div className="settings-form__row">
           <div className="settings-form__field">
-            <label className="settings-form__label">Timezone</label>
-            <input
-              type="text"
+            <FormField
+              name="timezone"
+              type="select"
+              searchable
+              label="Timezone"
               value={values.timezone || ''}
-              onChange={e => onChange('timezone', e.target.value)}
-              className="settings-form__input"
+              options={TIMEZONE_OPTIONS}
+              onChange={(e: any) => onChange('timezone', e.target.value)}
               disabled={loading}
-              placeholder="e.g. America/New_York"
             />
           </div>
           <div className="settings-form__field">
-            <label className="settings-form__label">Date Format</label>
-            <input
+            <FormField
+              name="dateFormat"
               type="text"
+              label="Date Format"
               value={values.dateFormat || ''}
-              onChange={e => onChange('dateFormat', e.target.value)}
-              className="settings-form__input"
+              onChange={(e: any) => onChange('dateFormat', e.target.value)}
               disabled={loading}
               placeholder="e.g. MM/DD/YYYY"
             />
@@ -42,62 +45,68 @@ const SystemConfigForm: React.FC<SystemConfigFormProps> = ({ values, onChange, o
         </div>
         <div className="settings-form__row">
           <div className="settings-form__field">
-            <label className="settings-form__label">Time Format</label>
-            <select
+            <FormField
+              name="timeFormat"
+              type="select"
+              label="Time Format"
               value={values.timeFormat || '12h'}
-              onChange={e => onChange('timeFormat', e.target.value)}
-              className="settings-form__input"
+              onChange={(e: any) => onChange('timeFormat', e.target.value)}
               disabled={loading}
-              title="Time Format"
-            >
-              <option value="12h">12-hour</option>
-              <option value="24h">24-hour</option>
-            </select>
+              options={[
+                { value: '12h', label: '12-hour' },
+                { value: '24h', label: '24-hour' },
+              ]}
+            />
           </div>
           <div className="settings-form__field">
-            <label className="settings-form__label">Currency</label>
-            <input
-              type="text"
+            <FormField
+              name="currency"
+              type="select"
+              searchable
+              label="Currency"
               value={values.currency || ''}
-              onChange={e => onChange('currency', e.target.value)}
-              className="settings-form__input"
+              options={CURRENCY_OPTIONS}
+              onChange={(e: any) => onChange('currency', e.target.value)}
               disabled={loading}
-              placeholder="e.g. USD"
             />
           </div>
         </div>
         <div className="settings-form__row">
           <div className="settings-form__field">
-            <label className="settings-form__label">Language</label>
-            <input
-              type="text"
+            <FormField
+              name="language"
+              type="select"
+              searchable
+              label="Language"
               value={values.language || ''}
-              onChange={e => onChange('language', e.target.value)}
-              className="settings-form__input"
+              options={LANGUAGE_OPTIONS}
+              onChange={(e: any) => onChange('language', e.target.value)}
               disabled={loading}
-              placeholder="e.g. en"
             />
           </div>
           <div className="settings-form__field">
-            <label className="settings-form__label">Default Page Size</label>
-            <input
+            <FormField
+              name="defaultPageSize"
               type="number"
-              value={values.defaultPageSize || 20}
-              onChange={e => onChange('defaultPageSize', Number(e.target.value))}
-              className="settings-form__input"
+              label="Default Page Size"
+              value={values.defaultPageSize ?? 20}
+              onChange={(e: any) => onChange('defaultPageSize', Number(e.target.value))}
               disabled={loading}
               min={1}
               max={100}
               placeholder="20"
-              title="Default Page Size"
             />
           </div>
         </div>
       </div>
-      <div className="settings-form__actions">
-        <button type="button" className="settings-form__btn settings-form__btn--secondary" onClick={onCancel} disabled={loading}>Cancel</button>
-        <button type="submit" className="settings-form__btn settings-form__btn--primary" disabled={loading}>Save</button>
-      </div>
+      <FormActions
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+        submitLabel="Save"
+        cancelLabel="Cancel"
+        isSubmitting={loading}
+        isDisabled={loading}
+      />
     </form>
   );
 };

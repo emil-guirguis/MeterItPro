@@ -19,6 +19,8 @@ import { SidebarMetersSection } from '../sidebar-meters';
 import { useMeterSelection } from '../../contexts/MeterSelectionContext';
 import { SidebarDataProvider } from '../../contexts/SidebarDataContext';
 import { NotificationBell } from '../notifications';
+import { meterReadingService } from '../../services/meterReadingService';
+import { adaptMeterReading } from '../../features/meterReadings/meterReadingAdapter';
 // Application-specific icon mappings
 const appIconMappings = {
   'contacts': 'contacts',
@@ -199,9 +201,9 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
 
   // Shared navigation helpers
   const navigateToMeterReadings = useCallback(
-    (params?: URLSearchParams) => {
+    (params?: URLSearchParams, routerState?: Record<string, unknown>) => {
       const url = params ? `/meter-readings?${params.toString()}` : '/meter-readings';
-      navigate(url);
+      navigate(url, routerState ? { state: routerState } : undefined);
       if (responsive.isMobile || responsive.isTablet) {
         uiState.setMobileNavOpen(false);
       }
@@ -244,29 +246,46 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
     [setSelectedMeter, setSelectedElement, navigateToMeterReadings]
   );
 
-  // Callback for the Favorites section — highlights "Favorites" menu item
+  // Callback for the Favorites section — pre-fetches reading data before navigating
+  // so the detail page renders immediately without a loading flash.
   const handleFavoritesMeterElementSelect = useCallback(
-    (meterId: string, elementId: string, elementName?: string, elementNumber?: number, gridType?: 'simple' | 'baselist') => {
+    async (meterId: string, elementId: string, elementName?: string, elementNumber?: number, gridType?: 'simple' | 'baselist') => {
       setActiveSection('favorites');
       setSelectedMeter(String(meterId));
       const params = new URLSearchParams();
       params.set('meterId', String(meterId));
 
       if (elementId === '0') {
-        // Virtual meter — navigate using virtual=true flag, no elementId
+        // Virtual meter
         setSelectedElement('0', elementName, undefined);
         params.set('virtual', 'true');
+        if (user?.client) {
+          try {
+            const data = await meterReadingService.getVirtualMeterLastReading(user.client, meterId);
+            navigateToMeterReadings(params, { prefetchedVirtualReading: data });
+            return;
+          } catch { /* fall through */ }
+        }
+        navigateToMeterReadings(params);
       } else {
         setSelectedElement(String(elementId), elementName, elementNumber ? Number(elementNumber) : undefined);
         params.set('elementId', String(elementId));
         if (elementName) params.set('elementName', elementName);
         if (elementNumber) params.set('elementNumber', String(elementNumber));
         if (gridType) params.set('gridType', gridType);
-      }
 
-      navigateToMeterReadings(params);
+        if (gridType === 'simple' && user?.client) {
+          try {
+            const rawReading = await meterReadingService.getLastMeterReading(user.client, meterId, elementId);
+            const prefetchedReading = adaptMeterReading(rawReading, elementName);
+            navigateToMeterReadings(params, { prefetchedReading });
+            return;
+          } catch { /* fall through */ }
+        }
+        navigateToMeterReadings(params);
+      }
     },
-    [setSelectedMeter, setSelectedElement, navigateToMeterReadings]
+    [setSelectedMeter, setSelectedElement, navigateToMeterReadings, user]
   );
 
   const menuItems: MenuItem[] = staticMenuItems.map(item => {

@@ -8,7 +8,7 @@
 console.log('[MeterReadingManagementPage.tsx] Module loaded at', new Date().toISOString());
 
 import React from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { MeterReadingList } from './MeterReadingList';
 import { MeterReadingForm } from './MeterReadingForm';
 import { DetailedMeterReadingView } from './DetailedMeterReadingView';
@@ -25,6 +25,7 @@ export const MeterReadingManagementPage: React.FC = () => {
   const auth = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [gridType, setGridType] = React.useState<'simple' | 'baselist'>('simple');
   const [showForm, setShowForm] = React.useState(false);
   const [showDetailedView, setShowDetailedView] = React.useState(false);
@@ -92,10 +93,20 @@ export const MeterReadingManagementPage: React.FC = () => {
     const fetchLastReading = async () => {
       if (urlGridType === 'simple' && meterId && elementId && auth.user?.client) {
         console.log('[MeterReadingManagementPage] Conditions met for detailed view, fetching...');
+        setShowDetailedView(true);
+
+        // Use pre-fetched data from router state (set by favorites click handler)
+        const prefetched = (location.state as Record<string, unknown> | null)?.prefetchedReading;
+        if (prefetched) {
+          setDetailedReading(prefetched as { meterInfo: MeterInfo; reading: MeterReadingData });
+          setDetailedViewLoading(false);
+          setDetailedViewError(null);
+          return;
+        }
+
         setDetailedViewLoading(true);
         setDetailedViewError(null);
-        setShowDetailedView(true);
-        
+
         try {
           console.log('[MeterReadingManagementPage] Fetching last reading for:', { meterId, elementId, tenantId: auth.user.client });
           const rawReading = await meterReadingService.getLastMeterReading(
@@ -107,7 +118,7 @@ export const MeterReadingManagementPage: React.FC = () => {
           console.log('[MeterReadingManagementPage] Raw reading received:', rawReading);
           const adaptedData = adaptMeterReading(rawReading, elementName || undefined);
           console.log('[MeterReadingManagementPage] Adapted reading:', adaptedData);
-          
+
           setDetailedReading(adaptedData);
           setDetailedViewLoading(false);
         } catch (error) {
@@ -135,6 +146,15 @@ export const MeterReadingManagementPage: React.FC = () => {
   React.useEffect(() => {
     const fetchVirtualMeter = async () => {
       if (isVirtual && meterId && auth.user?.client) {
+        // Use pre-fetched data from router state (set by favorites click handler)
+        const prefetched = (location.state as Record<string, unknown> | null)?.prefetchedVirtualReading;
+        if (prefetched) {
+          setVirtualMeterData(prefetched);
+          setVirtualViewLoading(false);
+          setVirtualViewError(null);
+          return;
+        }
+
         setVirtualViewLoading(true);
         setVirtualViewError(null);
         setVirtualMeterData(null);

@@ -1,11 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { notificationService } from '../../services/notificationService';
-import type {
-  Notification,
-  NotificationSettings,
-  UpdateNotificationSettingsRequest,
-} from '../../types/notifications';
+import type { Notification } from '../../types/notifications';
 import type { EnhancedStore } from '@framework/components/list/types/list';
 
 interface NotificationsState {
@@ -19,13 +15,9 @@ interface NotificationsState {
   };
   filters: Record<string, any>;
   searchQuery: string;
-  settings: NotificationSettings | null;
-  settingsLoading: boolean;
-  settingsError: string | null;
 }
 
 interface NotificationsActions {
-  // Framework-required methods
   fetchItems: () => Promise<void>;
   setSearch: (query: string) => void;
   setFilters: (filters: Record<string, any>) => void;
@@ -33,10 +25,7 @@ interface NotificationsActions {
   setPageSize: (size: number) => void;
   createItem: (data: any) => Promise<void>;
   deleteItem: (id: string | number) => Promise<void>;
-  // Notification-specific
   clearAll: () => Promise<void>;
-  fetchSettings: () => Promise<void>;
-  updateSettings: (updates: UpdateNotificationSettingsRequest) => Promise<void>;
 }
 
 type NotificationsStore = NotificationsState & NotificationsActions;
@@ -52,9 +41,6 @@ const initialState: NotificationsState = {
   },
   filters: {},
   searchQuery: '',
-  settings: null,
-  settingsLoading: false,
-  settingsError: null,
 };
 
 export const useNotificationsStore = create<NotificationsStore>()(
@@ -145,30 +131,6 @@ export const useNotificationsStore = create<NotificationsStore>()(
         }
       },
 
-      fetchSettings: async () => {
-        set({ settingsLoading: true, settingsError: null });
-        try {
-          const settings = await notificationService.getSettings();
-          set({ settings, settingsLoading: false });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Failed to fetch notification settings';
-          set({ settingsError: message, settingsLoading: false });
-          console.error('[notificationsStore] Error fetching settings:', error);
-        }
-      },
-
-      updateSettings: async (updates: UpdateNotificationSettingsRequest) => {
-        set({ settingsLoading: true, settingsError: null });
-        try {
-          const settings = await notificationService.updateSettings(updates);
-          set({ settings, settingsLoading: false });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Failed to update notification settings';
-          set({ settingsError: message, settingsLoading: false });
-          console.error('[notificationsStore] Error updating settings:', error);
-          throw error;
-        }
-      },
     }),
     { name: 'NotificationsStore' }
   )
@@ -176,11 +138,6 @@ export const useNotificationsStore = create<NotificationsStore>()(
 
 export type NotificationsEnhanced = EnhancedStore<Notification> & {
   clearAll: () => Promise<void>;
-  fetchSettings: () => Promise<void>;
-  updateSettings: (updates: UpdateNotificationSettingsRequest) => Promise<void>;
-  settings: NotificationSettings | null;
-  settingsLoading: boolean;
-  settingsError: string | null;
 };
 
 export const useNotificationsEnhanced = (): NotificationsEnhanced => {
@@ -196,10 +153,5 @@ export const useNotificationsEnhanced = (): NotificationsEnhanced => {
     createItem: store.createItem,
     deleteItem: store.deleteItem,
     clearAll: store.clearAll,
-    fetchSettings: store.fetchSettings,
-    updateSettings: store.updateSettings,
-    settings: store.settings,
-    settingsLoading: store.settingsLoading,
-    settingsError: store.settingsError,
   };
 };

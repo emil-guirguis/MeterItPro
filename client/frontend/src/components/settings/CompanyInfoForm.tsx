@@ -1,7 +1,6 @@
 import React from 'react';
 import { Toast } from '@framework/components/common';
 import { FormField } from '@framework/components/formfield/FormField';
-import { FormSection, } from '@framework/components/formsection/FormSection';
 import { FormActions } from '@framework/components/formactions/FormActions';
 import './SettingsForm.css';
 
@@ -30,8 +29,8 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ values, onChange, onS
       {/* Show error as a toast notification */}
       {error && <Toast message={error} type="error" />}
       
-      <FormSection title="Company Information">
-        <div className="settings-form__row">
+      <div className="settings-form__fields">
+        <div className="settings-form__row settings-form__row--full">
           <div className="settings-form__field">
             <FormField
               name="name"
@@ -45,84 +44,72 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ values, onChange, onS
               onBlur={() => {}}
             />
           </div>
+        </div>
+        
+        <div className="settings-form__row">
           <div className="settings-form__field">
             <FormField
-              name="url"
-              label="Website URL"
-              type="url"
-              placeholder="Enter website URL"
-              value={values.url || ''}
+              name="address.street"
+              label="Address Line 1"
+              type="text"
+              placeholder="Enter street address"
+              value={values.address?.street || ''}
               disabled={loading}
-              onChange={(e: any) => handleFieldChange('url', e.target.value)}
+              onChange={(e: any) => handleFieldChange('address.street', e.target.value)}
+              onBlur={() => {}}
+            />
+          </div>
+          <div className="settings-form__field">
+            <FormField
+              name="address.street2"
+              label="Address Line 2"
+              type="text"
+              placeholder="Enter address line 2"
+              value={values.address?.street2 || ''}
+              disabled={loading}
+              onChange={(e: any) => handleFieldChange('address.street2', e.target.value)}
               onBlur={() => {}}
             />
           </div>
         </div>
-        
-        <div className="settings-form__row">
-          <div className="settings-form__field">
-            <label className="settings-form__label">Address Line 1</label>
-            <input
-              type="text"
-              value={values.address?.street || ''}
-              onChange={e => handleFieldChange('address.street', e.target.value)}
-              className="settings-form__input"
-              disabled={loading}
-              placeholder="Enter street address"
-              title="Address Line 1"
-            />
-          </div>
-          <div className="settings-form__field">
-            <label className="settings-form__label">Address Line 2</label>
-            <input
-              type="text"
-              value={values.address?.street2 || ''}
-              onChange={e => handleFieldChange('address.street2', e.target.value)}
-              className="settings-form__input"
-              disabled={loading}
-              placeholder="Enter address line 2"
-              title="Address Line 2"
-            />
-          </div>
-        </div>
-        
-        <div className="settings-form__row">
-          <div className="settings-form__field">
-            <label className="settings-form__label">City</label>
-            <input
-              type="text"
-              value={values.address?.city || ''}
-              onChange={e => handleFieldChange('address.city', e.target.value)}
-              className="settings-form__input"
-              disabled={loading}
-              placeholder="Enter city"
-              title="City"
-            />
-          </div>
-          <div className="settings-form__field">
-            <label className="settings-form__label">State</label>
-            <input
-              type="text"
-              value={values.address?.state || ''}
-              onChange={e => handleFieldChange('address.state', e.target.value)}
-              className="settings-form__input"
-              disabled={loading}
-              placeholder="Enter state"
-              title="State"
-            />
-          </div>
-        </div>
-        
+
         <div className="settings-form__row">
           <div className="settings-form__field">
             <FormField
-              name="address.zipCode"
+              name="address.city"
+              label="City"
+              type="text"
+              placeholder="Enter city"
+              value={values.address?.city || ''}
+              disabled={loading}
+              onChange={(e: any) => handleFieldChange('address.city', e.target.value)}
+              onBlur={() => {}}
+            />
+          </div>
+          <div className="settings-form__field">
+            <FormField
+              name="address.state"
+              label="State"
+              type="text"
+              placeholder="Enter state"
+              value={values.address?.state || ''}
+              disabled={loading}
+              onChange={(e: any) => handleFieldChange('address.state', e.target.value)}
+              onBlur={() => {}}
+            />
+          </div>
+        </div>
+
+        <div className="settings-form__row">
+          <div className="settings-form__field">
+            <FormField
+              name="address.zip"
               label="Zip Code"
               type="text"
               placeholder="Enter zip code"
-              value={values.address?.zipCode || ''}
+              value={values.address?.zip || ''}
               disabled={loading}
-              onChange={(e: any) => handleFieldChange('address.zipCode', e.target.value)}
+              onChange={(e: any) => handleFieldChange('address.zip', e.target.value)}
               onBlur={() => {}}
             />
           </div>
@@ -140,8 +127,38 @@ const CompanyInfoForm: React.FC<CompanyInfoFormProps> = ({ values, onChange, onS
             />
           </div>
         </div>
-      </FormSection>
-      
+
+        <div className="settings-form__row settings-form__row--full">
+          <div className="settings-form__field">
+            <FormField
+              name="contactInfo.email"
+              label="Contact Email"
+              type="email"
+              placeholder="contact@example.com"
+              value={values.contactInfo?.email || ''}
+              disabled={loading}
+              onChange={(e: any) => handleFieldChange('contactInfo.email', e.target.value)}
+              onBlur={() => {}}
+            />
+          </div>
+        </div>
+
+        <div className="settings-form__row settings-form__row--full">
+          <div className="settings-form__field">
+            <FormField
+              name="contactInfo.url"
+              label="Website URL"
+              type="url"
+              placeholder="https://example.com"
+              value={values.contactInfo?.url || ''}
+              disabled={loading}
+              onChange={(e: any) => handleFieldChange('contactInfo.url', e.target.value)}
+              onBlur={() => {}}
+            />
+          </div>
+        </div>
+      </div>
+
       <FormActions
         onSubmit={onSubmit}
         onCancel={onCancel}

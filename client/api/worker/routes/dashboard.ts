@@ -292,7 +292,7 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
         : aggSql;
     } else if (groupingType === 'hourly') {
       const hourExpr = `DATE(mr.created_at AT TIME ZONE '${tz}'), EXTRACT(HOUR FROM mr.created_at AT TIME ZONE '${tz}')::int`;
-      const hourCols  = `DATE(mr.created_at AT TIME ZONE '${tz}') as date, EXTRACT(HOUR FROM mr.created_at AT TIME ZONE '${tz}') as hour`;
+      const hourCols  = `DATE(mr.created_at AT TIME ZONE '${tz}') as date, EXTRACT(HOUR FROM mr.created_at AT TIME ZONE '${tz}')::int as hour`;
       aggSql = `SELECT ${hourCols}, ${meterCols}, ${groupCols} ${fromClause} ${whereClause} GROUP BY ${hourExpr}, mr.meter_id, mr.meter_element_id, m.name, me.element, me.name ORDER BY date, hour`;
       groupSql = aggFn === 'MAX'
         ? `SELECT DISTINCT ON (${hourExpr}, mr.meter_element_id) ${hourCols}, ${meterCols}, ${rawCols}, mr.created_at as peaked_at ${fromClause} ${whereClause} ORDER BY ${hourExpr}, mr.meter_element_id, mr.${primaryCol} DESC NULLS LAST`

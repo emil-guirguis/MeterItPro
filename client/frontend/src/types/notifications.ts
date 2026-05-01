@@ -18,24 +18,6 @@ export interface Notification {
   created_at: string;
 }
 
-export interface NotificationSettings {
-  id: string | null;
-  health_check_cron: string;
-  daily_email_cron: string;
-  email_template_id: string | null;
-  enabled: boolean;
-  stale_threshold_hours: number;
-  updated_at: string | null;
-}
-
-export interface UpdateNotificationSettingsRequest {
-  health_check_cron?: string;
-  daily_email_cron?: string;
-  email_template_id?: string | null;
-  enabled?: boolean;
-  stale_threshold_hours?: number;
-}
-
 export interface NotificationListResponse {
   notifications: Notification[];
   total: number;
