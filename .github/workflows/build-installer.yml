@@ -1,0 +1,40 @@
+name: Build Sync Installer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sync/installer/**'
+      - 'sync/docker-compose.yml'
+      - 'sync/docker/init/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: sync/installer/go.mod
+
+      - name: Copy embedded files into installer
+        run: |
+          cp sync/docker-compose.yml  sync/installer/docker-compose.yml
+          cp sync/docker/init/00-schema.sql sync/installer/00-schema.sql
+
+      - name: Build Windows amd64 installer
+        run: |
+          cd sync/installer
+          GOOS=windows GOARCH=amd64 go build -o MeterItPro-SyncSetup.exe .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MeterItPro-SyncSetup
+          path: sync/installer/MeterItPro-SyncSetup.exe
+          retention-days: 90

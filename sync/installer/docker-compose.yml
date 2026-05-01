@@ -1,0 +1,106 @@
+services:
+
+  db:
+    image: postgres:18
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_SYNC_DB}
+      POSTGRES_USER: ${POSTGRES_SYNC_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_SYNC_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./docker/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SYNC_USER} -d ${POSTGRES_SYNC_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+  sync-api:
+    image: ghcr.io/${GITHUB_OWNER}/meteritpro-sync-api:latest
+    ports:
+      - "3002:3002"
+    environment:
+      POSTGRES_SYNC_HOST: db
+      POSTGRES_SYNC_PORT: 5432
+      POSTGRES_SYNC_DB: ${POSTGRES_SYNC_DB}
+      POSTGRES_SYNC_USER: ${POSTGRES_SYNC_USER}
+      POSTGRES_SYNC_PASSWORD: ${POSTGRES_SYNC_PASSWORD}
+      POSTGRES_CLIENT_HOST: ${POSTGRES_CLIENT_HOST}
+      POSTGRES_CLIENT_PORT: ${POSTGRES_CLIENT_PORT}
+      POSTGRES_CLIENT_DB: ${POSTGRES_CLIENT_DB}
+      POSTGRES_CLIENT_USER: ${POSTGRES_CLIENT_USER}
+      POSTGRES_CLIENT_PASSWORD: ${POSTGRES_CLIENT_PASSWORD}
+      MCP_HTTP_URL: http://sync-mcp:${MCP_HTTP_PORT:-3003}
+      JWT_SECRET: ${JWT_SECRET}
+      CLIENT_API_URL: ${CLIENT_API_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+      sync-mcp:
+        condition: service_started
+    restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  sync-frontend:
+    image: ghcr.io/${GITHUB_OWNER}/meteritpro-sync-frontend:latest
+    ports:
+      - "8080:80"
+    depends_on:
+      - sync-api
+    restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  sync-mcp:
+    image: ghcr.io/${GITHUB_OWNER}/meteritpro-sync-mcp:latest
+    ports:
+      - "47808:47808/udp"
+    environment:
+      POSTGRES_SYNC_HOST: db
+      POSTGRES_SYNC_PORT: 5432
+      POSTGRES_SYNC_DB: ${POSTGRES_SYNC_DB}
+      POSTGRES_SYNC_USER: ${POSTGRES_SYNC_USER}
+      POSTGRES_SYNC_PASSWORD: ${POSTGRES_SYNC_PASSWORD}
+      MCP_HTTP_PORT: ${MCP_HTTP_PORT:-3003}
+      CLIENT_API_URL: ${CLIENT_API_URL}
+      CLIENT_API_KEY: ${CLIENT_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      BACNET_DEBUG_POST_READ_CHECK: ${BACNET_DEBUG_POST_READ_CHECK:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  sync-provisioner:
+    image: ghcr.io/${GITHUB_OWNER}/meteritpro-sync-provisioner:latest
+    environment:
+      CLIENT_API_URL: ${CLIENT_API_URL}
+      SYNC_SERVER_ID: ${SYNC_SERVER_ID}
+      SYNC_SERVER_BOOTSTRAP_KEY: ${SYNC_SERVER_BOOTSTRAP_KEY}
+    depends_on:
+      - sync-frontend
+    restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DOCKER_API_VERSION: "1.45"
+    command: --label-enable --cleanup --interval 300
+    restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+volumes:
+  pgdata:
