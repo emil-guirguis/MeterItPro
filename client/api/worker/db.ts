@@ -18,6 +18,9 @@ export interface Env {
   RESEND_API_KEY?: string;
   RESEND_FROM?: string;
   GROQ_API_KEY?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_API_TOKEN?: string;
+  GITHUB_TOKEN?: string;
 }
 
 export async function query(env: Env, text: string, params: any[] = []) {

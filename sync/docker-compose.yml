@@ -96,6 +96,22 @@ services:
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 
+  # ── Sync Provisioner (Cloudflare Tunnel auto-setup) ────────────────────────
+  # Polls the client API for a tunnel token, then starts cloudflared.
+  # Set SYNC_SERVER_ID and SYNC_SERVER_BOOTSTRAP_KEY in .env after adding
+  # this server on the client site and clicking "Provision Tunnel".
+  sync-provisioner:
+    image: ghcr.io/${GITHUB_OWNER}/meteritpro-sync-provisioner:latest
+    environment:
+      CLIENT_API_URL: ${CLIENT_API_URL}
+      SYNC_SERVER_ID: ${SYNC_SERVER_ID}
+      SYNC_SERVER_BOOTSTRAP_KEY: ${SYNC_SERVER_BOOTSTRAP_KEY}
+    depends_on:
+      - sync-frontend
+    restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
   # ── Watchtower (auto-update labeled containers) ─────────────────────────────
   watchtower:
     image: containrrr/watchtower:latest

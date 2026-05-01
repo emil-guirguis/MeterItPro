@@ -38,6 +38,7 @@ import aiSearchRoutes from './routes/aiSearch';
 import aiChatRoutes from './routes/aiChat';
 import registerRoutes, { deviceRegistersApp, meterRegistersApp } from './routes/registers';
 import uploadRoutes from './routes/upload';
+import syncServerRoutes from './routes/syncServers';
 
 export const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -247,6 +248,7 @@ app.route('/api/notification-history', notificationHistoryRoutes);
 app.route('/api/email-logs', emailLogRoutes);
 app.route('/api/registers', registerRoutes);
 app.route('/api/upload', uploadRoutes);
+app.route('/api/sync-servers', syncServerRoutes);
 
 app.route('/api/meters/:meterId/elements', meterElementRoutes);
 app.route('/api/devices/:deviceId/registers', deviceRegistersApp);

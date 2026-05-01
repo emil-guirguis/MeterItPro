@@ -117,7 +117,6 @@ app.put('/company', requirePermission('settings:update'), async (c) => {
     if (body.systemConfig?.currency !== undefined)  updateData.currency      = body.systemConfig.currency;
     if (body.systemConfig?.language !== undefined)  updateData.language      = body.systemConfig.language;
     if (body.systemConfig?.defaultPageSize !== undefined) updateData.default_page_size = body.systemConfig.defaultPageSize;
-
     if (Object.keys(updateData).length === 0) {
       return c.json({ success: true, message: 'No fields to update' });
     }

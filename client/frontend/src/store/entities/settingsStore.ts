@@ -21,6 +21,7 @@ interface SettingsStoreActions {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => void;
+  invalidateCache: () => void;
 }
 
 // Combined store interface
@@ -177,6 +178,7 @@ export const useSettingsStore = create<SettingsStore>()(
       setLoading: (loading) => set({ loading }),
       setError: (error) => set({ error }),
       reset: () => set({ ...initialState }),
+      invalidateCache: () => set({ lastFetch: null }),
     }),
     {
       name: 'settings-store',
@@ -205,6 +207,7 @@ export const useSettings = () => {
     updateSettings: store.updateSettings,
     updateSystemConfig: store.updateSystemConfig,
     reset: store.reset,
+    invalidateCache: store.invalidateCache,
     
     // Computed values
     isLoaded: !!store.settings,

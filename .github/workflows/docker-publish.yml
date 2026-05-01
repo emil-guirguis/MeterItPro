@@ -7,6 +7,7 @@ on:
       - 'sync/api/**'
       - 'sync/frontend/**'
       - 'sync/mcp/**'
+      - 'sync/provisioner/**'
       - 'framework/**'
       - 'version.json'
 
@@ -33,6 +34,9 @@ jobs:
           - name: meteritpro-sync-mcp
             context: .
             file: sync/mcp/Dockerfile
+          - name: meteritpro-sync-provisioner
+            context: sync/provisioner
+            file: sync/provisioner/Dockerfile
 
     steps:
       - name: Checkout

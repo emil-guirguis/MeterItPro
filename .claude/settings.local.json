@@ -107,7 +107,13 @@
       "Bash(\"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d postgres -c \"\\\\d tenant\")",
       "Bash(PGPASSWORD=\"ZfyUDh!_x4bSYXm\" \"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d postgres -c \"\\\\d tenant\")",
       "Bash(PGPASSWORD=\"ZfyUDh!_x4bSYXm\" \"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d postgres -c \"\\\\d sync_log\")",
-      "Bash(wmic process:*)"
+      "Bash(wmic process:*)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\" -Directory)",
+      "Bash(Select-Object Name)",
+      "PowerShell(ls -Path \"C:\\\\Projects\\\\MeterItPro\" | Where-Object {$_.PSIsContainer})",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\\\\sync\\\\api\" | Where-Object {$_.PSIsContainer})",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\\\\sync\\\\api\\\\src\" -Recurse | Where-Object {$_.PSIsContainer} | Select-Object FullName)",
+      "PowerShell(dir \"C:\\\\Projects\\\\MeterItPro\\\\client\\\\api\\\\src\" -Recurse | Where-Object {!$_.PSIsContainer} | Select-Object FullName)"
     ],
     "additionalDirectories": [
       "C:\\Program Files\\PostgreSQL\\18\\data"

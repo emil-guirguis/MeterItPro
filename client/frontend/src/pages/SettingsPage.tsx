@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Alert, Button, Box, CircularProgress, Typography, Paper,
+  Alert, Box, CircularProgress, Typography, Paper,
   List, ListItemButton, ListItemIcon, ListItemText, Divider
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -8,9 +8,9 @@ import SyncIcon from '@mui/icons-material/Sync';
 import TuneIcon from '@mui/icons-material/Tune';
 import CompanyInfoForm from '../components/settings/CompanyInfoForm';
 import SystemConfigForm from '../components/settings/SystemConfigForm';
+import SyncServersPanel from '../features/syncServers/SyncServersPanel';
 import './SettingsPage.css';
 import { useSettings } from '../store/entities/settingsStore';
-import apiClient from '../services/apiClient';
 
 const NAV_ITEMS = [
   {
@@ -24,17 +24,15 @@ const NAV_ITEMS = [
     description: 'System configuration and operational settings.',
   },
   {
-    label: 'Sync Server',
+    label: 'Sync Servers',
     icon: <SyncIcon fontSize="small" />,
-    description: 'Manually trigger uploads of collected meter readings.',
+    description: 'Manage sync servers connected via Cloudflare Tunnel.',
   },
 ];
 
 const SettingsPage: React.FC = () => {
   const [activeItem, setActiveItem] = useState(0);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [uploadLoading, setUploadLoading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const { settings, loading, error, fetchSettings, updateSettings, updateSystemConfig } = useSettings();
 
   useEffect(() => {
@@ -54,13 +52,6 @@ const SettingsPage: React.FC = () => {
       return () => clearTimeout(t);
     }
   }, [successMessage]);
-
-  useEffect(() => {
-    if (uploadError) {
-      const t = setTimeout(() => setUploadError(null), 5000);
-      return () => clearTimeout(t);
-    }
-  }, [uploadError]);
 
   const handleCompanyInfoChange = (field: string, value: any) => {
     if (!localSettings) return;
@@ -100,25 +91,6 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleManualUpload = async () => {
-    setUploadLoading(true);
-    setUploadError(null);
-    try {
-      const response = await apiClient.post('/sync/trigger-upload', {});
-      if (response.data.success) {
-        setSuccessMessage('Upload triggered successfully');
-      } else {
-        setUploadError(response.data.message || 'Failed to trigger upload');
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to trigger upload';
-      setUploadError(errorMsg);
-      console.error('Failed to trigger upload:', err);
-    } finally {
-      setUploadLoading(false);
-    }
-  };
-
   const handleCancel = () => setLocalSettings(settings);
 
   const current = NAV_ITEMS[activeItem];
@@ -138,7 +110,6 @@ const SettingsPage: React.FC = () => {
       </Box>
 
       {successMessage && <Alert severity="success" sx={{ mb: 2 }}>{successMessage}</Alert>}
-      {uploadError && <Alert severity="error" sx={{ mb: 2 }}>{uploadError}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Box className="settings-page__body">
@@ -191,28 +162,7 @@ const SettingsPage: React.FC = () => {
                 error={error}
               />
             )}
-            {activeItem === 2 && (
-              <Box>
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  Manually trigger an upload of collected meter readings to the remote client system.
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleManualUpload}
-                  disabled={uploadLoading}
-                >
-                  {uploadLoading ? (
-                    <>
-                      <CircularProgress size={20} sx={{ mr: 1 }} />
-                      Uploading...
-                    </>
-                  ) : (
-                    'Trigger Upload'
-                  )}
-                </Button>
-              </Box>
-            )}
+            {activeItem === 2 && <SyncServersPanel />}
             {!settings && loading && <CircularProgress />}
             {!settings && error && <Typography color="error">{error}</Typography>}
           </Box>
