@@ -377,8 +377,14 @@ export async function loadSchema(entityName: string) {
 export function clearSchemaCache(entityName?: string) {
   if (entityName) {
     schemaCache.delete(entityName);
+    try { localStorage.removeItem(LS_PREFIX + entityName); } catch {}
   } else {
     schemaCache.clear();
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith(LS_PREFIX))
+        .forEach(k => localStorage.removeItem(k));
+    } catch {}
   }
 }
 

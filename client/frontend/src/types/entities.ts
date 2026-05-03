@@ -3,23 +3,17 @@
 export interface SyncServer {
   sync_server_id: number;
   tenant_id: number;
+  location_id: number | null;
   name: string;
   tunnel_url: string;
   timezone: string;
-  api_key: string;
   active: boolean;
+  notes: string;
   bootstrap_key: string;
   tunnel_id: string | null;
   provision_status: 'pending' | 'provisioning' | 'active' | 'error';
   provision_error: string | null;
   dns_record_id: string | null;
-  client_api_url: string;
-  github_owner: string;
-  remote_db_host: string;
-  remote_db_port: number;
-  remote_db_name: string;
-  remote_db_user: string;
-  remote_db_password: string;
   created_at: string;
   updated_at: string;
 }
@@ -27,15 +21,9 @@ export interface SyncServer {
 export interface SyncServerFormData {
   name: string;
   timezone: string;
-  api_key: string;
   active: boolean;
-  client_api_url: string;
-  github_owner: string;
-  remote_db_host: string;
-  remote_db_port: number;
-  remote_db_name: string;
-  remote_db_user: string;
-  remote_db_password: string;
+  notes: string;
+  location_id: number | null;
 }
 
 // Supporting Types

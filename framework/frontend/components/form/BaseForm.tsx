@@ -9,6 +9,7 @@ import { useFormTabs } from './hooks/useFormTabs';
 import { FormTabs } from './FormTabs';
 import { ValidationFieldSelect } from '../validationfieldselect/ValidationFieldSelect';
 import { FormField } from '../formfield/FormField';
+import { TIMEZONE_OPTIONS } from '../formfield/fieldOptions';
 import './BaseForm.css';
 
 export interface BaseFormProps {
@@ -777,6 +778,11 @@ export const BaseForm: React.FC<BaseFormProps> = ({
         value: val,
         label: fieldDef.enumLabels?.[val] ?? (val.charAt(0).toUpperCase() + val.slice(1)),
       }));
+    }
+
+    // Supply built-in options for special field types
+    if (fieldType === 'timezone' && !fieldOptions) {
+      fieldOptions = TIMEZONE_OPTIONS;
     }
 
     // Convert description/notes fields to textarea, but only when maxLength is large enough to warrant it

@@ -113,7 +113,10 @@
       "PowerShell(ls -Path \"C:\\\\Projects\\\\MeterItPro\" | Where-Object {$_.PSIsContainer})",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\\\\sync\\\\api\" | Where-Object {$_.PSIsContainer})",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\\\\sync\\\\api\\\\src\" -Recurse | Where-Object {$_.PSIsContainer} | Select-Object FullName)",
-      "PowerShell(dir \"C:\\\\Projects\\\\MeterItPro\\\\client\\\\api\\\\src\" -Recurse | Where-Object {!$_.PSIsContainer} | Select-Object FullName)"
+      "PowerShell(dir \"C:\\\\Projects\\\\MeterItPro\\\\client\\\\api\\\\src\" -Recurse | Where-Object {!$_.PSIsContainer} | Select-Object FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\" -Recurse -Directory)",
+      "Bash(Select-Object -First 20)",
+      "Bash(Format-Table FullName)"
     ],
     "additionalDirectories": [
       "C:\\Program Files\\PostgreSQL\\18\\data"

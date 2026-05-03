@@ -21,6 +21,13 @@ export interface Env {
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_API_TOKEN?: string;
   GITHUB_TOKEN?: string;
+  GITHUB_OWNER?: string;
+  CLIENT_API_URL?: string;
+  REMOTE_DB_HOST?: string;
+  REMOTE_DB_PORT?: number;
+  REMOTE_DB_NAME?: string;
+  REMOTE_DB_USER?: string;
+  REMOTE_DB_PASSWORD?: string;
 }
 
 export async function query(env: Env, text: string, params: any[] = []) {

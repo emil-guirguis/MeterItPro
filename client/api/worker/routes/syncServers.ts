@@ -41,10 +41,8 @@ app.get('/', requirePermission('settings:read'), async (c) => {
 
     const result = await execQuery(
       c.env,
-      `SELECT sync_server_id, tenant_id, name, tunnel_url, timezone, api_key, active,
+      `SELECT sync_server_id, tenant_id, location_id, name, tunnel_url, timezone, active, notes,
               bootstrap_key, tunnel_id, provision_status, provision_error, dns_record_id,
-              client_api_url, github_owner,
-              remote_db_host, remote_db_port, remote_db_name, remote_db_user, remote_db_password,
               created_at, updated_at
        FROM public.sync_server WHERE tenant_id = $1 ORDER BY sync_server_id DESC`,
       [tenantId]
@@ -64,30 +62,28 @@ app.post('/', requirePermission('settings:update'), async (c) => {
     if (!tenantId) return c.json({ success: false, message: 'Tenant context required' }, 401);
 
     const body = await c.req.json();
-    const {
-      name, tunnel_url = '', timezone = 'UTC', api_key = '', active = true,
-      client_api_url = 'https://meteritpro.com/api', github_owner = '',
-      remote_db_host = '', remote_db_port = 5432, remote_db_name = '',
-      remote_db_user = '', remote_db_password = '',
-    } = body;
+    const { name, tunnel_url = '', timezone = 'UTC', active = true, notes = '', location_id = null } = body;
 
     if (!name) return c.json({ success: false, message: 'name is required' }, 400);
+
+    const existing = await execQuery(
+      c.env,
+      'SELECT 1 FROM public.sync_server WHERE tenant_id = $1 AND LOWER(name) = LOWER($2)',
+      [tenantId, name]
+    );
+    if (existing.rows.length > 0) return c.json({ success: false, message: `A sync server named "${name}" already exists.` }, 409);
 
     const bootstrapKey = crypto.randomUUID();
 
     const result = await execQuery(
       c.env,
       `INSERT INTO public.sync_server
-         (tenant_id, name, tunnel_url, timezone, api_key, active, bootstrap_key, provision_status,
-          client_api_url, github_owner, remote_db_host, remote_db_port, remote_db_name, remote_db_user, remote_db_password)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9, $10, $11, $12, $13, $14) RETURNING
-         sync_server_id, tenant_id, name, tunnel_url, timezone, api_key, active,
+         (tenant_id, location_id, name, tunnel_url, timezone, active, notes, bootstrap_key, provision_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending') RETURNING
+         sync_server_id, tenant_id, location_id, name, tunnel_url, timezone, active, notes,
          bootstrap_key, tunnel_id, provision_status, provision_error, dns_record_id,
-         client_api_url, github_owner,
-         remote_db_host, remote_db_port, remote_db_name, remote_db_user, remote_db_password,
          created_at, updated_at`,
-      [tenantId, name, tunnel_url, timezone, api_key, active, bootstrapKey,
-       client_api_url, github_owner, remote_db_host, remote_db_port, remote_db_name, remote_db_user, remote_db_password]
+      [tenantId, location_id, name, tunnel_url, timezone, active, notes, bootstrapKey]
     );
 
     return c.json({ success: true, data: result.rows[0] }, 201);
@@ -106,20 +102,23 @@ app.put('/:id', requirePermission('settings:update'), async (c) => {
 
     const body = await c.req.json();
     const fields: Record<string, any> = {};
-    if (body.name               !== undefined) fields.name               = body.name;
-    if (body.tunnel_url         !== undefined) fields.tunnel_url         = body.tunnel_url;
-    if (body.timezone           !== undefined) fields.timezone           = body.timezone;
-    if (body.api_key            !== undefined) fields.api_key            = body.api_key;
-    if (body.active             !== undefined) fields.active             = body.active;
-    if (body.client_api_url     !== undefined) fields.client_api_url     = body.client_api_url;
-    if (body.github_owner       !== undefined) fields.github_owner       = body.github_owner;
-    if (body.remote_db_host     !== undefined) fields.remote_db_host     = body.remote_db_host;
-    if (body.remote_db_port     !== undefined) fields.remote_db_port     = body.remote_db_port;
-    if (body.remote_db_name     !== undefined) fields.remote_db_name     = body.remote_db_name;
-    if (body.remote_db_user     !== undefined) fields.remote_db_user     = body.remote_db_user;
-    if (body.remote_db_password !== undefined) fields.remote_db_password = body.remote_db_password;
+    if (body.name        !== undefined) fields.name        = body.name;
+    if (body.tunnel_url  !== undefined) fields.tunnel_url  = body.tunnel_url;
+    if (body.timezone    !== undefined) fields.timezone    = body.timezone;
+    if (body.active      !== undefined) fields.active      = body.active;
+    if (body.notes       !== undefined) fields.notes       = body.notes;
+    if (body.location_id !== undefined) fields.location_id = body.location_id;
 
     if (Object.keys(fields).length === 0) return c.json({ success: true, message: 'No fields to update' });
+
+    if (fields.name) {
+      const existing = await execQuery(
+        c.env,
+        'SELECT 1 FROM public.sync_server WHERE tenant_id = $1 AND LOWER(name) = LOWER($2) AND sync_server_id != $3',
+        [tenantId, fields.name, id]
+      );
+      if (existing.rows.length > 0) return c.json({ success: false, message: `A sync server named "${fields.name}" already exists.` }, 409);
+    }
 
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -134,10 +133,8 @@ app.put('/:id', requirePermission('settings:update'), async (c) => {
 
     const sql = `UPDATE public.sync_server SET ${setClauses.join(', ')}
                  WHERE tenant_id = $${idx} AND sync_server_id = $${idx + 1}
-                 RETURNING sync_server_id, tenant_id, name, tunnel_url, timezone, api_key, active,
+                 RETURNING sync_server_id, tenant_id, location_id, name, tunnel_url, timezone, active, notes,
                            bootstrap_key, tunnel_id, provision_status, provision_error, dns_record_id,
-                           client_api_url, github_owner,
-                           remote_db_host, remote_db_port, remote_db_name, remote_db_user, remote_db_password,
                            created_at, updated_at`;
     const result = await execQuery(c.env, sql, values);
 
@@ -294,7 +291,7 @@ app.post('/:id/provision', requirePermission('settings:update'), async (c) => {
 
     const updated = await execQuery(
       c.env,
-      `SELECT sync_server_id, tenant_id, name, tunnel_url, timezone, api_key, active,
+      `SELECT sync_server_id, tenant_id, location_id, name, tunnel_url, timezone, active, notes,
               bootstrap_key, tunnel_id, provision_status, provision_error, dns_record_id,
               created_at, updated_at
        FROM public.sync_server WHERE sync_server_id = $1`,
@@ -360,10 +357,7 @@ app.get('/:id/bootstrap', async (c) => {
 
     const result = await execQuery(
       c.env,
-      `SELECT provision_status, provision_error, tunnel_token,
-              client_api_url, github_owner, api_key,
-              remote_db_host, remote_db_port, remote_db_name,
-              remote_db_user, remote_db_password
+      `SELECT provision_status, provision_error, tunnel_token
        FROM public.sync_server
        WHERE sync_server_id = $1 AND bootstrap_key = $2`,
       [id, key]
@@ -379,15 +373,14 @@ app.get('/:id/bootstrap', async (c) => {
         provision_status:   row.provision_status,
         provision_error:    row.provision_error,
         tunnel_token:       row.provision_status === 'active' ? row.tunnel_token : null,
-        client_api_url:     row.client_api_url,
-        github_owner:       row.github_owner,
+        client_api_url:     c.env.CLIENT_API_URL ?? 'https://meteritpro.com/api',
+        github_owner:       c.env.GITHUB_OWNER ?? '',
         github_token:       c.env.GITHUB_TOKEN ?? '',
-        api_key:            row.api_key,
-        remote_db_host:     row.remote_db_host,
-        remote_db_port:     row.remote_db_port,
-        remote_db_name:     row.remote_db_name,
-        remote_db_user:     row.remote_db_user,
-        remote_db_password: row.provision_status === 'active' ? row.remote_db_password : null,
+        remote_db_host:     c.env.REMOTE_DB_HOST ?? '',
+        remote_db_port:     c.env.REMOTE_DB_PORT ?? 5432,
+        remote_db_name:     c.env.REMOTE_DB_NAME ?? '',
+        remote_db_user:     c.env.REMOTE_DB_USER ?? '',
+        remote_db_password: row.provision_status === 'active' ? (c.env.REMOTE_DB_PASSWORD ?? '') : null,
       },
     });
   } catch (error: any) {
