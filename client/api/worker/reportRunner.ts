@@ -572,7 +572,104 @@ export async function generateDemandReport(env: Env, report: Report): Promise<Re
   };
 }
 
+type GroupingType = 'hourly' | 'daily' | 'weekly' | 'monthly';
+
+function groupKeyExpr(g: GroupingType): string {
+  switch (g) {
+    case 'hourly':  return `TO_CHAR(r.created_at, 'YYYY-MM-DD HH24:00')`;
+    case 'daily':   return `TO_CHAR(r.created_at, 'YYYY-MM-DD')`;
+    case 'weekly':  return `TO_CHAR(DATE_TRUNC('week', r.created_at), 'YYYY-MM-DD')`;
+    case 'monthly': return `TO_CHAR(r.created_at, 'YYYY-MM')`;
+  }
+}
+
+function formatPeriodKey(key: string, g: GroupingType): string {
+  if (g !== 'monthly') return key;
+  const [year, month] = key.split('-');
+  return `${MONTH_NAMES[Number(month) - 1]} ${year}`;
+}
+
+async function generateGroupedReport(env: Env, report: Report): Promise<ReportData> {
+  const { startDate, endDate } = getReportDateRange(report);
+  const rawG = (report.grouping_type || 'monthly').toLowerCase() as GroupingType;
+  const grouping: GroupingType = ['hourly', 'daily', 'weekly', 'monthly'].includes(rawG) ? rawG : 'monthly';
+  const keyExpr = groupKeyExpr(grouping);
+
+  const { physicalPairs, virtualMeterIds } = await splitMeterSelections(env, report);
+  const pairFilter = physicalPairs.length > 0 ? buildPairFilter(physicalPairs, 3) : null;
+
+  const physicalSql = `
+    SELECT
+      ${keyExpr} AS sort_key,
+      CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name,
+      ROUND(SUM(r.kwh)::numeric, 2) AS total_kwh,
+      ROUND(AVG(r.kw)::numeric, 2) AS avg_kw,
+      ROUND(MAX(r.kw)::numeric, 2) AS peak_kw,
+      COUNT(*)::int AS reading_count
+    FROM meter_reading r
+    JOIN meter m ON m.meter_id = r.meter_id
+    JOIN meter_element me ON me.meter_element_id = r.meter_element_id
+    WHERE r.created_at >= $1 AND r.created_at <= $2${pairFilter ? ` AND ${pairFilter.sql}` : ''}
+    GROUP BY ${keyExpr}, m.meter_id, m.name, me.meter_element_id, me.element, me.name
+    ORDER BY sort_key, meter_name`;
+
+  const physicalRows = pairFilter || (physicalPairs.length === 0 && virtualMeterIds.length === 0)
+    ? (await execQuery(env, physicalSql, [startDate.toISOString(), endDate.toISOString(), ...(pairFilter?.params ?? [])])).rows
+    : [];
+
+  const virtualResults = await Promise.all(virtualMeterIds.map(vmId =>
+    execQuery(env, `
+      SELECT
+        ${keyExpr} AS sort_key,
+        m.name AS meter_name,
+        ROUND(SUM(CASE WHEN mv.operation = '-' THEN -r.kwh ELSE r.kwh END)::numeric, 2) AS total_kwh,
+        ROUND(AVG(r.kw)::numeric, 2) AS avg_kw,
+        ROUND(MAX(r.kw)::numeric, 2) AS peak_kw,
+        COUNT(*)::int AS reading_count
+      FROM meter_reading r
+      JOIN meter_virtual mv ON mv.selected_meter_id = r.meter_id AND mv.select_meter_element_id = r.meter_element_id
+      JOIN meter m ON m.meter_id = mv.meter_id
+      WHERE mv.meter_id = $1 AND r.created_at >= $2 AND r.created_at <= $3
+      GROUP BY ${keyExpr}, m.meter_id, m.name
+      ORDER BY sort_key, meter_name`,
+      [vmId, startDate.toISOString(), endDate.toISOString()]
+    ).then(res => res.rows)
+  ));
+
+  const combined = [...physicalRows, ...virtualResults.flat()];
+  combined.sort((a: any, b: any) => String(a.sort_key).localeCompare(String(b.sort_key)) || String(a.meter_name).localeCompare(String(b.meter_name)));
+
+  const data = combined.map(({ sort_key, ...rest }: any) => ({
+    period: formatPeriodKey(String(sort_key), grouping),
+    ...rest,
+  }));
+
+  const selectedFields = getRegisterFieldNames(report);
+  let finalData = data;
+  if (selectedFields) {
+    const keep = new Set<string>(['period', 'meter_name', 'reading_count']);
+    if (selectedFields.includes('kwh'))          keep.add('total_kwh');
+    if (selectedFields.includes('kw'))           { keep.add('avg_kw'); keep.add('peak_kw'); }
+    if (selectedFields.includes('power_factor')) keep.add('avg_pf');
+    finalData = data.map((row: any) =>
+      Object.fromEntries(Object.entries(row).filter(([k]) => keep.has(k)))
+    );
+  }
+
+  const timeFrameLabel = (report.time_frame || 'yearly').charAt(0).toUpperCase() + (report.time_frame || 'yearly').slice(1);
+
+  return {
+    type: report.type,
+    generatedAt: new Date().toISOString(),
+    period: timeFrameLabel,
+    recordCount: finalData.length,
+    meterCount: new Set(data.map((r: any) => r.meter_name)).size,
+    data: finalData,
+  };
+}
+
 async function generateReportData(env: Env, report: Report): Promise<ReportData> {
+  if (report.grouping_type) return generateGroupedReport(env, report);
   switch (report.type) {
     case 'meter_readings': return generateMeterReadingsReport(env, report);
     case 'usage_summary': return generateUsageSummaryReport(env, report);
@@ -715,8 +812,7 @@ function buildPreviewHtml(report: Report, reportData: ReportData, chartData: Cha
     <button class="no-print" onclick="window.print()" style="padding:6px 14px;border:1px solid #1a56db;color:#1a56db;background:#fff;border-radius:4px;cursor:pointer;font-size:12px">Print / Save PDF</button>
   </div>
   ${meta ? `<div style="margin-bottom:16px;color:#555;font-size:12px;display:flex;gap:4px;flex-wrap:wrap">${meta}</div>` : ''}
-  ${useChart ? chartHtml : ''}
-  ${tableHtml}
+  ${useChart ? chartHtml : tableHtml}
   ${initScript}
   ${pdfAutoprint}
 </body>
@@ -725,27 +821,70 @@ function buildPreviewHtml(report: Report, reportData: ReportData, chartData: Cha
 
 // --- HTML email body ----------------------------------------------------------
 
-function buildEmailHtml(report: Report, reportData: ReportData): string {
+function buildEmailChartUrl(report: Report, chartData: ChartSeriesData): string {
+  const displayType = report.visualization_type || 'bar';
+  const isPie = displayType === 'pie';
+  const isLine = displayType === 'line';
+  const palette = ['#0ea5e9', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#06b6d4', '#f97316', '#ec4899', '#14b8a6', '#a855f7'];
+
+  const datasets = isPie
+    ? [{
+        data: chartData.series.map(s => parseFloat(s.data.reduce((a, b) => a + b, 0).toFixed(4))),
+        backgroundColor: chartData.series.map((_, i) => palette[i % palette.length]),
+      }]
+    : chartData.series.map((s, i) => ({
+        label: s.name,
+        data: s.data.map(v => parseFloat(v.toFixed(4))),
+        backgroundColor: isLine ? palette[i % palette.length] + '22' : palette[i % palette.length],
+        borderColor: palette[i % palette.length],
+        borderWidth: isLine ? 2 : 1,
+        fill: isLine,
+        tension: isLine ? 0.3 : 0,
+      }));
+
+  const labels = isPie ? chartData.series.map(s => s.name) : chartData.labels;
+
+  const config = {
+    type: displayType,
+    data: { labels, datasets },
+    options: {
+      plugins: { legend: { position: 'bottom' } },
+      scales: isPie ? {} : {
+        y: { beginAtZero: true, title: { display: !!chartData.unit, text: chartData.unit } },
+      },
+    },
+  };
+
+  return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(config))}&width=600&height=300&backgroundColor=white`;
+}
+
+function buildEmailHtml(report: Report, reportData: ReportData, chartData: ChartSeriesData): string {
+  const displayType: string = report.visualization_type || 'bar';
+  const hasChartData = chartData.series.length > 0 && chartData.labels.length > 0;
+  const useChart = ['bar', 'line', 'pie'].includes(displayType) && hasChartData;
+
   const rows = Array.isArray(reportData.data) ? reportData.data : [];
   const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
   const displayRows = rows.slice(0, 100);
 
-  const tableHtml = rows.length === 0
-    ? '<p style="color:#6b7280;font-style:italic">No data available for this report.</p>'
-    : `<table style="width:100%;border-collapse:collapse;margin-top:12px;font-size:12px">
-        <thead>
-          <tr style="background:#1a56db;color:#fff">
-            ${headers.map(h => `<th style="padding:6px 8px;text-align:left;text-transform:capitalize">${h.replace(/_/g, ' ')}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${displayRows.map((row, i) => `
-            <tr style="${i % 2 === 1 ? 'background:#f9fafb' : ''}">
-              ${headers.map(h => `<td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top">${formatValue(row[h])}</td>`).join('')}
-            </tr>`).join('')}
-        </tbody>
-       </table>
-       ${rows.length > 100 ? `<p style="color:#6b7280;font-size:11px;margin-top:8px">Showing first 100 of ${rows.length} records.</p>` : ''}`;
+  const contentHtml = useChart
+    ? `<img src="${buildEmailChartUrl(report, chartData)}" alt="${report.name} chart" style="max-width:100%;height:auto;display:block;margin:0 auto" />`
+    : rows.length === 0
+      ? '<p style="color:#6b7280;font-style:italic">No data available for this report.</p>'
+      : `<table style="width:100%;border-collapse:collapse;margin-top:12px;font-size:12px">
+          <thead>
+            <tr style="background:#1a56db;color:#fff">
+              ${headers.map(h => `<th style="padding:6px 8px;text-align:left;text-transform:capitalize">${h.replace(/_/g, ' ')}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${displayRows.map((row, i) => `
+              <tr style="${i % 2 === 1 ? 'background:#f9fafb' : ''}">
+                ${headers.map(h => `<td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top">${formatValue(row[h])}</td>`).join('')}
+              </tr>`).join('')}
+          </tbody>
+         </table>
+         ${rows.length > 100 ? `<p style="color:#6b7280;font-size:11px;margin-top:8px">Showing first 100 of ${rows.length} records.</p>` : ''}`;
 
   const meta = [
     reportData.period ? `<p><strong>Period:</strong> ${reportData.period}</p>` : '',
@@ -763,7 +902,7 @@ function buildEmailHtml(report: Report, reportData: ReportData): string {
     <p style="color:#555;margin-top:4px;font-size:11px">Type: ${report.type} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString()}</p>
   </div>
   <div style="margin-bottom:16px">${meta}</div>
-  ${tableHtml}
+  ${contentHtml}
   <p style="color:#9ca3af;font-size:11px;margin-top:32px;border-top:1px solid #e5e7eb;padding-top:12px">
     This is an automated report from MeterItPro. Please do not reply to this email.
   </p>
@@ -773,23 +912,76 @@ function buildEmailHtml(report: Report, reportData: ReportData): string {
 
 // --- Email via Resend ---------------------------------------------------------
 
-async function sendEmail(env: Env, to: string, subject: string, html: string, fromOverride?: string | null): Promise<void> {
+interface EmailAttachment {
+  filename: string;
+  content: string; // base64-encoded
+}
+
+async function sendEmail(
+  env: Env,
+  to: string,
+  subject: string,
+  html: string,
+  fromOverride?: string | null,
+  attachments?: EmailAttachment[]
+): Promise<void> {
   const apiKey = env.RESEND_API_KEY;
   console.log('[sendEmail] RESEND_API_KEY present:', !!apiKey);
-  if (!apiKey) throw new Error('RESEND_API_KEY is not configured � run: npx wrangler secret put RESEND_API_KEY');
+  if (!apiKey) throw new Error('RESEND_API_KEY is not configured — run: npx wrangler secret put RESEND_API_KEY');
 
   const from = fromOverride || (env as any).RESEND_FROM || 'MeterItPro <noreply@meteritpro.com>';
+
+  const payload: Record<string, unknown> = { from, to, subject, html };
+  if (attachments && attachments.length > 0) {
+    payload.attachments = attachments;
+  }
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to, subject, html }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Resend API error (${res.status}): ${err}`);
   }
+}
+
+function buildCsvContent(reportData: ReportData): string {
+  const rows = Array.isArray(reportData.data) ? reportData.data : [];
+  if (rows.length === 0) return '';
+  const headers = Object.keys(rows[0]);
+  const escape = (v: unknown) => {
+    const s = v == null ? '' : String(v);
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [headers.join(','), ...rows.map(r => headers.map(h => escape(r[h])).join(','))].join('\r\n');
+}
+
+function buildCsvEmailHtml(report: Report, reportData: ReportData): string {
+  const meta = [
+    reportData.period ? `<p><strong>Period:</strong> ${reportData.period}</p>` : '',
+    reportData.recordCount != null ? `<p><strong>Records:</strong> ${reportData.recordCount}</p>` : '',
+    reportData.meterCount != null ? `<p><strong>Meters:</strong> ${reportData.meterCount}</p>` : '',
+    reportData.dayCount != null ? `<p><strong>Days:</strong> ${reportData.dayCount}</p>` : '',
+  ].filter(Boolean).join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>${report.name}</title></head>
+<body style="font-family:Arial,sans-serif;font-size:13px;color:#111;background:#fff;padding:24px;margin:0">
+  <div style="border-bottom:2px solid #1a56db;padding-bottom:12px;margin-bottom:16px">
+    <h1 style="font-size:20px;color:#1a56db;margin:0">${report.name}</h1>
+    <p style="color:#555;margin-top:4px;font-size:11px">Type: ${report.type} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString()}</p>
+  </div>
+  <div style="margin-bottom:16px">${meta}</div>
+  <p>Please find the report data attached as a CSV file.</p>
+  <p style="color:#9ca3af;font-size:11px;margin-top:32px;border-top:1px solid #e5e7eb;padding-top:12px">
+    This is an automated report from MeterItPro. Please do not reply to this email.
+  </p>
+</body>
+</html>`;
 }
 
 // --- History helpers ----------------------------------------------------------
@@ -890,21 +1082,37 @@ export async function runReport(env: Env, reportId: number): Promise<void> {
 
   try {
     console.log('[runReport] calling generateReportData...');
-    const reportData = await generateReportData(env, report);
+    const [reportData, chartData] = await Promise.all([
+      generateReportData(env, report),
+      fetchChartSeriesData(env, report, report.tenant_id),
+    ]);
     console.log('[runReport] generateReportData ok, rows:', reportData.data.length);
     historyId = await createHistoryEntry(env, report.report_id, executedAt, 'pending', null);
     console.log('[runReport] history entry created:', historyId);
 
-    const html = buildEmailHtml(report, reportData);
+    const isCsv = (report.attach_as || 'html') === 'csv';
+    let html: string;
+    let attachments: EmailAttachment[] | undefined;
+
+    if (isCsv) {
+      html = buildCsvEmailHtml(report, reportData);
+      const csvContent = buildCsvContent(reportData);
+      const base64Csv = btoa(unescape(encodeURIComponent(csvContent)));
+      const safeName = report.name.replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+      attachments = [{ filename: `${safeName}.csv`, content: base64Csv }];
+    } else {
+      html = buildEmailHtml(report, reportData, chartData);
+    }
+
     const subject = `Report: ${report.name}`;
     const failures: string[] = [];
 
     const toList = report.recipients?.to ?? [];
     const fromOverride = report.recipients?.from;
-    console.log('[runReport] sending to', toList.length, 'recipients');
+    console.log('[runReport] sending to', toList.length, 'recipients, attach_as:', report.attach_as || 'html');
     for (const recipient of toList) {
       try {
-        await sendEmail(env, recipient, subject, html, fromOverride);
+        await sendEmail(env, recipient, subject, html, fromOverride, attachments);
         await createEmailLogEntry(env, report.report_id, historyId, recipient, executedAt, 'delivered', null);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
