@@ -352,7 +352,7 @@ const LandingPage: React.FC = () => {
             <section className="landing-section landing-section--alt" id="testimonials">
                 <h2>What Pilot Customers Say</h2>
                 <p>Early partners across utilities, BMS, and meter manufacturing use MeterIt Pro to replace manual workflows and deliver real-time data to their clients.</p>
-                <div className="landing-testimonials">
+                {/* <div className="landing-testimonials">
                     <div className="landing-testimonial-card">
                         <blockquote className="landing-testimonial-quote">
                             "MeterIt Pro cut our manual meter reading time by over 60%. The multi-site dashboard is exactly what our field teams needed."
@@ -389,7 +389,7 @@ const LandingPage: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> */}
             </section>
 
             <section className="landing-section" id="pricing">
@@ -551,7 +551,7 @@ const LandingPage: React.FC = () => {
                     <div className="landing-contact-card">
                         <h3>General Enquiries</h3>
                         <p>Questions about pricing, integrations, or partnerships? Email us directly.</p>
-                        <a className="landing-btn-tertiary" href="mailto:hello@meteritpro.com">hello@meteritpro.com</a>
+                        <a className="landing-btn-tertiary" href="mailto:info@meteritpro.com">info@meteritpro.com</a>
                     </div>
                     <div className="landing-contact-card">
                         <h3>Pilot Program</h3>

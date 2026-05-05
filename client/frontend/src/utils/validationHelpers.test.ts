@@ -4,7 +4,7 @@ import {
   validateCronExpression,
   validateReportName,
   validateEmailList
-} from './validationHelpers';
+} from '@framework/utils/validationHelpers';
 
 describe('validationHelpers', () => {
   describe('validateEmail', () => {

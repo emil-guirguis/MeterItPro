@@ -7,3 +7,4 @@
 export * from './dateHelpers';
 export * from './stringHelpers';
 export * from './iconHelper';
+export * from './validationHelpers';

@@ -54,15 +54,10 @@ export interface BaseFormProps {
   formMaxWidth?: string;
   formMinWidth?: string;
   /**
-   * The type of meter being edited. Used to filter tabs based on meter type.
-   * - 'physical': For physical meters (shows Elements tab)
-   * - 'virtual': For virtual meters (shows Combined Meters tab)
-   * - null/undefined: Shows all tabs (default behavior)
-   * 
-   * This prop is passed to the useFormTabs hook to conditionally render tabs
-   * based on the tab's visibleFor property.
+   * Opaque variant key matched against `visibleFor` on tabs/sections/fields.
+   * When omitted, no filtering is applied.
    */
-  meterType?: 'physical' | 'virtual' | null;
+  variant?: string | null;
   /** Optional content rendered on the right side of the tab header bar */
   tabHeaderActions?: React.ReactNode;
 }
@@ -126,8 +121,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   // Form width constraints
   formMaxWidth,
   formMinWidth,
-  // Meter type for tab filtering
-  meterType,
+  variant,
   tabHeaderActions,
 }) => {
   const formClassName = className ? `base-form ${className}` : 'base-form';
@@ -168,7 +162,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   const { tabs: allTabs, fieldSections: formTabsFieldSections, tabList } = useFormTabs(
     schema?.formTabs,
     effectiveActiveTab,
-    meterType
+    variant
   );
 
   console.log('[BaseForm] useFormTabs result:', {
@@ -471,10 +465,10 @@ export const BaseForm: React.FC<BaseFormProps> = ({
             
             if (response?.data?.errors) {
               apiErrors = response.data.errors;
-              // Format validation errors
+              // Format validation errors — handle both string[] and {path,msg}[] shapes
               if (Array.isArray(apiErrors)) {
                 errorDetails = apiErrors
-                  .map((err: any) => `${err.path}: ${err.msg}`)
+                  .map((err: any) => typeof err === 'string' ? err : `${err.path}: ${err.msg}`)
                   .join('<br/>');
               } else {
                 errorDetails = JSON.stringify(apiErrors, null, 2);

@@ -170,7 +170,7 @@ describe('RecipientManager', () => {
     );
 
     const input = screen.getByLabelText('Email Address') as HTMLInputElement;
-    const addButton = screen.getByRole('button', { name: /add/i });
+    const addButton = screen.getByRole('button', { name: /add/i }) as HTMLButtonElement;
 
     expect(input.disabled).toBe(true);
     expect(addButton.disabled).toBe(true);

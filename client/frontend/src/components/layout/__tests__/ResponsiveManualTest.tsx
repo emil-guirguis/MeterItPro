@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import AppLayout from '../AppLayout';
-import { useResponsive } from '../../../hooks/useResponsive';
+import { useResponsive } from '@framework/hooks/useResponsive';
 import { useAuth } from '../../../hooks/useAuth';
 import { useUI } from '../../../store/slices/uiSlice';
 

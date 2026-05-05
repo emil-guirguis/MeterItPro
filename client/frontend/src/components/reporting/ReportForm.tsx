@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { createReport, updateReport } from '../../services/reportingService';
 import type { Report } from '../../services/reportingService';
-import { validateCronExpression } from '../../utils/validationHelpers';
+import { validateCronExpression } from '@framework/utils/validationHelpers';
 import { MeterElementRegisterSelectorGrid } from '../shared/MeterElementRegisterSelectorGrid';
 import type { MeterRowValue } from '../shared/MeterElementRegisterSelectorGrid';
 import RecipientManager from './RecipientManager';
@@ -41,7 +41,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
     schedule: '0 9 * * *',
     recipients: [] as string[],
     config: {} as Record<string, any>,
-    enabled: true
+    active: true
   });
 
   const [meterSelections, setMeterSelections] = useState<MeterRowValue[]>([]);
@@ -59,7 +59,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
         schedule: report.schedule,
         recipients: report.recipients,
         config: report.config,
-        enabled: report.enabled
+        active: report.active
       });
 
       if (report.config?.meter_selections) {
@@ -87,9 +87,9 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
       newErrors.schedule = 'Invalid cron expression format';
     }
 
-    if (formData.recipients.length === 0) {
-      newErrors.recipients = 'At least one recipient is required';
-    }
+    // if (formData.recipients.length === 0) {
+    //   newErrors.recipients = 'At least one recipient is required';
+    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -118,7 +118,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
           schedule: formData.schedule,
           recipients: formData.recipients,
           config: reportConfig,
-          enabled: formData.enabled
+          active: formData.active
         });
       } else {
         await createReport({
@@ -127,7 +127,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ report, onSubmit, onCancel }) =
           schedule: formData.schedule,
           recipients: formData.recipients,
           config: reportConfig,
-          enabled: true
+          active: true
         });
       }
 

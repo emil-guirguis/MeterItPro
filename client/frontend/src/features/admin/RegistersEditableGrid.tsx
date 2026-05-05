@@ -101,7 +101,7 @@ export const RegistersEditableGrid: React.FC<RegistersEditableGridProps> = ({
         error={error}
         onRetry={loadRegisters}
         onCellChange={handleCellChange}
-        onRowAdd={handleRowAdd}
+        onRowAdd={handleRowAdd as () => void}
         onRowDelete={handleRowDelete}
         emptyMessage="No registers found"
       />

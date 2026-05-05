@@ -116,7 +116,13 @@
       "PowerShell(dir \"C:\\\\Projects\\\\MeterItPro\\\\client\\\\api\\\\src\" -Recurse | Where-Object {!$_.PSIsContainer} | Select-Object FullName)",
       "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\" -Recurse -Directory)",
       "Bash(Select-Object -First 20)",
-      "Bash(Format-Table FullName)"
+      "Bash(Format-Table FullName)",
+      "PowerShell(dir \"C:\\\\Projects\\\\MeterItPro\\\\framework\" -Recurse -Depth 2 | Where-Object { $_.PSIsContainer } | Select-Object FullName)",
+      "PowerShell(head *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(& \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -U postgres -d postgres -c \"SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'report' ORDER BY ordinal_position;\" 2>&1)",
+      "Bash(C:/Program Files/PostgreSQL/18/bin/psql.exe *)",
+      "Bash(Start-Sleep 3)"
     ],
     "additionalDirectories": [
       "C:\\Program Files\\PostgreSQL\\18\\data"

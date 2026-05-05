@@ -188,10 +188,22 @@ export const useResponsive = (): UseResponsiveResult => {
     
     window.addEventListener('orientationchange', handleOrientationChange, options as any);
 
+    const handleFullscreenChange = () => {
+      setTimeout(handleResize, 100);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
     // Cleanup function
     return () => {
       window.removeEventListener('resize', debouncedHandleResize);
       window.removeEventListener('orientationchange', handleOrientationChange);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }

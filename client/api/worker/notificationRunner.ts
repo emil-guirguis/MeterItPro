@@ -139,7 +139,7 @@ async function upsertNotification(
 async function sendEmail(env: Env, recipients: string[], subject: string, html: string): Promise<void> {
   const apiKey = (env as any).RESEND_API_KEY;
   if (!apiKey) {
-    console.warn('[notificationRunner] RESEND_API_KEY not set — skipping email');
+    console.warn('[notificationRunner] RESEND_API_KEY not set ï¿½ skipping email');
     return;
   }
   const from = (env as any).RESEND_FROM || 'MeterItPro <noreply@meteritpro.com>';
@@ -177,7 +177,7 @@ function buildEmailHtml(opts: {
 <body>
   <div class="hdr"><h2>${opts.headerTitle}</h2><p>${opts.headerSubtitle}</p></div>
   <div class="body">${opts.body}</div>
-  <div class="foot">Automated alert from MeterItPro — Rule: ${opts.ruleName}</div>
+  <div class="foot">Automated alert from MeterItPro ï¿½ Rule: ${opts.ruleName}</div>
 </body>
 </html>`;
 }
@@ -205,7 +205,7 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
           ROUND(EXTRACT(EPOCH FROM (ts - prev_ts)) / 60) AS gap_duration_minutes,
           FLOOR(EXTRACT(EPOCH FROM (ts - prev_ts)) / 900)::int - 1 AS missing_records_in_this_gap
         FROM ordered
-        WHERE prev_ts IS NOT NULL AND ts > prev_ts + INTERVAL '15 minutes'
+        WHERE prev_ts IS NOT NULL AND ts > prev_ts + INTERVAL '20 minutes'
       )
       SELECT *, COUNT(*) OVER () AS total_number_of_gaps
       FROM gaps ORDER BY gap_duration_minutes DESC LIMIT 100`,
@@ -224,8 +224,8 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
     const gapStart = new Date(worst.gap_starts_at);
     const gapEnd = new Date(worst.gap_ends_at);
 
-    const title = `${pair.display_name} – ${totalGaps} reading gap${totalGaps !== 1 ? 's' : ''} detected`;
-    const description = `Largest gap: ${gapMinutes} min (${gapStart.toLocaleString()} – ${gapEnd.toLocaleString()}). `
+    const title = `${pair.display_name} ï¿½ ${totalGaps} reading gap${totalGaps !== 1 ? 's' : ''} detected`;
+    const description = `Largest gap: ${gapMinutes} min (${gapStart.toLocaleString()} ï¿½ ${gapEnd.toLocaleString()}). `
       + `${totalGaps} gap${totalGaps !== 1 ? 's' : ''} found in the last ${thresholdHours}h window.`;
 
     await upsertNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id,
@@ -234,10 +234,10 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
     const recipients = await getEmailRecipients(env, rule.notification_rule_id);
     if (recipients.length > 0) {
       await sendEmail(env, recipients,
-        `Alert: ${pair.display_name} – ${gapHours}h gap in readings`,
+        `Alert: ${pair.display_name} ï¿½ ${gapHours}h gap in readings`,
         buildEmailHtml({
           headerColor: '#c62828', headerTitle: 'Missing Meter Readings Alert',
-          headerSubtitle: `${rule.name} — ${pair.display_name}`,
+          headerSubtitle: `${rule.name} ï¿½ ${pair.display_name}`,
           body: `<p>A gap of <strong>${gapHours} hours</strong> was detected for <strong>${pair.display_name}</strong>
                  within the last 24 hours, exceeding the configured threshold of
                  <strong>${thresholdHours} hour${thresholdHours !== 1 ? 's' : ''}</strong>.</p>
@@ -274,7 +274,7 @@ async function checkMeterZeroReading(env: Env, rule: NotificationRule): Promise<
       continue;
     }
 
-    const title = `${pair.display_name} – ${total} reading${total !== 1 ? 's' : ''} all zero`;
+    const title = `${pair.display_name} ï¿½ ${total} reading${total !== 1 ? 's' : ''} all zero`;
     const description = `All ${total} reading${total !== 1 ? 's' : ''} in the last ${thresholdHours} hours show kWh=0 and kW=0.`;
 
     await upsertNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id,
@@ -283,10 +283,10 @@ async function checkMeterZeroReading(env: Env, rule: NotificationRule): Promise<
     const recipients = await getEmailRecipients(env, rule.notification_rule_id);
     if (recipients.length > 0) {
       await sendEmail(env, recipients,
-        `Alert: ${pair.display_name} – All ${total} readings are zero`,
+        `Alert: ${pair.display_name} ï¿½ All ${total} readings are zero`,
         buildEmailHtml({
           headerColor: '#e65100', headerTitle: 'Zero Energy Readings Alert',
-          headerSubtitle: `${rule.name} — ${pair.display_name}`,
+          headerSubtitle: `${rule.name} ï¿½ ${pair.display_name}`,
           body: `<p><strong>${pair.display_name}</strong> has sent <strong>${total} reading${total !== 1 ? 's' : ''}</strong>
                  in the last <strong>${thresholdHours} hour${thresholdHours !== 1 ? 's' : ''}</strong>,
                  but every reading shows <strong>kWh = 0</strong> and <strong>kW = 0</strong>.</p>
@@ -326,7 +326,7 @@ async function checkDemandThreshold(env: Env, rule: NotificationRule): Promise<v
     const threshold = Number(rule.demand_threshold);
     const overBy = (peakKw - threshold).toFixed(1);
 
-    const title = `${pair.display_name} – Peak demand ${peakKw.toFixed(1)} kW exceeds ${threshold} kW`;
+    const title = `${pair.display_name} ï¿½ Peak demand ${peakKw.toFixed(1)} kW exceeds ${threshold} kW`;
     const description = `Peak demand of ${peakKw.toFixed(1)} kW at ${peakAt.toISOString()}, exceeding threshold of ${threshold} kW.`;
 
     await upsertNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id,
@@ -335,10 +335,10 @@ async function checkDemandThreshold(env: Env, rule: NotificationRule): Promise<v
     const recipients = await getEmailRecipients(env, rule.notification_rule_id);
     if (recipients.length > 0) {
       await sendEmail(env, recipients,
-        `Alert: ${pair.display_name} – Peak demand ${peakKw.toFixed(1)} kW exceeds ${threshold} kW`,
+        `Alert: ${pair.display_name} ï¿½ Peak demand ${peakKw.toFixed(1)} kW exceeds ${threshold} kW`,
         buildEmailHtml({
           headerColor: '#1565c0', headerTitle: 'Demand Threshold Exceeded',
-          headerSubtitle: `${rule.name} — ${pair.display_name}`,
+          headerSubtitle: `${rule.name} ï¿½ ${pair.display_name}`,
           body: `<p><strong>${pair.display_name}</strong> reached a peak demand of
                  <strong>${peakKw.toFixed(1)} kW</strong> at ${peakAt.toLocaleString()},
                  exceeding the configured threshold of <strong>${threshold} kW</strong>
@@ -373,7 +373,7 @@ export async function runAllActiveNotificationRules(env: Env, now: Date = new Da
 
   for (const rule of result.rows) {
     if (!matchesCronSchedule(rule.schedule_cron, now)) {
-      console.log(`[cron] Notification rule ${rule.notification_rule_id} skipped — schedule "${rule.schedule_cron}" does not match ${now.toISOString()}`);
+      console.log(`[cron] Notification rule ${rule.notification_rule_id} skipped ï¿½ schedule "${rule.schedule_cron}" does not match ${now.toISOString()}`);
       continue;
     }
 

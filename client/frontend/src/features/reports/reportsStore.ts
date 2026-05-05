@@ -61,6 +61,7 @@ export const useReportsStore = create<ReportsStore>()(
 
       // Framework-required methods
       fetchItems: async () => {
+        if (get().list.loading) return; // in-flight guard
         const state = get();
         set(s => ({
           list: { ...s.list, loading: true, error: null }

@@ -9,9 +9,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
 import { MeterReadingManagementPage } from './MeterReadingManagementPage';
-import { MeterSelectionProvider, useMeterSelection } from '../../contexts/MeterSelectionContext';
+import { MeterSelectionProvider } from '../../contexts/MeterSelectionContext';
 import { useMeterReadingsEnhanced } from './meterReadingsStore';
 
 // Configurable search params for tests
@@ -21,6 +20,7 @@ let mockSearchParams = new URLSearchParams();
 vi.mock('react-router-dom', () => ({
   useSearchParams: () => [mockSearchParams, vi.fn()],
   useNavigate: () => vi.fn(),
+  useLocation: () => ({ state: null }),
 }));
 
 // Mock useAuth to avoid needing an AuthProvider wrapper

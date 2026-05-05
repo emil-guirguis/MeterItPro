@@ -91,6 +91,11 @@ interface CacheEntry {
 const schemaCache = new Map<string, CacheEntry>();
 
 /**
+ * In-flight fetch promises — deduplicate concurrent fetchSchema calls for the same entity.
+ */
+const inflightFetches = new Map<string, Promise<BackendSchema>>();
+
+/**
  * Cache TTL in milliseconds (default: 30 minutes)
  */
 const CACHE_TTL = 30 * 60 * 1000;
@@ -159,10 +164,16 @@ export async function fetchSchema(
     }
   }
 
+  // Deduplicate concurrent fetches for the same entity name
+  if (inflightFetches.has(entityName)) {
+    return inflightFetches.get(entityName)!;
+  }
+
+  const fetchPromise = (async () => {
   try {
     // Get authentication token from localStorage or sessionStorage
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-    
+
     console.log('[SchemaLoader] Fetching schema for:', entityName);
     console.log('[SchemaLoader] Token available:', !!token);
     console.log('[SchemaLoader] Token value:', token ? `${token.substring(0, 20)}...` : 'null');
@@ -225,6 +236,11 @@ export async function fetchSchema(
     console.error(`Error fetching schema for ${entityName}:`, error);
     throw error;
   }
+  })();
+
+  inflightFetches.set(entityName, fetchPromise);
+  fetchPromise.finally(() => inflightFetches.delete(entityName));
+  return fetchPromise;
 }
 
 /**

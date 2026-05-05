@@ -139,6 +139,50 @@ describe('Favorites Routes', () => {
     });
   });
 
+  describe('PUT /order', () => {
+    it('should update favorite order', async () => {
+      const mockTransaction = vi.mocked(transaction);
+      mockTransaction.mockResolvedValueOnce(undefined as any);
+
+      const res = await favoritesApp.request('/order', {
+        method: 'PUT',
+        headers: { authorization: 'Bearer valid-token', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: 1,
+          users_id: 1,
+          order: [
+            { favorite_id: 1, order_by: 1 },
+            { favorite_id: 2, order_by: 2 },
+          ],
+        }),
+      }, TEST_ENV);
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+    });
+
+    it('should return 400 when required fields are missing', async () => {
+      const res = await favoritesApp.request('/order', {
+        method: 'PUT',
+        headers: { authorization: 'Bearer valid-token', 'content-type': 'application/json' },
+        body: JSON.stringify({ users_id: 1, order: [] }), // missing tenant_id
+      }, TEST_ENV);
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 when order is not an array', async () => {
+      const res = await favoritesApp.request('/order', {
+        method: 'PUT',
+        headers: { authorization: 'Bearer valid-token', 'content-type': 'application/json' },
+        body: JSON.stringify({ tenant_id: 1, users_id: 1, order: 'invalid' }),
+      }, TEST_ENV);
+
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe('DELETE /:favoriteId', () => {
     it('should delete a favorite', async () => {
       mockQuery

@@ -12,7 +12,7 @@ import { AppLayout } from '@framework/layout';
 import type { LayoutProps, MenuItem, AppLayoutConfig } from '@framework/layout';
 import { registerIconMappings } from '@framework/utils/iconHelper';
 import { useAuth } from '../../hooks/useAuth';
-import { useResponsive } from '../../hooks/useResponsive';
+import { useResponsive } from '@framework/hooks/useResponsive';
 import { useUI } from '../../store/slices/uiSlice';
 import { Permission } from '../../types/auth';
 import { SidebarMetersSection } from '../sidebar-meters';

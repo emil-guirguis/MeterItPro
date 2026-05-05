@@ -98,7 +98,7 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
   const lastFetchedFiltersKeyRef = useRef<string | null>(null);
 
   // Load entity schema to determine special behaviors (e.g., soft-delete via `active` flag)
-  const { schema: entitySchema } = useSchema(entityName);
+  const { schema: entitySchema, loading: schemaLoading } = useSchema(entityName);
 
   // State management
   const [searchQuery, setSearchQueryState] = useState('');
@@ -178,8 +178,11 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
 
   const canBulkAction = useMemo(() => allowBulkActions, [allowBulkActions]);
 
-  // Initialize default 'active' filter and fetch data
+  // Initialize default 'active' filter and fetch data.
+  // Waits for schema to load so filterDefinitions are accurate before deciding.
   useEffect(() => {
+    if (schemaLoading) return;
+
     const hasActiveFilter = memoizedFilterDefinitions.some(f => f.key === 'active');
 
     // Don't override filters already set (e.g. user navigated back with existing filters)
@@ -204,16 +207,22 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
         store.fetchItems();
       }
     }
-  }, [memoizedFilterDefinitions]);
+  }, [memoizedFilterDefinitions, schemaLoading]);
 
   // Apply filters when they change
   useEffect(() => {
     console.log('[useBaseList] Filter effect triggered with filters:', filters);
 
+    // Schema hasn't loaded yet — defer to the [memoizedFilterDefinitions, schemaLoading]
+    // effect which fires once schema is ready and sets the correct default filters.
+    if (schemaLoading) {
+      console.log('[useBaseList] Schema loading — deferring filter init');
+      return;
+    }
+
     if (!filtersInitialisedRef.current) {
-      // Always skip the very first run: either filters are empty (the
-      // memoizedFilterDefinitions effect is about to set the real default) or the
-      // filters were just initialised above and we'd double-fire the request.
+      // Schema is loaded but this is the very first run of [filters].
+      // The [filterDefs+schemaLoading] effect will handle the initial fetch.
       filtersInitialisedRef.current = true;
       console.log('[useBaseList] Initial filter run — deferring fetch to filter initialisation');
       return;
@@ -239,7 +248,7 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
         store.fetchItems();
       }
     }
-  }, [filters]);
+  }, [filters, schemaLoading]);
 
   // State setters with store integration
   const setSearchQuery = useCallback((query: string) => {

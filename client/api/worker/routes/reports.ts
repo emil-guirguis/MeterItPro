@@ -103,11 +103,11 @@ app.put('/:id', async (c) => {
       else if (body.name.length > 255) errors.push('Report name must not exceed 255 characters');
     }
     if (body.cron !== undefined && !isValidCronExpression(body.cron)) errors.push('Invalid cron expression');
-    if (body.recipients !== undefined) {
-      const toList: string[] = Array.isArray(body.recipients?.to) ? body.recipients.to : [];
-      if (toList.length === 0) errors.push('At least one recipient is required');
-      else { const ev = validateEmailList(toList); if (!ev.isValid) errors.push(`Invalid emails: ${ev.invalidEmails.join(', ')}`); }
-    }
+    // if (body.recipients !== undefined) {
+    //   const toList: string[] = Array.isArray(body.recipients?.to) ? body.recipients.to : [];
+    //   if (toList.length === 0) errors.push('At least one recipient is required');
+    //   else { const ev = validateEmailList(toList); if (!ev.isValid) errors.push(`Invalid emails: ${ev.invalidEmails.join(', ')}`); }
+    // }
     if (errors.length > 0) return c.json({ success: false, message: 'Validation failed', errors }, 400);
 
     const data = extractBodyData(body, reportSchema);

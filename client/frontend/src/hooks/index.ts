@@ -1,14 +1,14 @@
 // Export all custom hooks from this file
 export { useAuth } from './useAuth';
-export { 
-  useResponsive, 
-  useMediaQuery, 
-  useIsMobile, 
-  useIsTablet, 
-  useIsDesktop, 
+export {
+  useResponsive,
+  useMediaQuery,
+  useIsMobile,
+  useIsTablet,
+  useIsDesktop,
   useIsLarge,
-  useIsTouchDevice 
-} from './useResponsive';
+  useIsTouchDevice
+} from '@framework/hooks/useResponsive';
 export { 
   useResponsiveSync,
   useResponsiveTransition,

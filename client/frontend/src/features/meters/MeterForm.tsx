@@ -77,7 +77,7 @@ export const MeterForm: React.FC<MeterFormProps> = ({
           loading={loading}
           validationDataProvider={validationDataProvider}
           showTabs={true}
-          meterType={determinedMeterType}
+          variant={determinedMeterType}
           // Keep framework-managed connection fields excluded for virtual meters,
           // but allow the `elements` field to be rendered so `renderCustomField`
           // can provide the custom ElementsGrid / CombinedMetersTab UI.

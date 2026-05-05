@@ -8,7 +8,7 @@ import {
   Stack
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { validateEmail } from '../../utils/validationHelpers';
+import { validateEmail } from '@framework/utils/validationHelpers';
 
 interface RecipientManagerProps {
   recipients: string[];
@@ -109,11 +109,11 @@ const RecipientManager: React.FC<RecipientManagerProps> = ({
           </FormHelperText>
         )}
 
-        {recipients.length === 0 && !error && (
+        {/* {recipients.length === 0 && !error && (
           <FormHelperText>
             Add at least one recipient email address
           </FormHelperText>
-        )}
+        )} */}
       </Stack>
     </Box>
   );
