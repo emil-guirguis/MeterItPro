@@ -23,6 +23,7 @@ import { validateLoginCredentials } from '../../types/auth';
 import { useAuth } from '../../hooks/useAuth';
 import { TwoFactorVerificationModal } from './TwoFactorVerificationModal';
 import authService from '../../services/authService';
+import { getVersionDisplay } from '../../utils/version';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -409,6 +410,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         <Box sx={{ mt: 4, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
             © 2025 MeterIt Pro. All rights reserved.
+          </Typography>
+          <Typography variant="caption" color="text.disabled">
+            {getVersionDisplay()}
           </Typography>
         </Box>
       </Box>
