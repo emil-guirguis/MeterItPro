@@ -25,6 +25,7 @@ import { notificationSchema } from './notificationSchema';
 import { notificationSettingsSchema } from './notificationSettingsSchema';
 import { notificationRuleSchema } from './notificationRuleSchema';
 import { syncServerSchema } from './syncServerSchema';
+import { costSchema } from './costSchema';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -63,6 +64,7 @@ const schemas: Record<string, any> = {
   notification_settings: notificationSettingsSchema,
   notification_rule: notificationRuleSchema,
   sync_server: syncServerSchema,
+  cost: costSchema,
 };
 
 // ---------------------------------------------------------------------------

@@ -58,9 +58,10 @@ export const contactSchema = defineSchema({
       ],
     }),
     tab({
-      name: 'Additional Info',
+      name: 'Aduit & Notes',
       order: 3,
       sectionOrientation: 'vertical',
+      maxWidth: '200px',
       sections: [
         section({
           name: 'Notes',
@@ -73,8 +74,8 @@ export const contactSchema = defineSchema({
           name: 'Audit',
           order: 2,
           fields: [
-            field({ name: 'created_at', order: 1, type: FieldTypes.DATE, default: null, readOnly: true, label: 'Created At', dbField: 'created_at', showOn: ['form'] }),
-            field({ name: 'updated_at', order: 2, type: FieldTypes.DATE, default: null, readOnly: true, label: 'Updated At', dbField: 'updated_at', showOn: ['form'] }),
+            field({ name: 'created_at', order: 1, type: FieldTypes.DATETIME, default: null, readOnly: true, label: 'Created At', dbField: 'created_at', showOn: ['form'] }),
+            field({ name: 'updated_at', order: 2, type: FieldTypes.DATETIME, default: null, readOnly: true, label: 'Updated At', dbField: 'updated_at', showOn: ['form'] }),
           ],
         }),
       ],

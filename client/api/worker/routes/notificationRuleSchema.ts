@@ -168,7 +168,7 @@ export const notificationRuleSchema = defineSchema({
               default: [],
               required: false,
               label: 'Notification Recipients',
-              dbField: 'recipients',
+              dbField: '',
               helpText: 'Select users and their email preferences',
               showOn: ['form'],
               customField: true,

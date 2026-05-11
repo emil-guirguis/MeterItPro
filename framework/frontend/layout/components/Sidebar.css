@@ -130,7 +130,7 @@
 .sidebar-link {
   display: flex;
   align-items: center;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 0.75rem;
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
@@ -184,7 +184,16 @@
   margin-right: 0.625rem;
   flex-shrink: 0;
   width: 20px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-icon .material-symbols-outlined,
+.sidebar-icon .material-icons {
+  display: block;
+  line-height: 1;
+  font-size: inherit;
 }
 
 .sidebar-label {
@@ -196,6 +205,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left;
+  line-height: 1;
+  align-self: center;
 }
 
 .sidebar-badge {

@@ -24,6 +24,7 @@ const FieldTypes = {
   NUMBER: 'number',
   BOOLEAN: 'boolean',
   DATE: 'date',
+  DATETIME: 'datetime',
   EMAIL: 'email',
   PHONE: 'phone',
   COUNTRY: 'country',
@@ -182,6 +183,7 @@ function section(config) {
     flex: config.flex !== undefined ? config.flex : 1,
     flexGrow: config.flexGrow !== undefined ? config.flexGrow : 1,
     flexShrink: config.flexShrink !== undefined ? config.flexShrink : 1,
+    horizontal: config.horizontal || false,
   };
 }
 

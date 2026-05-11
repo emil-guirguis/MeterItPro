@@ -16,6 +16,8 @@ import {
 } from '@mui/material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { NumberSpinner } from './NumberSpinner';
 import { URLLink } from './URLLink';
 import { CronField } from './CronField';
@@ -78,6 +80,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
     onChange,
     onBlur,
   }, ref) => {
+    const [showPassword, setShowPassword] = React.useState(false);
     const showError = touched && error;
     const fieldId = `field-${name}`;
     const errorId = `${fieldId}-error`;
@@ -344,7 +347,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               error={showError}
               helperText={showError ? error : help}
               placeholder={placeholder}
-              autoComplete="email"
+              autoComplete="new-email"
               data-field={name}
               data-component="email"
               {...(showError && { 'aria-invalid': true })}
@@ -464,18 +467,19 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
             const strValue = String(value);
 
             if (type === 'datetime') {
-              // Always parse and format datetime as "YYYY-MM-DD HH:mm"
               try {
                 const date = new Date(strValue);
-                if (isNaN(date.getTime())) return strValue; // Invalid date
-                const year = date.getFullYear();
+                if (isNaN(date.getTime())) return strValue;
                 const month = String(date.getMonth() + 1).padStart(2, '0');
                 const day = String(date.getDate()).padStart(2, '0');
-                const hours = String(date.getHours()).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours24 = date.getHours();
+                const ampm = hours24 >= 12 ? 'PM' : 'AM';
+                const hours12 = hours24 % 12 || 12;
                 const minutes = String(date.getMinutes()).padStart(2, '0');
-                return `${year}-${month}-${day} ${hours}:${minutes}`;
+                return `${month}/${day}/${year} ${hours12}:${minutes} ${ampm}`;
               } catch (e) {
-                return strValue; // Return original if parse fails
+                return strValue;
               }
             } else if (type === 'date') {
               // For date fields, keep first 10 characters (YYYY-MM-DD)
@@ -527,6 +531,45 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
                 required={required}
               />
             </div>
+          );
+
+        case 'password':
+          return (
+            <TextField
+              id={fieldId}
+              name={name}
+              label={label}
+              type={showPassword ? 'text' : 'password'}
+              value={value ?? ''}
+              onChange={onChange}
+              onBlur={onBlur}
+              required={required}
+              disabled={disabled}
+              fullWidth
+              variant="outlined"
+              error={showError}
+              helperText={showError ? error : help}
+              placeholder={placeholder}
+              autoComplete="new-password"
+              data-field={name}
+              data-component="password"
+              {...(showError && { 'aria-invalid': true })}
+              aria-describedby={showError ? errorId : undefined}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      tabIndex={-1}
+                      onClick={() => setShowPassword(p => !p)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
           );
 
         default: {

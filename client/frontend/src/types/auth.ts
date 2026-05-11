@@ -1,6 +1,7 @@
 // Authentication and User Management Types
 
 export const UserRole = {
+  SUPER_ADMIN: 'superadmin',
   ADMIN: 'admin',
   MANAGER: 'manager',
   TECHNICIAN: 'technician',
@@ -77,6 +78,8 @@ export interface User {
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
+  isAdminView?: boolean;
+  adminViewTenantName?: string;
 }
 
 export interface LoginCredentials {
@@ -115,6 +118,9 @@ export interface AuthContextType extends AuthState {
 
 // Role-based permission validation
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  [UserRole.SUPER_ADMIN]: [
+    ...Object.values(Permission)
+  ],
   [UserRole.ADMIN]: [
     // Full access to all permissions
     ...Object.values(Permission)

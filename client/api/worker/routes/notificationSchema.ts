@@ -37,7 +37,7 @@ export const notificationSchema = defineSchema({
             }),
             field({ name: 'title', order: 3, type: FieldTypes.STRING, default: '', required: false, label: 'Title', dbField: 'title', readOnly: true, showOn: ['list'] }),
             field({ name: 'description', order: 4, type: FieldTypes.STRING, default: '', required: false, label: 'Details', dbField: 'description', readOnly: true, showOn: ['list'] }),
-            field({ name: 'created_at', order: 5, type: FieldTypes.DATE, default: null, required: false, label: 'Time', dbField: 'created_at', readOnly: true, showOn: ['list'] }),
+            field({ name: 'created_at', order: 5, type: FieldTypes.DATETIME, default: null, required: false, label: 'Time', dbField: 'created_at', readOnly: true, showOn: ['list'] }),
           ],
         }),
       ],

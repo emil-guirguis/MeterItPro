@@ -18,8 +18,6 @@ export const meterElementsSchema = defineSchema({
     meter_element_id: field({ name: 'meter_element_id', type: FieldTypes.NUMBER, default: null, readOnly: true, label: 'ID', dbField: 'meter_element_id' }),
     meter_id: field({ name: 'meter_id', type: FieldTypes.NUMBER, default: null, readOnly: true, label: 'Meter ID', dbField: 'meter_id' }),
     tenant_id: field({ name: 'tenant_id', type: FieldTypes.NUMBER, default: null, readOnly: false, label: 'Tenant ID', dbField: 'tenant_id' }),
-    created_at: field({ name: 'created_at', type: FieldTypes.DATE, default: null, readOnly: true, label: 'Created At', dbField: 'created_at' }),
-    updated_at: field({ name: 'updated_at', type: FieldTypes.DATE, default: null, readOnly: true, label: 'Updated At', dbField: 'updated_at' }),
   },
 
   validation: {},

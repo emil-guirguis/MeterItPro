@@ -300,8 +300,9 @@ describe('Contacts Routes', () => {
       expect(body.message).toBe('Contact not found');
     });
 
-    it('returns 403 when contact belongs to different tenant', async () => {
-      mockFindById.mockResolvedValueOnce({ contact_id: 1, name: 'Other', tenant_id: 99 });
+    it('returns 404 when contact belongs to different tenant (findById returns null)', async () => {
+      // findById filters by tenantId in SQL — cross-tenant contact is invisible, not 403
+      mockFindById.mockResolvedValueOnce(null);
 
       const res = await contactsApp.request('/1', {
         method: 'PUT',
@@ -312,7 +313,27 @@ describe('Contacts Routes', () => {
         body: JSON.stringify({ name: 'Try' }),
       }, TEST_ENV);
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(404);
+    });
+
+    it('succeeds when JWT tenant_id is a string but DB returns numeric tenant_id (regression)', async () => {
+      // JWT claims may decode tenant_id as string "1"; DB returns number 1.
+      // The old JS strict-equality check (tenant_id !== tenantId) would incorrectly 403.
+      mockVerify.mockResolvedValueOnce({ userId: 1, tenant_id: '1' });
+      mockQuery.mockResolvedValueOnce({ rows: [ADMIN_USER] } as any);
+      mockFindById.mockResolvedValueOnce({ contact_id: 1, name: 'Test', tenant_id: 1 });
+      mockUpdate.mockResolvedValueOnce({ contact_id: 1, name: 'Updated', tenant_id: 1 });
+
+      const res = await contactsApp.request('/1', {
+        method: 'PUT',
+        headers: {
+          authorization: 'Bearer valid-token',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ name: 'Updated' }),
+      }, TEST_ENV);
+
+      expect(res.status).toBe(200);
     });
   });
 

@@ -58,6 +58,7 @@ app.get('/', async (c) => {
     const result = await findAll(c.env, {
       table: 'report',
       primaryKey: 'report_id',
+      tenantId: c.get('tenantId'),
       page,
       limit,
       sortBy: 'created_at',
@@ -127,12 +128,13 @@ app.put('/:id', async (c) => {
 app.delete('/:id', async (c) => {
   try {
     const id = c.req.param('id');
+    const tenantId = c.get('tenantId');
     if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
-    const existing = await execQuery(c.env, 'SELECT report_id, name FROM public.report WHERE report_id = $1', [id]);
+    const existing = await execQuery(c.env, 'SELECT report_id, name FROM public.report WHERE report_id = $1 AND tenant_id = $2', [id, tenantId]);
     if (existing.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
 
-    await execQuery(c.env, 'DELETE FROM public.report WHERE report_id = $1', [id]);
+    await execQuery(c.env, 'DELETE FROM public.report WHERE report_id = $1 AND tenant_id = $2', [id, tenantId]);
     return c.json({ success: true, message: 'Report deleted successfully' });
   } catch (error: any) {
     logError('Error deleting report:', error);
@@ -144,16 +146,17 @@ app.delete('/:id', async (c) => {
 app.patch('/:id/toggle', async (c) => {
   try {
     const id = c.req.param('id');
+    const tenantId = c.get('tenantId');
     if (parseNumericId(id) === null) return c.json({ success: false, message: 'Invalid report ID format' }, 400);
 
-    const getResult = await execQuery(c.env, 'SELECT report_id, name, active FROM public.report WHERE report_id = $1', [id]);
+    const getResult = await execQuery(c.env, 'SELECT report_id, name, active FROM public.report WHERE report_id = $1 AND tenant_id = $2', [id, tenantId]);
     if (getResult.rows.length === 0) return c.json({ success: false, message: 'Report not found' }, 404);
 
     const newActive = !getResult.rows[0].active;
     const result = await execQuery(
       c.env,
-      'UPDATE public.report SET active = $1, updated_at = $2 WHERE report_id = $3 RETURNING report_id, name, active, updated_at',
-      [newActive, new Date(), id]
+      'UPDATE public.report SET active = $1, updated_at = $2 WHERE report_id = $3 AND tenant_id = $4 RETURNING report_id, name, active, updated_at',
+      [newActive, new Date(), id, tenantId]
     );
 
     if (result.rows.length === 0) return c.json({ success: false, message: 'Failed to toggle report status' }, 500);

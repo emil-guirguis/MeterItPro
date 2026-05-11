@@ -60,8 +60,8 @@ export const syncServerSchema = defineSchema({
           name: 'Audit',
           order: 2,
           fields: [
-            field({ name: 'created_at', order: 1, type: FieldTypes.DATE, default: null, disable: true, label: 'Created At', dbField: 'created_at', showOn: ['form'] }),
-            field({ name: 'updated_at', order: 2, type: FieldTypes.DATE, default: null, disable: true, label: 'Updated At', dbField: 'updated_at', showOn: ['form'] }),
+            field({ name: 'created_at', order: 1, type: FieldTypes.DATETIME, default: null, disable: true, label: 'Created At', dbField: 'created_at', showOn: ['form'] }),
+            field({ name: 'updated_at', order: 2, type: FieldTypes.DATETIME, default: null, disable: true, label: 'Updated At', dbField: 'updated_at', showOn: ['form'] }),
           ],
         }),
       ],

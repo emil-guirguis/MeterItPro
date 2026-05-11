@@ -4,7 +4,11 @@ import { UserList } from './UserList';
 import { UserForm } from './UserForm';
 import type { User } from '../../types/auth';
 
-export const UserManagementPage: React.FC = () => {
+interface UserManagementPageProps {
+  authContext?: { checkPermission: (p: any) => boolean; user: any };
+}
+
+export const UserManagementPage: React.FC<UserManagementPageProps> = ({ authContext }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showForm, setShowForm] = useState(false);
 
@@ -28,6 +32,7 @@ export const UserManagementPage: React.FC = () => {
       <UserList
         onUserEdit={handleEdit}
         onUserCreate={handleCreate}
+        authContext={authContext}
       />
 
       <FormModal

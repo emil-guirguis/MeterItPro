@@ -17,14 +17,14 @@ export const emailTemplatesSchema = defineSchema({
     isdefault: field({ type: FieldTypes.BOOLEAN, default: false, required: false, label: 'Is Default', dbField: 'isdefault' }),
     isactive: field({ type: FieldTypes.BOOLEAN, default: true, required: false, label: 'Is Active', dbField: 'isactive' }),
     usagecount: field({ type: FieldTypes.NUMBER, default: 0, required: false, label: 'Usage Count', dbField: 'usagecount' }),
-    lastused: field({ type: FieldTypes.DATE, default: '', required: false, label: 'Last Used', dbField: 'lastused' }),
+    lastused: field({ type: FieldTypes.DATETIME, default: '', required: false, label: 'Last Used', dbField: 'lastused' }),
     createdby: field({ type: FieldTypes.NUMBER, default: 0, required: false, label: 'Created By', dbField: 'createdby' }),
   },
 
   entityFields: {
-    id: field({ name: 'email_template_id', type: FieldTypes.NUMBER, default: null, readOnly: true, label: 'Id', dbField: 'email_template_id' }),
-    createdat: field({ type: FieldTypes.DATE, default: null, readOnly: true, label: 'Created At', dbField: 'createdat' }),
-    updatedat: field({ type: FieldTypes.DATE, default: null, readOnly: true, label: 'Updated At', dbField: 'updatedat' }),
+    id: field({ name: 'email_templates_id', type: FieldTypes.NUMBER, default: null, readOnly: true, label: 'Id', dbField: 'email_templates_id' }),
+    createdat: field({ type: FieldTypes.DATETIME, default: null, readOnly: true, label: 'Created At', dbField: 'createdat' }),
+    updatedat: field({ type: FieldTypes.DATETIME, default: null, readOnly: true, label: 'Updated At', dbField: 'updatedat' }),
     tenantId: field({ type: FieldTypes.NUMBER, default: null, readOnly: true, label: 'Tenant ID', dbField: 'tenant_id' }),
   },
 

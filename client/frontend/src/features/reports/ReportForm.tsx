@@ -35,13 +35,25 @@ interface ReportFormProps {
   onSubmit: (data: Omit<Report, 'report_id' | 'created_at' | 'updated_at'>) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
+  hideMeters?: boolean;
 }
 
 const REPORT_TYPE_OPTIONS = [
-  { value: 'meter_readings', label: 'Meter Readings' },
-  { value: 'usage_summary', label: 'Usage Summary' },
-  { value: 'daily_summary', label: 'Daily Summary' },
-  { value: 'demand', label: 'Demand Report' },
+  { value: 'cost', label: 'Cost' },
+  { value: 'revenue', label: 'Revenue' },
+];
+
+const VISUALIZATION_OPTIONS = [
+  { value: 'bar', label: 'Bar Chart' },
+  { value: 'line', label: 'Line Chart' },
+  { value: 'pie', label: 'Pie Chart' },
+  { value: 'csv', label: 'CSV' },
+];
+
+const ATTACH_AS_OPTIONS = [
+  { value: 'html', label: 'Embedded HTML' },
+  { value: 'pdf', label: 'PDF' },
+  { value: 'csv', label: 'CSV' },
 ];
 
 export const ReportForm: React.FC<ReportFormProps> = ({
@@ -49,6 +61,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
   onSubmit,
   onCancel,
   loading = false,
+  hideMeters = false,
 }) => {
   const reports = useReportsEnhanced();
 
@@ -58,7 +71,9 @@ export const ReportForm: React.FC<ReportFormProps> = ({
     try { localStorage.removeItem('schema_cache_report'); } catch { /* ignore */ }
   }
 
-  const [selectedType, setSelectedType] = useState<string>(report?.type || 'meter_readings');
+  const [selectedType, setSelectedType] = useState<string>(report?.type || 'cost');
+  const [selectedVisualization, setSelectedVisualization] = useState<string>(report?.visualization_type || 'bar');
+  const attachAsOnChangeRef = useRef<((val: any) => void) | null>(null);
   const [debugRunning, setDebugRunning] = useState(false);
   const [debugResult, setDebugResult] = useState<{ success: boolean; message: string } | null>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -224,7 +239,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   <InputLabel required={fieldDef?.required}>Report Type</InputLabel>
                   <Select
                     label="Report Type"
-                    value={value ?? 'meter_readings'}
+                    value={value ?? 'cost'}
                     onChange={(e) => {
                       const newType = e.target.value as string;
                       setSelectedType(newType);
@@ -232,6 +247,49 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                     }}
                   >
                     {REPORT_TYPE_OPTIONS.map((opt) => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              );
+            }
+
+            if (fieldName === 'visualization_type') {
+              return (
+                <FormControl size="small" fullWidth disabled={isDisabled} error={!!error}>
+                  <InputLabel>Visualization</InputLabel>
+                  <Select
+                    label="Visualization"
+                    value={value ?? 'bar'}
+                    onChange={(e) => {
+                      const newViz = e.target.value as string;
+                      setSelectedVisualization(newViz);
+                      onChange(newViz);
+                      if (newViz === 'csv') {
+                        attachAsOnChangeRef.current?.('csv');
+                      }
+                    }}
+                  >
+                    {VISUALIZATION_OPTIONS.map((opt) => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              );
+            }
+
+            if (fieldName === 'attach_as') {
+              attachAsOnChangeRef.current = onChange;
+              const isCsvViz = selectedVisualization === 'csv';
+              return (
+                <FormControl size="small" fullWidth disabled={isDisabled || isCsvViz} error={!!error}>
+                  <InputLabel>Attach As</InputLabel>
+                  <Select
+                    label="Attach As"
+                    value={isCsvViz ? 'csv' : (value ?? 'html')}
+                    onChange={(e) => onChange(e.target.value)}
+                  >
+                    {ATTACH_AS_OPTIONS.map((opt) => (
                       <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                     ))}
                   </Select>
@@ -264,6 +322,10 @@ export const ReportForm: React.FC<ReportFormProps> = ({
                   onChange={onChange}
                 />
               );
+            }
+
+            if (fieldName === 'meter_selections' && hideMeters) {
+              return <></>;
             }
 
             if (fieldName === 'meter_selections') {

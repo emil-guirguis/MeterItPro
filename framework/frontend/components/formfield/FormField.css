@@ -7,10 +7,23 @@
   border-left-color: #1976d2;
 }
 
-.form-field-root .MuiInputBase-root.Mui-focused {
+.form-field-root .MuiInputBase-root {
+  transition: background-color 0.15s ease !important;
+}
+
+.form-field-root .MuiInputBase-root.Mui-focused,
+.form-field-root .MuiFormControl-root .MuiInputBase-root.Mui-focused {
   background-color: #fffde7 !important;
 }
 
-.form-field-root .MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+/* Also target the input/textarea elements directly — browsers apply white UA background
+   to <input> and <textarea> which renders on top of the parent's background-color */
+.form-field-root .MuiInputBase-root.Mui-focused .MuiInputBase-input,
+.form-field-root .MuiFormControl-root .MuiInputBase-root.Mui-focused .MuiInputBase-input {
+  background-color: #fffde7 !important;
+}
+
+.form-field-root .MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.form-field-root .MuiFormControl-root .MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline {
   border-color: #1976d2;
 }

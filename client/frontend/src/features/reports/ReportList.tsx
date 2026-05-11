@@ -15,14 +15,17 @@ interface ReportListProps {
   onReportSelect?: (report: Report) => void;
   onReportEdit?: (report: Report) => void;
   onReportCreate?: () => void;
+  authContext?: { checkPermission: (p: any) => boolean; user: any };
 }
 
 export const ReportList: React.FC<ReportListProps> = ({
   onReportSelect,
   onReportEdit,
   onReportCreate,
+  authContext: authContextProp,
 }) => {
-    const auth = useAuth();
+    const realAuth = useAuth();
+    const auth = authContextProp ?? realAuth;
     const { schema } = useSchema('report');
 
   const customColumns: ColumnDefinition<Report>[] = useMemo(() => {

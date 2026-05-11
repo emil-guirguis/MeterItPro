@@ -20,9 +20,9 @@ export const reportSchema = defineSchema({
           flex: 1,
           fields: [
             field({ name: 'name', order: 1, type: FieldTypes.STRING, default: '', required: true, label: 'Report Name', dbField: 'name', minLength: 1, maxLength: 255, placeholder: 'Monthly Usage Report', filterable: ['main'], showOn: ['list', 'form'] }),
-            field({ name: 'type', order: 2, type: FieldTypes.SELECT, default: 'meter_readings', required: true, label: 'Report Type', dbField: 'type', 
-              enumValues: ['meter_readings', 'usage_summary', 'daily_summary', 'demand'], 
-              enumLabels: {'meter_readings': 'Meter Readings', 'usage_summary': 'Usage Summary', 'daily_summary': 'Daily Summary', 'demand': 'Demand Report' }, 
+            field({ name: 'type', order: 2, type: FieldTypes.SELECT, default: 'cost', required: true, label: 'Report Type', dbField: 'type', 
+              enumValues: ['cost', 'revenue'],
+              enumLabels: {'cost': 'Cost', 'revenue': 'Revenue'},
               filterable: ['true'], showOn: ['list', 'form'], customField: true }),
           ],
         }),
@@ -38,7 +38,7 @@ export const reportSchema = defineSchema({
           name: 'Report Settings',
           order: 3,
           minWidth: '100%',
-          horzontal: true,
+          horizontal: true,
           fields: [
             field({ name: 'time_frame', order: 1, type: FieldTypes.SELECT, default: 'monthly', required: false, label: 'Time Frame', dbField: 'time_frame',
               enumValues: ['today', 'weekly', 'monthly', 'yearly', 'custom'],

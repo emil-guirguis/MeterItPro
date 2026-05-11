@@ -157,12 +157,13 @@ app.post('/', requirePermission('user:create'), async (c) => {
       tenant_id: tenantId,
     };
 
-    // Hash password if provided
-    if (userData.password) {
-      const salt = await bcrypt.genSalt(10);
-      userData.passwordhash = await bcrypt.hash(userData.password, salt);
-      delete userData.password;
+    if (!userData.password) {
+      return c.json({ success: false, message: 'Password is required' }, 400);
     }
+
+    const salt = await bcrypt.genSalt(10);
+    userData.passwordhash = await bcrypt.hash(userData.password, salt);
+    delete userData.password;
 
     // Auto-generate permissions based on role if not explicitly provided
     if (!userData.permissions || (Array.isArray(userData.permissions) && userData.permissions.length === 0)) {
@@ -205,18 +206,10 @@ app.put('/:id', requirePermission('user:update'), async (c) => {
     const id = c.req.param('id');
     const tenantId = c.get('tenantId');
 
-    // Find the user first
+    // Find the user first (findById already filters by tenantId)
     const user = await findById(c.env, 'users', 'users_id', id, tenantId);
     if (!user) {
       return c.json({ success: false, message: 'User not found' }, 404);
-    }
-
-    // Validate tenant ownership
-    if (user.tenant_id !== tenantId) {
-      return c.json({
-        success: false,
-        message: 'You do not have permission to update this user',
-      }, 403);
     }
 
     const body = await c.req.json();

@@ -136,7 +136,9 @@ app.get('/cards/:id/data', requirePermission('dashboard:read'), async (c) => {
     const tenantId = c.get('tenantId');
     if (!tenantId) return c.json({ success: false, message: 'User must have a valid tenant_id' }, 400);
 
-    const tz = c.req.query('tz') || 'UTC';
+    const rawTz = c.req.query('tz') || 'UTC';
+    // Whitelist: only allow valid IANA timezone characters to prevent SQL injection
+    const tz = /^[A-Za-z0-9_/+-]{1,64}$/.test(rawTz) ? rawTz : 'UTC';
 
     const card = await findById(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), tenantId);
     if (!card) return c.json({ success: false, message: 'Dashboard card not found' }, 404);
@@ -511,6 +513,10 @@ app.put('/cards/:id', requirePermission('dashboard:update'), async (c) => {
     console.log('[Dashboard] PUT /cards/:id - updateData:', updateData);
     const updated = await update(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), updateData);
     console.log('[Dashboard] PUT /cards/:id - Updated result:', updated);
+
+    if (!updated) {
+      return c.json({ success: false, message: 'Dashboard card not found or no changes applied' }, 404);
+    }
 
     return c.json({
       success: true,

@@ -7,7 +7,9 @@ import './ReportsPage.css';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view';
 
-const ReportsPage: React.FC = () => {
+const allowedAuth = { checkPermission: () => true as boolean, user: undefined };
+
+const ReportsPage: React.FC<{ isAdmin?: boolean }> = ({ isAdmin = false }) => {
   const reports = useReportsEnhanced();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -138,6 +140,7 @@ const ReportsPage: React.FC = () => {
             onReportCreate={handleCreateReport}
             onReportEdit={handleEditReport}
             onReportSelect={handleViewReport}
+            authContext={isAdmin ? allowedAuth : undefined}
           />
         )}
 
@@ -159,6 +162,7 @@ const ReportsPage: React.FC = () => {
             report={selectedReport || undefined}
             onSubmit={handleFormSubmit}
             onCancel={handleFormCancel}
+            hideMeters={isAdmin}
           />
         </FormModal>
       )}

@@ -19,7 +19,7 @@ export const authLogsSchema = defineSchema({
 
   entityFields: {
     authLogsId: field({ name: 'auth_logs_id', type: FieldTypes.NUMBER, default: null, readOnly: true, label: 'Auth Logs ID', dbField: 'auth_logs_id' }),
-    createdAt: field({ type: FieldTypes.DATE, default: null, readOnly: true, label: 'Created At', dbField: 'created_at' }),
+    createdAt: field({ type: FieldTypes.DATETIME, default: null, readOnly: true, label: 'Created At', dbField: 'created_at' }),
   },
 
   relationships: {

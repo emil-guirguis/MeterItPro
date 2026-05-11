@@ -104,6 +104,20 @@
   flex-shrink: attr(data-flex-shrink);
 }
 
+/* Horizontal fields row — renders section fields side-by-side */
+.base-form__fields-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.base-form__fields-row__item {
+  flex: 1 1 0;
+  min-width: 140px;
+}
+
 /* Grid Layout Classes - Applied dynamically based on schema */
 .base-form__main--grid-1 .base-form__sections-container {
   grid-template-columns: 1fr !important;
@@ -159,6 +173,17 @@
 }
 
 /* Section Titles */
+.base-form__section-title__maps-link {
+  margin-left: auto;
+}
+
+.base-form__section-title__maps-link img {
+  width: 16px;
+  height: 16px;
+  opacity: 0.85;
+  vertical-align: middle;
+}
+
 .base-form__section-title {
   margin: 0 0 1rem 0;
   font-size: 1.125rem;
@@ -167,6 +192,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
 }
 
 /* Form Rows - for side-by-side fields */

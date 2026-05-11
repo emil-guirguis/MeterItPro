@@ -511,23 +511,7 @@ export async function generateDemandReport(env: Env, report: Report): Promise<Re
          ORDER BY peak_demand_kw DESC NULLS LAST`,
         [startDate.toISOString(), endDate.toISOString(), ...pairFilter.params]
       )).rows
-    : physicalPairs.length === 0 && virtualMeterIds.length === 0
-      ? (await execQuery(
-          env,
-          `SELECT
-             CONCAT(COALESCE(TRIM(m.name)), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, '?')) AS meter_name,
-             ROUND(MAX(r.kw)::numeric, 2)                                            AS peak_demand_kw,
-             TO_CHAR(MAX(r.created_at), 'YYYY-MM-DD HH24:MI:SS')                    AS peak_reading_at,
-             COUNT(*)::int                                                            AS reading_count
-           FROM meter_reading r
-           JOIN meter m ON m.meter_id = r.meter_id
-           JOIN meter_element me ON me.meter_element_id = r.meter_element_id
-           WHERE r.created_at >= $1 AND r.created_at <= $2
-           GROUP BY m.meter_id, m.name, me.meter_element_id, me.element, me.name
-           ORDER BY peak_demand_kw DESC NULLS LAST`,
-          [startDate.toISOString(), endDate.toISOString()]
-        )).rows
-      : [];
+    : [];
 
   // Virtual demand: instantaneous sum per timestamp → peak of those sums
   const virtualResults = await Promise.all(virtualMeterIds.map(vmId =>

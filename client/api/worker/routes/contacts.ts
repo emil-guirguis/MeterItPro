@@ -156,13 +156,7 @@ app.post('/', requirePermission('contact:create'), async (c) => {
     return c.json({ success: true, data: contact }, 201);
   } catch (error: any) {
     logError('Error creating contact', error);
-    return c.json({
-      success: false,
-      message: 'Failed to create contact',
-      error: error.message,
-      detail: error.detail,
-      code: error.code,
-    }, 500);
+    return c.json({ success: false, message: 'Failed to create contact' }, 500);
   }
 });
 
@@ -172,18 +166,10 @@ app.put('/:id', requirePermission('contact:update'), async (c) => {
     const id = c.req.param('id');
     const tenantId = c.get('tenantId');
 
-    // Find the contact first
+    // Find the contact first (findById already filters by tenantId)
     const contact = await findById(c.env, 'contact', 'contact_id', id, tenantId);
     if (!contact) {
       return c.json({ success: false, message: 'Contact not found' }, 404);
-    }
-
-    // Validate tenant ownership
-    if (contact.tenant_id !== tenantId) {
-      return c.json({
-        success: false,
-        message: 'You do not have permission to update this contact',
-      }, 403);
     }
 
     const body = await c.req.json();

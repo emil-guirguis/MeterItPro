@@ -7,9 +7,10 @@
     "db:migrate": "node migrations/run-migrations.js",
     "worker:dev": "wrangler dev",
     "worker:deploy": "wrangler deploy",
-    "test": "vitest --run",
+    "test": "ts-node --project tsconfig.scripts.json scripts/check-db-constraints.ts && vitest --run",
     "test:watch": "vitest",
-    "test:coverage": "vitest --run --coverage"
+    "test:coverage": "vitest --run --coverage",
+    "check:constraints": "ts-node --project tsconfig.scripts.json scripts/check-db-constraints.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

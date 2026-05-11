@@ -143,6 +143,8 @@ describe('runReport', () => {
       .mockResolvedValueOnce({ rows: [report] } as any)
       // generateMeterReadingsReport — splitMeterSelections fallback rows
       .mockResolvedValueOnce({ rows: [] } as any)
+      // fetchChartSeriesData — splitMeterSelections fallback rows (runs concurrently via Promise.all)
+      .mockResolvedValueOnce({ rows: [] } as any)
       // meter readings query
       .mockResolvedValueOnce({ rows: [] } as any)
       // INSERT report_history (createHistoryEntry)
@@ -173,8 +175,13 @@ describe('runReport', () => {
   it('falls back to RESEND_FROM when recipients.from is not set', async () => {
     mockExec
       .mockResolvedValueOnce({ rows: [{ ...baseReport }] } as any)
+      // generateMeterReadingsReport — splitMeterSelections fallback
       .mockResolvedValueOnce({ rows: [] } as any)
+      // fetchChartSeriesData — splitMeterSelections fallback (concurrent via Promise.all)
       .mockResolvedValueOnce({ rows: [] } as any)
+      // meter readings query
+      .mockResolvedValueOnce({ rows: [] } as any)
+      // INSERT report_history
       .mockResolvedValueOnce({ rows: [{ report_history_id: 1 }] } as any)
       .mockResolvedValue({ rows: [] } as any);
 
@@ -188,8 +195,13 @@ describe('runReport', () => {
     const envNoKey = { ...TEST_ENV, RESEND_API_KEY: undefined } as any;
     mockExec
       .mockResolvedValueOnce({ rows: [{ ...baseReport }] } as any)
+      // generateMeterReadingsReport — splitMeterSelections fallback
       .mockResolvedValueOnce({ rows: [] } as any)
+      // fetchChartSeriesData — splitMeterSelections fallback (concurrent via Promise.all)
       .mockResolvedValueOnce({ rows: [] } as any)
+      // meter readings query
+      .mockResolvedValueOnce({ rows: [] } as any)
+      // INSERT report_history
       .mockResolvedValueOnce({ rows: [{ report_history_id: 1 }] } as any)
       // failed email log + failed history update
       .mockResolvedValue({ rows: [] } as any);
@@ -201,8 +213,13 @@ describe('runReport', () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 401, text: async () => 'Unauthorized' } as any);
     mockExec
       .mockResolvedValueOnce({ rows: [{ ...baseReport }] } as any)
+      // generateMeterReadingsReport — splitMeterSelections fallback
       .mockResolvedValueOnce({ rows: [] } as any)
+      // fetchChartSeriesData — splitMeterSelections fallback (concurrent via Promise.all)
       .mockResolvedValueOnce({ rows: [] } as any)
+      // meter readings query
+      .mockResolvedValueOnce({ rows: [] } as any)
+      // INSERT report_history
       .mockResolvedValueOnce({ rows: [{ report_history_id: 1 }] } as any)
       .mockResolvedValue({ rows: [] } as any);
 
@@ -264,8 +281,13 @@ describe('runAllActiveReports', () => {
       .mockResolvedValueOnce({ rows: [] } as any)
       // runReport(2) — SELECT report ok
       .mockResolvedValueOnce({ rows: [{ ...baseReport, report_id: 2 }] } as any)
+      // generateMeterReadingsReport — splitMeterSelections fallback
       .mockResolvedValueOnce({ rows: [] } as any)
+      // fetchChartSeriesData — splitMeterSelections fallback (concurrent via Promise.all)
       .mockResolvedValueOnce({ rows: [] } as any)
+      // meter readings query
+      .mockResolvedValueOnce({ rows: [] } as any)
+      // INSERT report_history
       .mockResolvedValueOnce({ rows: [{ report_history_id: 1 }] } as any)
       .mockResolvedValue({ rows: [] } as any);
     mockCron.mockReturnValue(true);

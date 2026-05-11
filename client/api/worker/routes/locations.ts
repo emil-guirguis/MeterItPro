@@ -100,13 +100,7 @@ app.post('/', requirePermission('location:create'), async (c) => {
     return c.json({ success: true, data: location }, 201);
   } catch (error: any) {
     logError('Error creating location:', error);
-    return c.json({
-      success: false,
-      message: 'Failed to create location',
-      error: error.message,
-      detail: error.detail,
-      code: error.code,
-    }, 500);
+    return c.json({ success: false, message: 'Failed to create location' }, 500);
   }
 });
 
@@ -116,18 +110,10 @@ app.put('/:id', requirePermission('location:update'), async (c) => {
     const id = c.req.param('id');
     const tenantId = c.get('tenantId');
 
-    // Find the location first
+    // Find the location first (findById already filters by tenantId)
     const location = await findById(c.env, 'location', 'location_id', id, tenantId);
     if (!location) {
       return c.json({ success: false, message: 'Location not found' }, 404);
-    }
-
-    // Validate tenant ownership
-    if (location.tenant_id !== tenantId) {
-      return c.json({
-        success: false,
-        message: 'You do not have permission to update this location',
-      }, 403);
     }
 
     const body = await c.req.json();

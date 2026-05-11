@@ -979,6 +979,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       const sectionFlex = sectionData?.flex;
       const sectionFlexGrow = sectionData?.flexGrow;
       const sectionFlexShrink = sectionData?.flexShrink;
+      const sectionHorizontal = !!(sectionData as any)?.horizontal;
 
       const sectionStyle: React.CSSProperties = {};
       if (tabUseFlexbox) {
@@ -995,11 +996,26 @@ export const BaseForm: React.FC<BaseFormProps> = ({
           className={`${className}__section${tabUseFlexbox ? ' base-form__section--flex' : ''}`}
           style={Object.keys(sectionStyle).length > 0 ? sectionStyle : undefined}
         >
-          <h3 className={`${className}__section-title`}>{sectionTitle}</h3>
-          {visibleFields.map(fieldName => {
-            const fieldDef = schema?.formFields?.[fieldName] || schema?.entityFields?.[fieldName];
-            return fieldDef ? <div key={fieldName}>{renderField(fieldName, fieldDef)}</div> : null;
-          })}
+          <h3 className={`${className}__section-title base-form__section-title`}>
+            {sectionTitle}
+            {/address/i.test(sectionTitle) && (() => {
+              const d = form?.formData || {};
+              const parts = [d.street, d.street2, d.city, d.state, d.zip, d.country].filter(Boolean);
+              if (parts.length === 0) return null;
+              const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(', '))}`;
+              return (
+                <a href={url} target="_blank" rel="noopener noreferrer" title="Open in Google Maps" className="base-form__section-title__maps-link">
+                  <img src="https://www.google.com/s2/favicons?domain=maps.google.com&sz=16" alt="Google Maps" />
+                </a>
+              );
+            })()}
+          </h3>
+          <div className={sectionHorizontal ? 'base-form__fields-row' : undefined}>
+            {visibleFields.map(fieldName => {
+              const fieldDef = schema?.formFields?.[fieldName] || schema?.entityFields?.[fieldName];
+              return fieldDef ? <div key={fieldName} className={sectionHorizontal ? 'base-form__fields-row__item' : undefined}>{renderField(fieldName, fieldDef)}</div> : null;
+            })}
+          </div>
         </div>
       );
     });

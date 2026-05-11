@@ -157,7 +157,7 @@ describe('Users Routes', () => {
       const res = await usersApp.request('/', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token', 'content-type': 'application/json' },
-        body: JSON.stringify({ name: 'New User', email: 'new@test.com', role: 'Viewer' }),
+        body: JSON.stringify({ name: 'New User', email: 'new@test.com', role: 'Viewer', password: 'Pass123!' }),
       }, TEST_ENV);
 
       expect(res.status).toBe(201);
@@ -192,6 +192,30 @@ describe('Users Routes', () => {
       );
     });
 
+    it('returns 400 when no password is provided', async () => {
+      const res = await usersApp.request('/', {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid-token', 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'No Pass', email: 'nopass@test.com', role: 'viewer' }),
+      }, TEST_ENV);
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.message).toContain('Password is required');
+    });
+
+    it('returns 400 when empty string password is provided', async () => {
+      const res = await usersApp.request('/', {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid-token', 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'No Pass', email: 'nopass@test.com', password: '' }),
+      }, TEST_ENV);
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.message).toContain('Password is required');
+    });
+
     it('returns 400 when invalid permissions object is provided', async () => {
       const res = await usersApp.request('/', {
         method: 'POST',
@@ -199,6 +223,7 @@ describe('Users Routes', () => {
         body: JSON.stringify({
           name: 'Bad Perms',
           email: 'bad@test.com',
+          password: 'Pass123!',
           permissions: { meter: 'not-an-object' },
         }),
       }, TEST_ENV);
@@ -224,6 +249,23 @@ describe('Users Routes', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data.name).toBe('Robert');
+    });
+
+    it('succeeds when JWT tenant_id is a string but DB returns numeric tenant_id (regression)', async () => {
+      // JWT claims may decode tenant_id as string "1"; DB returns number 1.
+      // The old JS strict-equality check (tenant_id !== tenantId) would incorrectly 403.
+      mockVerify.mockResolvedValueOnce({ userId: 1, tenant_id: '1' });
+      mockQuery.mockResolvedValueOnce({ rows: [ADMIN_USER] } as any);
+      mockFindById.mockResolvedValueOnce({ users_id: 2, name: 'Bob', tenant_id: 1 });
+      mockUpdate.mockResolvedValueOnce({ users_id: 2, name: 'Robert', tenant_id: 1 });
+
+      const res = await usersApp.request('/2', {
+        method: 'PUT',
+        headers: { authorization: 'Bearer valid-token', 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'Robert' }),
+      }, TEST_ENV);
+
+      expect(res.status).toBe(200);
     });
 
     it('returns 404 when updating non-existent user', async () => {

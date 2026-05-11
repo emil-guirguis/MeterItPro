@@ -18,14 +18,17 @@ import './UserList.css';
 interface UserListProps {
   onUserEdit?: (user: User) => void;
   onUserCreate?: () => void;
+  authContext?: { checkPermission: (p: any) => boolean; user: any };
 }
 
 export const UserList: React.FC<UserListProps> = ({
   onUserEdit,
   onUserCreate,
+  authContext: authContextProp,
 }) => {
   const users = useUsersEnhanced();
-  const auth = useAuth();
+  const realAuth = useAuth();
+  const auth = authContextProp ?? realAuth;
   const { schema } = useSchema('user');
 
   // Generate columns and filters from schema (same pattern as ContactList)

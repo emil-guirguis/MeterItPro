@@ -9,7 +9,7 @@ import bcrypt from 'bcryptjs';
 import speakeasy from 'speakeasy';
 import { transaction, Env, execQuery } from '../db';
 
-import { authenticateToken, getCachedUser, AuthVariables } from '../middleware';
+import { authenticateToken, getCachedUser, ipRateLimit, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 
 const auth = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -29,6 +29,7 @@ const ADMIN_PERMISSIONS = {
 };
 
 const ROLE_PERMISSIONS: Record<string, any> = {
+  superadmin: ADMIN_PERMISSIONS,
   admin: ADMIN_PERMISSIONS,
   manager: {
     user: { read: true },
@@ -84,7 +85,7 @@ async function generateRefreshToken(userId: number, tenant_id: number, jwtSecret
 }
 
 async function generate2FASessionToken(userId: number, tenant_id: number, jwtSecret: string): Promise<string> {
-  return sign({ userId, tenant_id, is2FASession: true, exp: Math.floor(Date.now() / 1000) + 600 }, jwtSecret);
+  return sign({ userId, tenant_id, is2FASession: true, exp: Math.floor(Date.now() / 1000) + 300 }, jwtSecret);
 }
 
 // ===== AUTH LOGGING (inline) =====
@@ -310,7 +311,7 @@ async function verifyBackupCode(env: Env, userId: number, code: string): Promise
  * POST /signup
  * Create new tenant and admin user
  */
-auth.post('/signup', async (c) => {
+auth.post('/signup', ipRateLimit(5, 60 * 60 * 1000), async (c) => {
   try {
     const body = await c.req.json();
     const { company, user, payment } = body;
@@ -415,7 +416,7 @@ auth.post('/signup', async (c) => {
  * POST /login
  * Login with email and password, supporting 2FA
  */
-auth.post('/login', async (c) => {
+auth.post('/login', ipRateLimit(10, 60 * 1000), async (c) => {
   try {
     const body = await c.req.json();
     const { email, password } = body;
@@ -596,13 +597,7 @@ auth.post('/login', async (c) => {
     console.error('[LOGIN] Error message:', error?.message);
     console.error('[LOGIN] Error stack:', error?.stack);
     
-    // Return more detailed error in development
-    const isDev = c.env.NODE_ENV !== 'production';
-    return c.json({ 
-      success: false, 
-      message: 'Login failed',
-      ...(isDev && { detail: error?.message })
-    }, 500);
+    return c.json({ success: false, message: 'Login failed' }, 500);
   }
 });
 
@@ -870,29 +865,32 @@ auth.post('/reset-password', async (c) => {
       return c.json({ success: false, message: 'Passwords do not match' }, 400);
     }
 
-    // Find token in database to get user ID
+    // Find the matching token by comparing submitted token against all valid hashes.
+    // We cannot query by hash directly (bcrypt is one-way), so we fetch all valid
+    // unused tokens and compare each â€” there should never be many at any given time.
     const tokenResult = await execQuery(
       env(c),
-      `SELECT user_id, token_hash, expires_at, is_used
+      `SELECT user_id, token_hash, expires_at
        FROM password_reset_tokens
        WHERE expires_at > CURRENT_TIMESTAMP
-       AND is_used = false
-       ORDER BY created_at DESC
-       LIMIT 1`
+       AND is_used = false`
     );
 
     if (!tokenResult.rows || tokenResult.rows.length === 0) {
       return c.json({ success: false, message: 'Reset link has expired or is invalid' }, 400);
     }
 
-    const tokenRecord = tokenResult.rows[0];
-    const userId = tokenRecord.user_id;
+    let matchedUserId: number | null = null;
+    for (const row of tokenResult.rows) {
+      const matches = await bcrypt.compare(token, row.token_hash);
+      if (matches) {
+        matchedUserId = row.user_id;
+        break;
+      }
+    }
 
-    // Verify token hash
-    const isTokenValid = await bcrypt.compare(token, tokenRecord.token_hash);
-    if (!isTokenValid) {
+    if (!matchedUserId) {
       await logAuthEvent(env(c), {
-        userId,
         eventType: 'password_reset',
         status: 'failed',
         details: { reason: 'invalid_token' },
@@ -900,6 +898,8 @@ auth.post('/reset-password', async (c) => {
 
       return c.json({ success: false, message: 'Reset link has expired or is invalid' }, 400);
     }
+
+    const userId = matchedUserId;
 
     // Get user
     const userResult = await execQuery(env(c), 'SELECT * FROM users WHERE users_id = $1', [userId]);
@@ -1440,10 +1440,29 @@ auth.get('/verify', async (c) => {
   try {
     const partial = c.get('user');
 
-    // Load full user from DB (cached) — authenticateToken only sets users_id/tenant_id from JWT
+    // Load full user from DB (cached) ï¿½ authenticateToken only sets users_id/tenant_id from JWT
     const currentUser = await getCachedUser(c.env, String(partial.users_id));
     if (!currentUser) {
       return c.json({ success: false, message: 'User not found' }, 401);
+    }
+
+    // Admin impersonation: return synthetic user scoped to the target tenant
+    if ((partial as any).isAdminView) {
+      const adminPerms = getPermissionsByRole('admin');
+      return c.json({
+        success: true,
+        data: {
+          user: {
+            ...currentUser,
+            role: 'admin',
+            client: String(partial.tenant_id),
+            tenant_id: partial.tenant_id,
+            permissions: adminPerms,
+            isAdminView: true,
+            adminViewTenantName: (partial as any).viewingTenantName || '',
+          },
+        },
+      });
     }
 
     // Derive permissions from role

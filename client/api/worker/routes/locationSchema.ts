@@ -48,25 +48,24 @@ export const locationSchema = defineSchema({
       ],
     }),
     tab({
-      name: 'Additional Info',
+      name: 'Audit & Notes',
       order: 2,
+      sectionOrientation: 'vertical',
       sections: [
         section({
           name: 'Notes',
           order: 1,
           fields: [
-            field({ name: 'notes', order: 1, type: FieldTypes.STRING, default: '', required: false, label: 'Notes', dbField: 'notes', showOn: ['form'] }),
+            field({ name: 'notes', order: 1, type: FieldTypes.STRING, default: '', required: false, label: 'Notes', dbField: 'notes', maxLength: 5000, placeholder: 'Additional notes...', showOn: ['form'] }),
           ],
         }),
         section({
           name: 'Audit',
-          order: 3,
           maxWidth: '200px',
-          flexGrow: 0,
-          flexShrink: 0,
+          order: 2,
           fields: [
-            field({ name: 'created_at', order: 1, type: FieldTypes.DATE, default: null, disable: true, label: 'Created At', dbField: 'created_at', showOn: ['form'] }),
-            field({ name: 'updated_at', order: 2, type: FieldTypes.DATE, default: null, disable: true, label: 'Updated At', dbField: 'updated_at', showOn: ['form'] }),
+            field({ name: 'created_at', order: 1, type: FieldTypes.DATETIME, default: null, disable: true, label: 'Created At', dbField: 'created_at', showOn: ['form'] }),
+            field({ name: 'updated_at', order: 2, type: FieldTypes.DATETIME, default: null, disable: true, label: 'Updated At', dbField: 'updated_at', showOn: ['form'] }),
           ],
         }),
       ],

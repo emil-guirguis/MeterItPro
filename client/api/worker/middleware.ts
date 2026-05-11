@@ -12,6 +12,34 @@ import { query, execQuery, Env } from './db';
 // Avoids a DB round-trip on every authenticated request when the same user
 // fires multiple parallel API calls (e.g., on page load).
 const userCache = new Map<string, { user: any; expiresAt: number }>();
+
+// ===== IN-MEMORY RATE LIMITER =====
+// Keyed by arbitrary string (e.g. "ip:path" or "apikey:xxx").
+// Each Worker isolate maintains its own store; good enough for brute-force protection.
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {
+  const now = Date.now();
+  const entry = rateLimitStore.get(key);
+  if (!entry || entry.resetAt < now) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (entry.count >= maxRequests) return false;
+  entry.count++;
+  return true;
+}
+
+export function ipRateLimit(maxRequests: number, windowMs: number) {
+  return async (c: Context, next: Next) => {
+    const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
+    const key = `rl:${ip}:${c.req.path}`;
+    if (!checkRateLimit(key, maxRequests, windowMs)) {
+      return c.json({ success: false, message: 'Too many requests, please try again later' }, 429);
+    }
+    return next();
+  };
+}
 // In-flight promise per userId: concurrent requests share one DB query instead
 // of each firing their own (race condition when cache is cold on page load).
 const userFetchPromises = new Map<string, Promise<any | null>>();
@@ -95,7 +123,12 @@ export async function authenticateToken(c: Context<{ Bindings: Env; Variables: A
   // Minimal user object from JWT claims � no DB round-trip.
   // Routes that need full user data (role, permissions, name, email) call
   // requirePermission(), which does the cached DB lookup lazily.
-  c.set('user', { users_id: decoded.userId, tenant_id: decoded.tenant_id });
+  c.set('user', {
+    users_id: decoded.userId,
+    tenant_id: decoded.tenant_id,
+    isAdminView: decoded.isAdminView || false,
+    viewingTenantName: decoded.viewingTenantName || null,
+  });
   c.set('tenantId', decoded.tenant_id);
   await next();
 }
@@ -136,8 +169,8 @@ export function requirePermission(permission: string) {
       c.set('user', user);
     }
 
-    // Admin bypasses permission checks
-    if (user.role === 'admin') {
+    // Admin and superadmin bypass permission checks
+    if (user.role === 'admin' || user.role === 'superadmin') {
       return next();
     }
 
@@ -167,6 +200,10 @@ export async function authenticateSyncServer(c: Context<{ Bindings: Env; Variabl
   const apiKey = c.req.header('x-api-key');
   if (!apiKey) {
     return c.json({ success: false, message: 'API key required' }, 401);
+  }
+
+  if (!checkRateLimit(`rl:apikey:${apiKey}`, 100, 60_000)) {
+    return c.json({ success: false, message: 'Too many requests' }, 429);
   }
 
   const result = await execQuery(

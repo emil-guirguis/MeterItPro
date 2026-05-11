@@ -106,9 +106,9 @@ export const meterReadingSchema = defineSchema({
     phaseRotation: field({ type: FieldTypes.STRING, default: '', required: false, label: 'Phase Rotation', dbField: 'phase_rotation', maxLength: 10 }),
     powerDirection: field({ type: FieldTypes.STRING, default: '', required: false, label: 'Power Direction', dbField: 'power_direction', maxLength: 10 }),
     reactiveDirection: field({ type: FieldTypes.STRING, default: '', required: false, label: 'Reactive Direction', dbField: 'reactive_direction', maxLength: 12 }),
-    lastCommunication: field({ type: FieldTypes.DATE, default: '', required: false, label: 'Last Communication', dbField: 'last_communication' }),
+    lastCommunication: field({ type: FieldTypes.DATETIME, default: '', required: false, label: 'Last Communication', dbField: 'last_communication' }),
     manufacturerCode: field({ type: FieldTypes.NUMBER, default: 0, required: false, label: 'Manufacturer Code', dbField: 'manufacturer_code' }),
-    deviceTime: field({ type: FieldTypes.DATE, default: '', required: false, label: 'Device Time', dbField: 'device_time' }),
+    deviceTime: field({ type: FieldTypes.DATETIME, default: '', required: false, label: 'Device Time', dbField: 'device_time' }),
     syncStatus: field({ type: FieldTypes.STRING, default: '', required: false, label: 'Sync Status', dbField: 'sync_status', maxLength: 20 }),
     timeSource: field({ type: FieldTypes.STRING, default: '', required: false, label: 'Time Source', dbField: 'time_source', maxLength: 20 }),
     eventCounter: field({ type: FieldTypes.NUMBER, default: 0, required: false, label: 'Event Counter', dbField: 'event_counter' }),
@@ -123,7 +123,7 @@ export const meterReadingSchema = defineSchema({
 
   entityFields: {
     meter_reading_id: field({ name: 'meter_reading_id', type: FieldTypes.STRING, default: null, readOnly: true, label: 'Id', dbField: 'meter_reading_id' }),
-    createdat: field({ name: 'createdat', type: FieldTypes.DATE, default: null, readOnly: true, label: 'Createdat', dbField: 'created_at' }),
+    createdat: field({ name: 'createdat', type: FieldTypes.DATETIME, default: null, readOnly: true, label: 'Createdat', dbField: 'created_at' }),
     tenantId: field({ name: 'tenantId', type: FieldTypes.NUMBER, default: null, readOnly: true, label: 'Tenant Id', dbField: 'tenant_id' }),
   },
 

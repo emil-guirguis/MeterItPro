@@ -150,6 +150,26 @@ describe('Locations Routes', () => {
       expect(body.data.name).toBe('Updated Name');
     });
 
+    it('succeeds when JWT tenant_id is a string but DB returns numeric tenant_id (regression)', async () => {
+      // JWT claims may decode tenant_id as string "1"; DB returns number 1.
+      // The old JS strict-equality check (tenant_id !== tenantId) would incorrectly 403.
+      mockVerify.mockResolvedValueOnce({ userId: 1, tenant_id: '1' });
+      mockQuery.mockResolvedValueOnce({ rows: [ADMIN_USER] } as any);
+      mockFindById.mockResolvedValueOnce({ location_id: 1, name: 'Test', tenant_id: 1 });
+      mockUpdate.mockResolvedValueOnce({ location_id: 1, name: 'Updated', tenant_id: 1 });
+
+      const res = await locationsApp.request('/1', {
+        method: 'PUT',
+        headers: {
+          authorization: 'Bearer valid-token',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ name: 'Updated' }),
+      }, TEST_ENV);
+
+      expect(res.status).toBe(200);
+    });
+
     it('should strip tenant_id from update data', async () => {
       mockFindById.mockResolvedValueOnce({
         location_id: 1, name: 'Test', tenant_id: 1,
