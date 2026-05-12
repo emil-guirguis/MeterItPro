@@ -256,6 +256,19 @@ app.route('/api/meters/:meterId/elements', meterElementRoutes);
 app.route('/api/devices/:deviceId/registers', deviceRegistersApp);
 app.route('/api/meters/:meterId/registers', meterRegistersApp);
 
+// --- Security.txt ---
+
+app.get('/.well-known/security.txt', (c) => {
+  const body = [
+    'Contact: mailto:emilguirguis.eg@gmail.com',
+    'Expires: 2027-01-01T00:00:00.000Z',
+    'Preferred-Languages: en',
+  ].join('\n');
+  return new Response(body, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
+});
+
 // --- Catch-all ---
 
 app.all('*', (c) => {
