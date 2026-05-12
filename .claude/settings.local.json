@@ -125,7 +125,9 @@
       "Bash(Start-Sleep 3)",
       "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\\\\sync\" -Directory)",
       "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\\\\client\\\\frontend\\\\src\\\\admin\" -Recurse -Filter \"*Client*\")",
-      "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\\\\client\\\\api\\\\worker\\\\routes\" -Filter \"*.ts\" -File)"
+      "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\\\\client\\\\api\\\\worker\\\\routes\" -Filter \"*.ts\" -File)",
+      "PowerShell(nslookup *)",
+      "Bash(git *)"
     ],
     "additionalDirectories": [
       "C:\\Program Files\\PostgreSQL\\18\\data"
