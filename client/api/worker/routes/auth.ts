@@ -305,6 +305,20 @@ async function verifyBackupCode(env: Env, userId: number, code: string): Promise
   return false;
 }
 
+// ===== TURNSTILE VERIFICATION =====
+
+async function verifyTurnstile(env: Env, token: string | undefined, ip: string): Promise<boolean> {
+  if (!env.TURNSTILE_SECRET) return true;
+  if (!token) return false;
+  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }),
+  });
+  const data: any = await res.json();
+  return data.success === true;
+}
+
 // ===== PUBLIC ROUTES =====
 
 /**
@@ -314,7 +328,11 @@ async function verifyBackupCode(env: Env, userId: number, code: string): Promise
 auth.post('/signup', ipRateLimit(5, 60 * 60 * 1000), async (c) => {
   try {
     const body = await c.req.json();
-    const { company, user, payment } = body;
+    const { company, user, payment, turnstileToken } = body;
+
+    if (!await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '')) {
+      return c.json({ success: false, message: 'Bot verification failed. Please try again.' }, 400);
+    }
 
     // Manual validation
     if (!user?.email || !user.email.includes('@')) {
@@ -419,9 +437,13 @@ auth.post('/signup', ipRateLimit(5, 60 * 60 * 1000), async (c) => {
 auth.post('/login', ipRateLimit(10, 60 * 1000), async (c) => {
   try {
     const body = await c.req.json();
-    const { email, password } = body;
+    const { email, password, turnstileToken } = body;
 
     console.log('[DEBUG] Login endpoint hit - email:', email);
+
+    if (!await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '')) {
+      return c.json({ success: false, message: 'Bot verification failed. Please try again.' }, 400);
+    }
 
     // Manual validation
     if (!email || !email.includes('@')) {
@@ -769,7 +791,11 @@ auth.post('/verify-2fa', async (c) => {
 auth.post('/forgot-password', async (c) => {
   try {
     const body = await c.req.json();
-    const { email } = body;
+    const { email, turnstileToken } = body;
+
+    if (!await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '')) {
+      return c.json({ success: false, message: 'Bot verification failed. Please try again.' }, 400);
+    }
 
     // Manual validation
     if (!email || !email.includes('@')) {
@@ -841,7 +867,11 @@ auth.post('/forgot-password', async (c) => {
 auth.post('/reset-password', async (c) => {
   try {
     const body = await c.req.json();
-    const { token, newPassword, confirmPassword } = body;
+    const { token, newPassword, confirmPassword, turnstileToken } = body;
+
+    if (!await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '')) {
+      return c.json({ success: false, message: 'Bot verification failed. Please try again.' }, 400);
+    }
 
     // Manual validation
     if (!token) {

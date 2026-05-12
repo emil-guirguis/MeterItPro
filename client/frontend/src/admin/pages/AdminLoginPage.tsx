@@ -11,6 +11,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useAuth } from '../../hooks/useAuth';
+import { Turnstile } from '../../components/auth/Turnstile';
 
 const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const AdminLoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   // Already authenticated as superadmin — go to dashboard
   useEffect(() => {
@@ -37,7 +39,7 @@ const AdminLoginPage: React.FC = () => {
     setError('');
     setSubmitting(true);
     try {
-      const response = await login({ email, password });
+      const response = await login({ email, password, turnstileToken });
       if (response.user?.role !== 'superadmin') {
         logout();
         setError('Access denied. Admin credentials required.');
@@ -104,13 +106,17 @@ const AdminLoginPage: React.FC = () => {
               autoComplete="current-password"
               disabled={submitting}
             />
+            <Turnstile
+              onVerify={(token) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken('')}
+            />
             <Button
               type="submit"
               variant="contained"
               fullWidth
               size="large"
               sx={{ mt: 2 }}
-              disabled={submitting}
+              disabled={submitting || !turnstileToken}
             >
               {submitting ? <CircularProgress size={20} color="inherit" /> : 'Sign In'}
             </Button>

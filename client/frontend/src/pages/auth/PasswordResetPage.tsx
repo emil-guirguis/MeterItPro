@@ -25,6 +25,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { authService } from '../../services/authService';
+import { Turnstile } from '../../components/auth/Turnstile';
 
 interface PasswordRequirement {
   label: string;
@@ -47,6 +48,7 @@ const PasswordResetPage: React.FC = () => {
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValidatingToken, setIsValidatingToken] = useState(true);
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [passwordRequirements, setPasswordRequirements] = useState<PasswordRequirement[]>([
@@ -144,7 +146,7 @@ const PasswordResetPage: React.FC = () => {
     setError(null);
 
     try {
-      await authService.resetPassword(token, newPassword, confirmPassword);
+      await authService.resetPassword(token, newPassword, confirmPassword, turnstileToken);
       setSuccess(true);
       setNewPassword('');
       setConfirmPassword('');
@@ -459,13 +461,18 @@ const PasswordResetPage: React.FC = () => {
                     </Box>
                   )}
 
+                  <Turnstile
+                    onVerify={(token) => setTurnstileToken(token)}
+                    onExpire={() => setTurnstileToken('')}
+                  />
+
                   {/* Submit Button */}
                   <Button
                     type="submit"
                     fullWidth
                     variant="contained"
                     size="large"
-                    disabled={isSubmitting || !allRequirementsMet || !passwordsMatch}
+                    disabled={isSubmitting || !allRequirementsMet || !passwordsMatch || !turnstileToken}
                     sx={{
                       mt: 2,
                       mb: 2,

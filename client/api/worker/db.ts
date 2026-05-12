@@ -28,6 +28,7 @@ export interface Env {
   REMOTE_DB_NAME?: string;
   REMOTE_DB_USER?: string;
   REMOTE_DB_PASSWORD?: string;
+  TURNSTILE_SECRET?: string;
 }
 
 export async function query(env: Env, text: string, params: any[] = []) {

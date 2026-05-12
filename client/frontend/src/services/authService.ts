@@ -306,10 +306,10 @@ class AuthService {
   }
 
   // Forgot password - request password reset link
-  async forgotPassword(email: string): Promise<{ message: string }> {
+  async forgotPassword(email: string, turnstileToken?: string): Promise<{ message: string }> {
     try {
       const response: AxiosResponse<{ success: boolean; message: string }> = await this.apiClient.post('/auth/forgot-password', {
-        email
+        email, turnstileToken
       });
       return { message: response.data.message };
     } catch (error) {
@@ -322,12 +322,13 @@ class AuthService {
   }
 
   // Reset password with token
-  async resetPassword(token: string, newPassword: string, confirmPassword: string): Promise<{ message: string }> {
+  async resetPassword(token: string, newPassword: string, confirmPassword: string, turnstileToken?: string): Promise<{ message: string }> {
     try {
       const response: AxiosResponse<{ success: boolean; message: string }> = await this.apiClient.post('/auth/reset-password', {
         token,
         newPassword,
-        confirmPassword
+        confirmPassword,
+        turnstileToken
       });
       return { message: response.data.message };
     } catch (error) {

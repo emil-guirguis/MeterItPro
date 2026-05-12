@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { useTheme, useMediaQuery } from '@mui/material';
 import { authService } from '../../services/authService';
+import { Turnstile } from '../../components/auth/Turnstile';
 
 const ForgotPasswordPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const ForgotPasswordPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   // Handle form submission
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -40,7 +42,7 @@ const ForgotPasswordPage: React.FC = () => {
     setError(null);
 
     try {
-      await authService.forgotPassword(email);
+      await authService.forgotPassword(email, turnstileToken);
       setSuccess(true);
       setEmail('');
     } catch (err) {
@@ -160,13 +162,18 @@ const ForgotPasswordPage: React.FC = () => {
                     }}
                   />
 
+                  <Turnstile
+                    onVerify={(token) => setTurnstileToken(token)}
+                    onExpire={() => setTurnstileToken('')}
+                  />
+
                   {/* Submit Button */}
                   <Button
                     type="submit"
                     fullWidth
                     variant="contained"
                     size="large"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !turnstileToken}
                     sx={{
                       mt: 2,
                       mb: 2,

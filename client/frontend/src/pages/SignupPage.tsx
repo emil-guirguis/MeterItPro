@@ -9,6 +9,7 @@ import {
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import logo from '../assets/meteritpro-logo.svg';
+import { Turnstile } from '../components/auth/Turnstile';
 import './SignupPage.css';
 
 interface SignupFormData {
@@ -43,6 +44,7 @@ const SignupPage: React.FC = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   const [apiKey, setApiKey] = useState<string>('');
   const [copied, setCopied] = useState(false);
@@ -179,6 +181,7 @@ const SignupPage: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          turnstileToken,
           company: {
             name: formData.companyName,
             phone: formData.companyPhone,
@@ -386,6 +389,10 @@ const SignupPage: React.FC = () => {
             <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
               Payment processing will be set up after account creation
             </Typography>
+            <Turnstile
+              onVerify={(token) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken('')}
+            />
           </Box>
         );
 
@@ -450,7 +457,7 @@ const SignupPage: React.FC = () => {
                   type="submit"
                   variant="contained"
                   color="primary"
-                  disabled={loading}
+                  disabled={loading || !turnstileToken}
                 >
                   {loading ? <CircularProgress size={24} /> : 'Create Account'}
                 </Button>

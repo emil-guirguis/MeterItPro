@@ -22,6 +22,7 @@ import type { LoginCredentials, ValidationError } from '../../types/auth';
 import { validateLoginCredentials } from '../../types/auth';
 import { useAuth } from '../../hooks/useAuth';
 import { TwoFactorVerificationModal } from './TwoFactorVerificationModal';
+import { Turnstile } from './Turnstile';
 import authService from '../../services/authService';
 import { getVersionDisplay } from '../../utils/version';
 
@@ -57,6 +58,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   // 2FA state
   const [requires2FA, setRequires2FA] = useState(false);
@@ -102,8 +105,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     setValidationErrors([]);
 
     try {
-      // Single login call through the auth context (avoids duplicate API calls)
-      const response = await login(credentials);
+      const response = await login({ ...credentials, turnstileToken });
 
       // Check if 2FA is required
       if (response.requires_2fa && response.session_token) {
@@ -356,13 +358,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 label="Remember me"
               />
 
+              <Turnstile
+                onVerify={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken('')}
+              />
+
               {/* Submit Button */}
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
                 size="large"
-                disabled={isSubmitting || isLoading || requires2FA}
+                disabled={isSubmitting || isLoading || requires2FA || !turnstileToken}
                 sx={{
                   mt: 2,
                   mb: 2,
