@@ -247,7 +247,7 @@ h1, h2, h3, h4 {
   border-radius: 2px;
   line-height: 1;
 }
-.brand__quad-c { background: var(--accent) !important; color: #fff !important; }
+.brand__quad-c { background: #03a84e !important; color: #fff !important; }
 .brand__lockup {
   display: flex;
   flex-direction: column;
