@@ -11,6 +11,8 @@
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js" crossorigin="anonymous"></script>
 <script src="image-slot.js"></script>
 </head>
 <body>
@@ -664,12 +666,7 @@ function Nav() {
     <nav className="nav" data-scrolled={scrolled ? '1' : '0'}>
       <div className="wrap nav__inner">
         <a href="#" className="brand" aria-label="TBWC — home">
-          <span className="brand__quad" aria-hidden="true">
-            <span>T</span><span>B</span><span>W</span><span className="brand__quad-c">C</span>
-          </span>
-          <span className="brand__lockup">
-            <span>Technology</span>
-          </span>
+          <img src="TBWC%20Technology%20Logo%20.png" alt="TBWC Technology" className="brand__logo-img" />
         </a>
         <div className="nav__links">
           <a className="nav__link" href="#reps">Representatives</a>
@@ -1260,12 +1257,7 @@ function Footer() {
         <div className="foot__grid">
           <div className="foot__col foot__brand">
             <a href="#" className="brand">
-              <span className="brand__quad" aria-hidden="true">
-                <span>T</span><span>B</span><span>W</span><span className="brand__quad-c">C</span>
-              </span>
-              <span className="brand__lockup">
-                <span>Technology</span>
-              </span>
+              <img src="TBWC%20Technology%20Logo%20.png" alt="TBWC Technology" className="brand__logo-img" />
             </a>
             <p className="foot__tag">Technology branded wholesale, distributed with precision since 2002.</p>
           </div>
@@ -1775,17 +1767,155 @@ function AgencyCard({ a, highlighted, onClick }) {
   );
 }
 
+const FIPS_TO_STATE = {
+  '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
+  '10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL',
+  '18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD',
+  '25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE',
+  '32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND',
+  '39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD',
+  '47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV',
+  '55':'WI','56':'WY',
+};
+
+const REGION_COLORS = {
+  'Pacific Northwest': '#2563eb',
+  'Pacific':           '#7c3aed',
+  'Mountain':          '#d97706',
+  'Central':           '#0d9488',
+  'Great Lakes':       '#0891b2',
+  'South Central':     '#16a34a',
+  'Southeast':         '#ea580c',
+  'Mid-Atlantic':      '#dc2626',
+  'Northeast':         '#9333ea',
+};
+
+function USMapSVG({ highlightId, onSelect }) {
+  const [features, setFeatures] = React.useState([]);
+  const [pathFn,   setPathFn]   = React.useState(null);
+  const [tooltip,  setTooltip]  = React.useState(null);
+  const containerRef = React.useRef();
+
+  React.useEffect(() => {
+    const proj = d3.geoAlbersUsa().scale(880).translate([487.5, 305]);
+    const gen  = d3.geoPath().projection(proj);
+    setPathFn(() => gen);
+    fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
+      .then(r => r.json())
+      .then(us => setFeatures(topojson.feature(us, us.objects.states).features));
+  }, []);
+
+  const getAgency = React.useCallback(id => {
+    const st = FIPS_TO_STATE[String(id).padStart(2, '0')];
+    if (!st) return null;
+    const agencyId = STATE_TO_AGENCY[st];
+    return agencyId ? AGENCIES.find(a => a.id === agencyId) : null;
+  }, []);
+
+  if (!pathFn || !features.length) {
+    return <div className="usmap"><div className="usmap__loading">Loading territory map…</div></div>;
+  }
+
+  const regionList = [...new Set(AGENCIES.map(a => a.region))];
+
+  return (
+    <div className="usmap" ref={containerRef}>
+      <div style={{ position: 'relative' }}>
+        <svg
+          viewBox="0 0 975 610"
+          className="usmap__svg"
+          aria-label="US representative territory map"
+          onMouseLeave={() => setTooltip(null)}
+        >
+          {features.map(f => {
+            const agency = getAgency(f.id);
+            const color  = agency ? REGION_COLORS[agency.region] : 'var(--rule-2)';
+            const isHL   = agency && agency.id === highlightId;
+            const dimmed = highlightId && !isHL;
+            return (
+              <path
+                key={f.id}
+                d={pathFn(f)}
+                fill={color}
+                stroke="var(--bg)"
+                strokeWidth={1.2}
+                style={{
+                  cursor: agency ? 'pointer' : 'default',
+                  opacity: dimmed ? 0.2 : (agency ? 0.78 : 0.3),
+                  filter: isHL ? 'brightness(1.25)' : 'none',
+                  transition: 'opacity .2s ease, filter .2s ease',
+                }}
+                onMouseEnter={e => {
+                  if (!agency) return;
+                  const rect = containerRef.current.getBoundingClientRect();
+                  const st = FIPS_TO_STATE[String(f.id).padStart(2, '0')];
+                  setTooltip({ agency, st, x: e.clientX - rect.left, y: e.clientY - rect.top });
+                }}
+                onMouseMove={e => {
+                  if (!agency) return;
+                  const rect = containerRef.current.getBoundingClientRect();
+                  setTooltip(prev => prev ? { ...prev, x: e.clientX - rect.left, y: e.clientY - rect.top } : prev);
+                }}
+                onMouseLeave={() => setTooltip(null)}
+                onClick={() => agency && onSelect && onSelect(agency)}
+              >
+                <title>{FIPS_TO_STATE[String(f.id).padStart(2, '0')] || ''}{agency ? ' — ' + agency.name : ''}</title>
+              </path>
+            );
+          })}
+        </svg>
+        {tooltip && (
+          <div
+            className="usmap__tooltip"
+            style={{
+              left: Math.min(tooltip.x + 14, (containerRef.current?.offsetWidth ?? 975) - 255),
+              top:  Math.max(tooltip.y - 80, 8),
+            }}
+          >
+            <div className="usmap__tt-state">{tooltip.st}</div>
+            <div className="usmap__tt-name">{tooltip.agency.name}</div>
+            <div className="usmap__tt-terr">{tooltip.agency.territories}</div>
+            <div className="usmap__tt-hint">Click to view details ↓</div>
+          </div>
+        )}
+      </div>
+      <div className="usmap__legend">
+        {regionList.map(r => (
+          <span key={r} className="usmap__legend-item">
+            <span className="usmap__legend-dot" style={{ background: REGION_COLORS[r] }} />
+            {r}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RepsMap() {
   const [zip, setZip] = React.useState('');
   const [match, setMatch] = React.useState(null);
   const [query, setQuery] = React.useState('');
+  const [activeAgency, setActiveAgency] = React.useState(null);
+  const resultRef = React.useRef();
 
   const onZip = (e) => {
     e.preventDefault();
-    if (!/^\d{5}$/.test(zip.trim())) { setMatch({ err: 'Enter a 5-digit ZIP.' }); return; }
+    if (!/^\d{5}$/.test(zip.trim())) { setMatch({ err: 'Enter a 5-digit ZIP.' }); setActiveAgency(null); return; }
     const hit = findAgencyByZip(zip);
-    if (hit) setMatch({ agency: AGENCIES.find(a => a.id === hit.agency), state: hit.state });
-    else setMatch({ err: 'No direct match — browse the directory below.' });
+    if (hit) {
+      const agency = AGENCIES.find(a => a.id === hit.agency);
+      setMatch({ agency, state: hit.state });
+      setActiveAgency(hit.agency);
+    } else {
+      setMatch({ err: 'No direct match — browse the directory below.' });
+      setActiveAgency(null);
+    }
+  };
+
+  const onMapSelect = (agency) => {
+    setMatch({ agency, state: agency.states[0] });
+    setActiveAgency(agency.id);
+    setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
   };
 
   const q = query.trim().toLowerCase();
@@ -1808,6 +1938,9 @@ function RepsMap() {
           </div>
         </div>
 
+        {/* Territory map */}
+        <USMapSVG highlightId={activeAgency} onSelect={onMapSelect} />
+
         {/* ZIP hero band */}
         <div className="repfind">
           <form className="repfind__form" onSubmit={onZip}>
@@ -1826,7 +1959,7 @@ function RepsMap() {
             </div>
           </form>
 
-          <div className="repfind__result">
+          <div className="repfind__result" ref={resultRef}>
             {!match && <div className="repfind__hint mono">Routing happens client-side — no form to fill out.</div>}
             {match?.err && <div className="repfind__hint repfind__hint--err mono">{match.err}</div>}
             {match?.agency && (
