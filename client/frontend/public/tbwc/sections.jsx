@@ -31,7 +31,6 @@ function Nav({ onPortalClick }) {
           </span>
           <span className="brand__lockup">
             <span>Technology</span>
-            <span>Wholesale</span>
           </span>
         </a>
         <div className="nav__links">
@@ -579,7 +578,6 @@ function Footer() {
               </span>
               <span className="brand__lockup">
                 <span>Technology</span>
-                <span>Wholesale</span>
               </span>
             </a>
             <p className="foot__tag">Technology branded wholesale, distributed with precision since 2002.</p>

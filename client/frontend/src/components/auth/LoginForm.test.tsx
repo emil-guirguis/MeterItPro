@@ -7,6 +7,14 @@ import { LoginForm } from './LoginForm';
 import authService from '../../services/authService';
 import { useAuth } from '../../hooks/useAuth';
 
+// Mock Turnstile — auto-verifies so Sign In button is never disabled by missing token
+vi.mock('./Turnstile', () => ({
+  Turnstile: ({ onVerify }: { onVerify: (t: string) => void }) => {
+    onVerify('test-turnstile-token');
+    return null;
+  },
+}));
+
 // Mock the auth service
 vi.mock('../../services/authService', () => ({
   default: {

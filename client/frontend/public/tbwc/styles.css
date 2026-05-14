@@ -405,6 +405,134 @@ h1, h2, h3, h4 {
   .hero__prod:nth-child(1), .hero__prod:nth-child(4) { transform: none; }
 }
 
+/* ===== Hero fullbleed variant ===== */
+.hero--fullbleed {
+  position: relative;
+  padding: 0;
+  min-height: clamp(340px, 38vw, 520px);
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+}
+.hero__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    108deg,
+    rgba(8, 10, 16, 0.82) 0%,
+    rgba(8, 10, 16, 0.50) 55%,
+    rgba(8, 10, 16, 0.18) 100%
+  );
+  z-index: 1;
+}
+.hero__overlay-card {
+  background: rgba(8, 10, 18, 0.54);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 0.5px solid rgba(255, 255, 255, 0.13);
+  border-radius: 20px;
+  padding: clamp(28px, 3.5vw, 52px);
+  max-width: 610px;
+  margin: clamp(40px, 4vw, 60px) 0 clamp(32px, 3vw, 48px);
+  color: oklch(94% 0.005 260);
+}
+.hero__overlay-card .display,
+.hero__overlay-card h1 {
+  color: #fff;
+}
+.hero__overlay-card em {
+  color: oklch(80% 0.18 258);
+}
+.hero__since {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.55em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: oklch(60% 0.01 260);
+  margin-top: 10px;
+  font-style: normal;
+}
+.hero__overlay-card .lede {
+  color: oklch(78% 0.008 260);
+}
+.hero__overlay-card .hero__eyebrow,
+.hero__overlay-card .hero__eyebrow span {
+  color: oklch(68% 0.14 258);
+}
+.hero__overlay-card .hero__trust {
+  border-top-color: rgba(255, 255, 255, 0.13);
+}
+.hero__overlay-card .hero__trust .num {
+  color: #fff;
+}
+.hero__overlay-card .hero__trust span:last-child {
+  color: oklch(60% 0.01 260);
+}
+.hero__ghost-light {
+  color: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.30) !important;
+}
+.hero__ghost-light:hover {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+/* ===== Rep Portal Dropdown ===== */
+.portal-drop {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 288px;
+  background: var(--bg);
+  border: var(--rule-w) solid var(--rule-2);
+  border-radius: 14px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.14), 0 1px 0 rgba(255,255,255,0.5) inset;
+  padding: 20px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.portal-drop__title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  padding-bottom: 12px;
+  border-bottom: var(--rule-w) solid var(--rule);
+}
+.portal-drop__input {
+  width: 100%;
+  padding: 9px 12px;
+  border: var(--rule-w) solid var(--rule-2);
+  border-radius: 8px;
+  background: var(--bg-inset);
+  color: var(--ink);
+  font-size: 14px;
+  font-family: var(--f-sans);
+  outline: none;
+  box-sizing: border-box;
+}
+.portal-drop__input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 18%, transparent);
+}
+.portal-drop__links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.portal-drop__links a:first-child {
+  color: var(--ink-3);
+  text-decoration: none;
+}
+.portal-drop__links a:first-child:hover {
+  color: var(--ink);
+}
+
 /* hero side panel — system diagram */
 .hero__panel {
   border: var(--rule-w) solid var(--rule);
