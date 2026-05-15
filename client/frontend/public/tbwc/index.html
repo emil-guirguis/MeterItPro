@@ -719,6 +719,8 @@ function Nav() {
 // ── HERO ───────────────────────────────────────────────────────────────────
 function Hero({ variant }) {
   const gridRef = useFadeIn();
+  const [tipOpen, setTipOpen] = React.useState(false);
+  const [installTipOpen, setInstallTipOpen] = React.useState(false);
   const headlineA = (
     <h1 className="display" style={{ fontSize: 'clamp(24px, 2.6vw, 50px)' }}>
       From engineered submetering system design to <em style={{color:'#03a84e'}}>long-term</em> post-installation <em style={{color:'#03a84e'}}> support </em>, we deliver accurate, scalable energy monitoring solutions
@@ -757,6 +759,63 @@ function Hero({ variant }) {
           <div className="hero__overlay-card">
                    {headline}
             <p className="lede" style={{ marginTop: 22 }}>{lede}</p>
+            <div className="hero__bullets">
+              <div
+                className="hero__system-thinking"
+                onMouseEnter={() => setTipOpen(true)}
+                onMouseLeave={() => setTipOpen(false)}
+              >
+                <span className="hero__system-thinking-bullet">•</span>
+                Delivers "Complete System Thinking," Not Just Products
+                {tipOpen && (
+                  <div className="hero__system-thinking-tip">
+                    <ul>
+                      <li>metering hardware</li>
+                      <li>CT selection</li>
+                      <li>enclosure integration</li>
+                      <li>communications</li>
+                      <li>networking</li>
+                      <li>DAS/BMS integration</li>
+                      <li>utility billing infrastructure</li>
+                      <li>energy code compliance strategy</li>
+                      <li>commissioning support</li>
+                      <li>and lifecycle service</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <div className="hero__bullet-item">
+                <span className="hero__system-thinking-bullet">•</span>
+                Simplifies an Otherwise Fragmented Industry
+              </div>
+              <div
+                className="hero__system-thinking"
+                onMouseEnter={() => setInstallTipOpen(true)}
+                onMouseLeave={() => setInstallTipOpen(false)}
+              >
+                <span className="hero__system-thinking-bullet">•</span>
+                Focuses on Real-World Installability
+                {installTipOpen && (
+                  <div className="hero__system-thinking-tip">
+                    <ul>
+                      <li>pre-configured kits</li>
+                      <li>CT segregation cabinets</li>
+                      <li>packaged enclosures</li>
+                      <li>field reconfigurability</li>
+                      <li>and application-specific packaging directly addresses contractor pain points. (TBWC Technology)</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <div className="hero__bullet-item">
+                <span className="hero__system-thinking-bullet">•</span>
+                Bridges Engineering Compliance and Field Execution
+              </div>
+              <div className="hero__bullet-item">
+                <span className="hero__system-thinking-bullet">•</span>
+                Delivers Open-Protocol Flexibility
+              </div>
+            </div>
             <div className="hero__trust">
               <div><span className="mono num">24+</span><span>Years distributing</span></div>
               <div><span className="mono num">15</span><span>Authorized reps</span></div>
