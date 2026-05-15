@@ -744,7 +744,7 @@ function Hero({ variant }) {
     ? "TBWC distributes submeters, CTs, smart meters, and energy management hardware through a curated network of authorized representatives — domestically compliant, in stock, backed by engineers who built the products."
     : variant === 'C'
     ? "Quote, order, and resolve — one workspace for the modern manufacturer's rep agency."
-    : "Transforming the process of selecting a meter, to delivering a fully integrated solution that not only achieves the design intent the building needs but becomes the energy management tool a facility manager will embrace and use";
+    : "";
 
   return (
     <section className="hero hero--fullbleed">
@@ -758,64 +758,7 @@ function Hero({ variant }) {
         <div className="fade-up" ref={gridRef}>
           <div className="hero__overlay-card">
                    {headline}
-            <p className="lede" style={{ marginTop: 22 }}>{lede}</p>
-            <div className="hero__bullets">
-              <div
-                className="hero__system-thinking"
-                onMouseEnter={() => setTipOpen(true)}
-                onMouseLeave={() => setTipOpen(false)}
-              >
-                <span className="hero__system-thinking-bullet">•</span>
-                Delivers "Complete System Thinking," Not Just Products
-                {tipOpen && (
-                  <div className="hero__system-thinking-tip">
-                    <ul>
-                      <li>metering hardware</li>
-                      <li>CT selection</li>
-                      <li>enclosure integration</li>
-                      <li>communications</li>
-                      <li>networking</li>
-                      <li>DAS/BMS integration</li>
-                      <li>utility billing infrastructure</li>
-                      <li>energy code compliance strategy</li>
-                      <li>commissioning support</li>
-                      <li>and lifecycle service</li>
-                    </ul>
-                  </div>
-                )}
-              </div>
-              <div className="hero__bullet-item">
-                <span className="hero__system-thinking-bullet">•</span>
-                Simplifies an Otherwise Fragmented Industry
-              </div>
-              <div
-                className="hero__system-thinking"
-                onMouseEnter={() => setInstallTipOpen(true)}
-                onMouseLeave={() => setInstallTipOpen(false)}
-              >
-                <span className="hero__system-thinking-bullet">•</span>
-                Focuses on Real-World Installability
-                {installTipOpen && (
-                  <div className="hero__system-thinking-tip">
-                    <ul>
-                      <li>pre-configured kits</li>
-                      <li>CT segregation cabinets</li>
-                      <li>packaged enclosures</li>
-                      <li>field reconfigurability</li>
-                      <li>and application-specific packaging directly addresses contractor pain points. (TBWC Technology)</li>
-                    </ul>
-                  </div>
-                )}
-              </div>
-              <div className="hero__bullet-item">
-                <span className="hero__system-thinking-bullet">•</span>
-                Bridges Engineering Compliance and Field Execution
-              </div>
-              <div className="hero__bullet-item">
-                <span className="hero__system-thinking-bullet">•</span>
-                Delivers Open-Protocol Flexibility
-              </div>
-            </div>
+            {lede && <p className="lede" style={{ marginTop: 22 }}>{lede}</p>}
             <div className="hero__trust">
               <div><span className="mono num">24+</span><span>Years distributing</span></div>
               <div><span className="mono num">15</span><span>Authorized reps</span></div>
