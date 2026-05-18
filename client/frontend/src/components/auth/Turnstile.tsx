@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { Box } from '@mui/material';
 
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string;
+console.log('[Turnstile] SITE_KEY:', SITE_KEY || '(undefined — check VITE_TURNSTILE_SITE_KEY)');
 
 interface TurnstileProps {
   onVerify: (token: string) => void;
@@ -34,7 +35,7 @@ export function Turnstile({ onVerify, onExpire }: TurnstileProps) {
       sitekey: SITE_KEY,
       callback: onVerify,
       'expired-callback': () => { onExpire?.(); },
-      'error-callback': () => { onExpire?.(); },
+      'error-callback': (code: string) => { console.error('[Turnstile] error', code, 'sitekey:', SITE_KEY); onExpire?.(); },
     });
   }, [onVerify, onExpire]);
 
