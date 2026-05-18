@@ -316,6 +316,7 @@ async function verifyTurnstile(env: Env, token: string | undefined, ip: string):
     body: JSON.stringify({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }),
   });
   const data: any = await res.json();
+  console.log('[Turnstile] siteverify response:', JSON.stringify(data));
   return data.success === true;
 }
 
