@@ -8,20 +8,23 @@ import './index.css';
 import App from './App.tsx';
 import { AuthProvider } from './contexts/AuthContext';
 import { muiTheme } from './theme/muiTheme';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 console.log('[MUI Theme] Theme loaded:', muiTheme.palette.primary.main);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <HelmetProvider>
-      <BrowserRouter>
-        <ThemeProvider theme={muiTheme}>
-          <CssBaseline />
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </HelmetProvider>
+    <ErrorBoundary>
+      <HelmetProvider>
+        <BrowserRouter>
+          <ThemeProvider theme={muiTheme}>
+            <CssBaseline />
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </ThemeProvider>
+        </BrowserRouter>
+      </HelmetProvider>
+    </ErrorBoundary>
   </StrictMode>
 );

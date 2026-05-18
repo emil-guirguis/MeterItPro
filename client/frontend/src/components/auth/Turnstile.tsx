@@ -21,6 +21,8 @@ declare global {
   }
 }
 
+const IS_DEV = import.meta.env.DEV;
+
 export function Turnstile({ onVerify, onExpire }: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
@@ -37,6 +39,11 @@ export function Turnstile({ onVerify, onExpire }: TurnstileProps) {
   }, [onVerify, onExpire]);
 
   useEffect(() => {
+    if (IS_DEV) {
+      onVerify('dev-bypass');
+      return;
+    }
+
     if (window.turnstile) {
       render();
       return;
@@ -63,7 +70,9 @@ export function Turnstile({ onVerify, onExpire }: TurnstileProps) {
         widgetId.current = null;
       }
     };
-  }, [render]);
+  }, [render, onVerify]);
+
+  if (IS_DEV) return null;
 
   return <Box ref={containerRef} sx={{ mt: 2, display: 'flex', justifyContent: 'center' }} />;
 }

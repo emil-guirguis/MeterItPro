@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Box, useTheme, useMediaQuery } from '@mui/material';
+import { Box, CircularProgress, useTheme, useMediaQuery } from '@mui/material';
 import LoginForm from '../components/auth/LoginForm';
 import { useAuth } from '../hooks/useAuth';
 import { authService } from '../services/authService';
@@ -38,9 +38,13 @@ const LoginPage: React.FC = () => {
     navigate(from, { replace: true });
   };
 
-  // Don't render login form if already authenticated (unless user explicitly logged out)
+  // Show spinner while redirecting authenticated users (avoids white flash)
   if (isAuthenticated && !authService.hasLogoutFlag()) {
-    return null;
+    return (
+      <Box display="flex" alignItems="center" justifyContent="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -60,6 +60,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [turnstileToken, setTurnstileToken] = useState('');
+
+  const handleTurnstileVerify = useCallback((token: string) => setTurnstileToken(token), []);
+  const handleTurnstileExpire = useCallback(() => setTurnstileToken(''), []);
 
   // 2FA state
   const [requires2FA, setRequires2FA] = useState(false);
@@ -359,8 +362,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               />
 
               <Turnstile
-                onVerify={(token) => setTurnstileToken(token)}
-                onExpire={() => setTurnstileToken('')}
+                onVerify={handleTurnstileVerify}
+                onExpire={handleTurnstileExpire}
               />
 
               {/* Submit Button */}
