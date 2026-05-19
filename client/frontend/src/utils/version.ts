@@ -70,10 +70,15 @@ export function getVersionInfo(): VersionInfo | null {
 export function getVersionDisplay(): string {
   const version = getVersion();
   const info = getVersionInfo();
-  
+
   if (info) {
-    return `v${version} (${info.date})`;
+    const date = new Date(info.timestamp).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    return `v${version} (${date})`;
   }
-  
+
   return version === 'dev' ? 'Development' : `v${version}`;
 }

@@ -10,6 +10,7 @@ import { TenantEntity, MeterEntity, MeterReadingEntity, SyncLog } from '../entit
 import { execQuery } from '../../../../framework/backend/shared/helpers/sql-functions.js';
 import { cacheManager } from '../cache/cache-manager.js';
 
+
 export interface DatabaseConfig {
   host: string;
   port: number;
@@ -390,17 +391,12 @@ export class SyncDatabase {
     value: number;
     unit?: string;
   }): Promise<MeterReadingEntity> {
-    const result = await this.pool.query(
+    const result = await execQuery(this.pool,
       `INSERT INTO meter_reading(meter_id, timestamp, data_point, value, unit)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [
-        reading.meter_id,
-        reading.timestamp,
-        reading.data_point,
-        reading.value,
-        reading.unit,
-      ]
+      [reading.meter_id, reading.timestamp, reading.data_point, reading.value, reading.unit],
+      'data-sync.ts>insertReading'
     );
     return result.rows[0];
   }
@@ -489,7 +485,7 @@ export class SyncDatabase {
         params = [readingIds];
       }
 
-      const result = await this.pool.query(query, params);
+      const result = await execQuery(this.pool, query, params, 'data-sync.ts>markReadingsAsSynchronized');
       const updatedCount = result.rowCount || 0;
 
       console.log(`✅ [SQL] Marked ${updatedCount} reading(s) as synchronized${tenantId ? ` for tenant ${tenantId}` : ''}`);
@@ -506,10 +502,12 @@ export class SyncDatabase {
    * Delete old synchronized readings (cleanup)
    */
   async deleteOldSynchronizedReadings(daysOld: number = 7): Promise<number> {
-    const result = await this.pool.query(
+    const result = await execQuery(this.pool,
       `DELETE FROM meter_reading
-       WHERE is_synchronized = true 
-         AND created_at < NOW() - INTERVAL '${daysOld} days'`
+       WHERE is_synchronized = true
+         AND created_at < NOW() - INTERVAL '${daysOld} days'`,
+      [],
+      'data-sync.ts>deleteOldSynchronizedReadings'
     );
     return result.rowCount || 0;
   }
@@ -732,7 +730,7 @@ export class SyncDatabase {
       }
 
       const sql = `UPDATE tenant SET api_key = $1 WHERE tenant_id = $2`;
-      const result = await this.pool.query(sql, [apiKey, tenant.tenant_id]);
+      const result = await execQuery(this.pool, sql, [apiKey, tenant.tenant_id], 'data-sync.ts>updateTenantApiKey');
 
       if (result.rowCount === 0) {
         console.warn('⚠️  [SYNC] No rows updated when setting API key');
@@ -757,9 +755,10 @@ export class SyncDatabase {
  * Delete old sync logs (cleanup)
  */
   async deleteOldSyncLogs(daysOld: number = 30): Promise<number> {
-    const result = await this.pool.query(
-      `DELETE FROM sync_log 
-       WHERE synced_at < NOW() - INTERVAL '${daysOld} days'`
+    const result = await execQuery(this.pool,
+      `DELETE FROM sync_log WHERE synced_at < NOW() - INTERVAL '${daysOld} days'`,
+      [],
+      'data-sync.ts>deleteOldSyncLogs'
     );
     return result.rowCount || 0;
   }
@@ -875,9 +874,7 @@ export class SyncDatabase {
            port = EXCLUDED.port,
            element = EXCLUDED.element
          RETURNING *`;
-      console.log(`[SYNC SQL]  ${sql}`);
-      console.log(`   Parameters:`, JSON.stringify(params, null, 2));
-      const result = await this.pool.query(sql, params);
+      const result = await execQuery(this.pool, sql, params, 'data-sync.ts>upsertMeter');
 
       if (!result || !result.rows || result.rows.length === 0) {
         throw new Error(`Upsert failed: No rows returned for meter ${meterId}`);
@@ -902,10 +899,11 @@ export class SyncDatabase {
     details?: string
   ): Promise<void> {
     try {
-      await this.pool.query(
+      await execQuery(this.pool,
         `INSERT INTO sync_log (operation_type, batch_size, success, error_message, details)
          VALUES ($1, $2, $3, $4, $5)`,
-        [operationType, readingsCount, success, errorMessage || null, details || null]
+        [operationType, readingsCount, success, errorMessage || null, details || null],
+        'data-sync.ts>logSyncOperation'
       );
       console.log(`✅ [SQL] Logged sync operation: type=${operationType}, count=${readingsCount}, success=${success}`);
     } catch (error) {
@@ -943,10 +941,11 @@ export class SyncDatabase {
     }
 
     try {
-      const result = await this.pool.query(
+      const result = await execQuery(this.pool,
         `DELETE FROM meter_reading
          WHERE meter_reading_id = ANY($1::uuid[]) AND is_synchronized = true`,
-        [readingIds]
+        [readingIds],
+        'data-sync.ts>deleteSynchronizedReadings'
       );
       const deletedCount = result.rowCount || 0;
       console.log(`✅ [SQL] Deleted ${deletedCount} synchronized reading(s)`);
@@ -966,11 +965,12 @@ export class SyncDatabase {
     }
 
     try {
-      await this.pool.query(
+      await execQuery(this.pool,
         `UPDATE meter_reading
          SET retry_count = retry_count + 1
          WHERE meter_reading_id = ANY($1::uuid[])`,
-        [readingIds]
+        [readingIds],
+        'data-sync.ts>incrementRetryCount'
       );
       console.log(`✅ [SQL] Incremented retry count for ${readingIds.length} reading(s)`);
     } catch (error) {
@@ -988,11 +988,12 @@ export class SyncDatabase {
     }
 
     try {
-      await this.pool.query(
+      await execQuery(this.pool,
         `UPDATE meter_reading
          SET sync_status = 'successful'
          WHERE meter_reading_id = ANY($1::uuid[])`,
-        [readingIds]
+        [readingIds],
+        'data-sync.ts>markReadingsAsSuccessful'
       );
       console.log(`✅ [SQL] Marked ${readingIds.length} reading(s) as successful`);
     } catch (error) {
@@ -1010,11 +1011,12 @@ export class SyncDatabase {
     }
 
     try {
-      await this.pool.query(
+      await execQuery(this.pool,
         `UPDATE meter_reading
          SET sync_status = 'pending'
          WHERE meter_reading_id = ANY($1::uuid[])`,
-        [readingIds]
+        [readingIds],
+        'data-sync.ts>markReadingsAsPending'
       );
       console.log(`✅ [SQL] Marked ${readingIds.length} reading(s) as pending`);
     } catch (error) {
@@ -1028,10 +1030,10 @@ export class SyncDatabase {
    */
   async deleteOldReadings(cutoffDate: Date): Promise<number> {
     try {
-      const result = await this.pool.query(
-        `DELETE FROM meter_reading
-         WHERE created_at < $1`,
-        [cutoffDate]
+      const result = await execQuery(this.pool,
+        `DELETE FROM meter_reading WHERE created_at < $1`,
+        [cutoffDate],
+        'data-sync.ts>deleteOldReadings'
       );
       const deletedCount = result.rowCount || 0;
       console.log(`✅ [SQL] Deleted ${deletedCount} old reading(s) before ${cutoffDate.toISOString()}`);
@@ -1049,16 +1051,11 @@ export class SyncDatabase {
     try {
       const tenantId = cacheManager.getTenantCache().getTenant()?.tenant_id || 0;
 
-      await this.pool.query(
-        `INSERT INTO meter_reading (
-          tenant_id, meter_id, created_at, sync_status
-        ) VALUES ($1, $2, $3, $4)`,
-        [
-          tenantId,
-          parseInt(meterId, 10),
-          new Date(),
-          `failed_${operation}`
-        ]
+      await execQuery(this.pool,
+        `INSERT INTO meter_reading (tenant_id, meter_id, created_at, sync_status)
+         VALUES ($1, $2, $3, $4)`,
+        [tenantId, parseInt(meterId, 10), new Date(), `failed_${operation}`.slice(0, 20)],
+        'data-sync.ts>logReadingFailure'
       );
       console.log(`✅ [SQL] Logged reading failure for meter ${meterId}: ${operation} - ${error}`);
     } catch (err) {
@@ -1072,15 +1069,17 @@ export class SyncDatabase {
    */
   async getSyncStats(hours: number = 24): Promise<any> {
     try {
-      const result = await this.pool.query(
-        `SELECT 
+      const result = await execQuery(this.pool,
+        `SELECT
            COUNT(*) as total_syncs,
            SUM(CASE WHEN success = true THEN 1 ELSE 0 END) as successful_syncs,
            SUM(CASE WHEN success = false THEN 1 ELSE 0 END) as failed_syncs,
            SUM(CASE WHEN success = true THEN batch_size ELSE 0 END) as total_readings_synced,
            MAX(synced_at) as last_sync_time
          FROM sync_log
-         WHERE synced_at >= NOW() - INTERVAL '${hours} hours'`
+         WHERE synced_at >= NOW() - INTERVAL '${hours} hours'`,
+        [],
+        'data-sync.ts>getSyncStats'
       );
 
       const row = result.rows[0];
@@ -1159,11 +1158,8 @@ export class SyncDatabase {
            field_name = EXCLUDED.field_name
          RETURNING *`;
 
-      console.log(`[SYNC SQL] ${sql}`);
       const params = [register.register_id, register.name, register.register, register.unit, register.field_name];
-      console.log(`   Parameters:`, JSON.stringify(params, null, 2));
-
-      const result = await this.pool.query(sql, params);
+      const result = await execQuery(this.pool, sql, params, 'data-sync.ts>upsertRegister');
 
       if (!result || !result.rows || result.rows.length === 0) {
         throw new Error(`Upsert failed: No rows returned for register ${registerId}`);
@@ -1183,12 +1179,8 @@ export class SyncDatabase {
    */
   async deleteRegister(registerId: number): Promise<void> {
     try {
-      console.log(`\n🗑️  [SYNC SQL] Deleting register: ${registerId}`);
       const sql = `DELETE FROM register WHERE register_id = $1`;
-      console.log(`[SYNC SQL] ${sql}`);
-      console.log(`   Parameters: [${registerId}]`);
-
-      const result = await this.pool.query(sql, [registerId]);
+      const result = await execQuery(this.pool, sql, [registerId], 'data-sync.ts>deleteRegister');
       console.log(`✅ [SYNC SQL] Successfully deleted register: ${registerId} (${result.rowCount} row(s) affected)`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1243,14 +1235,8 @@ export class SyncDatabase {
            device_id = EXCLUDED.device_id
          RETURNING *`;
 
-      console.log(`[SYNC SQL] ${sql}`);
-      const params = [
-        deviceRegister.device_id,
-        deviceRegister.register_id,
-      ];
-      console.log(`   Parameters:`, JSON.stringify(params, null, 2));
-
-      const result = await this.pool.query(sql, params);
+      const params = [deviceRegister.device_id, deviceRegister.register_id];
+      const result = await execQuery(this.pool, sql, params, 'data-sync.ts>upsertDeviceRegister');
 
       if (!result || !result.rows || result.rows.length === 0) {
         throw new Error(`Upsert failed: No rows returned for device_register ${key}`);
@@ -1272,12 +1258,8 @@ export class SyncDatabase {
   async deleteDeviceRegister(deviceId: number, registerId: number): Promise<void> {
     try {
       const key = `${deviceId}-${registerId}`;
-      console.log(`\n🗑️  [SYNC SQL] Deleting device_register: ${key}`);
       const sql = `DELETE FROM device_register WHERE device_id = $1 AND register_id = $2`;
-      console.log(`[SYNC SQL] ${sql}`);
-      console.log(`   Parameters: [${deviceId}, ${registerId}]`);
-
-      const result = await this.pool.query(sql, [deviceId, registerId]);
+      const result = await execQuery(this.pool, sql, [deviceId, registerId], 'data-sync.ts>deleteDeviceRegister');
       console.log(`✅ [SYNC SQL] Successfully deleted device_register: ${key} (${result.rowCount} row(s) affected)`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

@@ -9,6 +9,7 @@ import * as cron from 'node-cron';
 import { ClientSystemApiClient } from '../api/client-system-api.js';
 import { ConnectivityMonitor } from '../api/connectivity-monitor.js';
 import { SyncDatabase, MeterReadingEntity } from '../types/index.js';
+import { formatPgError, sendSyncFailureAlert } from '../helpers/sync-alert.js';
 
 export interface SyncManagerConfig {
   database: SyncDatabase;
@@ -268,33 +269,33 @@ export class SyncManager {
       }
 
       if (totalFailed > 0) {
-        await this.database.logSyncOperation(
-          'sync',
-          totalFailed,
-          false,
-          lastError || 'Unknown error'
-        );
+        const failMsg = lastError || 'Unknown error';
+        await this.database.logSyncOperation('sync', totalFailed, false, failMsg);
 
         this.status.lastSyncTime = new Date();
         this.status.lastSyncSuccess = false;
-        this.status.lastSyncError = lastError;
+        this.status.lastSyncError = failMsg;
         this.status.totalFailed += totalFailed;
 
-        console.error(`Sync failed for ${totalFailed} readings: ${lastError}`);
+        console.error(`Sync failed for ${totalFailed} readings: ${failMsg}`);
+        await sendSyncFailureAlert(
+          `[MeterItPro] Sync partial failure — ${totalFailed} readings failed`,
+          `Time: ${new Date().toISOString()}\nFailed: ${totalFailed}\nReason: ${failMsg}`
+        );
       }
 
     } catch (error) {
       console.error('Sync error:', error);
+      const errMsg = formatPgError(error);
 
       this.status.lastSyncTime = new Date();
       this.status.lastSyncSuccess = false;
-      this.status.lastSyncError = error instanceof Error ? error.message : 'Unknown error';
+      this.status.lastSyncError = errMsg;
 
-      await this.database.logSyncOperation(
-        'sync',
-        0,
-        false,
-        error instanceof Error ? error.message : 'Unknown error'
+      await this.database.logSyncOperation('sync', 0, false, errMsg);
+      await sendSyncFailureAlert(
+        '[MeterItPro] Sync failed — server error',
+        `Time: ${new Date().toISOString()}\nError: ${errMsg}`
       );
     } finally {
       this.isSyncing = false;

@@ -18,6 +18,7 @@ import { cacheManager } from '../cache/cache-manager.js';
 import { CRON_SYNC_TO_REMOTE } from '../config/scheduling-constants.js';
 import ReadingValidationMiddleware from './reading-validation-middleware.js';
 import { loadValidationConfig } from '../config/validation-config.js';
+import { formatPgError, sendSyncFailureAlert } from '../helpers/sync-alert.js';
 
 export interface MeterReadingUploadManagerConfig {
   database: SyncDatabase;
@@ -231,34 +232,39 @@ export class MeterReadingUploadManager {
         this.status.lastUploadError = undefined;
         this.status.totalUploaded += totalUploaded;
       } else {
+        const partialMsg = `${totalFailed} readings failed to upload`;
         await this.database.logSyncOperation(
           'upload',
           totalUploaded + totalFailed,
           false,
-          `${totalFailed} readings failed to upload`,
+          partialMsg,
           JSON.stringify({ uploaded: totalUploaded, failed: totalFailed, batches: batchNumber, tenant_id: this.tenantId })
         );
 
         this.status.lastUploadTime = new Date();
         this.status.lastUploadSuccess = false;
-        this.status.lastUploadError = `${totalFailed} readings failed to upload`;
+        this.status.lastUploadError = partialMsg;
         this.status.totalFailed += totalFailed;
 
         console.error(`Upload partially failed: ${totalFailed} readings failed`);
+        await sendSyncFailureAlert(
+          `[MeterItPro] Upload partial failure — ${totalFailed} readings failed`,
+          `Time: ${new Date().toISOString()}\nTenant: ${this.tenantId}\nUploaded: ${totalUploaded}\nFailed: ${totalFailed}\nBatches: ${batchNumber}`
+        );
       }
 
     } catch (error) {
       console.error('Upload error:', error);
+      const errMsg = formatPgError(error);
 
       this.status.lastUploadTime = new Date();
       this.status.lastUploadSuccess = false;
-      this.status.lastUploadError = error instanceof Error ? error.message : 'Unknown error';
+      this.status.lastUploadError = errMsg;
 
-      await this.database.logSyncOperation(
-        'upload',
-        0,
-        false,
-        error instanceof Error ? error.message : 'Unknown error'
+      await this.database.logSyncOperation('upload', 0, false, errMsg);
+      await sendSyncFailureAlert(
+        '[MeterItPro] Upload failed — sync server error',
+        `Time: ${new Date().toISOString()}\nTenant: ${this.tenantId}\nError: ${errMsg}`
       );
     } finally {
       this.isUploading = false;

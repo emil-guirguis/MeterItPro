@@ -3,7 +3,7 @@ import { FormModal } from '@framework/components/modal';
 import NotificationRulesList from './NotificationRulesList';
 import NotificationRuleForm from './NotificationRuleForm';
 import { useNotificationRulesEnhanced } from './notificationRulesStore';
-import type { NotificationRule } from '../../services/notificationRuleService';
+import { notificationRuleService, type NotificationRule } from '../../services/notificationRuleService';
 
 export const NotificationRulesPage: React.FC = () => {
   const rules = useNotificationRulesEnhanced();
@@ -14,8 +14,13 @@ export const NotificationRulesPage: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleEdit = (rule: NotificationRule) => {
-    setSelectedRule(rule);
+  const handleEdit = async (rule: NotificationRule) => {
+    try {
+      const detail = await notificationRuleService.getRule(rule.notification_rule_id);
+      setSelectedRule(detail as any);
+    } catch {
+      setSelectedRule(rule);
+    }
     setShowForm(true);
   };
 

@@ -64,34 +64,26 @@ describe('runNotificationRule', () => {
 
   describe('meter_no_reading rule', () => {
     it('clears notification when no gaps found', async () => {
-      // 1. fetch rule
-      mockExecQuery.mockResolvedValueOnce({ rows: [BASE_RULE] } as any);
-      // 2. getRuleMeterElements: no selections → fetch all meter elements
-      mockExecQuery.mockResolvedValueOnce({
-        rows: [{ meter_id: '10', meter_element_id: '20' }],
-      } as any);
-      // 3. fetch display names
-      mockExecQuery.mockResolvedValueOnce({ rows: [METER_ELEMENT_PAIR] } as any);
-      // 4. checkMeterNoReading: no gaps found
-      mockExecQuery.mockResolvedValueOnce({ rows: [] } as any);
-      // 5. clearNotification DELETE
-      mockExecQuery.mockResolvedValueOnce({ rows: [] } as any);
+      mockExecQuery
+        .mockResolvedValueOnce({ rows: [BASE_RULE] } as any)              // fetch rule
+        .mockResolvedValueOnce({ rows: [{ meter_id: '10', meter_element_id: '20' }] } as any) // all elements
+        .mockResolvedValueOnce({ rows: [METER_ELEMENT_PAIR] } as any)     // display names
+        .mockResolvedValueOnce({ rows: [{ last_reading_at: new Date() }] } as any) // pre-check: recent reading
+        .mockResolvedValueOnce({ rows: [] } as any)                        // gap check: no gaps
+        .mockResolvedValueOnce({ rows: [] } as any);                       // clearNotification DELETE
 
       await runNotificationRule(TEST_ENV, '1');
 
-      // Verify the DELETE was called to clear notification
-      const calls = mockExecQuery.mock.calls;
-      const deleteCall = calls.find(([, sql]) => sql.includes('DELETE FROM notification'));
+      const deleteCall = mockExecQuery.mock.calls.find(([, sql]) => sql.includes('DELETE FROM notification'));
       expect(deleteCall).toBeDefined();
     });
 
     it('upserts notification and sends email when gaps are found', async () => {
       mockExecQuery
         .mockResolvedValueOnce({ rows: [BASE_RULE] } as any)             // fetch rule
-        .mockResolvedValueOnce({                                          // all meter elements
-          rows: [{ meter_id: '10', meter_element_id: '20' }],
-        } as any)
+        .mockResolvedValueOnce({ rows: [{ meter_id: '10', meter_element_id: '20' }] } as any) // all elements
         .mockResolvedValueOnce({ rows: [METER_ELEMENT_PAIR] } as any)    // display names
+        .mockResolvedValueOnce({ rows: [{ last_reading_at: new Date() }] } as any) // pre-check: recent reading
         .mockResolvedValueOnce({                                          // gap result
           rows: [{
             total_number_of_gaps: '2',
@@ -102,9 +94,7 @@ describe('runNotificationRule', () => {
         } as any)
         .mockResolvedValueOnce({ rows: [] } as any)                       // clearNotification DELETE
         .mockResolvedValueOnce({ rows: [] } as any)                       // upsertNotification INSERT
-        .mockResolvedValueOnce({                                          // getEmailRecipients
-          rows: [{ email_address: 'admin@test.com' }],
-        } as any);
+        .mockResolvedValueOnce({ rows: [{ email_address: 'admin@test.com' }] } as any); // getEmailRecipients
 
       mockFetch.mockResolvedValueOnce({ ok: true });
 
@@ -121,6 +111,7 @@ describe('runNotificationRule', () => {
         .mockResolvedValueOnce({ rows: [BASE_RULE] } as any)
         .mockResolvedValueOnce({ rows: [{ meter_id: '10', meter_element_id: '20' }] } as any)
         .mockResolvedValueOnce({ rows: [METER_ELEMENT_PAIR] } as any)
+        .mockResolvedValueOnce({ rows: [{ last_reading_at: new Date() }] } as any) // pre-check: recent
         .mockResolvedValueOnce({
           rows: [{ total_number_of_gaps: '1', gap_duration_minutes: '90', gap_starts_at: new Date(), gap_ends_at: new Date() }],
         } as any)
@@ -130,6 +121,72 @@ describe('runNotificationRule', () => {
 
       await runNotificationRule(TEST_ENV, '1');
       expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('fires immediately and sends email when last reading exceeds threshold', async () => {
+      const oldDate = new Date(Date.now() - 48 * 3_600_000); // 48h ago, threshold is 24h
+      mockExecQuery
+        .mockResolvedValueOnce({ rows: [BASE_RULE] } as any)
+        .mockResolvedValueOnce({ rows: [{ meter_id: '10', meter_element_id: '20' }] } as any)
+        .mockResolvedValueOnce({ rows: [METER_ELEMENT_PAIR] } as any)
+        .mockResolvedValueOnce({ rows: [{ last_reading_at: oldDate }] } as any) // pre-check: stale
+        .mockResolvedValueOnce({ rows: [] } as any)   // clearNotification DELETE
+        .mockResolvedValueOnce({ rows: [] } as any)   // upsertNotification INSERT
+        .mockResolvedValueOnce({ rows: [{ email_address: 'admin@test.com' }] } as any);
+
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      await runNotificationRule(TEST_ENV, '1');
+
+      const insertCall = mockExecQuery.mock.calls.find(([, sql]) => sql.includes('INSERT INTO notification'));
+      expect(insertCall).toBeDefined();
+      expect(mockFetch).toHaveBeenCalledOnce();
+    });
+
+    it('detects gap that crosses the window boundary', async () => {
+      // Meter recovered today after 7-day gap — pre-check sees recent reading,
+      // gap check must see the pre-window boundary reading to catch the gap.
+      const recentReading = new Date(); // 5/19
+      mockExecQuery
+        .mockResolvedValueOnce({ rows: [BASE_RULE] } as any)
+        .mockResolvedValueOnce({ rows: [{ meter_id: '10', meter_element_id: '20' }] } as any)
+        .mockResolvedValueOnce({ rows: [METER_ELEMENT_PAIR] } as any)
+        .mockResolvedValueOnce({ rows: [{ last_reading_at: recentReading }] } as any) // pre-check: recent
+        .mockResolvedValueOnce({                                                       // gap crosses boundary
+          rows: [{
+            total_number_of_gaps: '1',
+            gap_duration_minutes: String(7 * 24 * 60),
+            gap_starts_at: new Date(Date.now() - 7 * 24 * 3_600_000),
+            gap_ends_at: recentReading,
+          }],
+        } as any)
+        .mockResolvedValueOnce({ rows: [] } as any)   // clearNotification DELETE
+        .mockResolvedValueOnce({ rows: [] } as any)   // upsertNotification INSERT
+        .mockResolvedValueOnce({ rows: [{ email_address: 'admin@test.com' }] } as any);
+
+      mockFetch.mockResolvedValueOnce({ ok: true });
+
+      await runNotificationRule(TEST_ENV, '1');
+
+      const insertCall = mockExecQuery.mock.calls.find(([, sql]) => sql.includes('INSERT INTO notification'));
+      expect(insertCall).toBeDefined();
+      expect(mockFetch).toHaveBeenCalledOnce();
+    });
+
+    it('fires immediately when no readings ever recorded', async () => {
+      mockExecQuery
+        .mockResolvedValueOnce({ rows: [BASE_RULE] } as any)
+        .mockResolvedValueOnce({ rows: [{ meter_id: '10', meter_element_id: '20' }] } as any)
+        .mockResolvedValueOnce({ rows: [METER_ELEMENT_PAIR] } as any)
+        .mockResolvedValueOnce({ rows: [{ last_reading_at: null }] } as any) // pre-check: never recorded
+        .mockResolvedValueOnce({ rows: [] } as any)  // clearNotification DELETE
+        .mockResolvedValueOnce({ rows: [] } as any)  // upsertNotification INSERT
+        .mockResolvedValueOnce({ rows: [] } as any); // no recipients
+
+      await runNotificationRule(TEST_ENV, '1');
+
+      const insertCall = mockExecQuery.mock.calls.find(([, sql]) => sql.includes('INSERT INTO notification'));
+      expect(insertCall).toBeDefined();
     });
   });
 
@@ -247,12 +304,14 @@ describe('runNotificationRule', () => {
           METER_ELEMENT_PAIR,
           { ...METER_ELEMENT_PAIR, meter_element_id: '21', display_name: 'Main Meter    A-Phase B' },
         ] } as any)
-        // gap checks for each pair
-        .mockResolvedValueOnce({ rows: [] } as any) // pair 1: no gaps
-        .mockResolvedValueOnce({ rows: [] } as any) // pair 2: no gaps
-        // clear notifications
-        .mockResolvedValueOnce({ rows: [] } as any)
-        .mockResolvedValueOnce({ rows: [] } as any);
+        // pair 1
+        .mockResolvedValueOnce({ rows: [{ last_reading_at: new Date() }] } as any) // pre-check
+        .mockResolvedValueOnce({ rows: [] } as any) // gap check: no gaps
+        .mockResolvedValueOnce({ rows: [] } as any) // clear
+        // pair 2
+        .mockResolvedValueOnce({ rows: [{ last_reading_at: new Date() }] } as any) // pre-check
+        .mockResolvedValueOnce({ rows: [] } as any) // gap check: no gaps
+        .mockResolvedValueOnce({ rows: [] } as any); // clear
 
       await runNotificationRule(TEST_ENV, '1');
       expect(mockExecQuery).toHaveBeenCalled();
@@ -272,6 +331,8 @@ describe('runNotificationRule', () => {
         .mockResolvedValueOnce({ rows: [{ meter_element_id: '20' }] } as any)
         // display names
         .mockResolvedValueOnce({ rows: [METER_ELEMENT_PAIR] } as any)
+        // pre-check: recent reading
+        .mockResolvedValueOnce({ rows: [{ last_reading_at: new Date() }] } as any)
         // gap check
         .mockResolvedValueOnce({ rows: [] } as any)
         // clear notification
@@ -301,13 +362,14 @@ describe('runAllActiveNotificationRules', () => {
       // rule execution (meter_no_reading, no selections)
       .mockResolvedValueOnce({ rows: [{ meter_id: '10', meter_element_id: '20' }] } as any)
       .mockResolvedValueOnce({ rows: [METER_ELEMENT_PAIR] } as any)
+      .mockResolvedValueOnce({ rows: [{ last_reading_at: new Date() }] } as any) // pre-check: recent
       .mockResolvedValueOnce({ rows: [] } as any) // no gaps
       .mockResolvedValueOnce({ rows: [] } as any); // clearNotification
 
     await runAllActiveNotificationRules(TEST_ENV, now);
 
     expect(mockMatchesCron).toHaveBeenCalledWith(BASE_RULE.schedule_cron, now);
-    expect(mockExecQuery).toHaveBeenCalledTimes(5);
+    expect(mockExecQuery).toHaveBeenCalledTimes(6);
   });
 
   it('skips rules where cron does not match', async () => {
@@ -361,6 +423,7 @@ describe('runAllActiveNotificationRules', () => {
       // Rule 1 (meter_no_reading)
       .mockResolvedValueOnce({ rows: [{ meter_id: '10', meter_element_id: '20' }] } as any)
       .mockResolvedValueOnce({ rows: [METER_ELEMENT_PAIR] } as any)
+      .mockResolvedValueOnce({ rows: [{ last_reading_at: new Date() }] } as any) // pre-check: recent
       .mockResolvedValueOnce({ rows: [] } as any) // no gaps
       .mockResolvedValueOnce({ rows: [] } as any) // clear
       // Rule 2 (meter_zero_reading)

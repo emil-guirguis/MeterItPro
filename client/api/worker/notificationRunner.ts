@@ -189,13 +189,74 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
   const pairs = await getRuleMeterElements(env, rule);
 
   for (const pair of pairs) {
+    // Pre-check: find the most recent reading regardless of window.
+    // If no reading exists or the last reading is older than the threshold,
+    // fire immediately — the gap query below returns empty rows when there
+    // are NO readings in the window, which would incorrectly clear the alert.
+    const lastResult = await execQuery(env,
+      `SELECT MAX(created_at) AS last_reading_at FROM meter_reading
+       WHERE tenant_id = $1 AND meter_id = $2 AND meter_element_id = $3`,
+      [rule.tenant_id, pair.meter_id, pair.meter_element_id]
+    );
+    const lastReadingAt: Date | null = lastResult.rows[0]?.last_reading_at
+      ? new Date(lastResult.rows[0].last_reading_at)
+      : null;
+    const cutoff = new Date(Date.now() - thresholdHours * 3_600_000);
+
+    if (!lastReadingAt || lastReadingAt < cutoff) {
+      const hoursSince = lastReadingAt
+        ? Math.round((Date.now() - lastReadingAt.getTime()) / 3_600_000)
+        : null;
+      const title = `${pair.display_name} — No readings for ${hoursSince ?? '?'} hours`;
+      const description = lastReadingAt
+        ? `Last reading was ${hoursSince} hours ago (${lastReadingAt.toLocaleString()}), exceeding the ${thresholdHours}h threshold.`
+        : `No readings have ever been recorded for this meter element.`;
+
+      await upsertNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id,
+        'meter_no_reading', 'error', title, description);
+
+      const recipients = await getEmailRecipients(env, rule.notification_rule_id);
+      if (recipients.length > 0) {
+        await sendEmail(env, recipients,
+          `Alert: ${pair.display_name} — No readings for ${hoursSince ?? '?'}h`,
+          buildEmailHtml({
+            headerColor: '#c62828', headerTitle: 'Missing Meter Readings Alert',
+            headerSubtitle: `${rule.name} — ${pair.display_name}`,
+            body: `<p><strong>${pair.display_name}</strong> has not sent any readings for
+                   <strong>${hoursSince ?? 'an unknown number of'} hours</strong>,
+                   exceeding the configured threshold of
+                   <strong>${thresholdHours} hour${thresholdHours !== 1 ? 's' : ''}</strong>.</p>
+                   ${lastReadingAt ? `<p><strong>Last reading:</strong> ${lastReadingAt.toLocaleString()}</p>` : ''}
+                   <p>Please check the meter connection and BACnet configuration.</p>`,
+            ruleName: rule.name,
+          })
+        );
+      }
+      continue;
+    }
+
+    // Recent readings exist — check for gaps within the threshold window.
+    // Include the last reading before the window so cross-boundary gaps are detected.
     const result = await execQuery(env, `
-      WITH ordered AS (
-        SELECT created_at AS ts, LAG(created_at) OVER (ORDER BY created_at) AS prev_ts
+      WITH boundary AS (
+        SELECT created_at AS ts
         FROM meter_reading
         WHERE tenant_id = $1 AND meter_id = $2 AND meter_element_id = $3
-          AND created_at >= NOW() - INTERVAL '1 hour' * $4
+          AND created_at < NOW() - INTERVAL '1 hour' * $4
           AND created_at IS NOT NULL
+        ORDER BY created_at DESC
+        LIMIT 1
+      ),
+      ordered AS (
+        SELECT created_at AS ts, LAG(created_at) OVER (ORDER BY created_at) AS prev_ts
+        FROM (
+          SELECT created_at FROM meter_reading
+          WHERE tenant_id = $1 AND meter_id = $2 AND meter_element_id = $3
+            AND created_at >= NOW() - INTERVAL '1 hour' * $4
+            AND created_at IS NOT NULL
+          UNION ALL
+          SELECT ts FROM boundary
+        ) combined
       ),
       gaps AS (
         SELECT
@@ -239,7 +300,7 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
           headerColor: '#c62828', headerTitle: 'Missing Meter Readings Alert',
           headerSubtitle: `${rule.name} � ${pair.display_name}`,
           body: `<p>A gap of <strong>${gapHours} hours</strong> was detected for <strong>${pair.display_name}</strong>
-                 within the last 24 hours, exceeding the configured threshold of
+                 within the last ${thresholdHours} hours, exceeding the configured threshold of
                  <strong>${thresholdHours} hour${thresholdHours !== 1 ? 's' : ''}</strong>.</p>
                  <p><strong>Gap period:</strong> ${gapStart.toLocaleString()} &mdash; ${gapEnd.toLocaleString()}</p>
                  <p>Please check the meter connection and BACnet configuration.</p>`,

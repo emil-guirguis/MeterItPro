@@ -28,6 +28,10 @@ export async function execQuery(
     return result;
   } catch (error) {
     logger.error(`${label} Failed: ${error}`);
+    if (error && typeof error === 'object') {
+      (error as any).sql = query;
+      (error as any).sqlParams = params;
+    }
     throw error;
   }
 }

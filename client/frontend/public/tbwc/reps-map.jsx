@@ -79,6 +79,7 @@ function RepsMap() {
   const [zip, setZip] = React.useState('');
   const [match, setMatch] = React.useState(null);
   const [query, setQuery] = React.useState('');
+  const [activeAgency, setActiveAgency] = React.useState(null);
 
   const onZip = (e) => {
     e.preventDefault();
@@ -162,7 +163,7 @@ function RepsMap() {
                 <span className="repgrp__hd-states mono">{[...new Set(list.flatMap(a => a.states))].join(' · ')}</span>
               </div>
               <div className="repgrp__grid">
-                {list.map(a => <AgencyCard key={a.id} a={a} />)}
+                {list.map(a => <AgencyCard key={a.id} a={a} highlighted={activeAgency === a.id} onClick={() => setActiveAgency(activeAgency === a.id ? null : a.id)} />)}
               </div>
             </div>
           ))}
