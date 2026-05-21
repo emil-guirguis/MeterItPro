@@ -282,8 +282,8 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
     const totalGaps = parseInt(worst.total_number_of_gaps, 10);
     const gapMinutes = parseFloat(worst.gap_duration_minutes);
     const gapHours = Math.round((gapMinutes / 60) * 10) / 10;
-    const gapStart = new Date(worst.gap_starts_at);
-    const gapEnd = new Date(worst.gap_ends_at);
+    const gapStart = new Date(worst.last_record_before_gap);
+    const gapEnd = new Date(worst.first_record_after_gap);
 
     const title = `${pair.display_name} � ${totalGaps} reading gap${totalGaps !== 1 ? 's' : ''} detected`;
     const description = `Largest gap: ${gapMinutes} min (${gapStart.toLocaleString()} � ${gapEnd.toLocaleString()}). `
@@ -300,8 +300,7 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
           headerColor: '#c62828', headerTitle: 'Missing Meter Readings Alert',
           headerSubtitle: `${rule.name} � ${pair.display_name}`,
           body: `<p>A gap of <strong>${gapHours} hours</strong> was detected for <strong>${pair.display_name}</strong>
-                 within the last ${thresholdHours} hours, exceeding the configured threshold of
-                 <strong>${thresholdHours} hour${thresholdHours !== 1 ? 's' : ''}</strong>.</p>
+                 within the last ${thresholdHours}-hour monitoring window.</p>
                  <p><strong>Gap period:</strong> ${gapStart.toLocaleString()} &mdash; ${gapEnd.toLocaleString()}</p>
                  <p>Please check the meter connection and BACnet configuration.</p>`,
           ruleName: rule.name,
