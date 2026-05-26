@@ -69,7 +69,7 @@ app.post('/', async (c) => {
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score);
 
-    const results = [];
+    const results: any[] = [];
     for (let i = offset; i < Math.min(offset + limit, scoredDevices.length); i++) {
       const { device, score } = scoredDevices[i];
       const deviceReadings = readingsByDevice.get(device.id) || [];

@@ -545,7 +545,7 @@ app.delete('/cards/:id', requirePermission('dashboard:delete'), async (c) => {
     const card = await findById(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), tenantId);
     if (!card) return c.json({ success: false, message: 'Dashboard card not found' }, 404);
 
-    await remove(c.env, 'dashboard', 'dashboard_id', c.req.param('id'));
+    await remove(c.env, 'dashboard', 'dashboard_id', c.req.param('id'), tenantId);
     return c.json({ success: true, message: 'Dashboard card deleted successfully' });
   } catch (error: any) {
     logError('Error deleting card', error);

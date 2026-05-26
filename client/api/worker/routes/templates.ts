@@ -372,7 +372,7 @@ app.post('/bulk', requirePermission('template:update'), async (c) => {
     for (const id of templateIds) {
       try {
         if (action === 'delete') {
-          await remove(c.env, 'email_template', 'email_template_id', id);
+          await remove(c.env, 'email_template', 'email_template_id', id, tenantId);
         } else {
           await update(c.env, 'email_template', 'email_template_id', id, {
             isactive: action === 'activate',
@@ -540,7 +540,7 @@ app.delete('/:id', requirePermission('template:delete'), async (c) => {
       return c.json({ success: false, message: 'Template not found' }, 404);
     }
 
-    await remove(c.env, 'email_template', 'email_template_id', id);
+    await remove(c.env, 'email_template', 'email_template_id', id, tenantId);
     return c.json({ success: true, message: 'Template deleted successfully' });
   } catch (error: any) {
     logError('Error deleting template:', error);

@@ -40,6 +40,7 @@ import registerRoutes, { deviceRegistersApp, meterRegistersApp } from './routes/
 import uploadRoutes from './routes/upload';
 import syncServerRoutes from './routes/syncServers';
 import adminRoutes from './routes/adminRoutes';
+import openapiSpec from './openapi.json';
 
 export const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -65,19 +66,29 @@ app.use('*', cors({
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-API-Key'],
-  exposeHeaders: ['Content-Range', 'X-Content-Range'],
+  exposeHeaders: ['Content-Range', 'X-Content-Range', 'X-Request-Id'],
 }));
+
+// --- Request ID for correlation across logs ---
+
+app.use('*', async (c, next) => {
+  const reqId = c.req.header('x-request-id') || crypto.randomUUID();
+  c.set('requestId', reqId);
+  await next();
+  c.res.headers.set('X-Request-Id', reqId);
+});
 
 // --- Global error handler (ensures CORS headers on unhandled errors) ---
 
 app.onError((err, c) => {
-  console.error('[WORKER] Unhandled error:', err);
-  console.error('[WORKER] Error type:', err?.constructor?.name);
-  console.error('[WORKER] Error message:', err?.message);
-  
-  // Ensure CORS headers are included in error responses
-  const response = c.json({ success: false, message: 'Internal server error' }, 500);
-  
+  const reqId = c.get('requestId') || 'unknown';
+  console.error(`[WORKER] [${reqId}] Unhandled error:`, err);
+  console.error(`[WORKER] [${reqId}] Error type:`, err?.constructor?.name);
+  console.error(`[WORKER] [${reqId}] Error message:`, err?.message);
+
+  const response = c.json({ success: false, message: 'Internal server error', requestId: reqId }, 500);
+  response.headers.set('X-Request-Id', reqId);
+
   // Add CORS headers manually if needed
   const frontendUrl = c.env.FRONTEND_URL || 'https://meteritpro.com';
   const allowedOrigins = frontendUrl.split(',').map((s: string) => s.trim());
@@ -87,7 +98,7 @@ app.onError((err, c) => {
     response.headers.set('Access-Control-Allow-Origin', origin);
     response.headers.set('Access-Control-Allow-Credentials', 'true');
   }
-  
+
   return response;
 });
 
@@ -170,61 +181,16 @@ app.get('/swagger', (c) => {
   return c.html(html);
 });
 
-// Serve OpenAPI spec
-app.get('/swagger/spec.json', (c) => {
-  const spec = {
-    openapi: '3.0.0',
-    info: {
-      title: 'MeterIt Pro Client API',
-      version: '1.0.0',
-      description: 'Cloudflare Workers-based API for MeterIt Pro',
-    },
-    servers: [
-      { url: 'https://meteritpro.com/api', description: 'Production' },
-      { url: 'http://localhost:8787/api', description: 'Local development' },
-    ],
-    paths: {
-      '/health': {
-        get: {
-          summary: 'Health check',
-          tags: ['Health'],
-          responses: { 200: { description: 'OK' } },
-        },
-      },
-      '/auth/login': {
-        post: {
-          summary: 'User login',
-          tags: ['Auth'],
-          responses: { 200: { description: 'Login successful' }, 401: { description: 'Invalid credentials' } },
-        },
-      },
-      '/users/me': {
-        get: {
-          summary: 'Get current user',
-          tags: ['Users'],
-          responses: { 200: { description: 'User data' }, 401: { description: 'Unauthorized' } },
-        },
-      },
-      '/meters': {
-        get: {
-          summary: 'List meters',
-          tags: ['Meters'],
-          responses: { 200: { description: 'List of meters' }, 401: { description: 'Unauthorized' } },
-        },
-      },
-      '/sync/connect': {
-        post: {
-          summary: 'Connect sync client',
-          tags: ['Sync'],
-          responses: { 200: { description: 'Connected' }, 401: { description: 'Invalid credentials' } },
-        },
-      },
-    },
-  };
-  return c.json(spec);
-});
+// Serve OpenAPI spec (sourced from openapi.json in this dir)
+app.get('/swagger/spec.json', (c) => c.json(openapiSpec));
 
 // --- Mount route sub-apps ---
+
+// Nested routes registered BEFORE parents so Hono matches them first.
+// Otherwise `/api/meters/:meterId/elements` is swallowed by `/api/meters`.
+app.route('/api/meters/:meterId/elements', meterElementRoutes);
+app.route('/api/meters/:meterId/registers', meterRegistersApp);
+app.route('/api/devices/:deviceId/registers', deviceRegistersApp);
 
 app.route('/api/auth', authRoutes);
 app.route('/api/users', userRoutes);
@@ -251,10 +217,6 @@ app.route('/api/registers', registerRoutes);
 app.route('/api/upload', uploadRoutes);
 app.route('/api/sync-servers', syncServerRoutes);
 app.route('/api/admin', adminRoutes);
-
-app.route('/api/meters/:meterId/elements', meterElementRoutes);
-app.route('/api/devices/:deviceId/registers', deviceRegistersApp);
-app.route('/api/meters/:meterId/registers', meterRegistersApp);
 
 // --- Security.txt ---
 

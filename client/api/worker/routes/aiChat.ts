@@ -1,11 +1,11 @@
 /**
- * AI Chat route — Cloudflare Worker
+ * AI Chat route ï¿½ Cloudflare Worker
  *
  * POST /api/ai/chat
  * Body: { message: string, history?: { role: 'user' | 'assistant', content: string }[] }
  *
  * Uses Groq (llama-3.3-70b) with tool use to answer questions about the tenant's meter data.
- * The agentic loop runs entirely inside the Worker — no external processes needed.
+ * The agentic loop runs entirely inside the Worker ï¿½ no external processes needed.
  */
 
 import { Hono } from 'hono';
@@ -69,7 +69,7 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'list_notification_rules',
       description:
-        'List all notification/alert rules configured for this tenant — thresholds, schedules, and which meters they monitor.',
+        'List all notification/alert rules configured for this tenant ï¿½ thresholds, schedules, and which meters they monitor.',
       parameters: {
         type: 'object',
         properties: {},
@@ -82,7 +82,7 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     function: {
       name: 'get_recent_alerts',
       description:
-        'Get the most recent notification history — which rules fired, when, and whether emails were sent successfully.',
+        'Get the most recent notification history ï¿½ which rules fired, when, and whether emails were sent successfully.',
       parameters: {
         type: 'object',
         properties: {
@@ -203,16 +203,16 @@ async function executeTool(
 
       case 'get_dashboard_summary': {
         const [meters, devices, locations, recentReadings, staleMeters] = await Promise.all([
-          query(env, `SELECT COUNT(*) AS total FROM meter WHERE tenant_id = $1`, [tenantId]),
-          query(env, `SELECT COUNT(*) AS total FROM device WHERE tenant_id = $1`, [tenantId]),
-          query(env, `SELECT COUNT(*) AS total FROM location WHERE tenant_id = $1`, [tenantId]),
-          query(
+          execQuery(env, `SELECT COUNT(*) AS total FROM meter WHERE tenant_id = $1`, [tenantId]),
+          execQuery(env, `SELECT COUNT(*) AS total FROM device WHERE tenant_id = $1`, [tenantId]),
+          execQuery(env, `SELECT COUNT(*) AS total FROM location WHERE tenant_id = $1`, [tenantId]),
+          execQuery(
             env,
             `SELECT COUNT(*) AS total FROM meter_reading
              WHERE tenant_id = $1 AND created_at >= NOW() - INTERVAL '24 hours'`,
             [tenantId]
           ),
-          query(
+          execQuery(
             env,
             `SELECT m.meter_id, m.name,
                     MAX(mr.created_at) AS last_reading
@@ -277,7 +277,7 @@ app.post('/', async (c) => {
 You help facility managers understand their meter data, identify issues, and make sense of their energy consumption.
 
 You have access to tools that query the live database. Use them to answer questions accurately.
-When the user asks about meters, readings, alerts, or energy usage — always fetch fresh data using the tools rather than guessing.
+When the user asks about meters, readings, alerts, or energy usage ï¿½ always fetch fresh data using the tools rather than guessing.
 
 Guidelines:
 - Be concise and actionable. Lead with the key insight, then supporting data.
@@ -286,7 +286,7 @@ Guidelines:
 - If a meter has not reported in over 48 hours, flag it as potentially offline.
 - Today's date: ${new Date().toISOString().split('T')[0]}`;
 
-  // Build message history — validate roles
+  // Build message history ï¿½ validate roles
   const allowedRoles = new Set(['user', 'assistant']);
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
@@ -299,7 +299,7 @@ Guidelines:
     { role: 'user', content: message.trim() },
   ];
 
-  // Agentic loop — run until the model stops calling tools
+  // Agentic loop ï¿½ run until the model stops calling tools
   const toolsUsed: string[] = [];
   const MAX_ITERATIONS = 8;
 
@@ -315,7 +315,7 @@ Guidelines:
     const assistantMsg = choice.message;
     messages.push(assistantMsg);
 
-    // No tool calls — we're done
+    // No tool calls ï¿½ we're done
     if (!assistantMsg.tool_calls || assistantMsg.tool_calls.length === 0) {
       return c.json({
         success: true,
@@ -347,7 +347,7 @@ Guidelines:
     messages.push(...toolResults);
   }
 
-  // Exhausted iterations — return whatever text we have
+  // Exhausted iterations ï¿½ return whatever text we have
   const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant') as
     | OpenAI.Chat.ChatCompletionAssistantMessageParam
     | undefined;

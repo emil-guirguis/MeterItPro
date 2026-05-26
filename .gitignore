@@ -24,9 +24,8 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
-*.md
 
-.wrangler/ 
+.wrangler/
 .wrangler/tmp/
 .env
 client/api/.dev.vars

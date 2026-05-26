@@ -5,23 +5,42 @@
 
 import { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
-import { query, execQuery, Env } from './db';
+import { execQuery, Env } from './db';
 
 
 // Module-level cache shared within a Worker isolate.
 // Avoids a DB round-trip on every authenticated request when the same user
 // fires multiple parallel API calls (e.g., on page load).
+const USER_CACHE_MAX = 1000;
 const userCache = new Map<string, { user: any; expiresAt: number }>();
+
+function setUserCache(userId: string, user: any, ttlMs: number): void {
+  if (userCache.size >= USER_CACHE_MAX) {
+    // Evict oldest insertion (Map preserves insertion order)
+    const firstKey = userCache.keys().next().value;
+    if (firstKey !== undefined) userCache.delete(firstKey);
+  }
+  userCache.set(userId, { user, expiresAt: Date.now() + ttlMs });
+}
 
 // ===== IN-MEMORY RATE LIMITER =====
 // Keyed by arbitrary string (e.g. "ip:path" or "apikey:xxx").
 // Each Worker isolate maintains its own store; good enough for brute-force protection.
+const RATE_LIMIT_MAX_KEYS = 10_000;
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+function sweepExpiredRateLimits(): void {
+  const now = Date.now();
+  for (const [k, v] of rateLimitStore) {
+    if (v.resetAt < now) rateLimitStore.delete(k);
+  }
+}
 
 function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {
   const now = Date.now();
   const entry = rateLimitStore.get(key);
   if (!entry || entry.resetAt < now) {
+    if (rateLimitStore.size >= RATE_LIMIT_MAX_KEYS) sweepExpiredRateLimits();
     rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
     return true;
   }
@@ -61,16 +80,17 @@ export async function getCachedUser(env: Env, userId: string): Promise<any | nul
   const existing = userFetchPromises.get(userId);
   if (existing) return existing;
 
-  const fetchPromise = query(
+  const fetchPromise = execQuery(
     env,
     `SELECT users_id, name, email, phone, role, active, tenant_id, permissions
      FROM users WHERE users_id = $1`,
-    [userId]
+    [userId],
+    'getCachedUser'
   ).then((result) => {
     userFetchPromises.delete(userId);
     if (result.rows.length === 0) return null;
     const user = result.rows[0];
-    userCache.set(userId, { user, expiresAt: Date.now() + USER_CACHE_TTL_MS });
+    setUserCache(userId, user, USER_CACHE_TTL_MS);
     console.log('[AUTH] User loaded from DB:', userId);
     return user;
   }).catch((err) => {
@@ -86,6 +106,7 @@ export async function getCachedUser(env: Env, userId: string): Promise<any | nul
 export type AuthVariables = {
   user: any;
   tenantId: number;
+  requestId: string;
 };
 
 /**
@@ -98,7 +119,7 @@ export type AuthVariables = {
  * The DB lookup (cached) is deferred to requirePermission(), which is the only
  * place that actually needs role and permissions.
  */
-export async function authenticateToken(c: Context<{ Bindings: Env; Variables: AuthVariables }>, next: Next) {
+export async function authenticateToken(c: Context<{ Bindings: Env; Variables: AuthVariables }>, next: Next): Promise<Response | void> {
   const authHeader = c.req.header('authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
@@ -110,7 +131,7 @@ export async function authenticateToken(c: Context<{ Bindings: Env; Variables: A
   try {
     decoded = await verify(token, c.env.JWT_SECRET, 'HS256');
   } catch (err: any) {
-    if (err.message?.includes('expired') || err.name === 'JwtTokenExpired') {
+    if (err.name === 'JwtTokenExpired') {
       return c.json({ success: false, message: 'Token expired' }, 401);
     }
     return c.json({ success: false, message: 'Invalid token' }, 401);
@@ -196,7 +217,7 @@ export function requirePermission(permission: string) {
 /**
  * API key authentication for sync routes.
  */
-export async function authenticateSyncServer(c: Context<{ Bindings: Env; Variables: AuthVariables }>, next: Next) {
+export async function authenticateSyncServer(c: Context<{ Bindings: Env; Variables: AuthVariables }>, next: Next): Promise<Response | void> {
   const apiKey = c.req.header('x-api-key');
   if (!apiKey) {
     return c.json({ success: false, message: 'API key required' }, 401);

@@ -383,7 +383,7 @@ app.delete('/:id', requirePermission('user:delete'), async (c) => {
       return c.json({ success: false, message: 'User not found' }, 404);
     }
 
-    await remove(c.env, 'users', 'users_id', id);
+    await remove(c.env, 'users', 'users_id', id, tenantId);
     return c.json({ success: true, message: 'User deleted successfully' });
   } catch (error: any) {
     logError('Error deleting user:', error);

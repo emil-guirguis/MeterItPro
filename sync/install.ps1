@@ -12,14 +12,25 @@ $installDir = "C:\MeterItPro\sync"
 $githubRaw  = "https://raw.githubusercontent.com/emil-guirguis/MeterItPro/main/sync"
 
 # ── Configuration ─────────────────────────────────────────────────────────────
+# Required env vars (set in shell or paste inline before running):
+#   $env:POSTGRES_SYNC_PASSWORD = "..."
+#   $env:JWT_SECRET             = "..."
+#   $env:CLIENT_API_KEY         = "..."   # optional
+foreach ($v in @('POSTGRES_SYNC_PASSWORD','JWT_SECRET')) {
+    if (-not (Get-Item -Path "env:$v" -ErrorAction SilentlyContinue)) {
+        Write-Host "Required env var $v is not set. Aborting." -ForegroundColor Red
+        exit 1
+    }
+}
+
 $config = @{
     GITHUB_OWNER            = "emil-guirguis"
     POSTGRES_SYNC_DB        = "postgres"
     POSTGRES_SYNC_USER      = "postgres"
-    POSTGRES_SYNC_PASSWORD  = "ZfyUDh!_x4bSYXm"
-    JWT_SECRET              = "your-super-secret-jwt-key-change-this-in-production"
+    POSTGRES_SYNC_PASSWORD  = $env:POSTGRES_SYNC_PASSWORD
+    JWT_SECRET              = $env:JWT_SECRET
     CLIENT_API_URL          = "https://meteritpro.com/api"
-    CLIENT_API_KEY          = ""
+    CLIENT_API_KEY          = $env:CLIENT_API_KEY
     MCP_HTTP_PORT           = "3003"
     BACNET_DEBUG_POST_READ_CHECK = "false"
 }

@@ -158,7 +158,7 @@ app.delete('/:id', requirePermission('location:delete'), async (c) => {
       }, 400);
     }
 
-    await remove(c.env, 'location', 'location_id', id);
+    await remove(c.env, 'location', 'location_id', id, tenantId);
     return c.json({ success: true, message: 'Location deleted successfully' });
   } catch (error: any) {
     logError('Error deleting location:', error);

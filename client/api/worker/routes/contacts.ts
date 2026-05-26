@@ -197,7 +197,7 @@ app.delete('/:id', requirePermission('contact:delete'), async (c) => {
       return c.json({ success: false, message: 'Contact not found' }, 404);
     }
 
-    await remove(c.env, 'contact', 'contact_id', id);
+    await remove(c.env, 'contact', 'contact_id', id, tenantId);
     return c.json({ success: true, message: 'Contact deleted successfully' });
   } catch (error: any) {
     logError('Error deleting contact', error);

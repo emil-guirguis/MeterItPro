@@ -383,7 +383,7 @@ app.delete('/:id', requirePermission('meter:delete'), async (c) => {
       return c.json({ success: false, message: 'Meter not found' }, 404);
     }
 
-    await remove(c.env, 'meter', 'meter_id', id);
+    await remove(c.env, 'meter', 'meter_id', id, tenantId);
     return c.json({ success: true, message: 'Meter deleted successfully' });
   } catch (error: any) {
     logError('Error deleting meter', error);

@@ -34,7 +34,9 @@
     "test:sync:api": "cd sync/api && npm test",
     "test:sync:mcp": "cd sync/mcp && npm test",
     "test:framework:frontend": "cd framework/frontend && npm run test:run",
-    "test:sync:frontend": "cd sync/frontend && npm run test:run"
+    "test:sync:frontend": "cd sync/frontend && npm run test:run",
+    "lint": "concurrently -n client-fe,sync-fe -c \"cyan,green\" \"cd client/frontend && npm run lint\" \"cd sync/frontend && npm run lint\"",
+    "typecheck": "concurrently -n client-api,client-fe,sync-api,sync-mcp,sync-fe -c \"yellow,cyan,blue,magenta,green\" \"cd client/api && npm run type-check\" \"cd client/frontend && npm run type-check\" \"cd sync/api && npm run type-check\" \"cd sync/mcp && npm run type-check\" \"cd sync/frontend && npm run type-check\""
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

@@ -54,13 +54,41 @@ export async function execQuery(
 ): Promise<{ rows: any[]; rowCount: number | null }> {
   const label = logMessage ? `[execQuery] ${logMessage}` : '[execQuery]';
   console.log(`${label} Executing:\n${formatSqlForDebug(sql, params || [])}`);
+  const start = Date.now();
   try {
     const result = await query(env, sql, params);
-    console.log(`${label} Rows: ${result.rows.length}`);
+    console.log(`${label} Rows: ${result.rows?.length ?? result.rowCount ?? 0} | Time: ${Date.now() - start}ms`);
     return result;
   } catch (error) {
     console.error(`${label} Failed: ${error}`);
     throw error;
+  }
+}
+
+/**
+ * Run multiple queries on a single connection without a transaction.
+ * Use for hot paths that fire many sequential queries in one request to
+ * avoid N startup handshakes. Each call still logs via formatSqlForDebug.
+ */
+export async function withConnection<T>(
+  env: Env,
+  callback: (q: (sql: string, params?: any[], logMessage?: string) => Promise<{ rows: any[]; rowCount: number | null }>) => Promise<T>
+): Promise<T> {
+  const connectionString = env.DATABASE_URL || env.HYPERDRIVE?.connectionString;
+  const client = new Client({ connectionString });
+  await client.connect();
+  try {
+    const q = async (sql: string, params: any[] = [], logMessage?: string) => {
+      const label = logMessage ? `[withConnection] ${logMessage}` : '[withConnection]';
+      console.log(`${label} Executing:\n${formatSqlForDebug(sql, params)}`);
+      const start = Date.now();
+      const result = await client.query(sql, params);
+      console.log(`${label} Rows: ${result.rows?.length ?? result.rowCount ?? 0} | Time: ${Date.now() - start}ms`);
+      return { rows: result.rows, rowCount: result.rowCount };
+    };
+    return await callback(q);
+  } finally {
+    await client.end();
   }
 }
 

@@ -1,10 +1,25 @@
 /**
  * Generic CRUD SQL helpers for Hono worker routes.
  * Replaces BaseModel findAll/findById/create/update/delete with raw SQL.
+ *
+ * Identifier inputs (table, column names, where keys, searchFields, sortBy)
+ * are validated against SAFE_IDENT to prevent SQL injection. Free-form SQL
+ * fragments (joins, selectFields, explicit orderBy) remain caller-trusted —
+ * never derive these from request input.
  */
 
-import { transaction, Env, execQuery } from './db';
+import { Env, execQuery } from './db';
 
+const SAFE_IDENT = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+function assertIdent(name: string, kind: string): void {
+  if (typeof name !== 'string' || !SAFE_IDENT.test(name)) {
+    throw new Error(`Invalid ${kind}: ${name}`);
+  }
+}
+
+// Columns never writable via update()
+const UPDATE_DENYLIST = new Set(['tenant_id', 'created_at', 'updated_at']);
 
 export interface FindAllOptions {
   table: string;
@@ -50,14 +65,20 @@ export async function findAll(env: Env, opts: FindAllOptions): Promise<FindAllRe
     sortBy,
     sortOrder,
     joins = '',
-    selectFields = `${table}.*`,
+    selectFields = `${opts.table}.*`,
   } = opts;
+
+  assertIdent(table, 'table');
+  assertIdent(primaryKey, 'primaryKey');
+  for (const f of searchFields) assertIdent(f, 'searchField');
+  for (const k of Object.keys(where)) assertIdent(k, 'whereKey');
 
   // Build orderBy: explicit orderBy > sortBy param > primary key fallback
   let orderBy = opts.orderBy;
   if (!orderBy) {
     if (sortBy) {
       const col = camelToSnake(sortBy);
+      assertIdent(col, 'sortBy');
       const dir = (sortOrder || 'desc').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
       orderBy = `${table}.${col} ${dir}`;
     } else {
@@ -128,6 +149,8 @@ export async function findAll(env: Env, opts: FindAllOptions): Promise<FindAllRe
 }
 
 export async function findById(env: Env, table: string, primaryKey: string, id: any, tenantId?: number, selectFields?: string) {
+  assertIdent(table, 'table');
+  assertIdent(primaryKey, 'primaryKey');
   const cols = selectFields || `${table}.*`;
   let sql = `SELECT ${cols} FROM ${table} WHERE ${primaryKey} = $1`;
   const params: any[] = [id];
@@ -142,7 +165,9 @@ export async function findById(env: Env, table: string, primaryKey: string, id: 
 }
 
 export async function create(env: Env, table: string, data: Record<string, any>) {
+  assertIdent(table, 'table');
   const keys = Object.keys(data).filter((k) => data[k] !== undefined);
+  for (const k of keys) assertIdent(k, 'column');
   const values = keys.map((k) => data[k]);
   const placeholders = keys.map((_, i) => `$${i + 1}`);
 
@@ -152,8 +177,13 @@ export async function create(env: Env, table: string, data: Record<string, any>)
 }
 
 export async function update(env: Env, table: string, primaryKey: string, id: any, data: Record<string, any>) {
-  const keys = Object.keys(data).filter((k) => data[k] !== undefined && k !== primaryKey && k !== 'updated_at' && k !== 'created_at');
+  assertIdent(table, 'table');
+  assertIdent(primaryKey, 'primaryKey');
+  const keys = Object.keys(data).filter(
+    (k) => data[k] !== undefined && k !== primaryKey && !UPDATE_DENYLIST.has(k)
+  );
   if (keys.length === 0) return null;
+  for (const k of keys) assertIdent(k, 'column');
 
   const setClauses = keys.map((k, i) => `${k} = $${i + 1}`);
   const values = keys.map((k) => data[k]);
@@ -164,8 +194,16 @@ export async function update(env: Env, table: string, primaryKey: string, id: an
   return result.rows.length > 0 ? result.rows[0] : null;
 }
 
-export async function remove(env: Env, table: string, primaryKey: string, id: any) {
-  const sql = `DELETE FROM ${table} WHERE ${primaryKey} = $1 RETURNING *`;
-  const result = await execQuery(env, sql, [id]);
+export async function remove(env: Env, table: string, primaryKey: string, id: any, tenantId?: number) {
+  assertIdent(table, 'table');
+  assertIdent(primaryKey, 'primaryKey');
+  let sql = `DELETE FROM ${table} WHERE ${primaryKey} = $1`;
+  const params: any[] = [id];
+  if (tenantId !== undefined) {
+    sql += ' AND tenant_id = $2';
+    params.push(tenantId);
+  }
+  sql += ' RETURNING *';
+  const result = await execQuery(env, sql, params);
   return result.rows.length > 0 ? result.rows[0] : null;
 }

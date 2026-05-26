@@ -50,23 +50,32 @@ async function getRuleMeterElements(env: Env, rule: NotificationRule): Promise<M
   let pairs: Array<{ meter_id: string; meter_element_id: string }> = [];
 
   if (selections && selections.length > 0) {
+    const explicitPairs: Array<{ meter_id: string; meter_element_id: string }> = [];
+    const meterIdsNeedingFetch: string[] = [];
+
     for (const sel of selections) {
       if (!sel.meter_id) continue;
       const meterId = String(sel.meter_id);
-
       if (sel.meter_element_ids && sel.meter_element_ids.length > 0) {
         for (const elId of sel.meter_element_ids) {
-          pairs.push({ meter_id: meterId, meter_element_id: String(elId) });
+          explicitPairs.push({ meter_id: meterId, meter_element_id: String(elId) });
         }
       } else {
-        const elements = await execQuery(
-          env,
-          `SELECT meter_element_id FROM meter_element WHERE meter_id = $1`,
-          [meterId]
-        );
-        for (const el of elements.rows) {
-          pairs.push({ meter_id: meterId, meter_element_id: el.meter_element_id });
-        }
+        meterIdsNeedingFetch.push(meterId);
+      }
+    }
+
+    pairs = explicitPairs;
+
+    if (meterIdsNeedingFetch.length > 0) {
+      const placeholders = meterIdsNeedingFetch.map((_, i) => `$${i + 1}`).join(', ');
+      const fetched = await execQuery(
+        env,
+        `SELECT meter_id, meter_element_id FROM meter_element WHERE meter_id IN (${placeholders})`,
+        meterIdsNeedingFetch
+      );
+      for (const row of fetched.rows) {
+        pairs.push({ meter_id: String(row.meter_id), meter_element_id: String(row.meter_element_id) });
       }
     }
   } else {
@@ -126,10 +135,15 @@ async function upsertNotification(
   env: Env, tenantId: string, meterId: string, meterElementId: string,
   notificationType: string, severity: string, title: string, description: string
 ): Promise<void> {
-  await clearNotification(env, tenantId, meterId, meterElementId, notificationType);
   await execQuery(env,
     `INSERT INTO notification (tenant_id, meter_id, meter_element_id, notification_type, severity, title, description)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     ON CONFLICT ON CONSTRAINT notification_unique_target
+     DO UPDATE SET
+       severity    = EXCLUDED.severity,
+       title       = EXCLUDED.title,
+       description = EXCLUDED.description,
+       created_at  = CURRENT_TIMESTAMP`,
     [tenantId, meterId, meterElementId, notificationType, severity, title, description]
   );
 }
@@ -144,7 +158,7 @@ async function sendEmail(env: Env, recipients: string[], subject: string, html: 
   }
   const from = (env as any).RESEND_FROM || 'MeterItPro <noreply@meteritpro.com>';
 
-  for (const to of recipients) {
+  await Promise.all(recipients.map(async (to) => {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -154,7 +168,7 @@ async function sendEmail(env: Env, recipients: string[], subject: string, html: 
       const err = await res.text();
       console.error(`[notificationRunner] Resend error for ${to} (${res.status}): ${err}`);
     }
-  }
+  }));
 }
 
 function buildEmailHtml(opts: {
@@ -186,9 +200,12 @@ function buildEmailHtml(opts: {
 
 async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<void> {
   const thresholdHours = rule.threshold_hours ?? 24;
-  const pairs = await getRuleMeterElements(env, rule);
+  const [pairs, recipients] = await Promise.all([
+    getRuleMeterElements(env, rule),
+    getEmailRecipients(env, rule.notification_rule_id),
+  ]);
 
-  for (const pair of pairs) {
+  await Promise.all(pairs.map(async (pair) => {
     // Pre-check: find the most recent reading regardless of window.
     // If no reading exists or the last reading is older than the threshold,
     // fire immediately — the gap query below returns empty rows when there
@@ -215,7 +232,6 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
       await upsertNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id,
         'meter_no_reading', 'error', title, description);
 
-      const recipients = await getEmailRecipients(env, rule.notification_rule_id);
       if (recipients.length > 0) {
         await sendEmail(env, recipients,
           `Alert: ${pair.display_name} — No readings for ${hoursSince ?? '?'}h`,
@@ -232,7 +248,7 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
           })
         );
       }
-      continue;
+      return;
     }
 
     // Recent readings exist — check for gaps within the threshold window.
@@ -275,7 +291,7 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
 
     if (result.rows.length === 0) {
       await clearNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id, 'meter_no_reading');
-      continue;
+      return;
     }
 
     const worst = result.rows[0];
@@ -292,7 +308,6 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
     await upsertNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id,
       'meter_no_reading', 'error', title, description);
 
-    const recipients = await getEmailRecipients(env, rule.notification_rule_id);
     if (recipients.length > 0) {
       await sendEmail(env, recipients,
         `Alert: ${pair.display_name} � ${gapHours}h gap in readings`,
@@ -307,16 +322,19 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
         })
       );
     }
-  }
+  }));
 }
 
 // --- Rule type: meter_zero_reading --------------------------------------------
 
 async function checkMeterZeroReading(env: Env, rule: NotificationRule): Promise<void> {
   const thresholdHours = rule.threshold_hours ?? 24;
-  const pairs = await getRuleMeterElements(env, rule);
+  const [pairs, recipients] = await Promise.all([
+    getRuleMeterElements(env, rule),
+    getEmailRecipients(env, rule.notification_rule_id),
+  ]);
 
-  for (const pair of pairs) {
+  await Promise.all(pairs.map(async (pair) => {
     const result = await execQuery(env,
       `SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE kwh=0 AND kw=0) AS zero_count
        FROM meter_reading
@@ -331,7 +349,7 @@ async function checkMeterZeroReading(env: Env, rule: NotificationRule): Promise<
 
     if (!allZero) {
       await clearNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id, 'meter_zero_reading');
-      continue;
+      return;
     }
 
     const title = `${pair.display_name} � ${total} reading${total !== 1 ? 's' : ''} all zero`;
@@ -340,7 +358,6 @@ async function checkMeterZeroReading(env: Env, rule: NotificationRule): Promise<
     await upsertNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id,
       'meter_zero_reading', 'warning', title, description);
 
-    const recipients = await getEmailRecipients(env, rule.notification_rule_id);
     if (recipients.length > 0) {
       await sendEmail(env, recipients,
         `Alert: ${pair.display_name} � All ${total} readings are zero`,
@@ -356,7 +373,7 @@ async function checkMeterZeroReading(env: Env, rule: NotificationRule): Promise<
         })
       );
     }
-  }
+  }));
 }
 
 // --- Rule type: demand_threshold ---------------------------------------------
@@ -364,9 +381,12 @@ async function checkMeterZeroReading(env: Env, rule: NotificationRule): Promise<
 async function checkDemandThreshold(env: Env, rule: NotificationRule): Promise<void> {
   if (!rule.demand_threshold) return;
   const thresholdHours = rule.threshold_hours ?? 1;
-  const pairs = await getRuleMeterElements(env, rule);
+  const [pairs, recipients] = await Promise.all([
+    getRuleMeterElements(env, rule),
+    getEmailRecipients(env, rule.notification_rule_id),
+  ]);
 
-  for (const pair of pairs) {
+  await Promise.all(pairs.map(async (pair) => {
     const result = await execQuery(env,
       `SELECT kw, created_at FROM meter_reading
        WHERE meter_id=$1 AND meter_element_id=$2
@@ -378,7 +398,7 @@ async function checkDemandThreshold(env: Env, rule: NotificationRule): Promise<v
 
     if (result.rows.length === 0) {
       await clearNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id, 'demand_threshold');
-      continue;
+      return;
     }
 
     const peakKw = Number(result.rows[0].kw);
@@ -392,7 +412,6 @@ async function checkDemandThreshold(env: Env, rule: NotificationRule): Promise<v
     await upsertNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id,
       'demand_threshold', 'error', title, description);
 
-    const recipients = await getEmailRecipients(env, rule.notification_rule_id);
     if (recipients.length > 0) {
       await sendEmail(env, recipients,
         `Alert: ${pair.display_name} � Peak demand ${peakKw.toFixed(1)} kW exceeds ${threshold} kW`,
@@ -408,7 +427,7 @@ async function checkDemandThreshold(env: Env, rule: NotificationRule): Promise<v
         })
       );
     }
-  }
+  }));
 }
 
 // --- Public API ---------------------------------------------------------------
@@ -431,19 +450,20 @@ export async function runAllActiveNotificationRules(env: Env, now: Date = new Da
      FROM notification_rule WHERE active = true`
   );
 
-  for (const rule of result.rows) {
-    if (!matchesCronSchedule(rule.schedule_cron, now)) {
-      console.log(`[cron] Notification rule ${rule.notification_rule_id} skipped � schedule "${rule.schedule_cron}" does not match ${now.toISOString()}`);
-      continue;
-    }
+  const due = result.rows.filter((rule) => {
+    if (matchesCronSchedule(rule.schedule_cron, now)) return true;
+    console.log(`[cron] Notification rule ${rule.notification_rule_id} skipped � schedule "${rule.schedule_cron}" does not match ${now.toISOString()}`);
+    return false;
+  });
 
+  await Promise.all(due.map(async (rule) => {
     try {
       await executeRule(env, rule);
       console.log(`[cron] Notification rule ${rule.notification_rule_id} (${rule.name}) executed`);
     } catch (err) {
       console.error(`[cron] Notification rule ${rule.notification_rule_id} failed:`, err instanceof Error ? err.message : err);
     }
-  }
+  }));
 }
 
 async function executeRule(env: Env, rule: NotificationRule): Promise<void> {

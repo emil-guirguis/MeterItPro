@@ -24,7 +24,7 @@ export async function execQuery(
   try {
     logger.info(`${label} Executing:\n${formatSqlForDebug(query, params || [])}`);
     const result = await pool.query(query, params);
-    logger.info(`${label} Rows: ${result.rows.length}`);
+    logger.info(`${label} Rows: ${result.rows?.length ?? result.rowCount ?? 0}`);
     return result;
   } catch (error) {
     logger.error(`${label} Failed: ${error}`);
