@@ -174,22 +174,9 @@ export async function fetchSchema(
     // Get authentication token from localStorage or sessionStorage
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
 
-    console.log('[SchemaLoader] Fetching schema for:', entityName);
-    console.log('[SchemaLoader] Token available:', !!token);
-    console.log('[SchemaLoader] Token value:', token ? `${token.substring(0, 20)}...` : 'null');
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    
-    // Add authorization header if token exists
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    console.log('[SchemaLoader] Request URL:', `${baseUrl}/schema/${entityName}`);
-    console.log('[SchemaLoader] Request headers:', headers);
-    
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     const response = await fetch(`${baseUrl}/schema/${entityName}`, {
       headers,
     });
@@ -210,25 +197,10 @@ export async function fetchSchema(
 
     const schema = result.data as BackendSchema;
 
-    // Log formTabs to verify they're being sent
-    if (schema.formTabs) {
-      console.log(`[SchemaLoader] ✅ formTabs found in schema:`, schema.formTabs.length, 'tabs');
-      schema.formTabs.forEach((tab, idx) => {
-        console.log(`  Tab ${idx}: ${tab.name}, sections:`, tab.sections?.length || 0);
-        tab.sections?.forEach((sec, sidx) => {
-          console.log(`    Section ${sidx}: ${sec.name}, flex: ${sec.flex}, flexGrow: ${sec.flexGrow}, flexShrink: ${sec.flexShrink}`);
-        });
-      });
-    } else {
-      console.log(`[SchemaLoader] ⚠️ NO formTabs in schema`);
-    }
-
-    // Cache the schema in memory and localStorage
     if (cache) {
       const entry: CacheEntry = { schema, timestamp: Date.now() };
       schemaCache.set(entityName, entry);
       persistToStorage(entityName, entry);
-      console.log(`[SchemaLoader] ✅ Fetched and cached: ${entityName}`);
     }
 
     return schema;
@@ -497,18 +469,10 @@ export async function getAvailableSchemas(baseUrl?: string): Promise<Array<{
   const apiBaseUrl = baseUrl || defaultBaseUrl;
   
   try {
-    // Get authentication token from localStorage or sessionStorage
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    
-    // Add authorization header if token exists
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     const response = await fetch(`${apiBaseUrl}/schema`, {
       headers,
     });
@@ -568,42 +532,24 @@ export function useSchema(entityName: string, options?: { bypassCache?: boolean 
 
     async function load() {
       try {
-        const startTime = Date.now();
-
-        // Fast path: cache hit (and not bypassing cache)
         if (!options?.bypassCache) {
           const cached = getFromCache(entityName);
           if (cached) {
-            const age = Date.now() - (schemaCache.get(entityName)?.timestamp ?? 0);
-            console.log(`[useSchema] ✅ Cache HIT for ${entityName} (age: ${age}ms)`);
-            if (mounted) {
-              setSchema(cached);
-              setError(null);
-              setLoading(false);
-            }
+            if (mounted) { setSchema(cached); setError(null); setLoading(false); }
             return;
           }
         }
 
-        console.log(`[useSchema] 🔄 Cache MISS for ${entityName}, fetching from API...`);
         setLoading(true);
         const loadedSchema = await loadSchema(entityName);
-        const duration = Date.now() - startTime;
-        console.log(`[useSchema] ✅ Loaded ${entityName} from API in ${duration}ms`);
-
-        if (mounted) {
-          setSchema(loadedSchema);
-          setError(null);
-        }
+        if (mounted) { setSchema(loadedSchema); setError(null); }
       } catch (err) {
         if (mounted) {
           setError(err as Error);
-          console.error(`[useSchema] ❌ Error loading ${entityName}:`, err);
+          console.error(`[useSchema] Error loading ${entityName}:`, err);
         }
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     }
 

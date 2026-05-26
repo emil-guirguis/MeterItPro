@@ -44,7 +44,7 @@ export const meterSchema = defineSchema({
               dbField: 'serial_number',
               maxLength: 200,
               placeholder: 'Enter serial number',
-              filertable: ['true'],
+              filertable: ['main'],
               showOn: ['list', 'form'],
               visibleFor: ['physical'],
             }),
@@ -102,6 +102,7 @@ export const meterSchema = defineSchema({
           name: 'Network',
           order: 2,
           visibleFor: ['physical'],
+          horizontal: true,
           fields: [
             field({
               name: 'ip',
@@ -170,6 +171,8 @@ export const meterSchema = defineSchema({
                 virtual: 'Virtual',
               },
               showOn: ['form', 'list'],
+              toApi: (v: any) => v === 'virtual' || v === true,
+              fromApi: (v: any) => (v ? 'virtual' : 'physical'),
             }),
           ],
         }),

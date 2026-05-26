@@ -130,7 +130,13 @@
       "Bash(git *)",
       "PowerShell(Get-ChildItem \"C:\\\\Projects\\\\MeterItPro\\\\client\\\\api\\\\migrations\" | Where-Object { $_.Extension -ne \".sql\" } | Select-Object Name)",
       "PowerShell(Get-Content *)",
-      "PowerShell(git *)"
+      "PowerShell(git *)",
+      "PowerShell(Get-ChildItem -Directory | Select-Object Name; \"---\"; git diff HEAD.)",
+      "PowerShell(Get-ChildItem -Directory -Force | Where-Object { $_.Name -notmatch '^\\\\.|node_modules' } | Select-Object Name)",
+      "PowerShell(Get-ChildItem client\\\\api\\\\worker -File | Select-Object Name,Length | Format-Table -AutoSize; \"---\"; Get-ChildItem client\\\\api -Directory | Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Projects\\\\MeterItPro\\\\client\\\\api\" -Recurse -File)",
+      "Bash(Head -100)",
+      "PowerShell(Get-Process *)"
     ],
     "additionalDirectories": [
       "C:\\Program Files\\PostgreSQL\\18\\data"

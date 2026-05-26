@@ -474,80 +474,17 @@ function defineSchema(definition) {
    * Auto-populates all fields defined in schema
    */
   function initializeFromData(instance, data) {
-    console.log('\n' + '█'.repeat(120));
-    console.log('█ [SCHEMA] initializeFromData - START');
-    console.log('█'.repeat(120));
-    console.log('Instance class:', instance.constructor.name);
-    console.log('Data keys:', Object.keys(data));
-    console.log('Data:', JSON.stringify(data, null, 2));
-    
-    console.log('\nForm fields to initialize:');
-    Object.entries(schema.formFields).forEach(([fieldName, fieldDef]) => {
-      console.log(`  - ${fieldName} (dbField: ${fieldDef.dbField})`);
-    });
-    
-    console.log('\nEntity fields to initialize:');
-    Object.entries(schema.entityFields).forEach(([fieldName, fieldDef]) => {
-      console.log(`  - ${fieldName} (dbField: ${fieldDef.dbField})`);
-    });
-    
-    // Initialize form fields
-    console.log('\n--- Initializing FORM FIELDS ---');
-    Object.entries(schema.formFields).forEach(([fieldName, fieldDef]) => {
-      // CRITICAL: Skip fields with dbField: null (custom-rendered fields like "elements")
-      if (fieldDef.dbField === null) {
-        console.log(`\nForm field: ${fieldName} (dbField: null) - SKIPPED (custom field)`);
-        return;
-      }
-      
-      const dbField = fieldDef.dbField || fieldName;
-      console.log(`\nForm field: ${fieldName} (dbField: ${dbField})`);
-      console.log(`  data[dbField] = data["${dbField}"] =`, data[dbField]);
-      console.log(`  data[fieldName] = data["${fieldName}"] =`, data[fieldName]);
-      console.log(`  fieldDef.default =`, fieldDef.default);
-      
-      // Use data value if provided, otherwise use default from field definition
-      if (data[dbField] !== undefined) {
-        instance[fieldName] = data[dbField];
-        console.log(`  ✓ Set instance.${fieldName} = ${data[dbField]} (from dbField)`);
-      } else if (data[fieldName] !== undefined) {
-        instance[fieldName] = data[fieldName];
-        console.log(`  ✓ Set instance.${fieldName} = ${data[fieldName]} (from fieldName)`);
-      } else if (fieldDef.default !== undefined) {
-        instance[fieldName] = fieldDef.default;
-        console.log(`  ✓ Set instance.${fieldName} = ${fieldDef.default} (from default)`);
-      } else {
-        console.log(`  - No value set for ${fieldName}`);
-      }
-    });
+    const allFields = { ...schema.formFields, ...schema.entityFields };
 
-    // Initialize entity fields
-    console.log('\n--- Initializing ENTITY FIELDS ---');
-    Object.entries(schema.entityFields).forEach(([fieldName, fieldDef]) => {
-      // CRITICAL: Skip fields with dbField: null (custom-rendered fields like "elements")
-      if (fieldDef.dbField === null) {
-        console.log(`\nEntity field: ${fieldName} (dbField: null) - SKIPPED (custom field)`);
-        return;
-      }
-      
+    Object.entries(allFields).forEach(([fieldName, fieldDef]) => {
+      if (fieldDef.dbField === null) return;
       const dbField = fieldDef.dbField || fieldName;
-      console.log(`\nEntity field: ${fieldName} (dbField: ${dbField})`);
-      console.log(`  data[dbField] = data["${dbField}"] =`, data[dbField]);
-      console.log(`  data[fieldName] = data["${fieldName}"] =`, data[fieldName]);
-      console.log(`  fieldDef.default =`, fieldDef.default);
-      
-      // Use data value if provided, otherwise use default from field definition
       if (data[dbField] !== undefined) {
         instance[fieldName] = data[dbField];
-        console.log(`  ✓ Set instance.${fieldName} = ${data[dbField]} (from dbField)`);
       } else if (data[fieldName] !== undefined) {
         instance[fieldName] = data[fieldName];
-        console.log(`  ✓ Set instance.${fieldName} = ${data[fieldName]} (from fieldName)`);
       } else if (fieldDef.default !== undefined) {
         instance[fieldName] = fieldDef.default;
-        console.log(`  ✓ Set instance.${fieldName} = ${fieldDef.default} (from default)`);
-      } else {
-        console.log(`  - No value set for ${fieldName}`);
       }
     });
 

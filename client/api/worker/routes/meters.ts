@@ -8,6 +8,18 @@ import { transaction, Env, execQuery } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { logError } from '../errorHandler';
+import { meterSchema } from './meterSchema';
+
+// Derive search fields from schema (fields with filertable: ['main'])
+const meterSearchFields = Object.entries(meterSchema.formFields)
+  .filter(([, def]) => (def as any).filertable?.includes('main'))
+  .map(([name]) => name);
+
+// Schema-driven is_virtual transform: 'virtual'|'physical'|boolean → DB boolean
+const toDbVirtual = (v: any): boolean =>
+  (meterSchema.formFields as any).is_virtual?.toApi
+    ? (meterSchema.formFields as any).is_virtual.toApi(v)
+    : v === 'virtual' || v === true;
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -258,7 +270,7 @@ app.get('/', requirePermission('meter:read'), async (c) => {
       page: parseInt(qs.page || '1', 10),
       limit: parseInt(qs.limit || '25', 10),
       search: qs.search || undefined,
-      searchFields: ['name', 'serial_number'],
+      searchFields: meterSearchFields,
       sortBy: qs.sortBy,
       sortOrder: qs.sortOrder,
       joins: 'LEFT JOIN device d ON meter.device_id = d.device_id',
@@ -301,9 +313,8 @@ app.post('/', requirePermission('meter:create'), async (c) => {
     // Remove fields that don't exist in the database
     delete meterData.elements;
 
-    // Convert is_virtual select value ("virtual"/"physical") to boolean for DB
     if (meterData.is_virtual !== undefined) {
-      meterData.is_virtual = meterData.is_virtual === 'virtual' || meterData.is_virtual === true;
+      meterData.is_virtual = toDbVirtual(meterData.is_virtual);
     }
 
     const meter = await create(c.env, 'meter', meterData);
@@ -359,9 +370,8 @@ app.put('/:id', requirePermission('meter:update'), async (c) => {
     delete updateData.tenantId;
     delete updateData.elements;
 
-    // Convert is_virtual select value ("virtual"/"physical") to boolean for DB
     if (updateData.is_virtual !== undefined) {
-      updateData.is_virtual = updateData.is_virtual === 'virtual' || updateData.is_virtual === true;
+      updateData.is_virtual = toDbVirtual(updateData.is_virtual);
     }
 
     const updated = await update(c.env, 'meter', 'meter_id', id, updateData);

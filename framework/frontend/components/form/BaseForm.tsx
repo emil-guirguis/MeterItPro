@@ -1,16 +1,53 @@
 import React, { useState } from 'react';
 // Sidebar intentionally removed from framework-level forms
 import type { SidebarSectionProps } from '../sidebar/Sidebar';
-import { useSchema, clearSchemaCache } from './utils/schemaLoader';
-import type { BackendFieldDefinition } from './utils/schemaLoader';
-import { createFormSchema } from './utils/formSchema';
-import { useEntityFormWithStore } from './hooks/useEntityFormWithStore';
+import { useSchema } from './utils/schemaLoader';
+import { useSchemaForm } from './hooks/useSchemaForm';
 import { useFormTabs } from './hooks/useFormTabs';
 import { FormTabs } from './FormTabs';
 import { ValidationFieldSelect } from '../validationfieldselect/ValidationFieldSelect';
 import { FormField } from '../formfield/FormField';
 import { TIMEZONE_OPTIONS } from '../formfield/fieldOptions';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import RouterOutlinedIcon from '@mui/icons-material/RouterOutlined';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
+import NoteOutlinedIcon from '@mui/icons-material/NoteOutlined';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import DeveloperBoardOutlinedIcon from '@mui/icons-material/DeveloperBoardOutlined';
+import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined';
+import MailOutlinedIcon from '@mui/icons-material/MailOutlined';
+import SecurityOutlinedIcon from '@mui/icons-material/SecurityOutlined';
+import DeviceHubOutlinedIcon from '@mui/icons-material/DeviceHubOutlined';
+import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
+import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
 import './BaseForm.css';
+
+// Maps section name keywords → icon component
+const SECTION_ICONS: Array<[RegExp, React.ElementType]> = [
+  [/network|connect|ip|port/i,      RouterOutlinedIcon],
+  [/status|active/i,                CheckCircleOutlineIcon],
+  [/audit|history|log/i,            HistoryOutlinedIcon],
+  [/note|comment|remark|memo/i,     NoteOutlinedIcon],
+  [/address|location|place/i,       LocationOnOutlinedIcon],
+  [/register/i,                     DeveloperBoardOutlinedIcon],
+  [/schedule/i,                     ScheduleOutlinedIcon],
+  [/email|mail/i,                   MailOutlinedIcon],
+  [/security|auth|permission/i,     SecurityOutlinedIcon],
+  [/element|device\s*hub|combined/i,DeviceHubOutlinedIcon],
+  [/user|people|contact|member/i,   PeopleOutlinedIcon],
+  [/cost|price|billing|financial/i, AttachMoneyOutlinedIcon],
+  [/info|general|basic|detail/i,    InfoOutlinedIcon],
+];
+
+function getSectionIcon(sectionName: string): React.ReactElement | null {
+  for (const [pattern, Icon] of SECTION_ICONS) {
+    if (pattern.test(sectionName)) {
+      return <Icon sx={{ fontSize: 18, color: 'var(--color-primary, #1976d2)', opacity: 0.8 }} />;
+    }
+  }
+  return null;
+}
 
 export interface BaseFormProps {
   children?: React.ReactNode;
@@ -125,36 +162,29 @@ export const BaseForm: React.FC<BaseFormProps> = ({
   tabHeaderActions,
 }) => {
   const formClassName = className ? `base-form ${className}` : 'base-form';
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<string>('');
-  const prevSchemaRef = React.useRef<any>(null);
-
-  // Clear schema cache when form mounts to ensure fresh schema
-  React.useEffect(() => {
-    if (schemaName) {
-      console.log('[BaseForm] Clearing schema cache for:', schemaName);
-      clearSchemaCache(schemaName);
-    }
-  }, [schemaName]);
 
   // Dynamic schema form logic
   const isDynamicForm = !!schemaName;
   const { schema, loading: schemaLoading, error: schemaError } = useSchema(isDynamicForm ? schemaName! : '');
 
+  const { form, errors, setErrors, validateForm } = useSchemaForm({
+    schema,
+    entity,
+    store,
+    excludeFields,
+    fieldsToClean,
+    onLegacySubmit,
+    onCancel,
+  });
+
   // Determine the active tab - use state if set, otherwise use first tab from schema
   const effectiveActiveTab = React.useMemo(() => {
-    // If activeTab state is set, use it
     if (activeTab) return activeTab;
-    
-    // Otherwise, use first tab from schema
     if (schema?.formTabs && schema.formTabs.length > 0) {
       const sortedTabs = [...schema.formTabs].sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
-      const firstTabName = sortedTabs[0].name;
-      console.log('[BaseForm] Setting effectiveActiveTab to first tab:', firstTabName);
-      return firstTabName;
+      return sortedTabs[0].name;
     }
-    
-    console.log('[BaseForm] No tabs available');
     return '';
   }, [schema?.formTabs, activeTab]);
 
@@ -165,514 +195,36 @@ export const BaseForm: React.FC<BaseFormProps> = ({
     variant
   );
 
-  console.log('[BaseForm] useFormTabs result:', {
-    inputFormTabs: schema?.formTabs,
-    inputActiveTab: effectiveActiveTab,
-    outputTabs: allTabs,
-    outputTabList: tabList,
-    outputFieldSections: formTabsFieldSections,
-  });
-
-  // Debug logging
-  React.useEffect(() => {
-    if (schema) {
-      console.log('[BaseForm] Schema loaded:', {
-        entityName: schema.entityName,
-        hasFormTabs: !!schema.formTabs,
-        formTabsLength: schema.formTabs?.length,
-      });
-    }
-  }, [schema]);
-
-  React.useEffect(() => {
-    console.log('[BaseForm] Tab state:', {
-      tabList,
-      effectiveActiveTab,
-      activeTab,
-      allTabsKeys: Object.keys(allTabs),
-      formTabsFieldSectionsKeys: Object.keys(formTabsFieldSections),
-      formTabsFieldSections,
-      allTabs,
-      hasFormTabs: !!schema?.formTabs,
-      formTabsLength: schema?.formTabs?.length,
-    });
-  }, [tabList, effectiveActiveTab, activeTab, allTabs, formTabsFieldSections]);
-
-  // Debug: Log what sections will be rendered
-  React.useEffect(() => {
-    const sectionsToRender = fieldSections || formTabsFieldSections || {};
-    console.log('[BaseForm] Sections to render:', {
-      hasFieldSectionsProp: !!fieldSections,
-      fieldSectionsProp: fieldSections,
-      formTabsFieldSections,
-      sectionsToRender,
-      sectionCount: Object.keys(sectionsToRender).length,
-      formFieldsCount: Object.keys(schema?.formFields || {}).length,
-    });
-  }, [fieldSections, formTabsFieldSections, schema?.formFields]);
-
   // Call onTabChange when effectiveActiveTab changes (including initial load)
   React.useEffect(() => {
     if (effectiveActiveTab && onTabChange) {
-      console.log('[BaseForm] Calling onTabChange for effectiveActiveTab:', effectiveActiveTab);
       onTabChange(effectiveActiveTab);
     }
   }, [effectiveActiveTab, onTabChange]);
 
-  // Normalize entity and store so framework hooks work with backend schemas that use non-standard id fields
-  const normalizedEntity = React.useMemo(() => {
-    if (!entity || !schema) return entity;
-    const idField = (schema as any).idFieldName;
-    if (idField && (entity as any)[idField] !== undefined && (entity as any).id === undefined) {
-      return { ...entity, id: (entity as any)[idField] };
-    }
-    return entity;
-  }, [entity, schema]);
-
-  const normalizedStore = React.useMemo(() => {
-    if (!store || !schema) return store;
-    const idField = (schema as any).idFieldName;
-    // If store already provides createItem/updateItem, prefer those; otherwise wrap existing methods
-    const proxy: any = { ...store };
-
-    // Wrap create to normalize id field on returned entity
-    if (!proxy.createItem) {
-      const createFn = proxy.createReport || proxy.create || proxy.createItem;
-      if (createFn) {
-        proxy.createItem = async (data: any) => {
-          const saved = await createFn(data);
-          if (saved && idField && saved[idField] !== undefined && saved.id === undefined) {
-            (saved as any).id = saved[idField];
-          }
-          return saved;
-        };
-      }
-    }
-
-    // Wrap update to normalize id field on returned entity
-    if (!proxy.updateItem) {
-      const updateFn = proxy.updateReport || proxy.update || proxy.updateItem;
-      if (updateFn) {
-        proxy.updateItem = async (id: string, data: any) => {
-          const saved = await updateFn(id, data);
-          if (saved && idField && saved[idField] !== undefined && saved.id === undefined) {
-            (saved as any).id = saved[idField];
-          }
-          return saved;
-        };
-      }
-    }
-
-    // Note: do NOT fall back to proxy.updateItem for updateItemInList.
-    // updateItem(id, data) takes two args; updateItemInList(entity) takes one.
-    // Using updateItem as fallback would trigger a spurious API PUT with the entity object as the id.
-
-    return proxy;
-  }, [store, schema]);
-
-  const form = isDynamicForm
-    ? useEntityFormWithStore<any, any>({
-        entity: schema ? normalizedEntity : undefined,
-        store: normalizedStore,
-        createMethodName: 'createItem',
-        updateMethodName: 'updateItem',
-        entityToFormData: (entityData) => {
-          if (!schema) return {};
-          
-          // Build form schema from formTabs fields (primary source)
-          const allFormFields: any = {};
-          
-          // First, add fields from formTabs
-          if (schema.formTabs) {
-            schema.formTabs.forEach((tab: any) => {
-              if (tab.sections) {
-                tab.sections.forEach((section: any) => {
-                  if (section.fields) {
-                    section.fields.forEach((field: any) => {
-                      allFormFields[field.name] = (schema as any).formFields?.[field.name] ?? field;
-                    });
-                  }
-                });
-              }
-            });
-          }
-          
-          // Then, add fields from formFields (for backward compatibility)
-          Object.entries(schema.formFields || {}).forEach(([fieldName, fieldDef]: [string, any]) => {
-            if (!allFormFields[fieldName]) {
-              allFormFields[fieldName] = fieldDef;
-            }
-          });
-          
-          // CRITICAL: Filter out fields with dbField: null (custom-rendered fields like "elements")
-          const fieldsForForm: any = {};
-          Object.entries(allFormFields).forEach(([fieldName, fieldDef]: [string, any]) => {
-            if (fieldDef.dbField !== null) {
-              fieldsForForm[fieldName] = fieldDef;
-            }
-          });
-          
-          const formSchema = createFormSchema(fieldsForForm);
-          const formData = formSchema.fromApi(entityData);
-
-          // Apply schema defaults for null/empty-string values so selects
-          // always show a valid option even if the DB column was never written to.
-          Object.entries(fieldsForForm).forEach(([fieldName, fieldDef]: [string, any]) => {
-            const v = formData[fieldName];
-            const def = fieldDef.default;
-            if ((v === null || v === undefined || v === '') && def !== undefined && def !== null && def !== '') {
-              formData[fieldName] = def;
-            }
-          });
-
-          // Also include entityFields data
-          Object.entries(schema.entityFields || {}).forEach(([fieldName, fieldDef]) => {
-            if (fieldDef.showOn?.includes('form') && fieldDef.dbField !== null) {
-              formData[fieldName] = entityData[fieldName];
-            }
-          });
-          
-          return formData;
-        },
-        getDefaultFormData: () => {
-          if (!schema) return {};
-          
-          // Build form schema from formTabs fields (primary source)
-          const allFormFields: any = {};
-          
-          // First, add fields from formTabs
-          if (schema.formTabs) {
-            schema.formTabs.forEach((tab: any) => {
-              if (tab.sections) {
-                tab.sections.forEach((section: any) => {
-                  if (section.fields) {
-                    section.fields.forEach((field: any) => {
-                      allFormFields[field.name] = (schema as any).formFields?.[field.name] ?? field;
-                    });
-                  }
-                });
-              }
-            });
-          }
-          
-          // Then, add fields from formFields (for backward compatibility)
-          Object.entries(schema.formFields || {}).forEach(([fieldName, fieldDef]: [string, any]) => {
-            if (!allFormFields[fieldName]) {
-              allFormFields[fieldName] = fieldDef;
-            }
-          });
-          
-          // CRITICAL: Filter out fields with dbField: null (custom-rendered fields like "elements")
-          const fieldsForDefaults: any = {};
-          Object.entries(allFormFields).forEach(([fieldName, fieldDef]: [string, any]) => {
-            if (fieldDef.dbField !== null) {
-              fieldsForDefaults[fieldName] = fieldDef;
-            }
-          });
-          
-          const formSchema = createFormSchema(fieldsForDefaults);
-          const defaults = formSchema.getDefaults();
-
-          // Also include entityFields defaults
-          Object.entries(schema.entityFields || {}).forEach(([fieldName, fieldDef]) => {
-            if (fieldDef.showOn?.includes('form') && fieldDef.dbField !== null) {
-              defaults[fieldName] = fieldDef.default;
-            }
-          });
-
-          // Set audit field defaults for insert mode (new records)
-          const now = new Date().toISOString(); // Full ISO timestamp
-          if (fieldsForDefaults['created_at'] && (defaults['created_at'] === null || defaults['created_at'] === undefined)) {
-            defaults['created_at'] = now;
-          }
-          if (fieldsForDefaults['updated_at'] && (defaults['updated_at'] === null || defaults['updated_at'] === undefined)) {
-            defaults['updated_at'] = now;
-          }
-
-          // Ensure active field defaults to true in insert mode
-          if (fieldsForDefaults['active'] && (defaults['active'] === null || defaults['active'] === undefined || defaults['active'] === false)) {
-            defaults['active'] = true;
-          }
-
-          return defaults;
-        },
-        formDataToEntity: (formData) => {
-          if (!schema) return {};
-          
-          // Build form schema from formTabs fields (primary source)
-          const allFormFields: any = {};
-          
-          // First, add fields from formTabs
-          if (schema.formTabs) {
-            schema.formTabs.forEach((tab: any) => {
-              if (tab.sections) {
-                tab.sections.forEach((section: any) => {
-                  if (section.fields) {
-                    section.fields.forEach((field: any) => {
-                      allFormFields[field.name] = (schema as any).formFields?.[field.name] ?? field;
-                    });
-                  }
-                });
-              }
-            });
-          }
-          
-          // Then, add fields from formFields (for backward compatibility)
-          Object.entries(schema.formFields || {}).forEach(([fieldName, fieldDef]: [string, any]) => {
-            if (!allFormFields[fieldName]) {
-              allFormFields[fieldName] = fieldDef;
-            }
-          });
-          
-          // CRITICAL: Filter out fields with dbField: null BEFORE calling toApi()
-          // This prevents custom-rendered fields like "elements" from being included in the API payload
-          const cleanFormData: any = { ...formData };
-          Object.entries(allFormFields).forEach(([fieldName, fieldDef]: [string, any]) => {
-            if (fieldDef.dbField === null) {
-              delete cleanFormData[fieldName];
-            }
-          });
-          
-          const formSchema = createFormSchema(allFormFields);
-          const apiData = formSchema.toApi(cleanFormData);
-          const cleanData = { ...apiData };
-          fieldsToClean.forEach(field => {
-            delete cleanData[field];
-          });
-          
-          // Return all data - let the store handle dirty field filtering if needed
-          return cleanData;
-        },
-        updateStrategy: 'optimistic',
-        onSuccess: async (savedEntity, mode) => {
-          console.log(`[BaseForm] ${mode} successful:`, savedEntity.id);
-          if (onLegacySubmit) {
-            await onLegacySubmit(savedEntity);
-          }
-          onCancel?.();
-        },
-        onError: (error, mode) => {
-          console.error(`[BaseForm] ${mode} failed:`, error);
-          
-          // Extract API error details
-          let errorMessage = error.message || `Failed to ${mode} record`;
-          let apiErrors: any = null;
-          let errorDetails = '';
-          
-          if ('response' in error) {
-            const response = (error as any).response;
-            console.log('[BaseForm] Response object:', response);
-            
-            if (response?.data?.errors) {
-              apiErrors = response.data.errors;
-              // Format validation errors — handle both string[] and {path,msg}[] shapes
-              if (Array.isArray(apiErrors)) {
-                errorDetails = apiErrors
-                  .map((err: any) => typeof err === 'string' ? err : `${err.path}: ${err.msg}`)
-                  .join('<br/>');
-              } else {
-                errorDetails = JSON.stringify(apiErrors, null, 2);
-              }
-            }
-            if (response?.data?.message) {
-              errorMessage = response.data.message;
-            }
-          }
-          
-          // Display error toast
-          console.error(`[BaseForm] Error details:`, { errorMessage, apiErrors, errorDetails });
-          
-          // Show error notification
-          const errorNotification = document.createElement('div');
-          errorNotification.className = 'form-error-toast';
-          errorNotification.innerHTML = `
-            <div class="form-error-toast__content">
-              <span class="form-error-toast__icon">⚠️</span>
-              <div class="form-error-toast__message">
-                <strong>${errorMessage}</strong>
-                ${errorDetails ? `<div class="form-error-toast__details">${errorDetails}</div>` : ''}
-              </div>
-              <button class="form-error-toast__close" onclick="this.parentElement.parentElement.remove()">✕</button>
-            </div>
-          `;
-          document.body.appendChild(errorNotification);
-          
-          // Auto-remove after 7 seconds (longer for detailed errors)
-          setTimeout(() => {
-            if (errorNotification.parentElement) {
-              errorNotification.remove();
-            }
-          }, 7000);
-        },
-      })
-    : null;
-
-  // Re-initialize form when schema loads or changes.
-  // Covers two scenarios:
-  // 1. Create mode: entity is undefined, so the entity-change effect never fires —
-  //    schema-change is the only trigger for applying defaults.
-  // 2. Edit mode with cached schema: if the schema is already in the in-memory cache
-  //    on the first render, `entity` is set immediately and never transitions from
-  //    undefined → defined, so the entity-change effect doesn't fire when the
-  //    schema is refreshed from the API. Re-initializing here ensures saved field
-  //    values (time_frame, visualization_type, etc.) are always loaded from the
-  //    current schema even after a cache-busting re-fetch.
-  React.useEffect(() => {
-    if (schema && isDynamicForm && form) {
-      form.resetForm();
-    }
-    prevSchemaRef.current = schema;
-  }, [schema]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const validateForm = (): { isValid: boolean; newErrors: Record<string, string> } => {
-    if (!isDynamicForm || !schema) return { isValid: true, newErrors: {} };
-
-    const newErrors: Record<string, string> = {};
-
-    console.log('[VALIDATION] Starting form validation...');
-    console.log('[VALIDATION] Form data:', form?.formData);
-    console.log('[VALIDATION] Schema fields:', Object.keys(schema.formFields));
-
-    Object.entries(schema.formFields).forEach(([fieldName, fieldDef]) => {
-      if (excludeFields.includes(fieldName)) {
-        console.log(`[VALIDATION] Skipping excluded field: ${fieldName}`);
-        return;
-      }
-
-      const value = form?.formData?.[fieldName];
-      const backendFieldDef = fieldDef as BackendFieldDefinition & { validation?: boolean };
-
-      console.log(`[VALIDATION] Checking field: ${fieldName}, value: ${value}, required: ${backendFieldDef.required}, showOn: ${backendFieldDef.showOn}`);
-
-      if (backendFieldDef.showOn && !backendFieldDef.showOn.includes('form')) {
-        console.log(`[VALIDATION] Skipping field not shown on form: ${fieldName}`);
-        return;
-      }
-
-      if (backendFieldDef.required && (value === undefined || value === null || value === '')) {
-        newErrors[fieldName] = `${backendFieldDef.label} is required`;
-        console.log(`[VALIDATION] ❌ Required field missing: ${fieldName} (${backendFieldDef.label})`);
-        return;
-      }
-
-      if (backendFieldDef.validation === false) {
-        return;
-      }
-
-      // Skip validation for foreign key fields (validate: true) - they're validated by the backend
-      if (backendFieldDef.validate === true) {
-        return;
-      }
-
-      if (value !== undefined && value !== null && value !== '') {
-        if (backendFieldDef.type === 'number') {
-          // Convert string to number for validation
-          const numValue = typeof value === 'string' ? parseFloat(value) : value;
-          if (isNaN(numValue)) {
-            newErrors[fieldName] = `${backendFieldDef.label} must be a number`;
-          } else {
-            if (backendFieldDef.min !== null && backendFieldDef.min !== undefined && numValue < backendFieldDef.min) {
-              newErrors[fieldName] = `${backendFieldDef.label} must be at least ${backendFieldDef.min}`;
-            }
-            if (backendFieldDef.max !== null && backendFieldDef.max !== undefined && numValue > backendFieldDef.max) {
-              newErrors[fieldName] = `${backendFieldDef.label} must be at most ${backendFieldDef.max}`;
-            }
-          }
-        }
-
-        if (backendFieldDef.type === 'string' && typeof value === 'string') {
-          if (backendFieldDef.minLength && value.length < backendFieldDef.minLength) {
-            newErrors[fieldName] = `${backendFieldDef.label} must be at least ${backendFieldDef.minLength} characters`;
-          }
-          if (backendFieldDef.maxLength && value.length > backendFieldDef.maxLength) {
-            newErrors[fieldName] = `${backendFieldDef.label} must be at most ${backendFieldDef.maxLength} characters`;
-          }
-          if (backendFieldDef.pattern && !new RegExp(backendFieldDef.pattern).test(value)) {
-            newErrors[fieldName] = `${backendFieldDef.label} format is invalid`;
-          }
-        }
-
-        if (backendFieldDef.type === 'email' && typeof value === 'string') {
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-            newErrors[fieldName] = 'Please enter a valid email address';
-          }
-        }
-
-        // Validate enum values - check against original enumValues
-        if (backendFieldDef.enumValues) {
-          const enumValues = backendFieldDef.enumValues;
-          if (!enumValues.includes(value)) {
-            const enumLabels = backendFieldDef.enumLabels;
-            const readableValues = enumValues.map((v: string) => enumLabels?.[v] ?? v);
-            newErrors[fieldName] = `${backendFieldDef.label} must be one of: ${readableValues.join(', ')}`;
-          }
-        }
-      }
-    });
-
-    const isValid = Object.keys(newErrors).length === 0;
-    
-    console.log('[VALIDATION] Setting errors:', newErrors);
-    setErrors(newErrors);
-    
-    if (!isValid) {
-      console.log('[VALIDATION] ❌ Form validation FAILED. Errors:', newErrors);
-    } else {
-      console.log('[VALIDATION] ✅ Form validation PASSED');
-    }
-    
-    return { isValid, newErrors };
-  };
 
   const handleDynamicSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log('========================================');
-    console.log('[FORM SUBMIT] Form submission triggered');
-    console.log('[FORM SUBMIT] Schema name:', schemaName);
-    try {
-      console.log('[FORM SUBMIT] Form data:', JSON.stringify(form?.formData, null, 2));
-    } catch (e) {
-      console.log('[FORM SUBMIT] Form data: (circular structure, cannot stringify)');
-    }
-    try {
-      console.log('[FORM SUBMIT] Entity:', JSON.stringify(entity, null, 2));
-    } catch (e) {
-      console.log('[FORM SUBMIT] Entity: (circular structure, cannot stringify)');
-    }
-    console.log('========================================');
-
-    // Validate form and get validation result with errors
     const { isValid, newErrors } = validateForm();
-    
+
     if (!isValid || form?.isSubmitting) {
-      console.log('[FORM SUBMIT] Validation failed or already submitting');
-      console.log('[FORM SUBMIT] Validation errors:', newErrors);
-      
-      // Focus on the first field with an error - use newErrors directly
       if (Object.keys(newErrors).length > 0) {
         const firstErrorField = Object.keys(newErrors)[0];
-        console.log('[FORM SUBMIT] First error field:', firstErrorField);
-        
-        // Use setTimeout to ensure DOM is updated
         setTimeout(() => {
           const errorElement = document.getElementById(firstErrorField);
           if (errorElement) {
-            console.log('[FORM SUBMIT] Focusing on field:', firstErrorField);
             errorElement.focus();
             errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
           } else {
-            console.warn('[FORM SUBMIT] Could not find element with id:', firstErrorField);
-            // If field is not in DOM (likely on inactive tab), find which tab it belongs to and switch to it
+            // Field not in DOM — likely on an inactive tab; switch to it
             if (schema?.formTabs && schema.formTabs.length > 0) {
               for (const tab of schema.formTabs) {
                 if (tab.sections) {
                   for (const section of tab.sections) {
                     if (section.fields && section.fields.some((f: any) => f.name === firstErrorField)) {
-                      console.log('[FORM SUBMIT] Field found in tab:', tab.name, '- switching to it');
                       setActiveTab(tab.name);
                       onTabChange?.(tab.name);
-                      // Try focusing again after tab switch
                       setTimeout(() => {
                         const retryElement = document.getElementById(firstErrorField);
                         if (retryElement) {
@@ -693,17 +245,10 @@ export const BaseForm: React.FC<BaseFormProps> = ({
     }
 
     try {
-      console.log('[FORM SUBMIT] Calling handleSubmit...');
-      console.log('[FORM SUBMIT] Form object:', form);
-      console.log('[FORM SUBMIT] Form handleSubmit method:', form?.handleSubmit);
-      if (!form) {
-        console.error('[FORM SUBMIT] Form is null or undefined');
-        return;
-      }
+      if (!form) return;
       await form.handleSubmit();
-      console.log('[FORM SUBMIT] Submit completed successfully');
     } catch (error) {
-      console.error('[FORM SUBMIT] Form submission error:', error);
+      console.error('[BaseForm] submit error:', error);
     }
   };
 
@@ -871,18 +416,9 @@ export const BaseForm: React.FC<BaseFormProps> = ({
 
   // Determine layout based on schema metadata or fieldSections
   const getLayoutInfo = () => {
-    // Use fieldSections prop if provided, otherwise use formTabsFieldSections from formTabs
     const sectionsToUse = fieldSections || (schema?.formTabs ? formTabsFieldSections : undefined);
-    
-    console.log('[BaseForm] getLayoutInfo:', {
-      sectionsToUse,
-      sectionCount: Object.keys(sectionsToUse || {}).length,
-      hasFieldSectionsProp: !!fieldSections,
-      hasFormTabsFieldSections: !!formTabsFieldSections,
-    });
-    
+
     if (!isDynamicForm || !sectionsToUse || Object.keys(sectionsToUse).length === 0) {
-      console.log('[BaseForm] No sections to use, returning empty layout');
       return { gridClass: '', sectionClasses: {} };
     }
 
@@ -890,9 +426,6 @@ export const BaseForm: React.FC<BaseFormProps> = ({
     let gridClass = '';
     const sectionClasses: Record<string, string> = {};
 
-    console.log('[BaseForm] Calculating layout for', sectionCount, 'sections');
-
-    // Determine grid layout based on number of sections
     if (sectionCount === 1) {
       gridClass = 'base-form__main--grid-1';
     } else if (sectionCount === 2) {
@@ -901,16 +434,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       gridClass = 'base-form__main--grid-3';
     }
 
-    console.log('[BaseForm] Using grid class:', gridClass);
-
-    // Assign section positioning classes
-    const sectionNames = Object.keys(sectionsToUse);
-    sectionNames.forEach((sectionName) => {
-      // Don't assign positioning classes - let the grid handle it
-      sectionClasses[sectionName] = '';
-    });
-
-    console.log('[BaseForm] Section classes:', sectionClasses);
+    Object.keys(sectionsToUse).forEach(name => { sectionClasses[name] = ''; });
 
     return { gridClass, sectionClasses };
   };
@@ -997,6 +521,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
           style={Object.keys(sectionStyle).length > 0 ? sectionStyle : undefined}
         >
           <h3 className={`${className}__section-title base-form__section-title`}>
+            {getSectionIcon(sectionTitle)}
             {sectionTitle}
             {/address/i.test(sectionTitle) && (() => {
               const d = form?.formData || {};
@@ -1105,19 +630,32 @@ export const BaseForm: React.FC<BaseFormProps> = ({
       } as React.CSSProperties}
     >
       {/* Render tabs if using formTabs structure and showTabs is true */}
-      {showTabs && schema?.formTabs && tabList.length > 0 && (
-        <FormTabs
-          tabs={allTabs}
-          tabList={tabList}
-          activeTab={effectiveActiveTab}
-          onTabChange={(tabName) => {
-            setActiveTab(tabName);
-            onTabChange?.(tabName);
-          }}
-          className={`${className}__tabs`}
-          actions={tabHeaderActions}
-        />
-      )}
+      {showTabs && schema?.formTabs && tabList.length > 0 && (() => {
+        // Compute which tabs have validation errors
+        const tabErrors: Record<string, boolean> = {};
+        if (Object.keys(errors).length > 0 && schema.formTabs) {
+          for (const tab of schema.formTabs) {
+            const hasErr = tab.sections?.some(sec =>
+              sec.fields?.some((f: any) => errors[f.name])
+            );
+            if (hasErr) tabErrors[tab.name] = true;
+          }
+        }
+        return (
+          <FormTabs
+            tabs={allTabs}
+            tabList={tabList}
+            activeTab={effectiveActiveTab}
+            onTabChange={(tabName) => {
+              setActiveTab(tabName);
+              onTabChange?.(tabName);
+            }}
+            className={`${className}__tabs`}
+            actions={tabHeaderActions}
+            tabErrors={tabErrors}
+          />
+        );
+      })()}
       
       <div className="base-form__content">
         <div className={`base-form__main ${gridClass}`}>

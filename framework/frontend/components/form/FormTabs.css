@@ -67,6 +67,28 @@
   border-radius: 0;
 }
 
+/* Tab with validation errors */
+.form-tabs__tab--error {
+  color: var(--color-error, #dc2626);
+}
+
+.form-tabs__tab--error.form-tabs__tab--active {
+  border-bottom-color: var(--color-error, #dc2626);
+  background: rgba(220, 38, 38, 0.04);
+}
+
+/* Red dot badge on tab label */
+.form-tabs__tab-error-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-error, #dc2626);
+  margin-left: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .form-tabs {
