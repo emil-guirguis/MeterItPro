@@ -9,11 +9,9 @@ const { Client } = require('pg');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 async function runMigrations() {
-  if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL is required. Set it in ../.env before running migrations.');
-    process.exit(1);
-  }
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres.uueumbslimaecposqsdf:ZfyUDh!_x4bSYXm@aws-1-us-west-1.pooler.supabase.com:6543/postgres'
+  });
 
   try {
     console.log('🔄 Starting database migrations...');

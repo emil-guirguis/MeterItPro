@@ -24,8 +24,7 @@ crons = ["0 * * * *"]   # Run active reports every hour (Cloudflare Cron Trigger
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = "48644504510e40829be6f314dacc1ef3"
-# For local dev, set WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE in .dev.vars
-# or DATABASE_URL in the environment. Never commit credentials here.
+localConnectionString = "postgresql://postgres.uueumbslimaecposqsdf:ZfyUDh!_x4bSYXm@aws-1-us-west-1.pooler.supabase.com:6543/postgres"
 
 [observability]
 [observability.logs]
