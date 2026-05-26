@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Backend API for MeterIt Pro",
   "scripts": {
-    "start": "wrangler dev",
-    "db:migrate": "node migrations/run-migrations.js",
-    "worker:dev": "wrangler dev",
+    "start": "node scripts/dev.js",
+    "db:migrate": "node -r dotenv/config migrations/run-migrations.js dotenv_config_path=.dev.vars",
+    "worker:dev": "node scripts/dev.js",
     "worker:deploy": "wrangler deploy",
     "test": "ts-node --project tsconfig.scripts.json scripts/check-db-constraints.ts && vitest --run",
     "test:watch": "vitest",
