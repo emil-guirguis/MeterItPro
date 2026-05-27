@@ -156,6 +156,7 @@ export const MeterReadingList: React.FC<MeterReadingListProps> = ({
           total={meterReadings.total}
           totalPages={meterReadings.totalPages}
           onPageChange={meterReadings.goToPage}
+          onPageSizeChange={meterReadings.setPageSize}
         />
       )}
     </div>

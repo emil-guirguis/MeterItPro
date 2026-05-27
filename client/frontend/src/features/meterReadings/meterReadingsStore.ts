@@ -26,6 +26,7 @@ interface MeterReadingsState {
   // Fetch operations
   fetchItems: (params?: any) => Promise<void>;
   goToPage: (page: number) => Promise<void>;
+  setPageSize: (pageSize: number) => Promise<void>;
   fetchByMeterId: (meterId: string) => Promise<void>;
 
   // Utility
@@ -153,6 +154,11 @@ export const useMeterReadings = create<MeterReadingsState>((set) => {
   goToPage: async (page: number) => {
     const { lastFetchParams, fetchItems } = (useMeterReadings as any).getState();
     await fetchItems({ ...lastFetchParams, page });
+  },
+
+  setPageSize: async (pageSize: number) => {
+    const { lastFetchParams, fetchItems } = (useMeterReadings as any).getState();
+    await fetchItems({ ...lastFetchParams, pageSize, page: 1 });
   },
 
   fetchByMeterId: async (meterId: string) => {

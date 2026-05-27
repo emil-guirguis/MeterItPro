@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { registerMappingService } from '../../services/registerMappingService';
 import './SimpleMeterReadingGrid.css';
 
@@ -25,6 +25,7 @@ interface SimpleMeterReadingGridProps {
   total?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
@@ -36,9 +37,25 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
   total = 0,
   totalPages = 1,
   onPageChange,
+  onPageSizeChange,
 }) => {
   const [selectedRowIdx, setSelectedRowIdx] = React.useState<number | null>(null);
   const [selectedColIdx, setSelectedColIdx] = React.useState<number | null>(null);
+  const [pageInputValue, setPageInputValue] = useState<string>(String(page));
+
+  useEffect(() => {
+    setPageInputValue(String(page));
+  }, [page]);
+
+  const commitPageInput = () => {
+    if (!onPageChange) return;
+    const n = parseInt(pageInputValue, 10);
+    if (!isNaN(n) && n >= 1 && n <= totalPages) {
+      onPageChange(n);
+    } else {
+      setPageInputValue(String(page));
+    }
+  };
 
   const handleCellClick = (rowIdx: number, colIdx: number) => {
     if (selectedRowIdx === rowIdx && selectedColIdx === colIdx) {
@@ -213,6 +230,18 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
             ? `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total} records`
             : `Showing ${data.length} records`}
         </span>
+        {onPageSizeChange && (
+          <select
+            className="simple-grid-pager__size-select"
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            aria-label="Records per page"
+          >
+            {[10, 20, 50, 100].map(n => (
+              <option key={n} value={n}>{n} per page</option>
+            ))}
+          </select>
+        )}
         {totalPages > 1 && onPageChange && (
           <div className="simple-grid-pager__controls">
             <button
@@ -228,7 +257,16 @@ export const SimpleMeterReadingGrid: React.FC<SimpleMeterReadingGridProps> = ({
               title="Previous page"
             >‹</button>
             <span className="simple-grid-pager__pages">
-              Page {page} of {totalPages}
+              <input
+                type="text"
+                className="simple-grid-pager__page-input"
+                value={pageInputValue}
+                onChange={(e) => setPageInputValue(e.target.value)}
+                onBlur={commitPageInput}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitPageInput(); }}
+                aria-label="Current page"
+              />
+              <span className="simple-grid-pager__page-of">of {totalPages}</span>
             </span>
             <button
               className="simple-grid-pager__btn"

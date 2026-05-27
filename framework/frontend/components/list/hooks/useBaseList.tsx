@@ -889,7 +889,7 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
     return {
       currentPage: store.list.page || 1,
       pageSize: store.list.pageSize || 25,
-      total: store.list.total || 0,
+      total: store.list.total || store.items?.length || 0,
       pageSizeOptions: [10, 25, 50, 100],
       showSizeChanger: true,
       onPageChange: (page: number) => {

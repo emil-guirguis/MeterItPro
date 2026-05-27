@@ -110,7 +110,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       {/* Body: Sidebar + Content */}
       <div className="app-layout__body">
         {/* Desktop Sidebar */}
-        {isDesktop && (
+        {!isMobile && !isTablet && (
           <Sidebar
             isCollapsed={sidebarCollapsed}
             isMobile={false}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { DataTableProps, ColumnDefinition, BulkAction } from '../list/types/ui';
 import { useResponsive } from '../../hooks/useResponsive';
 import './DataTable.css';
@@ -27,6 +27,28 @@ export function DataTable<T extends Record<string, any>>({
     key: string;
     direction: 'asc' | 'desc';
   } | null>(null);
+  const [pageInputValue, setPageInputValue] = useState<string>(
+    String(pagination?.currentPage ?? 1)
+  );
+
+  // Keep input in sync when page changes externally
+  useEffect(() => {
+    setPageInputValue(String(pagination?.currentPage ?? 1));
+  }, [pagination?.currentPage]);
+
+  const totalPages = pagination
+    ? Math.ceil(pagination.total / pagination.pageSize)
+    : 1;
+
+  const commitPageInput = () => {
+    if (!pagination) return;
+    const n = parseInt(pageInputValue, 10);
+    if (!isNaN(n) && n >= 1 && n <= totalPages) {
+      pagination.onPageChange(n);
+    } else {
+      setPageInputValue(String(pagination.currentPage));
+    }
+  };
 
   // Handle sorting
   const handleSort = useCallback((key: string) => {
@@ -289,12 +311,22 @@ export function DataTable<T extends Record<string, any>>({
               Previous
             </button>
             <span className="data-table__page-info">
-              Page {pagination.currentPage} of {Math.ceil(pagination.total / pagination.pageSize)}
+              Page{' '}
+              <input
+                type="text"
+                className="data-table__page-input"
+                value={pageInputValue}
+                onChange={(e) => setPageInputValue(e.target.value)}
+                onBlur={commitPageInput}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitPageInput(); }}
+                aria-label="Current page"
+              />
+              {' '}of {totalPages}
             </span>
             <button
               type="button"
               className="data-table__page-btn"
-              disabled={pagination.currentPage >= Math.ceil(pagination.total / pagination.pageSize)}
+              disabled={pagination.currentPage >= totalPages}
               onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
             >
               Next
@@ -470,28 +502,24 @@ export function DataTable<T extends Record<string, any>>({
             >
               Previous
             </button>
-            
-            {/* Page numbers */}
-            {Array.from({ length: Math.min(5, Math.ceil(pagination.total / pagination.pageSize)) }, (_, i) => {
-              const pageNum = pagination.currentPage - 2 + i;
-              if (pageNum < 1 || pageNum > Math.ceil(pagination.total / pagination.pageSize)) return null;
-              
-              return (
-                <button
-                  key={pageNum}
-                  type="button"
-                  className={`data-table__page-btn ${pageNum === pagination.currentPage ? 'data-table__page-btn--active' : ''}`}
-                  onClick={() => pagination.onPageChange(pageNum)}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            
+
+            <span className="data-table__page-jump">
+              <input
+                type="text"
+                className="data-table__page-input"
+                value={pageInputValue}
+                onChange={(e) => setPageInputValue(e.target.value)}
+                onBlur={commitPageInput}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitPageInput(); }}
+                aria-label="Current page"
+              />
+              <span className="data-table__page-of">of {totalPages}</span>
+            </span>
+
             <button
               type="button"
               className="data-table__page-btn"
-              disabled={pagination.currentPage >= Math.ceil(pagination.total / pagination.pageSize)}
+              disabled={pagination.currentPage >= totalPages}
               onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
             >
               Next

@@ -294,8 +294,34 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
       return;
     }
 
-    const worst = result.rows[0];
-    const totalGaps = parseInt(worst.total_number_of_gaps, 10);
+    // Filter gaps that have since been filled by backfilled readings (e.g. BACnet reconnect
+    // batch). The window-bounded LAG query excludes readings older than threshold_hours, so
+    // a direct range check is needed for gaps near the window edge.
+    const verifiedGaps = (
+      await Promise.all(
+        result.rows.map(async (row) => {
+          const filled = await execQuery(
+            env,
+            `SELECT 1 FROM meter_reading
+             WHERE tenant_id=$1 AND meter_id=$2 AND meter_element_id=$3
+               AND created_at > $4 AND created_at < $5
+               AND created_at IS NOT NULL
+             LIMIT 1`,
+            [rule.tenant_id, pair.meter_id, pair.meter_element_id,
+             row.last_record_before_gap, row.first_record_after_gap]
+          );
+          return filled.rows.length === 0 ? row : null;
+        })
+      )
+    ).filter((r): r is typeof result.rows[0] => r !== null);
+
+    if (verifiedGaps.length === 0) {
+      await clearNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id, 'meter_no_reading');
+      return;
+    }
+
+    const worst = verifiedGaps[0];
+    const totalGaps = verifiedGaps.length;
     const gapMinutes = parseFloat(worst.gap_duration_minutes);
     const gapHours = Math.round((gapMinutes / 60) * 10) / 10;
     const gapStart = new Date(worst.last_record_before_gap);

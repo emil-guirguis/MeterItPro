@@ -84,7 +84,7 @@ const metersService = {
 
       return {
         items: data.data.items || [],
-        total: data.data.pagination?.totalItems || 0,
+        total: data.data.pagination?.total || data.data.pagination?.totalItems || 0,
         hasMore: data.data.pagination?.hasNextPage || false,
       };
     });
