@@ -19,7 +19,7 @@ FRONTEND_URL = "https://meteritpro.com,http://localhost:5173,http://localhost:30
 # npx wrangler secret put GROQ_API_KEY         — from console.groq.com (free, required for AI chat)
 
 [triggers]
-crons = ["0 * * * *"]   # Run active reports every hour (Cloudflare Cron Trigger)
+crons = ["*/15 * * * *"]   # Run every 15 min: fire when rule cron matches, always clear stale notifications
 
 [[hyperdrive]]
 binding = "HYPERDRIVE"

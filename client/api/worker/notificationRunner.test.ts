@@ -375,16 +375,25 @@ describe('runAllActiveNotificationRules', () => {
     expect(mockExecQuery).toHaveBeenCalledTimes(7);
   });
 
-  it('skips rules where cron does not match', async () => {
+  it('clears stale notifications even when rule cron does not match (no fire, no email)', async () => {
     const now = new Date('2024-01-15T10:00:00Z');
     mockMatchesCron.mockReturnValue(false);
 
-    mockExecQuery.mockResolvedValueOnce({ rows: [BASE_RULE] } as any);
+    mockExecQuery
+      .mockResolvedValueOnce({ rows: [BASE_RULE] } as any) // fetch all rules
+      .mockResolvedValueOnce({ rows: [{ meter_id: '10', meter_element_id: '20' }] } as any) // elements
+      // no recipients call (shouldFire=false)
+      .mockResolvedValueOnce({ rows: [METER_ELEMENT_PAIR] } as any) // display names
+      .mockResolvedValueOnce({ rows: [{ last_reading_at: new Date() }] } as any) // pre-check: recent
+      .mockResolvedValueOnce({ rows: [] } as any) // gap check: no gaps
+      .mockResolvedValueOnce({ rows: [] } as any); // clearNotification DELETE
 
     await runAllActiveNotificationRules(TEST_ENV, now);
 
-    // Only 1 DB call (fetch rules), no execution queries
-    expect(mockExecQuery).toHaveBeenCalledOnce();
+    expect(mockMatchesCron).toHaveBeenCalledWith(BASE_RULE.schedule_cron, now);
+    const deleteCall = mockExecQuery.mock.calls.find(([, sql]) => sql.includes('DELETE FROM notification'));
+    expect(deleteCall).toBeDefined();
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it('continues after a rule throws an error', async () => {

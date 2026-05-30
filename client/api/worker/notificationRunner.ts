@@ -198,11 +198,11 @@ function buildEmailHtml(opts: {
 
 // --- Rule type: meter_no_reading ----------------------------------------------
 
-async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<void> {
+async function checkMeterNoReading(env: Env, rule: NotificationRule, shouldFire: boolean): Promise<void> {
   const thresholdHours = rule.threshold_hours ?? 24;
   const [pairs, recipients] = await Promise.all([
     getRuleMeterElements(env, rule),
-    getEmailRecipients(env, rule.notification_rule_id),
+    shouldFire ? getEmailRecipients(env, rule.notification_rule_id) : Promise.resolve([]),
   ]);
 
   await Promise.all(pairs.map(async (pair) => {
@@ -221,6 +221,8 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
     const cutoff = new Date(Date.now() - thresholdHours * 3_600_000);
 
     if (!lastReadingAt || lastReadingAt < cutoff) {
+      if (!shouldFire) return;
+
       const hoursSince = lastReadingAt
         ? Math.round((Date.now() - lastReadingAt.getTime()) / 3_600_000)
         : null;
@@ -320,6 +322,8 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
       return;
     }
 
+    if (!shouldFire) return;
+
     const worst = verifiedGaps[0];
     const totalGaps = verifiedGaps.length;
     const gapMinutes = parseFloat(worst.gap_duration_minutes);
@@ -353,11 +357,11 @@ async function checkMeterNoReading(env: Env, rule: NotificationRule): Promise<vo
 
 // --- Rule type: meter_zero_reading --------------------------------------------
 
-async function checkMeterZeroReading(env: Env, rule: NotificationRule): Promise<void> {
+async function checkMeterZeroReading(env: Env, rule: NotificationRule, shouldFire: boolean): Promise<void> {
   const thresholdHours = rule.threshold_hours ?? 24;
   const [pairs, recipients] = await Promise.all([
     getRuleMeterElements(env, rule),
-    getEmailRecipients(env, rule.notification_rule_id),
+    shouldFire ? getEmailRecipients(env, rule.notification_rule_id) : Promise.resolve([]),
   ]);
 
   await Promise.all(pairs.map(async (pair) => {
@@ -377,6 +381,8 @@ async function checkMeterZeroReading(env: Env, rule: NotificationRule): Promise<
       await clearNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id, 'meter_zero_reading');
       return;
     }
+
+    if (!shouldFire) return;
 
     const title = `${pair.display_name} � ${total} reading${total !== 1 ? 's' : ''} all zero`;
     const description = `All ${total} reading${total !== 1 ? 's' : ''} in the last ${thresholdHours} hours show kWh=0 and kW=0.`;
@@ -404,12 +410,12 @@ async function checkMeterZeroReading(env: Env, rule: NotificationRule): Promise<
 
 // --- Rule type: demand_threshold ---------------------------------------------
 
-async function checkDemandThreshold(env: Env, rule: NotificationRule): Promise<void> {
+async function checkDemandThreshold(env: Env, rule: NotificationRule, shouldFire: boolean): Promise<void> {
   if (!rule.demand_threshold) return;
   const thresholdHours = rule.threshold_hours ?? 1;
   const [pairs, recipients] = await Promise.all([
     getRuleMeterElements(env, rule),
-    getEmailRecipients(env, rule.notification_rule_id),
+    shouldFire ? getEmailRecipients(env, rule.notification_rule_id) : Promise.resolve([]),
   ]);
 
   await Promise.all(pairs.map(async (pair) => {
@@ -426,6 +432,8 @@ async function checkDemandThreshold(env: Env, rule: NotificationRule): Promise<v
       await clearNotification(env, rule.tenant_id, pair.meter_id, pair.meter_element_id, 'demand_threshold');
       return;
     }
+
+    if (!shouldFire) return;
 
     const peakKw = Number(result.rows[0].kw);
     const peakAt = new Date(result.rows[0].created_at);
@@ -466,7 +474,7 @@ export async function runNotificationRule(env: Env, ruleId: string): Promise<voi
     [ruleId]
   );
   if (result.rows.length === 0) throw new Error(`Notification rule ${ruleId} not found or inactive`);
-  await executeRule(env, result.rows[0]);
+  await executeRule(env, result.rows[0], true);
 }
 
 export async function runAllActiveNotificationRules(env: Env, now: Date = new Date()): Promise<void> {
@@ -476,27 +484,22 @@ export async function runAllActiveNotificationRules(env: Env, now: Date = new Da
      FROM notification_rule WHERE active = true`
   );
 
-  const due = result.rows.filter((rule) => {
-    if (matchesCronSchedule(rule.schedule_cron, now)) return true;
-    console.log(`[cron] Notification rule ${rule.notification_rule_id} skipped � schedule "${rule.schedule_cron}" does not match ${now.toISOString()}`);
-    return false;
-  });
-
-  await Promise.all(due.map(async (rule) => {
+  await Promise.all(result.rows.map(async (rule) => {
+    const shouldFire = matchesCronSchedule(rule.schedule_cron, now);
     try {
-      await executeRule(env, rule);
-      console.log(`[cron] Notification rule ${rule.notification_rule_id} (${rule.name}) executed`);
+      await executeRule(env, rule, shouldFire);
+      console.log(`[cron] Notification rule ${rule.notification_rule_id} (${rule.name}) evaluated (fire=${shouldFire})`);
     } catch (err) {
       console.error(`[cron] Notification rule ${rule.notification_rule_id} failed:`, err instanceof Error ? err.message : err);
     }
   }));
 }
 
-async function executeRule(env: Env, rule: NotificationRule): Promise<void> {
+async function executeRule(env: Env, rule: NotificationRule, shouldFire: boolean): Promise<void> {
   switch (rule.rule_type) {
-    case 'meter_no_reading':   return checkMeterNoReading(env, rule);
-    case 'meter_zero_reading': return checkMeterZeroReading(env, rule);
-    case 'demand_threshold':   return checkDemandThreshold(env, rule);
+    case 'meter_no_reading':   return checkMeterNoReading(env, rule, shouldFire);
+    case 'meter_zero_reading': return checkMeterZeroReading(env, rule, shouldFire);
+    case 'demand_threshold':   return checkDemandThreshold(env, rule, shouldFire);
     default:
       console.warn(`[notificationRunner] Unknown rule type: ${rule.rule_type}`);
   }
