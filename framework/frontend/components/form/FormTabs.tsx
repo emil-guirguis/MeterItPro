@@ -1,5 +1,13 @@
 import React from 'react';
 import './FormTabs.css';
+import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined';
+import DeveloperBoardOutlinedIcon from '@mui/icons-material/DeveloperBoardOutlined';
+import NotesOutlinedIcon from '@mui/icons-material/NotesOutlined';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import RouterOutlinedIcon from '@mui/icons-material/RouterOutlined';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
+import DeviceHubOutlinedIcon from '@mui/icons-material/DeviceHubOutlined';
 
 export interface FormTabsProps {
   tabs: Record<string, { label: string; order: number }>;
@@ -13,21 +21,31 @@ export interface FormTabsProps {
   tabErrors?: Record<string, boolean>;
 }
 
+// Maps tab name keywords → icon component (mirrors BaseForm's section icons)
+const TAB_ICONS: Array<[RegExp, React.ElementType]> = [
+  [/element|combined|register/i, DeveloperBoardOutlinedIcon],
+  [/network|connect/i,           RouterOutlinedIcon],
+  [/additional|note|more|info/i, NotesOutlinedIcon],
+  [/setting|config|advanced/i,   SettingsOutlinedIcon],
+  [/audit|history|log/i,         HistoryOutlinedIcon],
+  [/combined|virtual/i,          DeviceHubOutlinedIcon],
+  [/meter|main|general|detail/i, SpeedOutlinedIcon],
+];
+
+function getTabIcon(tabName: string): React.ReactElement | null {
+  for (const [pattern, Icon] of TAB_ICONS) {
+    if (pattern.test(tabName)) {
+      return <Icon className="form-tabs__tab-icon" sx={{ fontSize: 18 }} />;
+    }
+  }
+  return <InfoOutlinedIcon className="form-tabs__tab-icon" sx={{ fontSize: 18 }} />;
+}
+
 /**
  * FormTabs Component
- * 
+ *
  * Provides consistent tab navigation for forms with Material Design 3 styling.
  * Used by forms that have multiple tabs/sections.
- * 
- * @example
- * ```tsx
- * <FormTabs
- *   tabs={tabs}
- *   tabList={tabList}
- *   activeTab={activeTab}
- *   onTabChange={setActiveTab}
- * />
- * ```
  */
 export const FormTabs: React.FC<FormTabsProps> = ({
   tabs,
@@ -54,6 +72,7 @@ export const FormTabs: React.FC<FormTabsProps> = ({
               onClick={() => onTabChange(tabName)}
               type="button"
             >
+              {getTabIcon(tabName)}
               {tabs[tabName].label}
               {hasError && <span className="form-tabs__tab-error-dot" aria-label="has errors" />}
             </button>

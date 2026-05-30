@@ -184,6 +184,7 @@ function section(config) {
     flexGrow: config.flexGrow !== undefined ? config.flexGrow : 1,
     flexShrink: config.flexShrink !== undefined ? config.flexShrink : 1,
     horizontal: config.horizontal || false,
+    description: config.description || null,
   };
 }
 

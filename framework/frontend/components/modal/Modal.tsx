@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useResponsive } from '../../hooks/useResponsive';
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import './Modal.css';
 
 export interface ModalProps {
@@ -15,6 +16,10 @@ export interface ModalProps {
   onSave?: () => void;
   saveLabel?: string;
   showSaveButton?: boolean;
+  /** Optional leading icon shown beside the title */
+  titleIcon?: React.ReactNode;
+  /** Optional muted breadcrumb after the title, e.g. "Edit Meter" */
+  crumb?: string;
 }
 
 /**
@@ -47,11 +52,9 @@ export const Modal: React.FC<ModalProps> = ({
   onSave,
   saveLabel = 'Save',
   showSaveButton = false,
+  titleIcon,
+  crumb,
 }) => {
-  // Debug: log modal props to help track missing Save button issues in the app
-  React.useEffect(() => {
-    console.log('[Modal] render:', { title, isOpen, showSaveButton, hasOnSave: !!onSave, loading });
-  }, [title, isOpen, showSaveButton, onSave, loading]);
   const { isMobile } = useResponsive();
 
   // Auto full screen on mobile
@@ -108,8 +111,24 @@ export const Modal: React.FC<ModalProps> = ({
       >
         {/* Header */}
         <div className="modal__header">
-          <h2 className="modal__title">{title}</h2>
+          <div className="modal__title-wrap">
+            {titleIcon && <span className="modal__title-icon">{titleIcon}</span>}
+            <h2 className="modal__title">
+              {title}
+              {crumb && <span className="modal__crumb"> / {crumb}</span>}
+            </h2>
+          </div>
           <div className="modal__header-actions">
+            {showSaveButton && (
+              <button
+                type="button"
+                className="modal__cancel-btn"
+                onClick={onClose}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+            )}
             {showSaveButton && (
               <button
                 type="button"
@@ -117,9 +136,11 @@ export const Modal: React.FC<ModalProps> = ({
                 onClick={onSave ?? handleDefaultSave}
                 disabled={loading}
               >
+                <CheckRoundedIcon sx={{ fontSize: 18 }} />
                 {saveLabel}
               </button>
             )}
+            {!showSaveButton && (
             <button
               type="button"
               className="modal__close"
@@ -129,6 +150,7 @@ export const Modal: React.FC<ModalProps> = ({
             >
               ✕
             </button>
+            )}
           </div>
         </div>
 

@@ -43,7 +43,7 @@ const SECTION_ICONS: Array<[RegExp, React.ElementType]> = [
 function getSectionIcon(sectionName: string): React.ReactElement | null {
   for (const [pattern, Icon] of SECTION_ICONS) {
     if (pattern.test(sectionName)) {
-      return <Icon sx={{ fontSize: 18, color: 'var(--color-primary, #1976d2)', opacity: 0.8 }} />;
+      return <Icon sx={{ fontSize: 18, color: 'var(--color-primary, #1a73e8)', opacity: 1 }} />;
     }
   }
   return null;
@@ -535,6 +535,9 @@ export const BaseForm: React.FC<BaseFormProps> = ({
               );
             })()}
           </h3>
+          {sectionData?.description && (
+            <p className="base-form__section-description">{sectionData.description}</p>
+          )}
           <div className={sectionHorizontal ? 'base-form__fields-row' : undefined}>
             {visibleFields.map(fieldName => {
               const fieldDef = schema?.formFields?.[fieldName] || schema?.entityFields?.[fieldName];

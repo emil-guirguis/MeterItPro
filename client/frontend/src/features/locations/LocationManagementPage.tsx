@@ -1,51 +1,18 @@
-import React, { useState } from 'react';
-import { FormModal } from '@framework/components/modal';
+import React from 'react';
+import { EntityManagementPage } from '@framework/components/entity';
 import { LocationList } from './LocationList';
 import { LocationForm } from './LocationForm';
 import type { Location } from '../../types/entities';
 
-export const LocationManagementPage: React.FC = () => {
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [showForm, setShowForm] = useState(false);
-
-  const handleEdit = (location: Location) => {
-    setSelectedLocation(location);
-    setShowForm(true);
-  };
-
-  const handleCreate = () => {
-    setSelectedLocation(null);
-    setShowForm(true);
-  };
-
-  const handleFormClose = () => {
-    setShowForm(false);
-    setSelectedLocation(null);
-  };
-
-  return (
-    <div className="entity-management-page">
-      <LocationList
-        onLocationEdit={handleEdit}
-        onLocationCreate={handleCreate}
-      />
-
-      <FormModal
-        isOpen={showForm}
-        title="Location"
-        onClose={handleFormClose}
-        showSaveButton={true}
-        saveLabel="Save"
-        size="md"
-      >
-        {showForm && (
-          <LocationForm
-            key={selectedLocation?.location_id ? `edit-${selectedLocation.location_id}` : 'new'}
-            location={selectedLocation || undefined}
-            onCancel={handleFormClose}
-          />
-        )}
-      </FormModal>
-    </div>
-  );
-};
+export const LocationManagementPage: React.FC = () => (
+  <EntityManagementPage<Location>
+    title="Location"
+    moduleIcon="building"
+    renderList={({ onEdit, onCreate }) => (
+      <LocationList onLocationEdit={onEdit} onLocationCreate={onCreate} />
+    )}
+    renderForm={({ entity, onCancel }) => (
+      <LocationForm location={entity} onCancel={onCancel} />
+    )}
+  />
+);

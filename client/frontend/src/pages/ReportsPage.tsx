@@ -151,9 +151,11 @@ const ReportsPage: React.FC<{ isAdmin?: boolean }> = ({ isAdmin = false }) => {
       {(viewMode === 'create' || viewMode === 'edit') && (
         <FormModal
           isOpen={true}
-          title={viewMode === 'create' ? 'Create Report' : 'Edit Report'}
+          title="Report"
+          moduleIcon="reports"
+          crumb={viewMode === 'create' ? 'New Report' : 'Edit Report'}
           onClose={handleFormCancel}
-          onSubmit={() => { }} // No-op since form handles its own submission
+          onSubmit={() => { }}
           size="lg"
           showSaveButton={true}
           saveLabel="Save"

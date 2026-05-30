@@ -77,7 +77,9 @@ export const NotificationManagementPage: React.FC = () => {
       {showCreateForm && (
         <FormModal
           isOpen={true}
-          title="Create Notification"
+          title="Notification"
+          moduleIcon="notifications"
+          crumb="Create Notification"
           onClose={handleFormCancel}
           onSubmit={() => {}}
           size="md"

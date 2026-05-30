@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FormModal } from '@framework/components/modal';
+import React from 'react';
+import { EntityManagementPage } from '@framework/components/entity';
 import { UserList } from './UserList';
 import { UserForm } from './UserForm';
 import type { User } from '../../types/auth';
@@ -8,49 +8,15 @@ interface UserManagementPageProps {
   authContext?: { checkPermission: (p: any) => boolean; user: any };
 }
 
-export const UserManagementPage: React.FC<UserManagementPageProps> = ({ authContext }) => {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [showForm, setShowForm] = useState(false);
-
-  const handleEdit = (user: User) => {
-    setSelectedUser(user);
-    setShowForm(true);
-  };
-
-  const handleCreate = () => {
-    setSelectedUser(null);
-    setShowForm(true);
-  };
-
-  const handleFormClose = () => {
-    setShowForm(false);
-    setSelectedUser(null);
-  };
-
-  return (
-    <div className="entity-management-page">
-      <UserList
-        onUserEdit={handleEdit}
-        onUserCreate={handleCreate}
-        authContext={authContext}
-      />
-
-      <FormModal
-        isOpen={showForm}
-        title="User"
-        onClose={handleFormClose}
-        showSaveButton={true}
-        saveLabel="Save"
-        size="md"
-      >
-        {showForm && (
-          <UserForm
-            key={selectedUser?.users_id ? `edit-${selectedUser.users_id}` : 'new'}
-            user={selectedUser || undefined}
-            onCancel={handleFormClose}
-          />
-        )}
-      </FormModal>
-    </div>
-  );
-};
+export const UserManagementPage: React.FC<UserManagementPageProps> = ({ authContext }) => (
+  <EntityManagementPage<User>
+    title="User"
+    moduleIcon="users"
+    renderList={({ onEdit, onCreate }) => (
+      <UserList onUserEdit={onEdit} onUserCreate={onCreate} authContext={authContext} />
+    )}
+    renderForm={({ entity, onCancel }) => (
+      <UserForm user={entity} onCancel={onCancel} />
+    )}
+  />
+);

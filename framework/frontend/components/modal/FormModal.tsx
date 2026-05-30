@@ -1,4 +1,6 @@
+import React from 'react';
 import { Modal } from './Modal';
+import { getIconElement } from '../../utils/iconHelper';
 
 export interface FormModalProps<T = any> {
   isOpen: boolean;
@@ -13,6 +15,11 @@ export interface FormModalProps<T = any> {
   fullScreen?: boolean;
   showSaveButton?: boolean;
   saveLabel?: string;
+  /** Explicit icon node — use this OR schemaName, not both */
+  titleIcon?: React.ReactNode;
+  crumb?: string;
+  /** Module/schema name — auto-resolves icon from the app icon registry */
+  moduleIcon?: string;
 }
 
 /**
@@ -31,7 +38,11 @@ export function FormModal<T = any>({
   fullScreen = false,
   showSaveButton = false,
   saveLabel = 'Save',
+  titleIcon,
+  crumb,
+  moduleIcon,
 }: FormModalProps<T>) {
+  const resolvedIcon = titleIcon ?? (moduleIcon ? getIconElement(moduleIcon) : undefined);
   // Wrapper to handle form submission from modal save button
   const handleSave = () => {
     // Find all forms on the page and submit the last one (most recently added)
@@ -54,6 +65,8 @@ export function FormModal<T = any>({
       onSave={handleSave}
       showSaveButton={showSaveButton}
       saveLabel={saveLabel}
+      titleIcon={resolvedIcon}
+      crumb={crumb}
     >
       {children}
     </Modal>

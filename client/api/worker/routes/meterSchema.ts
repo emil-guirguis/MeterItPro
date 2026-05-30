@@ -17,6 +17,7 @@ export const meterSchema = defineSchema({
       sections: [
         section({
           name: 'Information',
+          description: 'Identity and classification',
           order: 1,
           minWidth: '350px',
           fields: [
@@ -27,6 +28,7 @@ export const meterSchema = defineSchema({
               default: '',
               required: true,
               label: 'Meter Name',
+              description: 'Between 3 and 100 characters.',
               dbField: 'name',
               minLength: 3,
               maxLength: 100,
@@ -100,6 +102,7 @@ export const meterSchema = defineSchema({
 
         section({
           name: 'Network',
+          description: 'BACnet/IP polling endpoint',
           order: 2,
           visibleFor: ['physical'],
           horizontal: true,
@@ -111,6 +114,7 @@ export const meterSchema = defineSchema({
               default: '',
               required: true,
               label: 'IP Address',
+              description: 'IPv4 address of the meter on the local network.',
               dbField: 'ip',
               placeholder: '192.168.1.100',
               showOn: ['list', 'form'],
@@ -122,6 +126,7 @@ export const meterSchema = defineSchema({
               default: 47808,
               required: true,
               label: 'Port Number',
+              description: 'BACnet/IP port — default is 47808.',
               dbField: 'port',
               min: 1,
               max: 65535,
@@ -132,6 +137,7 @@ export const meterSchema = defineSchema({
         }),
         section({
           name: 'Status',
+          description: 'Operational state',
           order: 3,
           fields: [
             field({
@@ -185,6 +191,7 @@ export const meterSchema = defineSchema({
       sections: [
         section({
           name: 'Meter Elements',
+          description: 'Registers read from this meter',
           order: 1,
           fields: [
             field({
@@ -208,6 +215,7 @@ export const meterSchema = defineSchema({
       sections: [
         section({
           name: 'Combined Meters',
+          description: 'Meters combined into this virtual meter',
           order: 1,
           fields: [
             field({
@@ -231,6 +239,7 @@ export const meterSchema = defineSchema({
       sections: [
         section({
           name: 'notes',
+          description: 'Free-form notes about this meter',
           order: 1,
           minWidth: '500px',
           fields: [
@@ -250,6 +259,7 @@ export const meterSchema = defineSchema({
         }),
         section({
           name: 'Audit',
+          description: 'System fields · read only',
           order: 2,
           minWidth: '250px',
           fields: [

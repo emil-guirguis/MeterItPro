@@ -85,24 +85,6 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
     const fieldId = `field-${name}`;
     const errorId = `${fieldId}-error`;
 
-    // Debug logging
-    React.useEffect(() => {
-      const element = document.getElementById(fieldId);
-      if (element) {
-        const styles = window.getComputedStyle(element);
-        console.log(`[FormField Debug] ${name}:`, {
-          type,
-          computedStyles: {
-            backgroundColor: styles.backgroundColor,
-            borderColor: styles.borderColor,
-            borderWidth: styles.borderWidth,
-            color: styles.color,
-          },
-          classList: element.className,
-        });
-      }
-    }, [fieldId, name, type]);
-
     const handleNumberChange = (direction: 1 | -1) => {
       const numValue = typeof value === 'string' ? parseFloat(value) : (value ?? 0);
       const stepValue = typeof step === 'string' ? parseFloat(step) : (step ?? 1);

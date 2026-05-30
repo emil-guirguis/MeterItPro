@@ -239,13 +239,13 @@
 /* Material Design field height and spacing overrides - UNIVERSAL for all forms */
 .base-form .MuiTextField-root,
 .form-container .MuiTextField-root {
-  margin-bottom: 8px !important;
+  margin-bottom: 20px !important;
   margin-top: 0 !important;
 }
 
 .base-form .MuiFormControl-root,
 .form-container .MuiFormControl-root {
-  margin-bottom: 8px !important;
+  margin-bottom: 20px !important;
   margin-top: 0 !important;
 }
 
@@ -295,12 +295,12 @@
 /* Additional high-specificity overrides for consistent spacing */
 div.base-form div.MuiTextField-root,
 div.form-container div.MuiTextField-root {
-  margin-bottom: 8px !important;
+  margin-bottom: 20px !important;
 }
 
 div.base-form div.MuiFormControl-root,
 div.form-container div.MuiFormControl-root {
-  margin-bottom: 8px !important;
+  margin-bottom: 20px !important;
 }
 
 /* Prevent border overlap between adjacent fields */
@@ -595,4 +595,171 @@ div.form-container div.MuiFormControl-root {
   .base-form__section-title {
     font-size: 1.125rem;
   }
+}
+
+/* ============================================================= */
+/* Design system update (May 2026): "Direction A" form redesign  */
+/* Modernizes EVERY schema-generated form (Meter, Device,         */
+/* Location, Contact, User, Cost, …). Appended so it overrides the */
+/* rules above without touching the existing markup. Section cards */
+/* are targeted via the centralized .base-form__sections-container */
+/* so the per-form class prefix (meter-form__section etc.) does    */
+/* not matter. Accent unified to the app primary #1a73e8.          */
+/* ============================================================= */
+
+/* One source of truth for the accent inside every form. This also */
+/* fixes per-form buttons that read var(--color-primary, …) which  */
+/* previously resolved to #007bff / #1976d2 — never the brand blue. */
+.base-form,
+.form-container {
+  --color-primary: #1a73e8;
+  --color-primary-dark: #1557b0;
+  --color-primary-light: rgba(26, 115, 232, 0.12);
+  --mf-accent: #1a73e8;
+  --mf-accent-tint: rgba(26, 115, 232, 0.12);
+  --mf-hairline: #f0f0f0;
+}
+
+/* ── Section card ───────────────────────────────────────────── */
+/* Every section is a direct child of the sections container.      */
+.base-form [class*="base-form__sections-container"] > * {
+  padding: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 14px !important;       /* was 8px; 3px accent stripe dropped */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  overflow: hidden;
+  margin-bottom: 0 !important;
+  transition: box-shadow 0.15s ease;
+}
+.base-form [class*="base-form__sections-container"] > *:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10) !important;
+}
+
+/* Keep the compact FormContainer override from re-adding padding   */
+/* to the card itself (padding now lives on header + fields).       */
+.form-container [class*="base-form__sections-container"] > * {
+  padding: 0 !important;
+}
+
+/* ── Section header (title is always .base-form__section-title) ── */
+.base-form .base-form__section-title {
+  margin: 0 !important;
+  padding: 15px 20px !important;
+  border-bottom: 1px solid var(--mf-hairline) !important;
+  font-size: 0.9375rem !important;      /* 15px — was 1.125rem/18px */
+  font-weight: 600;
+  color: #202124;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+/* Fields sit in their own padded body below the header.            */
+.base-form [class*="base-form__sections-container"] > * > *:not(.base-form__section-title) {
+  padding: 0 20px !important;
+}
+.base-form [class*="base-form__sections-container"] > * > *:not(.base-form__section-title):last-child {
+  padding-bottom: 18px !important;
+}
+.base-form [class*="base-form__sections-container"] > * > .base-form__section-title + * {
+  padding-top: 18px !important;
+}
+
+/* Tinted icon chip for the section icon (MUI svg rendered inline). */
+.base-form__section-title > svg {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--mf-accent-tint);
+  color: var(--mf-accent) !important;   /* override the inline sx color */
+  opacity: 1 !important;
+}
+.base-form__section-title__maps-link { margin-left: auto; }
+
+/* ── Read-only / system sections (e.g. Audit) ───────────────────── */
+.base-form [class*="base-form__sections-container"] > *:has(.base-form__field input:disabled),
+.base-form [class*="base-form__sections-container"] > *:has(.base-form__field .Mui-disabled) {
+  background: #f8f9fa !important;
+}
+
+/* ── Buttons: unify on brand (covers .base-form__btn and any        */
+/*    per-form *__btn--primary that reads var(--color-primary)).     */
+.base-form__btn--primary {
+  background: var(--mf-accent);
+  border-radius: 8px;
+}
+.base-form__btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.25);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .base-form [class*="base-form__sections-container"] > * { border-radius: 12px !important; }
+  .base-form__section-title { padding: 12px 16px; font-size: 0.875rem; }
+  .base-form__sections-container > * > *:not(.base-form__section-title) { padding: 0 16px; }
+}
+
+/* ── Dark mode (Direction A) ─────────────────────────────────── */
+/* Scoped to the app's existing dark hook: body[data-theme='dark']  */
+/* (with the .dark alias used in SettingsPage.css). Covers the      */
+/* framework-drawn form chrome. NOTE: the MUI inputs themselves are */
+/* still painted by the light muiTheme — a dark MUI palette is a    */
+/* separate, larger change tracked outside this redesign.           */
+body[data-theme='dark'] .base-form,
+body[data-theme='dark'] .form-container,
+.dark .base-form,
+.dark .form-container {
+  --color-primary: #8ab4f8;
+  --color-primary-dark: #aecbfa;
+  --color-primary-light: rgba(138, 180, 248, 0.18);
+  --mf-accent: #8ab4f8;
+  --mf-accent-tint: rgba(138, 180, 248, 0.18);
+  --mf-hairline: #2a2d31;
+}
+body[data-theme='dark'] .base-form [class*="base-form__sections-container"] > *,
+.dark .base-form [class*="base-form__sections-container"] > * {
+  background: #1e2024 !important;
+  border-color: #3c4043 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+}
+body[data-theme='dark'] .base-form__section-title,
+.dark .base-form__section-title {
+  color: #e8eaed;
+  border-bottom-color: #2a2d31;
+}
+body[data-theme='dark'] .base-form__sections-container > *:has(.base-form__field input:disabled),
+body[data-theme='dark'] .base-form__sections-container > *:has(.base-form__field .Mui-disabled),
+.dark .base-form__sections-container > *:has(.base-form__field input:disabled),
+.dark .base-form__sections-container > *:has(.base-form__field .Mui-disabled) {
+  background: #1a1c20;
+}
+/* light-blue primary needs dark text in dark mode */
+body[data-theme='dark'] .base-form__btn--primary,
+.dark .base-form__btn--primary { color: #0b1b33; }
+
+/* ── Section description (subtitle under the title) ─────────── */
+/* When a section has a description, the title drops its divider and  */
+/* the description carries the header hairline instead.               */
+.base-form [class*="base-form__sections-container"] > * > .base-form__section-title:has(+ .base-form__section-description) {
+  border-bottom: none !important;
+  padding-bottom: 3px !important;
+}
+.base-form [class*="base-form__sections-container"] > * > .base-form__section-description {
+  margin: 0 !important;
+  padding: 0 20px 15px 20px !important;
+  border-bottom: 1px solid var(--mf-hairline) !important;
+  font-size: 0.8125rem !important;   /* 13px */
+  font-weight: 400;
+  color: #9aa0a6;
+  line-height: 1.45;
+}
+body[data-theme='dark'] .base-form [class*="base-form__sections-container"] > * > .base-form__section-description,
+.dark .base-form [class*="base-form__sections-container"] > * > .base-form__section-description {
+  color: #9aa0a6;
+  border-bottom-color: #2a2d31 !important;
 }

@@ -44,7 +44,9 @@ export const NotificationRulesPage: React.FC = () => {
 
       <FormModal
         isOpen={showForm}
-        title={selectedRule ? 'Edit Notification Rule' : 'Create Notification Rule'}
+        title="Notification Rule"
+        moduleIcon="notifications"
+        crumb={selectedRule ? 'Edit' : 'New'}
         onClose={handleFormClose}
         showSaveButton={true}
         saveLabel="Save"

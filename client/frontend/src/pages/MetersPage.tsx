@@ -197,8 +197,10 @@ const MetersPage: React.FC = () => {
         <FormModal
           isOpen={true}
           title="Meter"
+          moduleIcon="meter"
+          crumb={viewMode === 'create' ? 'New Meter' : 'Edit Meter'}
           onClose={handleFormCancel}
-          onSubmit={() => { }} // No-op since form handles its own submission
+          onSubmit={() => { }}
           size="lg"
           showSaveButton={true}
           saveLabel="Save"

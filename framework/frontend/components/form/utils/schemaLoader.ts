@@ -57,6 +57,7 @@ export interface BackendSchema {
     sectionOrientation?: 'horizontal' | 'vertical' | null;
     sections: Array<{
       name: string;
+      description?: string | null;
       order?: number | null;
       fields: Array<{
         name: string;
@@ -264,6 +265,7 @@ export interface ConvertedSchema {
     sectionOrientation?: 'horizontal' | 'vertical' | null;
     sections: Array<{
       name: string;
+      description?: string | null;
       order?: number | null;
       visibleFor?: ('physical' | 'virtual')[];
       fields: Array<{

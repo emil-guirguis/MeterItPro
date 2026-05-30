@@ -89,7 +89,9 @@ export const ReportManagementPage: React.FC<{ onReportSelect?: (reportId: string
         {/* Create Report Modal */}
         <FormModal
           isOpen={showCreateModal}
-          title="Create New Report"
+          title="Report"
+          moduleIcon="reports"
+          crumb="Create New Report"
           onClose={handleModalClose}
           onSubmit={handleCreateSubmit}
           loading={reports.loading}
@@ -106,7 +108,9 @@ export const ReportManagementPage: React.FC<{ onReportSelect?: (reportId: string
         {/* Edit Report Modal */}
         <FormModal
           isOpen={showEditModal}
-          title={`Edit Report: ${selectedReport?.name || ''}`}
+          title="Report"
+          moduleIcon="reports"
+          crumb={`Edit: ${selectedReport?.name || ''}`}
           data={selectedReport || undefined}
           onClose={handleModalClose}
           onSubmit={handleUpdateSubmit}
@@ -124,7 +128,9 @@ export const ReportManagementPage: React.FC<{ onReportSelect?: (reportId: string
         {/* View Report Modal */}
         <FormModal
           isOpen={showViewModal}
-          title={`Report Details: ${selectedReport?.name || ''}`}
+          title="Report"
+          moduleIcon="reports"
+          crumb={`Details: ${selectedReport?.name || ''}`}
           onClose={handleModalClose}
           onSubmit={() => Promise.resolve()}
           size="md"

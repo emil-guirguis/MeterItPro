@@ -37,6 +37,8 @@ const appIconMappings = {
   'favorites': 'star',
   'meter-readings': 'electric_bolt',
   'ai-chat': 'smart_toy',
+  'sync': 'sync',
+  'cost': 'attach_money',
 };
 
 // Register icon mappings once
