@@ -82,7 +82,7 @@ export async function getCachedUser(env: Env, userId: string): Promise<any | nul
 
   const fetchPromise = execQuery(
     env,
-    `SELECT users_id, name, email, phone, role, active, tenant_id, permissions
+    `SELECT users_id, name, email, phone, role, active, tenant_id, permissions, is_super_admin, is_support_admin
      FROM users WHERE users_id = $1`,
     [userId],
     'getCachedUser'
@@ -190,8 +190,8 @@ export function requirePermission(permission: string) {
       c.set('user', user);
     }
 
-    // Admin and superadmin bypass permission checks
-    if (user.role === 'admin' || user.role === 'superadmin') {
+    // Super admin and admin bypass permission checks
+    if (user.is_super_admin || user.role === 'admin') {
       return next();
     }
 

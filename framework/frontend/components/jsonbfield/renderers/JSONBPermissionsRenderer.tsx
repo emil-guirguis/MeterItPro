@@ -105,8 +105,9 @@ export const JSONBPermissionsRenderer: React.FC<JSONBPermissionsRendererProps> =
   required = false,
   description,
   onChange,
-  moduleOrder = ['user', 'location', 'contact', 'meter', 'device', 'template', 'report', 'settings', 'notification_rule'],
+  moduleOrder = ['dashboard', 'user', 'location', 'contact', 'meter', 'device', 'template', 'report', 'settings', 'notification_rule'],
   moduleNames = {
+    dashboard: 'Dashboard',
     user: 'User',
     location: 'Location',
     contact: 'Contact',

@@ -181,6 +181,7 @@ const LandingPage: React.FC = () => {
                         <a href="#pricing">Pricing</a>
                         <a href="#partners">Partners</a>
                         <a href="#demo">Demo</a>
+                        <Link to="/support">Support</Link>
                         <a href="#contact">Contact</a>
                         <Link className="landing-login" to="/login">
                             <LoginIcon fontSize="small" />
@@ -196,6 +197,7 @@ const LandingPage: React.FC = () => {
                     <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
                     <a href="#partners" onClick={() => setMobileMenuOpen(false)}>Partners</a>
                     <a href="#demo" onClick={() => setMobileMenuOpen(false)}>Demo</a>
+                    <Link to="/support" onClick={() => setMobileMenuOpen(false)}>Support</Link>
                     <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>
                     <Link className="landing-login landing-mobile-login" to="/login" onClick={() => setMobileMenuOpen(false)}>
                         <LoginIcon fontSize="small" />
@@ -537,6 +539,31 @@ const LandingPage: React.FC = () => {
                         </div>
                     </form>
                 )}
+            </section>
+
+            <section className="landing-section landing-section--alt" id="support">
+                <h2>Support</h2>
+                <p>Need help with MeterIt Pro? Our support team is here to help you get the most out of your meter data platform.</p>
+                <div className="landing-contact-grid">
+                    <div className="landing-contact-card">
+                        <h3>Documentation</h3>
+                        <p>Browse guides, API references, and step-by-step tutorials for setting up and using MeterIt Pro.</p>
+                        <a className="landing-btn-tertiary" href="mailto:support@meteritpro.com">View Docs</a>
+                    </div>
+                    <div className="landing-contact-card">
+                        <h3>Submit a Ticket</h3>
+                        <p>Report a bug, request a feature, or get help with a specific issue. We respond within one business day.</p>
+                        <a className="landing-btn-tertiary" href="mailto:support@meteritpro.com">support@meteritpro.com</a>
+                    </div>
+                    <div className="landing-contact-card">
+                        <h3>Account Support</h3>
+                        <p>Already a customer? Log in to access your account, manage users, and view your meter portfolio.</p>
+                        <Link className="landing-btn-primary" to="/login">
+                            <LoginIcon fontSize="small" style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                            Login
+                        </Link>
+                    </div>
+                </div>
             </section>
 
             <section className="landing-section" id="contact">

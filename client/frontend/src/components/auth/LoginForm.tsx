@@ -27,19 +27,21 @@ import authService from '../../services/authService';
 import { getVersionDisplay } from '../../utils/version';
 
 interface LoginFormProps {
-  onSuccess?: () => void;
+  onSuccess?: (response?: any) => void;
   redirectTo?: string;
   prefilledEmail?: string;
   prefilledPassword?: string;
   successMessage?: string;
+  additionalError?: string;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ 
-  onSuccess, 
+export const LoginForm: React.FC<LoginFormProps> = ({
+  onSuccess,
   redirectTo = '/dashboard',
   prefilledEmail = '',
   prefilledPassword = '',
-  successMessage = ''
+  successMessage = '',
+  additionalError = '',
 }) => {
   const { login, isLoading, error } = useAuth();
   const navigate = useNavigate();
@@ -123,7 +125,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       // Login succeeded, redirect
       console.log('✅ Login successful, redirecting to:', redirectTo);
       if (onSuccess) {
-        onSuccess();
+        onSuccess(response);
       } else {
         navigate(redirectTo, { replace: true });
       }
@@ -222,9 +224,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             )}
 
             {/* Error Alert */}
-            {error && (
+            {(error || additionalError) && (
               <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
+                {additionalError || error}
               </Alert>
             )}
 

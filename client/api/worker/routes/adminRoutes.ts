@@ -13,17 +13,32 @@ const adminApp = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
 adminApp.use('*', authenticateToken);
 
-async function requireSuperAdmin(c: any, next: any) {
+/** superadmin OR support_admin — gates entry to the admin portal */
+async function requireAdminOrSupport(c: any, next: any) {
   const partial = c.get('user');
   const user = await getCachedUser(c.env, String(partial.users_id));
-  if (!user || user.role !== 'superadmin') {
+  if (!user || (!user.is_super_admin && !user.is_support_admin)) {
     return c.json({ success: false, message: 'Admin access required' }, 403);
   }
   c.set('user', user);
   await next();
 }
 
-adminApp.use('*', requireSuperAdmin);
+/** superadmin only — sensitive operations */
+async function requireSuperAdmin(c: any, next: any) {
+  const user = c.get('user');
+  if (!user || !user.is_super_admin) {
+    return c.json({ success: false, message: 'Superadmin access required' }, 403);
+  }
+  await next();
+}
+
+adminApp.use('*', requireAdminOrSupport);
+
+// Cost catalog and impersonation are superadmin-only
+adminApp.use('/costs', requireSuperAdmin);
+adminApp.use('/costs/*', requireSuperAdmin);
+adminApp.use('/impersonate/*', requireSuperAdmin);
 
 // List all tenants
 adminApp.get('/clients', async (c) => {

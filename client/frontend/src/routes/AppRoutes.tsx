@@ -8,6 +8,7 @@ import { Permission } from '../types/auth';
 const LoginPage = lazy(() => import('../pages/LoginPage'));
 const LandingPage = lazy(() => import('../pages/LandingPage'));
 const SignupPage = lazy(() => import('../pages/SignupPage'));
+const SupportPage = lazy(() => import('../pages/SupportPage'));
 const ForgotPasswordPage = lazy(() => import('../pages/auth').then(m => ({ default: m.ForgotPasswordPage })));
 const PasswordResetPage = lazy(() => import('../pages/auth').then(m => ({ default: m.PasswordResetPage })));
 const TwoFactorManagementPage = lazy(() => import('../pages/auth').then(m => ({ default: m.TwoFactorManagementPage })));
@@ -187,6 +188,7 @@ const AppRoutes: React.FC = () => {
 
         {/* Landing page */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/support" element={<SupportPage />} />
 
         {/* Catch all - redirect to landing */}
         <Route path="*" element={<Navigate to="/" replace />} />

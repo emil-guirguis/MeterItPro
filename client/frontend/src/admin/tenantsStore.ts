@@ -93,7 +93,7 @@ const tenantsService: EntityService<TenantEntity> = {
 };
 
 export const useTenantsStore = createEntityStore(tenantsService, {
-  name: 'admin_tenant',
+  name: 'tenant',
   cache: { ttl: 5 * 60 * 1000, maxAge: 30 * 60 * 1000 },
 });
 

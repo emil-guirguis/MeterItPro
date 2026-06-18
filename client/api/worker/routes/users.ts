@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import bcrypt from 'bcryptjs';
 import { Env, execQuery } from '../db';
 
-import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
+import { authenticateToken, requirePermission, clearUserCache, AuthVariables } from '../middleware';
 import { findAll, findById, create, update, remove } from '../crud';
 import { logError } from '../errorHandler';
 
@@ -274,6 +274,7 @@ app.put('/:id', requirePermission('user:update'), async (c) => {
     }
 
     const updated = await update(c.env, 'users', 'users_id', id, updateData);
+    clearUserCache();
     return c.json({ success: true, data: updated });
   } catch (error: any) {
     logError('Error updating user:', error);

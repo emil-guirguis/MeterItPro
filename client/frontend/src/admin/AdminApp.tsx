@@ -7,7 +7,7 @@ import './AdminApp.css';
 
 const AdminApp: React.FC = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
-  const isSuperAdmin = user?.role === 'superadmin';
+  const isAdminUser = user?.is_super_admin || user?.is_support_admin;
 
   if (isLoading) {
     return (
@@ -17,7 +17,7 @@ const AdminApp: React.FC = () => {
     );
   }
 
-  if (isAuthenticated && isSuperAdmin) {
+  if (isAuthenticated && isAdminUser) {
     return (
       <div className="admin-app">
         <AdminLayoutWrapper>

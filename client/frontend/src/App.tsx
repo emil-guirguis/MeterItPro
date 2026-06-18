@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
 import AppLayoutWrapper from './components/layout/AppLayoutWrapper';
 import AdminApp from './admin/AdminApp';
+import SupportApp from './support/SupportApp';
 import AdminBanner from './components/AdminBanner';
 import { prefetchAppSchemas, prefetchAppRoutes } from './utils/schemaPrefetch';
 import { invalidateExpiredCache } from '@framework/components/form/utils/schemaLoader';
@@ -22,15 +23,16 @@ function App() {
   const navigate = useNavigate();
 
   const isAdminSection = location.pathname.startsWith('/admin');
+  const isSupportSection = location.pathname.startsWith('/support');
   const isImpersonating = user?.isAdminView === true;
 
   useEffect(() => {
     console.log(`[App +${(performance.now() - appStartTime).toFixed(0)}ms] isAuthenticated=${isAuthenticated} isLoading=${isLoading}`);
   }, [isAuthenticated, isLoading]);
 
-  // Prefetch schemas for the client portal (not needed in admin section)
+  // Prefetch schemas for the client portal (not needed in admin or support section)
   useEffect(() => {
-    if (isAuthenticated && !isLoading && !isAdminSection) {
+    if (isAuthenticated && !isLoading && !isAdminSection && !isSupportSection) {
       console.log(`[App +${(performance.now() - appStartTime).toFixed(0)}ms] Auth resolved — layout mounting, starting prefetch`);
       prefetchAppRoutes();
       prefetchAppSchemas().catch((error) => {
@@ -50,18 +52,24 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Redirect authenticated superadmin from client portal to admin portal
+  // Redirect admin users from client portal to admin portal
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user?.role === 'superadmin' && !isAdminSection && !isImpersonating) {
-      navigate('/admin/dashboard', { replace: true });
+    if (!isLoading && isAuthenticated && !isImpersonating) {
+      if (user?.is_super_admin && !isAdminSection && !isSupportSection) {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (user?.is_support_admin && !user?.is_super_admin && !isSupportSection && !isAdminSection) {
+        navigate('/support/tickets', { replace: true });
+      }
     }
-  }, [isLoading, isAuthenticated, user?.role, isAdminSection, isImpersonating, navigate]);
+  }, [isLoading, isAuthenticated, user?.is_super_admin, user?.is_support_admin, isAdminSection, isSupportSection, isImpersonating, navigate]);
 
   return (
     <NotificationProvider>
       <MeterSelectionProvider>
         {isAdminSection ? (
           <AdminApp />
+        ) : isSupportSection ? (
+          <SupportApp />
         ) : (
           <>
             {isImpersonating && <AdminBanner />}

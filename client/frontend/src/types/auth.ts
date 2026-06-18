@@ -80,6 +80,8 @@ export interface User {
   updatedAt: Date;
   isAdminView?: boolean;
   adminViewTenantName?: string;
+  is_super_admin?: boolean;
+  is_support_admin?: boolean;
 }
 
 export interface LoginCredentials {

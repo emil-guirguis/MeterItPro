@@ -1,4 +1,4 @@
-import React, { forwardRef, useMemo } from 'react';
+import React, { forwardRef, useMemo, useState, useEffect, useRef } from 'react';
 import {
   TextField,
   Select,
@@ -52,6 +52,104 @@ export interface FormFieldProps {
   onBlur?: (e: React.FocusEvent) => void;
   [key: string]: any;
 }
+
+function formatPhone(input: string): string {
+  const digits = input.replace(/\D/g, '').slice(0, 10);
+  if (digits.length === 0) return '';
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+interface PhoneTextFieldProps {
+  name: string;
+  label?: string;
+  value?: string;
+  error?: string;
+  disabled?: boolean;
+  required?: boolean;
+  help?: string;
+  placeholder?: string;
+  showError?: boolean | string | null;
+  errorId?: string;
+  fieldId?: string;
+  onBlur?: (e: React.FocusEvent) => void;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const PhoneTextField: React.FC<PhoneTextFieldProps> = ({
+  name, label, value, error, disabled, required, help,
+  placeholder, showError, errorId, fieldId, onBlur, onChange,
+}) => {
+  const [local, setLocal] = useState(() => formatPhone(value ?? ''));
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<(() => void) | null>(null);
+
+  // Sync from parent only on external value changes (e.g. form load/reset)
+  const isTyping = useRef(false);
+  useEffect(() => {
+    if (!isTyping.current) {
+      setLocal(formatPhone(value ?? ''));
+    }
+  }, [value]);
+
+  // Flush pending parent update immediately
+  const flush = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    pendingRef.current?.();
+    pendingRef.current = null;
+  };
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value);
+    isTyping.current = true;
+    setLocal(formatted); // instant display — no parent re-render yet
+
+    if (onChange) {
+      const notify = () => onChange({ ...e, target: { ...e.target, name, value: formatted } });
+      if (timerRef.current) clearTimeout(timerRef.current);
+      pendingRef.current = notify;
+      timerRef.current = setTimeout(() => {
+        notify();
+        pendingRef.current = null;
+        isTyping.current = false;
+      }, 300);
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent) => {
+    isTyping.current = false;
+    flush(); // always commit value on blur before form can read it
+    onBlur?.(e);
+  };
+
+  return (
+    <TextField
+      id={fieldId}
+      name={name}
+      label={label}
+      value={local}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      required={required}
+      disabled={disabled}
+      fullWidth
+      variant="outlined"
+      error={!!showError}
+      helperText={showError ? error : help}
+      placeholder={placeholder || '(   )    -    '}
+      type="tel"
+      inputProps={{ maxLength: 14 }}
+      data-field={name}
+      data-component="tel"
+      {...(showError && { 'aria-invalid': true })}
+      aria-describedby={showError ? errorId : undefined}
+    />
+  );
+};
 
 /**
  * Reusable form field component with validation and error display
@@ -395,47 +493,21 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
 
         case 'tel':
         case 'phone': {
-          // Format phone as US: (XXX) XXX-XXXX
-          const formatPhoneValue = (input: string): string => {
-            const digits = input.replace(/\D/g, '').slice(0, 10);
-            if (digits.length === 0) return '';
-            if (digits.length <= 3) return `(${digits}`;
-            if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-            return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-          };
-
-          const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-            const formatted = formatPhoneValue(e.target.value);
-            const syntheticEvent = {
-              target: {
-                name,
-                value: formatted,
-              },
-            } as React.ChangeEvent<HTMLInputElement>;
-            onChange(syntheticEvent);
-          };
-
           return (
-            <TextField
-              id={fieldId}
+            <PhoneTextField
               name={name}
               label={label}
-              value={value ?? ''}
-              onChange={handlePhoneChange}
-              onBlur={onBlur}
-              required={required}
+              value={value}
+              error={error}
               disabled={disabled}
-              fullWidth
-              variant="outlined"
-              error={showError}
-              helperText={showError ? error : help}
-              placeholder={placeholder || '() -'}
-              type="tel"
-              inputProps={{ maxLength: 14 }}
-              data-field={name}
-              data-component="tel"
-              {...(showError && { 'aria-invalid': true })}
-              aria-describedby={showError ? errorId : undefined}
+              required={required}
+              help={help}
+              placeholder={placeholder}
+              showError={showError}
+              errorId={errorId}
+              fieldId={fieldId}
+              onBlur={onBlur}
+              onChange={onChange as any}
             />
           );
         }

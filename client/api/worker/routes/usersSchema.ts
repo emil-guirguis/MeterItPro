@@ -22,7 +22,7 @@ export const userSchema = defineSchema({
             field({ name: 'email', order: 2, type: FieldTypes.EMAIL, default: '', required: true, label: 'Email', dbField: 'email', maxLength: 254, placeholder: 'email@yahoo.com', showOn: ['list', 'form'] }),
             field({ name: 'phone', order: 3, type: FieldTypes.PHONE, default: '', required: true, label: 'Phone', dbField: 'phone', maxLength: 20, placeholder: '(xxx) xxx-xxxx', showOn: ['list', 'form'] }),
             field({ name: 'password', order: 3, type: 'password', default: '', required: true, label: 'Password', dbField: 'password', maxLength: 200, placeholder: '********', showOn: ['form'] }),
-            field({ name: 'role', order: 4, type: FieldTypes.STRING, default: 'viewer', required: false, label: 'Role', dbField: 'role', maxLength: 20, enumValues: ['superadmin', 'admin', 'manager', 'technician', 'viewer'], placeholder: 'viewer', filertable: ['true'], showOn: ['list', 'form'] }),
+            field({ name: 'role', order: 4, type: FieldTypes.STRING, default: 'viewer', required: false, label: 'Role', dbField: 'role', maxLength: 20, enumValues: ['superadmin', 'supersupport', 'adminsupport', 'admin', 'manager', 'technician', 'viewer', 'user'], placeholder: 'viewer', filertable: ['true'], showOn: ['list', 'form'] }),
           ],
         }),
         section({
@@ -33,6 +33,17 @@ export const userSchema = defineSchema({
           flexShrink: 0,
           fields: [
             field({ name: 'active', order: 1, type: FieldTypes.BOOLEAN, default: true, required: false, label: 'Active', dbField: 'active', showOn: ['list', 'form'] }),
+          ],
+        }),
+        section({
+          name: 'Admin Access',
+          order: 3,
+          maxWidth: '160px',
+          flexGrow: 0,
+          flexShrink: 0,
+          fields: [
+            field({ name: 'is_super_admin',   order: 1, type: FieldTypes.BOOLEAN, default: false, required: false, label: 'Super Admin',   dbField: 'is_super_admin',   showOn: ['form'] }),
+            field({ name: 'is_support_admin', order: 2, type: FieldTypes.BOOLEAN, default: false, required: false, label: 'Support Admin', dbField: 'is_support_admin', showOn: ['form'] }),
           ],
         }),
       ],

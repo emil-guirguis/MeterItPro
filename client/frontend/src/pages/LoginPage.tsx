@@ -5,40 +5,36 @@ import LoginForm from '../components/auth/LoginForm';
 import { useAuth } from '../hooks/useAuth';
 import { authService } from '../services/authService';
 
+function portalRedirect(user: any, fallback: string): string {
+  if (user?.is_super_admin) return '/admin/dashboard';
+  if (user?.is_support_admin) return '/support/tickets';
+  return fallback;
+}
+
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
-  // Get location state for pre-filled credentials and messages
   const locationState = location.state as any;
   const from = locationState?.from?.pathname || '/dashboard';
   const prefilledEmail = locationState?.email || '';
   const prefilledPassword = locationState?.password || '';
   const successMessage = locationState?.message || '';
 
-  // Redirect if already authenticated (but NOT if user explicitly logged out)
   useEffect(() => {
-    // Don't redirect if user explicitly logged out
-    if (authService.hasLogoutFlag()) {
-      console.log('🚫 Logout flag detected, staying on login page');
-      return;
-    }
-    
+    if (authService.hasLogoutFlag()) return;
     if (isAuthenticated && !isLoading) {
-      console.log('✅ Already authenticated, redirecting to:', from);
-      navigate(from, { replace: true });
+      navigate(portalRedirect(user, from), { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate, from]);
+  }, [isAuthenticated, isLoading, user, navigate, from]);
 
-  // Handle successful login
-  const handleLoginSuccess = () => {
-    navigate(from, { replace: true });
+  const handleLoginSuccess = (response?: any) => {
+    navigate(portalRedirect(response?.user, from), { replace: true });
   };
 
-  // Show spinner while redirecting authenticated users (avoids white flash)
   if (isAuthenticated && !authService.hasLogoutFlag()) {
     return (
       <Box display="flex" alignItems="center" justifyContent="center" minHeight="100vh">
@@ -59,8 +55,8 @@ const LoginPage: React.FC = () => {
         justifyContent: 'center',
       }}
     >
-      <LoginForm 
-        onSuccess={handleLoginSuccess} 
+      <LoginForm
+        onSuccess={handleLoginSuccess}
         redirectTo={from}
         prefilledEmail={prefilledEmail}
         prefilledPassword={prefilledPassword}

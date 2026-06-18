@@ -61,6 +61,11 @@
   color: #0f62fe;
 }
 
+.landing-nav-active {
+  color: #0f62fe !important;
+  font-weight: 700;
+}
+
 .landing-dropdown {
   position: relative;
 }

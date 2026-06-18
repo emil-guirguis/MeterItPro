@@ -77,7 +77,7 @@ const adminDevicesService = {
 };
 
 export const useAdminDevicesStore = createEntityStore(adminDevicesService, {
-  name: 'admin_device',
+  name: 'device',
   cache: { ttl: 5 * 60 * 1000, maxAge: 30 * 60 * 1000 },
 });
 

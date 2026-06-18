@@ -26,10 +26,26 @@ const ADMIN_PERMISSIONS = {
   settings: { read: true, update: true },
   building: { create: true, read: true, update: true, delete: true },
   equipment: { create: true, read: true, update: true, delete: true },
+  dashboard: { create: true, read: true, update: true, delete: true, admin: true },
+};
+
+const SUPPORT_READ_PERMISSIONS = {
+  user: { read: true },
+  meter: { read: true },
+  device: { read: true },
+  location: { read: true },
+  contact: { read: true },
+  template: { read: true },
+  settings: { read: true },
+  building: { read: true },
+  equipment: { read: true },
+  dashboard: { read: true },
 };
 
 const ROLE_PERMISSIONS: Record<string, any> = {
   superadmin: ADMIN_PERMISSIONS,
+  supersupport: SUPPORT_READ_PERMISSIONS,
+  adminsupport: SUPPORT_READ_PERMISSIONS,
   admin: ADMIN_PERMISSIONS,
   manager: {
     user: { read: true },
@@ -41,6 +57,7 @@ const ROLE_PERMISSIONS: Record<string, any> = {
     settings: { read: true },
     building: { create: true, read: true, update: true },
     equipment: { create: true, read: true, update: true },
+    dashboard: { create: true, read: true, update: true, delete: true },
   },
   viewer: {
     meter: { read: true },
@@ -51,6 +68,18 @@ const ROLE_PERMISSIONS: Record<string, any> = {
     settings: { read: true },
     building: { read: true },
     equipment: { read: true },
+    dashboard: { read: true },
+  },
+  user: {
+    meter: { read: true },
+    device: { read: true },
+    location: { read: true },
+    contact: { read: true },
+    template: { read: true },
+    settings: { read: true },
+    building: { read: true },
+    equipment: { read: true },
+    dashboard: { read: true },
   },
 };
 
@@ -604,6 +633,8 @@ auth.post('/login', ipRateLimit(10, 60 * 1000), async (c) => {
           role: user.role,
           permissions,
           status: user.active ? 'active' : 'inactive',
+          is_super_admin: user.is_super_admin || false,
+          is_support_admin: user.is_support_admin || false,
         },
         tenant: tenantInfo,
         token,
@@ -772,6 +803,8 @@ auth.post('/verify-2fa', async (c) => {
           role: user.role,
           permissions,
           status: user.active ? 'active' : 'inactive',
+          is_super_admin: user.is_super_admin || false,
+          is_support_admin: user.is_support_admin || false,
         },
         tenant: tenantInfo,
         token,
@@ -993,6 +1026,28 @@ auth.post('/reset-password', async (c) => {
 auth.use('/change-password', authenticateToken);
 auth.use('/2fa/*', authenticateToken);
 auth.use('/verify', authenticateToken);
+auth.use('/logout', authenticateToken);
+
+/**
+ * POST /logout
+ * Invalidate session (JWT is stateless; client must clear token on its end)
+ */
+auth.post('/logout', async (c) => {
+  try {
+    const partial = c.get('user');
+    await logAuthEvent(env(c), {
+      userId: partial?.users_id,
+      eventType: 'logout',
+      status: 'success',
+      ipAddress: c.req.header('cf-connecting-ip') || undefined,
+      userAgent: c.req.header('user-agent') || undefined,
+    });
+    return c.json({ success: true, message: 'Logged out successfully' });
+  } catch (error: any) {
+    logError('Logout error:', error);
+    return c.json({ success: true, message: 'Logged out' });
+  }
+});
 
 /**
  * POST /change-password
@@ -1589,6 +1644,8 @@ auth.post('/refresh', async (c) => {
           role: user.role,
           permissions,
           status: user.active ? 'active' : 'inactive',
+          is_super_admin: user.is_super_admin || false,
+          is_support_admin: user.is_support_admin || false,
         },
         token: newToken,
         refreshToken: newRefreshToken,

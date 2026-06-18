@@ -163,25 +163,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         log(`Token in storage: ${token ? 'YES' : 'NO'}`);
 
         if (!token) {
-          // No token — try dev auto-login if configured
-          const autoLoginEnabled = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTO_LOGIN === 'true';
-          const devEmail = import.meta.env.VITE_DEV_EMAIL as string | undefined;
-          const devPassword = import.meta.env.VITE_DEV_PASSWORD as string | undefined;
-
-          if (autoLoginEnabled && devEmail && devPassword) {
-            log('Dev auto-login: attempting...');
-            try {
-              await login({ email: devEmail, password: devPassword, rememberMe: true });
-              log(`Dev auto-login succeeded (+${(performance.now() - t0).toFixed(0)}ms)`);
-              return;
-            } catch (autoLoginError) {
-              log(`Dev auto-login failed: ${autoLoginError instanceof Error ? autoLoginError.message : String(autoLoginError)}`);
-              dispatch({ type: 'SET_LOADING', payload: false });
-              return;
-            }
-          }
-
-          log('No token, no dev auto-login — user not authenticated');
+          log('No token — user not authenticated');
           dispatch({ type: 'SET_LOADING', payload: false });
           return;
         }
@@ -354,21 +336,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = (): void => {
     try {
       console.log('🚪 Logging out user...');
-      
-      // Clear stored tokens FIRST
+
+      // Capture token BEFORE clearing so the API call can still authenticate
+      const currentToken = authService.getStoredToken();
+
       authService.clearStoredToken();
       console.log('🗑️ Tokens cleared');
-      
+
       // Set logout flag to prevent auto-login
       authService.setLogoutFlag();
       console.log('🚩 Logout flag set');
-      
+
       // Dispatch logout to clear state
       dispatch({ type: 'LOGOUT' });
       console.log('✅ Logout state updated');
-      
-      // Call logout API if needed (don't wait for it)
-      authService.logout().catch((error: unknown) => {
+
+      // Call logout API with captured token (token already cleared from storage)
+      authService.logout(currentToken).catch((error: unknown) => {
         console.error('Logout API call failed:', error);
       });
     } catch (error) {

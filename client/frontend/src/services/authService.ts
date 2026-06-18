@@ -165,13 +165,18 @@ class AuthService {
 
 
   // Logout method
-  async logout(): Promise<void> {
+  async logout(currentToken?: string | null): Promise<void> {
     try {
       // Clear tenant ID from localStorage
       localStorage.removeItem('tenantId');
       console.log('🗑️ Tenant ID cleared from localStorage');
-      
-      await this.apiClient.post('/auth/logout');
+
+      // Use explicitly passed token if provided (storage may already be cleared by caller)
+      const headers: Record<string, string> = {};
+      if (currentToken) {
+        headers.Authorization = `Bearer ${currentToken}`;
+      }
+      await this.apiClient.post('/auth/logout', {}, { headers });
     } catch (error) {
       // Log error but don't throw - logout should always succeed locally
       console.error('Logout API call failed:', error);
