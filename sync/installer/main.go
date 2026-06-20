@@ -24,11 +24,11 @@ var dockerComposeYML []byte
 var schemaSQL []byte
 
 const (
-	installDir    = `C:\MeterItPro\SyncServer`
-	dockerDLURL   = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
 	defaultAPIURL = "https://meteritpro.com/api"
 	githubOwner   = "emil-guirguis"
 )
+
+var installDir string
 
 // ── Bootstrap response ────────────────────────────────────────────────────────
 
@@ -50,8 +50,13 @@ type bootstrapData struct {
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 func main() {
-	if runtime.GOOS != "windows" {
-		die("This installer is for Windows only.")
+	switch runtime.GOOS {
+	case "windows":
+		installDir = `C:\MeterItPro\SyncServer`
+	case "linux":
+		installDir = "/opt/meteritpro"
+	default:
+		die("Unsupported OS: " + runtime.GOOS + ". Only Windows and Ubuntu Linux are supported.")
 	}
 
 	printBanner()
@@ -75,10 +80,10 @@ func main() {
 	cfg := fetchBootstrap(serverID, bootstrapKey)
 	ok("Config received")
 
-	step(3, "Configuring Windows for 24/7 operation")
-	hardenWindows()
+	step(3, "Configuring system for 24/7 operation")
+	hardenSystem()
 
-	step(4, "Docker Desktop")
+	step(4, "Docker")
 	ensureDocker(r)
 
 	step(5, "Authenticating with GitHub Container Registry")
@@ -142,7 +147,15 @@ func fetchBootstrap(serverID, key string) bootstrapData {
 	return bootstrapData{}
 }
 
-// ── Windows hardening ─────────────────────────────────────────────────────────
+// ── System hardening ──────────────────────────────────────────────────────────
+
+func hardenSystem() {
+	if runtime.GOOS == "windows" {
+		hardenWindows()
+	} else {
+		hardenLinux()
+	}
+}
 
 func hardenWindows() {
 	ps := []struct{ label, script string }{
@@ -202,6 +215,31 @@ func hardenWindows() {
 	}
 }
 
+func hardenLinux() {
+	cmds := []struct {
+		label string
+		args  []string
+	}{
+		{
+			"Disable sleep and suspend",
+			[]string{"systemctl", "mask", "sleep.target", "suspend.target", "hibernate.target", "hybrid-sleep.target"},
+		},
+		{
+			"Enable Docker service on boot",
+			[]string{"systemctl", "enable", "docker"},
+		},
+	}
+
+	for _, c := range cmds {
+		fmt.Printf("  %-58s", c.label+"...")
+		if err := exec.Command(c.args[0], c.args[1:]...).Run(); err != nil {
+			fmt.Println("⚠ skipped")
+		} else {
+			fmt.Println("✓")
+		}
+	}
+}
+
 // ── Docker ────────────────────────────────────────────────────────────────────
 
 func dockerRunning() bool {
@@ -213,10 +251,19 @@ func dockerRunning() bool {
 
 func ensureDocker(r *bufio.Reader) {
 	if dockerRunning() {
-		ok("Docker Desktop already running")
+		ok("Docker already running")
 		return
 	}
 
+	if runtime.GOOS == "windows" {
+		ensureDockerWindows(r)
+	} else {
+		ensureDockerLinux()
+	}
+}
+
+func ensureDockerWindows(r *bufio.Reader) {
+	const dockerDLURL = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
 	fmt.Println("  Docker Desktop not detected. Downloading installer...")
 	tmp := filepath.Join(os.TempDir(), "DockerDesktopInstaller.exe")
 	if err := downloadFile(tmp, dockerDLURL); err != nil {
@@ -245,6 +292,94 @@ func ensureDocker(r *bufio.Reader) {
 	}
 	fmt.Println()
 	die("Docker did not start within 3 minutes. Launch it manually then re-run this installer.")
+}
+
+func ensureDockerLinux() {
+	fmt.Println("  Installing Docker Engine from official Docker repository...")
+
+	prereqs := []struct {
+		label string
+		args  []string
+	}{
+		{"Update apt", []string{"apt-get", "update", "-qq"}},
+		{"Install prerequisites", []string{"apt-get", "install", "-y", "-qq", "ca-certificates", "curl"}},
+		{"Create keyrings directory", []string{"install", "-m", "0755", "-d", "/etc/apt/keyrings"}},
+	}
+	for _, s := range prereqs {
+		fmt.Printf("  %-58s", s.label+"...")
+		cmd := exec.Command(s.args[0], s.args[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			die(s.label + " failed: " + err.Error())
+		}
+		fmt.Println("✓")
+	}
+
+	fmt.Printf("  %-58s", "Add Docker GPG key...")
+	if err := downloadFile("/etc/apt/keyrings/docker.asc", "https://download.docker.com/linux/ubuntu/gpg"); err != nil {
+		die("Failed to download Docker GPG key: " + err.Error())
+	}
+	exec.Command("chmod", "a+r", "/etc/apt/keyrings/docker.asc").Run()
+	fmt.Println("✓")
+
+	codename := strings.TrimSpace(runOutput("sh", "-c", `. /etc/os-release && echo "$VERSION_CODENAME"`))
+	if codename == "" {
+		codename = "noble" // Ubuntu 24.04 LTS fallback
+	}
+	arch := strings.TrimSpace(runOutput("dpkg", "--print-architecture"))
+	if arch == "" {
+		arch = "amd64"
+	}
+
+	repoLine := fmt.Sprintf(
+		"deb [arch=%s signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu %s stable\n",
+		arch, codename,
+	)
+	fmt.Printf("  %-58s", "Add Docker apt repository...")
+	if err := os.WriteFile("/etc/apt/sources.list.d/docker.list", []byte(repoLine), 0644); err != nil {
+		die("Cannot write docker.list: " + err.Error())
+	}
+	fmt.Println("✓")
+
+	fmt.Printf("  %-58s", "Update apt cache...")
+	cmd := exec.Command("apt-get", "update", "-qq")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		die("apt-get update failed: " + err.Error())
+	}
+	fmt.Println("✓")
+
+	fmt.Printf("  %-58s", "Install Docker Engine + Compose plugin...")
+	cmd = exec.Command("apt-get", "install", "-y", "-qq",
+		"docker-ce", "docker-ce-cli", "containerd.io",
+		"docker-buildx-plugin", "docker-compose-plugin")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		die("Docker install failed: " + err.Error())
+	}
+	fmt.Println("✓")
+
+	fmt.Printf("  %-58s", "Start Docker service...")
+	if err := exec.Command("systemctl", "start", "docker").Run(); err != nil {
+		die("Could not start Docker: " + err.Error())
+	}
+	fmt.Println("✓")
+
+	fmt.Print("  Waiting for Docker daemon")
+	for i := 0; i < 12; i++ {
+		if dockerRunning() {
+			fmt.Println()
+			ok("Docker Engine ready")
+			return
+		}
+		fmt.Print(".")
+		time.Sleep(5 * time.Second)
+	}
+	fmt.Println()
+	die("Docker did not start within 60 seconds.")
 }
 
 func dockerLogin(cfg bootstrapData) {
@@ -347,14 +482,24 @@ func compose(args ...string) {
 // ── Admin elevation ───────────────────────────────────────────────────────────
 
 func isAdmin() bool {
-	return exec.Command("net", "session").Run() == nil
+	if runtime.GOOS == "windows" {
+		return exec.Command("net", "session").Run() == nil
+	}
+	return os.Geteuid() == 0
 }
 
 func elevate() {
-	exe, _ := os.Executable()
-	script := fmt.Sprintf(`Start-Process -FilePath "%s" -Verb RunAs`, exe)
-	if err := exec.Command("powershell", "-Command", script).Run(); err != nil {
-		die("Could not request administrator privileges: " + err.Error())
+	if runtime.GOOS == "windows" {
+		exe, _ := os.Executable()
+		script := fmt.Sprintf(`Start-Process -FilePath "%s" -Verb RunAs`, exe)
+		exec.Command("powershell", "-Command", script).Run()
+	} else {
+		exe, _ := os.Executable()
+		cmd := exec.Command("sudo", exe)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Run()
 	}
 	os.Exit(0)
 }
@@ -363,6 +508,11 @@ func elevate() {
 
 func runPS(script string) error {
 	return exec.Command("powershell", "-NonInteractive", "-Command", script).Run()
+}
+
+func runOutput(name string, args ...string) string {
+	out, _ := exec.Command(name, args...).Output()
+	return string(out)
 }
 
 func downloadFile(dest, url string) error {
@@ -409,7 +559,7 @@ func step(n int, label string) {
 	fmt.Println("  " + strings.Repeat("─", len(label)+2))
 }
 
-func ok(msg string)  { fmt.Printf("  ✓ %s\n", msg) }
+func ok(msg string) { fmt.Printf("  ✓ %s\n", msg) }
 
 func die(msg string) {
 	fmt.Fprintln(os.Stderr, "\n  ✗ ERROR:", msg)
@@ -419,30 +569,36 @@ func die(msg string) {
 }
 
 func printBanner() {
-	fmt.Print(`
+	platform := "Windows"
+	if runtime.GOOS == "linux" {
+		platform = "Ubuntu Linux"
+	}
+	fmt.Printf(`
 ╔════════════════════════════════════════════════════════╗
 ║       MeterItPro — Sync Server Setup                   ║
 ╠════════════════════════════════════════════════════════╣
+║  Platform: %-44s║
 ║  This wizard will:                                     ║
-║   1. Configure Windows for 24/7 server operation       ║
-║   2. Install Docker Desktop (if not already installed) ║
+║   1. Configure system for 24/7 server operation        ║
+║   2. Install Docker (if not already installed)         ║
 ║   3. Authenticate with GitHub Container Registry       ║
 ║   4. Deploy all sync server containers                 ║
 ║   5. Activate your Cloudflare Tunnel automatically     ║
 ╚════════════════════════════════════════════════════════╝
 
-`)
+`, platform)
 }
 
 func printDone() {
-	fmt.Print(`
+	if runtime.GOOS == "windows" {
+		fmt.Print(`
 ╔════════════════════════════════════════════════════════╗
 ║  ✓  Setup complete!                                    ║
 ║                                                        ║
 ║  All services are starting. Your Cloudflare tunnel     ║
 ║  will activate automatically within ~60 seconds.       ║
 ║                                                        ║
-║  To check status, run:                                 ║
+║  To check status:                                      ║
 ║    docker compose -f                                   ║
 ║    C:\MeterItPro\SyncServer\docker-compose.yml ps      ║
 ║                                                        ║
@@ -451,4 +607,22 @@ func printDone() {
 ║    C:\MeterItPro\SyncServer\docker-compose.yml logs -f ║
 ╚════════════════════════════════════════════════════════╝
 `)
+	} else {
+		fmt.Print(`
+╔════════════════════════════════════════════════════════╗
+║  ✓  Setup complete!                                    ║
+║                                                        ║
+║  All services are starting. Your Cloudflare tunnel     ║
+║  will activate automatically within ~60 seconds.       ║
+║                                                        ║
+║  To check status:                                      ║
+║    docker compose -f                                   ║
+║    /opt/meteritpro/docker-compose.yml ps               ║
+║                                                        ║
+║  To view logs:                                         ║
+║    docker compose -f                                   ║
+║    /opt/meteritpro/docker-compose.yml logs -f          ║
+╚════════════════════════════════════════════════════════╝
+`)
+	}
 }

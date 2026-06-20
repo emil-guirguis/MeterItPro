@@ -1,5 +1,16 @@
 services:
 
+  # ── GHCR login (runs once on compose up, refreshes host Docker credentials) ──
+  ghcr-login:
+    image: docker:cli
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      GITHUB_USER: ${GITHUB_USER}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+    command: sh -c "echo $$GITHUB_TOKEN | docker login ghcr.io -u $$GITHUB_USER --password-stdin"
+    restart: "no"
+
   db:
     image: postgres:18
     ports:
@@ -9,7 +20,7 @@ services:
       POSTGRES_USER: ${POSTGRES_SYNC_USER}
       POSTGRES_PASSWORD: ${POSTGRES_SYNC_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql
+      - pgdata:/var/lib/postgresql/data
       - ./docker/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SYNC_USER} -d ${POSTGRES_SYNC_DB}"]
@@ -99,6 +110,8 @@ services:
       DOCKER_API_VERSION: "1.45"
     command: --label-enable --cleanup --interval 300
     restart: unless-stopped
+    depends_on:
+      - ghcr-login
     labels:
       com.centurylinklabs.watchtower.enable: "false"
 

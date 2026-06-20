@@ -33,7 +33,7 @@ services:
       POSTGRES_USER: ${POSTGRES_SYNC_USER}
       POSTGRES_PASSWORD: ${POSTGRES_SYNC_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql
+      - pgdata:/var/lib/postgresql/data
       - ./docker/init:/docker-entrypoint-initdb.d   # applied once on first start
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SYNC_USER} -d ${POSTGRES_SYNC_DB}"]

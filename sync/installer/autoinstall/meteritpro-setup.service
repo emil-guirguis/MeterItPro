@@ -1,0 +1,15 @@
+[Unit]
+Description=MeterItPro Sync Server First-Boot Setup
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/opt/meteritpro/.env
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/meteritpro-firstboot.sh
+StandardInput=tty
+TTYPath=/dev/tty1
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,58 @@
+#cloud-config
+autoinstall:
+  version: 1
+
+  locale: en_US.UTF-8
+
+  keyboard:
+    layout: us
+
+  # DHCP on all ethernet interfaces — covers modern (enp3s0) and legacy (eth0) naming
+  network:
+    network:
+      version: 2
+      ethernets:
+        all-en:
+          match:
+            name: "en*"
+          dhcp4: true
+          optional: true
+        all-eth:
+          match:
+            name: "eth*"
+          dhcp4: true
+          optional: true
+
+  storage:
+    layout:
+      name: direct
+
+  identity:
+    hostname: meteritpro-sync
+    username: meteritpro
+    # Temporary hash — late-commands changes password to MeterItPro1! before first boot
+    password: "$6$exDY1mhS4KUYCE/2$zmn9ToZwTKLhCw.b4/b.ZRTIZM30JZ4QrOQ2aOXJ8yk96xpcCy68O0nG3VX7MOFzGj3/3JkiJoJDQCjVBM9Q0"
+
+  ssh:
+    install-server: true
+    allow-pw: true
+
+  packages:
+    - wget
+    - curl
+
+  late-commands:
+    # Set real password (override temp hash above)
+    - echo 'meteritpro:MeterItPro1!' | chpasswd --root /target
+
+    # Copy MeterItPro installer from USB to installed system
+    - cp /cdrom/autoinstall/MeterItPro-SyncSetup-linux /target/usr/local/bin/meteritpro-install
+    - chmod +x /target/usr/local/bin/meteritpro-install
+
+    # Copy first-boot script and systemd service
+    - cp /cdrom/autoinstall/firstboot.sh /target/usr/local/bin/meteritpro-firstboot.sh
+    - chmod +x /target/usr/local/bin/meteritpro-firstboot.sh
+    - cp /cdrom/autoinstall/meteritpro-setup.service /target/etc/systemd/system/meteritpro-setup.service
+
+    # Enable first-boot service
+    - curtin in-target --target=/target -- systemctl enable meteritpro-setup.service
