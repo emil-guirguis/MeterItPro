@@ -1,4 +1,4 @@
-# MeterItPro — Prepare Ubuntu USB for automated sync server install
+# MeterItPro - Prepare Ubuntu USB for automated sync server install
 # Run as Administrator after flashing USB with Rufus.
 #
 # Usage:
@@ -27,7 +27,7 @@ if (-not (Test-Path $InstallerBin)) {
 
 Write-Host ""
 Write-Host "MeterItPro USB Preparation"
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+Write-Host "--------------------------"
 Write-Host ""
 
 # Copy autoinstall files
@@ -73,6 +73,6 @@ Write-Host "  1. Safely eject the USB"
 Write-Host "  2. Plug USB into the server"
 Write-Host "  3. Boot from USB (press F12/F9/F8 at startup for boot menu)"
 Write-Host "  4. Ubuntu installs automatically (~10-15 min)"
-Write-Host "  5. Server reboots — MeterItPro setup runs on screen"
+Write-Host "  5. Server reboots - MeterItPro setup runs on screen"
 Write-Host "  6. Enter Sync Server ID and Bootstrap Key when prompted"
 Write-Host ""
