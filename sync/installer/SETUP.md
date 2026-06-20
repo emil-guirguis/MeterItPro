@@ -70,6 +70,7 @@
    - In the left sidebar click **Build Sync Installer**
    - Click the latest successful run (green checkmark)
    - Scroll to the bottom of the run page — you'll see an **Artifacts** section
+   - **You must be logged into GitHub** for the artifact names to be clickable download links
    - Download both:
      - `MeterItPro-SyncSetup-Linux` → extracts to `MeterItPro-SyncSetup-linux` (the installer binary)
      - `MeterItPro-autoinstall` → extracts to `MeterItPro-autoinstall.zip` → extract again → you get an `autoinstall/` folder
@@ -108,14 +109,20 @@ MeterItPro-SyncSetup-linux        ← the installer binary
 
 Copy `MeterItPro-SyncSetup-linux` into the `autoinstall\` folder so it sits alongside the other files.
 
+First, find your USB drive letter:
+- Open **File Explorer** → look under **This PC** for the USB drive (e.g. `D:`, `E:`, `F:`)
+- It will appear as a removable drive, often labeled `UBUNTU-SERVER` after flashing
+
 Then open **PowerShell as Administrator** and run:
 
 ```powershell
 cd C:\path\to\autoinstall
-.\prepare-usb.ps1 -UsbDrive E: -InstallerBin .\MeterItPro-SyncSetup-linux
+powershell -ExecutionPolicy Bypass -File .\prepare-usb.ps1 -UsbDrive E: -InstallerBin .\MeterItPro-SyncSetup-linux
 ```
 
-Replace `C:\path\to\autoinstall` with where your `autoinstall\` folder is, and `E:` with your USB drive letter (check Disk Management or File Explorer).
+Replace `C:\path\to\autoinstall` with where your `autoinstall\` folder is, and `E:` with the actual USB drive letter you found above.
+
+> **Why `-ExecutionPolicy Bypass`?** Windows blocks unsigned PowerShell scripts by default. This flag allows the script to run for this one command without changing your system settings.
 
 This script:
 - Creates `autoinstall\` on the USB and copies all config files + binary
@@ -124,7 +131,7 @@ This script:
 Expected output:
 ```
 MeterItPro USB Preparation
-━━━━━━━━━━━━━━━━━━━━━━━━━━
+--------------------------
 
 Copying autoinstall files to E:\autoinstall...
   Files copied.
@@ -133,6 +140,8 @@ Patching grub.cfg...
 
 USB is ready.
 ```
+
+> If you see `Drive X: not found` — wrong drive letter. Check File Explorer and use the correct one.
 
 > If you see `grub.cfg not found` — the USB was not flashed correctly with Rufus. Redo Step 3.
 
