@@ -1,5 +1,18 @@
 # MeterItPro Sync Server — Setup Guide
 
+## Quick checklist
+
+- [ ] Step 1 — Provision tunnel on client site
+- [ ] Step 2 — Download ISO, Rufus, and MeterItPro files
+- [ ] Step 3 — Flash USB with Rufus
+- [ ] Step 4 — Run `prepare-usb.ps1` to patch USB
+- [ ] Step 5 — Boot server from USB
+- [ ] Step 6 — Wait for automated Ubuntu install (~10–15 min)
+- [ ] Step 7 — Enter Sync Server ID + Bootstrap Key when prompted
+- [ ] Step 8 — Confirm Online status on client site
+
+---
+
 ## What gets installed
 
 - Ubuntu Server 24.04 LTS
@@ -51,10 +64,17 @@
 2. **Rufus** (USB flash tool, free, no install needed)
    - https://rufus.ie
 
-3. **MeterItPro-SyncSetup-Linux** and **MeterItPro-autoinstall.zip** from GitHub Actions
-   - Go to the repo → **Actions** → latest `Build Sync Installer` run → **Artifacts**
-   - Download both `MeterItPro-SyncSetup-Linux` and `MeterItPro-autoinstall`
-   - Extract `MeterItPro-autoinstall.zip` — you'll get an `autoinstall/` folder
+3. **MeterItPro installer files** from GitHub Actions
+   - Open: `https://github.com/emil-guirguis/MeterItPro/actions`
+   - Click the **Actions** tab if not already there
+   - In the left sidebar click **Build Sync Installer**
+   - Click the latest successful run (green checkmark)
+   - Scroll to the bottom of the run page — you'll see an **Artifacts** section
+   - Download both:
+     - `MeterItPro-SyncSetup-Linux` → extracts to `MeterItPro-SyncSetup-linux` (the installer binary)
+     - `MeterItPro-autoinstall` → extracts to `MeterItPro-autoinstall.zip` → extract again → you get an `autoinstall/` folder
+
+   > **Note:** GitHub wraps each artifact in an outer zip. You may need to extract twice to get the actual files.
 
 ---
 
@@ -64,15 +84,29 @@
 2. Open Rufus
 3. **Device**: select your USB stick
 4. **Boot selection**: click SELECT → pick the Ubuntu ISO
-5. Leave all other settings as default
-6. Click **START** → click OK on any warnings
-7. Wait ~5 minutes until complete
+5. When Rufus asks about write mode — choose **ISO Image mode (Recommended)**
+6. Leave all other settings as default
+7. Click **START** → click OK on any warnings
+8. Wait ~5 minutes until complete
+
+> **Important:** Use ISO Image mode, not DD Image mode. DD mode writes a raw image that won't have a readable `boot\grub\grub.cfg` for Step 4 to patch.
 
 ---
 
 ## Step 4 — Prepare USB for automated install
 
-Copy the downloaded `MeterItPro-SyncSetup-linux` binary into the extracted `autoinstall/` folder.
+After Step 2, you should have:
+```
+autoinstall\
+  firstboot.sh
+  meta-data
+  meteritpro-setup.service
+  prepare-usb.ps1
+  user-data
+MeterItPro-SyncSetup-linux        ← the installer binary
+```
+
+Copy `MeterItPro-SyncSetup-linux` into the `autoinstall\` folder so it sits alongside the other files.
 
 Then open **PowerShell as Administrator** and run:
 
@@ -81,11 +115,26 @@ cd C:\path\to\autoinstall
 .\prepare-usb.ps1 -UsbDrive E: -InstallerBin .\MeterItPro-SyncSetup-linux
 ```
 
-Replace `C:\path\to\autoinstall` with where you extracted the zip, and `E:` with your USB drive letter.
+Replace `C:\path\to\autoinstall` with where your `autoinstall\` folder is, and `E:` with your USB drive letter (check Disk Management or File Explorer).
 
 This script:
-- Copies the autoinstall config and installer binary onto the USB
-- Patches the USB boot menu to trigger automated install on next boot
+- Creates `autoinstall\` on the USB and copies all config files + binary
+- Patches `grub.cfg` on the USB boot partition to trigger automated install on next boot
+
+Expected output:
+```
+MeterItPro USB Preparation
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Copying autoinstall files to E:\autoinstall...
+  Files copied.
+Patching grub.cfg...
+  grub.cfg patched.
+
+USB is ready.
+```
+
+> If you see `grub.cfg not found` — the USB was not flashed correctly with Rufus. Redo Step 3.
 
 ---
 
@@ -148,10 +197,27 @@ When complete:
 
 1. Go back to **Settings → Sync Servers** on the MeterItPro client site
 2. The server status should change to **Online** within 60 seconds
-3. If still **Offline** after 2 minutes, check logs on the server:
+3. If still **Offline** after 2 minutes, SSH into the server and check logs:
    ```bash
+   # Check all containers are running
+   docker compose -f /opt/meteritpro/docker-compose.yml ps
+
+   # Check tunnel logs specifically
    docker compose -f /opt/meteritpro/docker-compose.yml logs sync-provisioner
+
+   # Check all logs
+   docker compose -f /opt/meteritpro/docker-compose.yml logs -f
    ```
+
+### Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| USB not in boot menu | Secure Boot blocking | Enter BIOS → disable Secure Boot |
+| Ubuntu install not automated (shows interactive prompts) | grub.cfg not patched | Re-run `prepare-usb.ps1` or patch manually |
+| Setup hangs at Docker install | No internet | Check ethernet cable; confirm DHCP assigned IP |
+| Server stays Offline | Wrong Sync Server ID or Bootstrap Key | Re-run `/usr/local/bin/meteritpro-install` with correct values |
+| `grub.cfg not found` in Step 4 | Rufus used DD mode | Re-flash USB with ISO Image mode |
 
 ---
 
