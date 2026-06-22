@@ -336,9 +336,9 @@ async function verifyBackupCode(env: Env, userId: number, code: string): Promise
 
 // ===== TURNSTILE VERIFICATION =====
 
-async function verifyTurnstile(env: Env, token: string | undefined, ip: string): Promise<boolean> {
-  if (!env.TURNSTILE_SECRET) return true;
-  if (!token) return false;
+async function verifyTurnstile(env: Env, token: string | undefined, ip: string): Promise<{ ok: boolean; errorCodes: string[] }> {
+  if (!env.TURNSTILE_SECRET) return { ok: true, errorCodes: [] };
+  if (!token) return { ok: false, errorCodes: ['missing-input-response'] };
   const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -346,7 +346,7 @@ async function verifyTurnstile(env: Env, token: string | undefined, ip: string):
   });
   const data: any = await res.json();
   console.log('[Turnstile] siteverify response:', JSON.stringify(data));
-  return data.success === true;
+  return { ok: data.success === true, errorCodes: data['error-codes'] ?? [] };
 }
 
 // ===== PUBLIC ROUTES =====
@@ -360,8 +360,9 @@ auth.post('/signup', ipRateLimit(5, 60 * 60 * 1000), async (c) => {
     const body = await c.req.json();
     const { company, user, payment, turnstileToken } = body;
 
-    if (!await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '')) {
-      return c.json({ success: false, message: 'Bot verification failed. Please try again.' }, 400);
+    const tsResult = await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '');
+    if (!tsResult.ok) {
+      return c.json({ success: false, message: 'Bot verification failed. Please try again.', errorCodes: tsResult.errorCodes }, 400);
     }
 
     // Manual validation
@@ -471,8 +472,9 @@ auth.post('/login', ipRateLimit(10, 60 * 1000), async (c) => {
 
     console.log('[DEBUG] Login endpoint hit - email:', email);
 
-    if (!await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '')) {
-      return c.json({ success: false, message: 'Bot verification failed. Please try again.' }, 400);
+    const tsResult = await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '');
+    if (!tsResult.ok) {
+      return c.json({ success: false, message: 'Bot verification failed. Please try again.', errorCodes: tsResult.errorCodes }, 400);
     }
 
     // Manual validation
@@ -827,8 +829,9 @@ auth.post('/forgot-password', async (c) => {
     const body = await c.req.json();
     const { email, turnstileToken } = body;
 
-    if (!await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '')) {
-      return c.json({ success: false, message: 'Bot verification failed. Please try again.' }, 400);
+    const tsResult = await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '');
+    if (!tsResult.ok) {
+      return c.json({ success: false, message: 'Bot verification failed. Please try again.', errorCodes: tsResult.errorCodes }, 400);
     }
 
     // Manual validation
@@ -903,8 +906,9 @@ auth.post('/reset-password', async (c) => {
     const body = await c.req.json();
     const { token, newPassword, confirmPassword, turnstileToken } = body;
 
-    if (!await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '')) {
-      return c.json({ success: false, message: 'Bot verification failed. Please try again.' }, 400);
+    const tsResult = await verifyTurnstile(c.env, turnstileToken, c.req.header('cf-connecting-ip') || '');
+    if (!tsResult.ok) {
+      return c.json({ success: false, message: 'Bot verification failed. Please try again.', errorCodes: tsResult.errorCodes }, 400);
     }
 
     // Manual validation
