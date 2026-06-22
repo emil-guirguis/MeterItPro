@@ -484,8 +484,10 @@ h1, h2, h3, h4 {
 .hero--fullbleed {
   position: relative;
   padding: 0;
+  height: 72vh;
   display: flex;
   align-items: flex-start;
+  overflow: hidden;
 }
 .hero__scrim {
   position: absolute;
@@ -504,9 +506,9 @@ h1, h2, h3, h4 {
   backdrop-filter: blur(20px) saturate(150%);
   border: 0.5px solid rgba(255, 255, 255, 0.13);
   border-radius: 20px;
-  padding: clamp(28px, 3.5vw, 52px);
-  max-width: 440px;
-  margin: clamp(40px, 4vw, 60px) 0 clamp(32px, 3vw, 48px);
+  padding: clamp(14px, 1.8vw, 26px);
+  max-width: 520px;
+  margin: clamp(16px, 1.5vw, 24px) 0 clamp(12px, 1.2vw, 20px);
   color: oklch(94% 0.005 260);
 }
 .hero__overlay-card .display,
