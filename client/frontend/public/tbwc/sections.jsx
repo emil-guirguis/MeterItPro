@@ -1,4 +1,4 @@
-// sections.jsx — homepage sections for TBWC modernized site
+﻿// sections.jsx â€” homepage sections for TBWC modernized site
 
 const Arrow = ({ size = 14 }) => (
   <svg className="arrow" width={size} height={size} viewBox="0 0 14 14" fill="none">
@@ -12,7 +12,7 @@ const ArrowDiag = ({ size = 14 }) => (
   </svg>
 );
 
-// ── NAV ────────────────────────────────────────────────────────────────────
+// â”€â”€ NAV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Nav({ onPortalClick }) {
   const [scrolled, setScrolled] = React.useState(false);
   React.useEffect(() => {
@@ -25,7 +25,7 @@ function Nav({ onPortalClick }) {
   return (
     <nav className="nav" data-scrolled={scrolled ? '1' : '0'}>
       <div className="wrap nav__inner">
-        <a href="#" className="brand" aria-label="TBWC — home">
+        <a href="#" className="brand" aria-label="TBWC â€” home">
           <span className="brand__quad" aria-hidden="true">
             <span>T</span><span>B</span><span>W</span><span className="brand__quad-c">C</span>
           </span>
@@ -63,7 +63,7 @@ function Nav({ onPortalClick }) {
   );
 }
 
-// ── HERO ───────────────────────────────────────────────────────────────────
+// â”€â”€ HERO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Hero({ variant, onPortalClick }) {
   const headlineA = (
     <h1 className="display">
@@ -86,13 +86,13 @@ function Hero({ variant, onPortalClick }) {
   const headline = variant === 'B' ? headlineB : variant === 'C' ? headlineC : headlineA;
 
   const lede = variant === 'B'
-    ? "TBWC distributes submeters, CTs, smart meters, and energy management hardware through a curated network of authorized representatives — domestically compliant, in stock, backed by engineers who built the products."
+    ? "TBWC distributes submeters, CTs, smart meters, and energy management hardware through a curated network of authorized representatives â€” domestically compliant, in stock, backed by engineers who built the products."
     : variant === 'C'
-    ? "Quote, order, and resolve — one workspace for the modern manufacturer's rep agency."
-    : "We're the authorized wholesale distributor for the meters, CTs, and energy management hardware that power submetering projects across North America — backed by real engineers and stocked stateside.";
+    ? "Quote, order, and resolve â€” one workspace for the modern manufacturer's rep agency."
+    : "We're the authorized wholesale distributor for the meters, CTs, and energy management hardware that power submetering projects across North America â€” backed by real engineers and stocked stateside.";
 
   const products = [
-    { id: 'hero-meter-1', label: 'DI-Meter · single-element smart meter', tag: 'Smart Meter' },
+    { id: 'hero-meter-1', label: 'DI-Meter Â· single-element smart meter', tag: 'Smart Meter' },
     { id: 'hero-meter-2', label: 'E-Mon class 3400 polyphase meter',       tag: 'Polyphase' },
     { id: 'hero-ct-1',    label: 'Split-core current transformer',         tag: 'CT' },
     { id: 'hero-optergy', label: 'Optergy Proton building controller',     tag: 'Controller' },
@@ -105,7 +105,7 @@ function Hero({ variant, onPortalClick }) {
           <div className="hero__copy">
             <div className="hero__eyebrow eyebrow">
               <span className="hero__eyebrow-dot" />
-              <span>Authorized distribution · Since 2002</span>
+              <span>Authorized distribution Â· Since 2002</span>
             </div>
             {headline}
             <p className="lede" style={{ marginTop: 22 }}>{lede}</p>
@@ -120,7 +120,7 @@ function Hero({ variant, onPortalClick }) {
             <div className="hero__trust">
               <div><span className="mono num">24+</span><span>Years distributing</span></div>
               <div><span className="mono num">15</span><span>Authorized reps</span></div>
-              <div><span className="mono num">BAA</span><span>·TAA·BABA compliant</span></div>
+              <div><span className="mono num">BAA</span><span>Â·TAAÂ·BABA compliant</span></div>
             </div>
           </div>
 
@@ -143,7 +143,7 @@ function Hero({ variant, onPortalClick }) {
   );
 }
 
-// ── STATS ─────────────────────────────────────────────────────────────────
+// â”€â”€ STATS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Stats() {
   const items = [
     { n: '24', sup: 'yrs', l: 'In wholesale distribution' },
@@ -170,7 +170,7 @@ function Stats() {
   );
 }
 
-// ── PRODUCTS / RESOURCES ──────────────────────────────────────────────────
+// â”€â”€ PRODUCTS / RESOURCES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TBWC = 'https://tbwctechnology.com';
 const UP = `${TBWC}/wp-content/uploads`;
 const RESOURCE_GROUPS = [
@@ -238,7 +238,7 @@ const RESOURCE_GROUPS = [
     desc: 'Field service reports, quick-start guides, and white papers.',
     href: `${TBWC}/tech-support/`,
     items: [
-      { label: 'TBWC Tech Talk · White Papers',           href: `${TBWC}/techtalk/`,                                              type: 'Page' },
+      { label: 'TBWC Tech Talk Â· White Papers',           href: `${TBWC}/techtalk/`,                                              type: 'Page' },
       { label: 'Optergy Self-Help Guides',                 href: `${TBWC}/optergy-self-help/`,                                     type: 'Page' },
       { label: 'TBWC IR302 Quickstart Guide',              href: `${UP}/TBWC-IR302-Quickstart-Rev3.pdf`,                           type: 'PDF' },
       { label: 'DentCloud Meter Start-Up Documents',       href: `${UP}/TBWC-Technology-DentCloud-Meter-Start-Up-Documents.pdf`,   type: 'PDF' },
@@ -277,12 +277,12 @@ function Brands({ onPortalClick }) {
       <div className="wrap">
         <div className="sec-hd">
           <div className="sec-hd__label">
-            <span><span className="sec-hd__num">01</span> · Products / Resources</span>
+            <span><span className="sec-hd__num">01</span> Â· Products / Resources</span>
             <span>Catalog &amp; reference</span>
           </div>
           <div>
             <h2 className="h2 sec-hd__title">Everything you need<br />to spec, install, and submit.</h2>
-            <p className="sec-hd__sub">Documentation for the lines TBWC distributes — submetering, smart meters, and energy management hardware. Authorized pricing and RMA forms live in the Rep Portal.</p>
+            <p className="sec-hd__sub">Documentation for the lines TBWC distributes â€” submetering, smart meters, and energy management hardware. Authorized pricing and RMA forms live in the Rep Portal.</p>
           </div>
         </div>
 
@@ -306,7 +306,7 @@ function Brands({ onPortalClick }) {
                          rel={it.portal ? undefined : 'noopener noreferrer'}>
                         <span className="rcard__link-label">{it.label}</span>
                         {it.type && <span className={'rcard__type rcard__type--' + it.type.toLowerCase()}>{it.type}</span>}
-                        <span className="rcard__link-arrow" aria-hidden="true">→</span>
+                        <span className="rcard__link-arrow" aria-hidden="true">â†’</span>
                       </a>
                     </li>
                   );
@@ -320,7 +320,7 @@ function Brands({ onPortalClick }) {
   );
 }
 
-// ── SUPPORT ───────────────────────────────────────────────────────────────
+// â”€â”€ SUPPORT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Support() {
   const cards = [
     {
@@ -349,7 +349,7 @@ function Support() {
     {
       n: '03',
       title: '4G LTE service registration.',
-      desc: 'Activate, swap, and manage data plans for connected hardware deployed in the field — without leaving the portal.',
+      desc: 'Activate, swap, and manage data plans for connected hardware deployed in the field â€” without leaving the portal.',
       cta: 'Register a device',
       icon: (
         <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
@@ -364,7 +364,7 @@ function Support() {
       <div className="wrap">
         <div className="sec-hd">
           <div className="sec-hd__label">
-            <span><span className="sec-hd__num">02</span> · Technical Support</span>
+            <span><span className="sec-hd__num">02</span> Â· Technical Support</span>
             <span>How we back you up</span>
           </div>
           <div>
@@ -388,19 +388,19 @@ function Support() {
   );
 }
 
-// ── REPS CALLOUT (legacy — replaced by RepsMap in reps-map.jsx) ──────────
+// â”€â”€ REPS CALLOUT (legacy â€” replaced by RepsMap in reps-map.jsx) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function RepsLegacy() {
   return (
     <section id="reps" className="row">
       <div className="wrap">
         <div className="sec-hd">
           <div className="sec-hd__label">
-            <span><span className="sec-hd__num">03</span> · Representatives</span>
+            <span><span className="sec-hd__num">03</span> Â· Representatives</span>
             <span>Join the network</span>
           </div>
           <div>
             <h2 className="h2 sec-hd__title">A rep program designed<br />by people who've carried the bag.</h2>
-            <p className="sec-hd__sub">Authorized agencies and their personnel get portal access, protected territories, real co-op, and a person — not a chatbot — on the other end of the line.</p>
+            <p className="sec-hd__sub">Authorized agencies and their personnel get portal access, protected territories, real co-op, and a person â€” not a chatbot â€” on the other end of the line.</p>
           </div>
         </div>
 
@@ -427,19 +427,19 @@ function RepsLegacy() {
             <div className="reps__steps">
               <div className="reps__step">
                 <span className="reps__step-num">01</span>
-                <span className="reps__step-text"><strong>Portal access</strong> — line card, datasheets, pricing, RMAs.</span>
+                <span className="reps__step-text"><strong>Portal access</strong> â€” line card, datasheets, pricing, RMAs.</span>
               </div>
               <div className="reps__step">
                 <span className="reps__step-num">02</span>
-                <span className="reps__step-text"><strong>Protected territories</strong> — registered deals stay registered.</span>
+                <span className="reps__step-text"><strong>Protected territories</strong> â€” registered deals stay registered.</span>
               </div>
               <div className="reps__step">
                 <span className="reps__step-num">03</span>
-                <span className="reps__step-text"><strong>Co-op &amp; SPIFs</strong> — quarterly, paid on time, no haggling.</span>
+                <span className="reps__step-text"><strong>Co-op &amp; SPIFs</strong> â€” quarterly, paid on time, no haggling.</span>
               </div>
               <div className="reps__step">
                 <span className="reps__step-num">04</span>
-                <span className="reps__step-text"><strong>Direct engineering line</strong> — for the calls you can't punt.</span>
+                <span className="reps__step-text"><strong>Direct engineering line</strong> â€” for the calls you can't punt.</span>
               </div>
             </div>
           </div>
@@ -449,14 +449,14 @@ function RepsLegacy() {
   );
 }
 
-// ── LOCATIONS ─────────────────────────────────────────────────────────────
+// â”€â”€ LOCATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Locations() {
   return (
     <section id="about" className="row">
       <div className="wrap">
         <div className="sec-hd">
           <div className="sec-hd__label">
-            <span><span className="sec-hd__num">04</span> · About TBWC</span>
+            <span><span className="sec-hd__num">04</span> Â· About TBWC</span>
             <span>Vision &amp; mission</span>
           </div>
           <div>
@@ -493,7 +493,7 @@ function Locations() {
           <div className="ab-prose__col ab-prose__col--body">
             <p className="ab-prose__lead">
               TBWC provides our Distributors a one-stop shop for essential and peripheral
-              products needed for a submetering / energy management system installation —
+              products needed for a submetering / energy management system installation â€”
               including the items many times forgotten. We also support submeter users and
               installers with pre- and post-installation services to ensure every submeter
               purchased delivers the accurate, reliable data they need:
@@ -503,21 +503,21 @@ function Locations() {
                 <span className="ab-prose__list-k mono">01</span>
                 <div>
                   <strong>Retro-commissioning</strong>
-                  <span> — annual meter / submeter system wellness check-ups.</span>
+                  <span> â€” annual meter / submeter system wellness check-ups.</span>
                 </div>
               </li>
               <li>
                 <span className="ab-prose__list-k mono">02</span>
                 <div>
                   <strong>AMR system upgrades</strong>
-                  <span> — Automatic Meter Reading updates and 3rd-party service agreements.</span>
+                  <span> â€” Automatic Meter Reading updates and 3rd-party service agreements.</span>
                 </div>
               </li>
               <li>
                 <span className="ab-prose__list-k mono">03</span>
                 <div>
                   <strong>Custom dashboards</strong>
-                  <span> — load segregation, energy management, Net Zero projects, and more.</span>
+                  <span> â€” load segregation, energy management, Net Zero projects, and more.</span>
                 </div>
               </li>
             </ul>
@@ -526,7 +526,7 @@ function Locations() {
               Reps have been providing technical product support, application assistance and
               local expertise for decades. Together with our contractor / installation and
               distribution partners, we work to ensure every submeter project is delivered on
-              time, installed within scope, and meets the original budget — above all,
+              time, installed within scope, and meets the original budget â€” above all,
               exceeding your end-user customers' expectations.
             </p>
           </div>
@@ -535,8 +535,8 @@ function Locations() {
         <div className="locs">
           <article className="loc">
             <div className="loc__hd">
-              <span className="loc__type">Corporate · NV</span>
-              <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>36.1°N · 115.2°W</span>
+              <span className="loc__type">Corporate Â· NV</span>
+              <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>36.1Â°N Â· 115.2Â°W</span>
             </div>
             <h3 className="loc__title">TBWC Technology, Inc.</h3>
             <address className="loc__addr">
@@ -548,8 +548,8 @@ function Locations() {
 
           <article className="loc">
             <div className="loc__hd">
-              <span className="loc__type">Service Center · CA</span>
-              <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>34.0°N · 117.6°W</span>
+              <span className="loc__type">Service Center Â· CA</span>
+              <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>34.0Â°N Â· 117.6Â°W</span>
             </div>
             <h3 className="loc__title">SoCal Service Center</h3>
             <address className="loc__addr">
@@ -565,7 +565,7 @@ function Locations() {
   );
 }
 
-// ── FOOTER ────────────────────────────────────────────────────────────────
+// â”€â”€ FOOTER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Footer() {
   return (
     <footer className="foot">
@@ -580,7 +580,7 @@ function Footer() {
                 <span>Technology</span>
               </span>
             </a>
-            <p className="foot__tag">Technology branded wholesale, distributed with precision since 2002.</p>
+            <p className="foot__tag">TBWC Technology with precision since 2002.</p>
           </div>
           <div className="foot__col">
             <h4>Products</h4>
@@ -621,33 +621,33 @@ function Footer() {
         </div>
 
         <div className="foot__bot">
-          <span>© 2026 TBWC TECHNOLOGY, INC. · ALL RIGHTS RESERVED.</span>
-          <span>LAS VEGAS, NV · ONTARIO, CA</span>
+          <span>Â© 2026 TBWC TECHNOLOGY, INC. Â· ALL RIGHTS RESERVED.</span>
+          <span>LAS VEGAS, NV Â· ONTARIO, CA</span>
         </div>
       </div>
     </footer>
   );
 }
 
-// ── CONTACT ───────────────────────────────────────────────────────────────
+// â”€â”€ CONTACT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Contact() {
   return (
     <section id="contact" className="row">
       <div className="wrap">
         <div className="sec-hd">
           <div className="sec-hd__label">
-            <span><span className="sec-hd__num">05</span> · Contact</span>
+            <span><span className="sec-hd__num">05</span> Â· Contact</span>
             <span>Who to email, who to call</span>
           </div>
           <div>
             <h2 className="h2 sec-hd__title">Real people, direct lines.</h2>
-            <p className="sec-hd__sub">Quotes, orders, technical support, and AR — routed to the person who handles it, not a help desk.</p>
+            <p className="sec-hd__sub">Quotes, orders, technical support, and AR â€” routed to the person who handles it, not a help desk.</p>
           </div>
         </div>
 
         <div className="ct-grid">
           <article className="ct-card ct-card--accent">
-            <span className="ct-card__kicker mono">01 · Quotes &amp; Orders</span>
+            <span className="ct-card__kicker mono">01 Â· Quotes &amp; Orders</span>
             <div className="ct-row">
               <span className="ct-row__label">Quote requests</span>
               <a className="ct-row__link mono" href="mailto:QUOTES@TBWCinc.com">QUOTES@TBWCinc.com</a>
@@ -659,7 +659,7 @@ function Contact() {
           </article>
 
           <article className="ct-card">
-            <span className="ct-card__kicker mono">02 · Customer Service &amp; Tech Support</span>
+            <span className="ct-card__kicker mono">02 Â· Customer Service &amp; Tech Support</span>
             <div className="ct-row">
               <span className="ct-row__label">Phone</span>
               <a className="ct-row__link mono" href="tel:+18885621810">(888) 562-1810</a>
@@ -674,7 +674,7 @@ function Contact() {
           </article>
 
           <article className="ct-card ct-card--wide">
-            <span className="ct-card__kicker mono">03 · Accounts Receivable</span>
+            <span className="ct-card__kicker mono">03 Â· Accounts Receivable</span>
             <div className="ct-people">
               <div className="ct-person">
                 <strong className="ct-person__name">Jenifer Crenshaw</strong>

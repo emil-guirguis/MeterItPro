@@ -109,7 +109,6 @@
             </a>
             <div className="nav__links">
               <a className="nav__link" href="#applications">Applications</a>
-              <a className="nav__link" href="#software">Energy Information System</a>
               <span className="nav__link" style={{ opacity: 0.35, cursor: 'not-allowed', pointerEvents: 'none' }}>Representatives</span>
               <a className="nav__link" href="#about">About</a>
               <a className="nav__link" href="#footer-contact" onClick={() => {
@@ -124,9 +123,6 @@
               <button className="btn btn--primary btn--sm" onClick={() => setDropOpen(v => !v)}>
                 Rep Portal
               </button>
-              <a className="btn btn--sm" href="https://meteritpro.com" target="_blank" rel="noopener noreferrer" style={{ background: '#1a73e8', color: '#fff' }}>
-                MeterItPro
-              </a>
               <button className="nav__burger" aria-label="Menu" onClick={() => setMobileOpen(v => !v)} data-open={mobileOpen ? '1' : '0'}>
                 <span /><span /><span />
               </button>
@@ -151,7 +147,6 @@
           {mobileOpen && (
             <div className="nav__mobile">
               <a href="#applications" onClick={() => setMobileOpen(false)}>Applications</a>
-              <a href="#software" onClick={() => setMobileOpen(false)}>Software</a>
               <span style={{ opacity: 0.35, cursor: 'not-allowed' }}>Representatives</span>
               <a href="#about" onClick={() => setMobileOpen(false)}>About</a>
               <a href="#footer-contact" onClick={() => {
@@ -203,7 +198,7 @@
               <div className="hero__overlay-card">
                 {headlineA}
                 <div className="hero__trust">
-                  <div><span className="mono num">24+</span><span>Years distributing</span></div>
+                  <div><span className="mono num">24+</span><span>Years</span></div>
                   <div><span className="mono num">15</span><span>Authorized reps</span></div>
                   <div><span className="mono num">BAA</span><span>·TAA·BABA compliant</span></div>
                 </div>
@@ -303,19 +298,6 @@
             <div className="locs stagger" ref={locsRef}>
               <article className="loc">
                 <div className="loc__hd">
-                  <span className="loc__type">Corporate · NV</span>
-                  <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>36.1°N · 115.2°W</span>
-                </div>
-                <h3 className="loc__title">TBWC Technology, Inc.</h3>
-                <address className="loc__addr">
-                  <strong>Corporate Mailing</strong><br />
-                  6130 W Flamingo Rd, Unit #256<br />
-                  Las Vegas, NV 89103-2280
-                </address>
-              </article>
-
-              <article className="loc">
-                <div className="loc__hd">
                   <span className="loc__type">Service Center · CA</span>
                   <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>34.0°N · 117.6°W</span>
                 </div>
@@ -401,7 +383,7 @@
                 <a href="#" className="brand">
                   <img src="TBWC%20Technology%20Logo%20.png" alt="TBWC Technology" className="brand__logo-img" />
                 </a>
-                <p className="foot__tag">Technology branded wholesale, distributed with precision since 2002.</p>
+                <p className="foot__tag">TBWC Technology with precision since 2002.</p>
               </div>
               <div className="foot__col">
                 <h4>Support</h4>
@@ -461,44 +443,43 @@
 
     // ── Applications ───────────────────────────────────────────────────────────
     function Applications() {
-      const secHdRef = useFadeIn();
+      const gridRef = useFadeIn();
+
+      const headlineA = (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <h2 className="h2" style={{ fontSize: 'clamp(15px, 1.4vw, 32px)', fontWeight: 700, marginBottom: 10 }}>
+                Whether for <em style={{ color: '#03a84e', fontStyle: 'italic' }}>cost allocation</em>, <em style={{ color: '#03a84e', fontStyle: 'italic' }}>energy awareness</em>, or for <em style={{ color: '#03a84e', fontStyle: 'italic' }}>compliance</em>&hellip;
+              </h2>
+              <p style={{ maxWidth: '66ch', lineHeight: 1.65 }}>
+                TBWC has transformed the process of submetering from selecting the meters, to delivering a fully integrated and scalable energy management tool that is easier-to-install, easier to own, and easier-to-manage over the life of the building.
+              </p>
+            </div>
+            <div>
+              <h2 className="h2" style={{ fontSize: 'clamp(15px, 1.4vw, 32px)', fontWeight: 700, marginBottom: 10 }}>
+                From initial concept, deployment and post-installation <em style={{ color: '#03a84e', fontStyle: 'italic' }}>support</em>.
+              </h2>
+              <p style={{ maxWidth: '66ch', lineHeight: 1.65 }}>
+                TBWC delivers owner/operators the data in the way they need to immediately put into practice and achieve the goal of submetering: Gain control of energy.
+              </p>
+            </div>
+          </div>
+        </>
+      );
+
       return (
         <section id="applications" className="row">
           <div className="wrap">
-            <div className="sec-hd fade-up" ref={secHdRef}>
-              <div className="sec-hd__label">
-                <span><span className="sec-hd__num">-</span> · Applications</span>
-                <span>Energy code compliance</span>
-              </div>
+            <div className="fade-up" ref={gridRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
               <div>
-                <h2 className="h2 sec-hd__title">ASHRAE 90.1 &amp; California Title 24 Design</h2>
-                <p className="sec-hd__sub">ASHRAE 90.1 &amp; California Title 24 design.</p>
+                {headlineA}
               </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 48, marginTop: 48 }}>
-              <div>
-                <h2 className="h2" style={{ fontSize: 'clamp(18px, 1.8vw, 50px)', marginBottom: 16 }}>
-                  Whether for <em style={{ color: 'var(--accent)', fontStyle: 'italic' }}>cost allocation</em>, <em style={{ color: 'var(--accent)', fontStyle: 'italic' }}>energy awareness</em>, or for <em style={{ color: 'var(--accent)', fontStyle: 'italic' }}>compliance</em>...
-                </h2>
-                <p className="body" style={{ maxWidth: '72ch', color: 'var(--ink-2)', lineHeight: 1.65 }}>
-                  TBWC has transformed the process of submetering from selecting the meters, to delivering a fully integrated and scalable energy management tool that is easier-to-install, easier to own, and easier-to-manage over the life of the building.
-                </p>
-                <div style={{ display: 'flex', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
-                  {['Cost Allocation', 'Energy Awareness', 'Compliance'].map(label => (
-                    <span key={label} style={{ fontFamily: 'var(--f-mono)', fontSize: 12, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)', borderBottom: '1px solid var(--accent)', paddingBottom: 2 }}>{label}</span>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h2 className="h2" style={{ fontSize: 'clamp(18px, 1.8vw, 50px)', marginBottom: 16 }}>
-                  From initial concept, deployment and post-installation <em style={{ color: 'var(--accent)', fontStyle: 'italic' }}>support</em>.
-                </h2>
-                <p className="body" style={{ maxWidth: '72ch', color: 'var(--ink-2)', lineHeight: 1.65 }}>
-                  TBWC delivers owner/operators the data in the way they need to immediately put into practice and achieve the goal of submetering: Gain control of energy.
-                </p>
-              </div>
+              <img
+                src="applications.jpg"
+                alt=""
+                style={{ width: '100%', height: 'auto', borderRadius: 12, display: 'block' }}
+              />
             </div>
           </div>
         </section>
@@ -541,7 +522,6 @@
           <main>
             <Hero />
             <div className="reveal"><Applications /></div>
-            <MeterItProSection />
             <div className="reveal"><Locations /></div>
           </main>
           <Footer />
