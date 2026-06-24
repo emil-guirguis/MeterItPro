@@ -536,7 +536,6 @@ function Locations() {
           <article className="loc">
             <div className="loc__hd">
               <span className="loc__type">Corporate Â· NV</span>
-              <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>36.1Â°N Â· 115.2Â°W</span>
             </div>
             <h3 className="loc__title">TBWC Technology, Inc.</h3>
             <address className="loc__addr">
@@ -549,9 +548,8 @@ function Locations() {
           <article className="loc">
             <div className="loc__hd">
               <span className="loc__type">Service Center Â· CA</span>
-              <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>34.0Â°N Â· 117.6Â°W</span>
             </div>
-            <h3 className="loc__title">SoCal Service Center</h3>
+            <h3 className="loc__title">TBWC Service Center</h3>
             <address className="loc__addr">
               <strong>Bench &amp; RMA</strong><br />
               2591 Lindsay Privado Dr.<br />

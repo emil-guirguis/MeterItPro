@@ -297,11 +297,22 @@
 
             <div className="locs stagger" ref={locsRef}>
               <article className="loc">
-                <div className="loc__hd">
-                  <span className="loc__type">Service Center · CA</span>
-                  <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>34.0°N · 117.6°W</span>
+                <div className="loc__hd" style={{ justifyContent: 'flex-start' }}>
+                  <span className="loc__type">Corporate · NV</span>
                 </div>
-                <h3 className="loc__title">SoCal Service Center</h3>
+                <h3 className="loc__title">TBWC Technology, Inc.</h3>
+                <address className="loc__addr">
+                  <strong>Corporate Mailing</strong><br />
+                  6130 W Flamingo Rd, Unit #256<br />
+                  Las Vegas, NV 89103-2280
+                </address>
+              </article>
+
+              <article className="loc">
+                <div className="loc__hd" style={{ justifyContent: 'flex-start' }}>
+                  <span className="loc__type">Service Center · CA</span>
+                </div>
+                <h3 className="loc__title">TBWC Service Center</h3>
                 <address className="loc__addr">
                   <strong>Bench &amp; RMA</strong><br />
                   2591 Lindsay Privado Dr.<br />
