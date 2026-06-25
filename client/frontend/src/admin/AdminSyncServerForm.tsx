@@ -26,9 +26,13 @@ async function writeConfigToUsb(serverId: number, key: string): Promise<void> {
   }
   try {
     const root = await picker({ mode: 'readwrite' });
-    // Write into the USB's autoinstall folder (create if missing) — user-data
-    // copies /cdrom/autoinstall/server.conf onto the installed system.
-    const dir = await root.getDirectoryHandle('autoinstall', { create: true });
+    // Always land server.conf in the USB's autoinstall folder — user-data copies
+    // /cdrom/autoinstall/server.conf onto the installed system. The operator just
+    // picks the drive root; if they happen to pick the autoinstall folder itself
+    // we use it directly instead of nesting another autoinstall under it.
+    const dir = root.name === 'autoinstall'
+      ? root
+      : await root.getDirectoryHandle('autoinstall', { create: true });
     const handle = await dir.getFileHandle('server.conf', { create: true });
     const writable = await handle.createWritable();
     await writable.write(`SYNC_SERVER_ID=${serverId}\nSYNC_SERVER_BOOTSTRAP_KEY=${key}\n`);
