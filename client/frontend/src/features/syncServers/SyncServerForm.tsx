@@ -112,7 +112,7 @@ export const SyncServerForm: React.FC<SyncServerFormProps> = ({
                 label={fieldDef.label}
                 value={envBlock}
                 multiline
-                rows={2}
+                rows={4}
                 InputProps={{
                   readOnly: true,
                   sx: { fontFamily: 'monospace', fontSize: 12 },

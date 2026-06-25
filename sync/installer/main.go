@@ -74,18 +74,45 @@ func main() {
 	r := bufio.NewReader(os.Stdin)
 
 	step(1, "Server Configuration")
-	fmt.Println("  Open the MeterItPro client site → Settings → Sync Servers,")
-	fmt.Println("  click the setup instructions for this server, then enter the values below.")
-	fmt.Println()
-	serverID := ask(r, "Sync Server ID  ")
-	bootstrapKey := ask(r, "Bootstrap Key   ")
+	// The admin portal can write these to a USB via the File System Access API;
+	// the installer copies that file to /etc/meteritpro/server.conf at install
+	// time, so the operator never hand-types the long Bootstrap Key.
+	serverID, bootstrapKey, fromFile := loadServerConfig()
+	if fromFile {
+		fmt.Printf("  Loaded Sync Server ID %s and Bootstrap Key from USB config.\n", serverID)
+	} else {
+		fmt.Println("  Open the MeterItPro client site → Settings → Sync Servers,")
+		fmt.Println("  click the setup instructions for this server, then enter the values below.")
+	}
 
 	step(2, "Network Check")
 	checkNetwork(r)
 
-	step(3, "Fetching configuration from MeterItPro")
-	cfg := fetchBootstrap(serverID, bootstrapKey)
-	ok("Config received")
+	// Fetch config. On API error the values are almost always a mistyped ID/key,
+	// so re-prompt and retry up to 3 times. A bad USB config falls back to manual
+	// entry on the first failure.
+	var cfg bootstrapData
+	for attempt := 1; ; attempt++ {
+		if !fromFile {
+			fmt.Println()
+			serverID = ask(r, "Sync Server ID  ")
+			bootstrapKey = ask(r, "Bootstrap Key   ")
+		}
+
+		step(3, "Fetching configuration from MeterItPro")
+		var err error
+		cfg, err = fetchBootstrap(serverID, bootstrapKey)
+		if err == nil {
+			ok("Config received")
+			break
+		}
+		fmt.Printf("  ✗ %s\n", err)
+		if attempt >= 3 {
+			die("Failed after 3 attempts: " + err.Error())
+		}
+		fromFile = false // USB config was wrong — switch to manual entry
+		fmt.Printf("  Attempt %d of 3 failed. Re-enter the values and try again.\n", attempt)
+	}
 
 	step(4, "Configuring system for 24/7 operation")
 	hardenSystem()
@@ -115,9 +142,45 @@ func main() {
 	r.ReadString('\n')
 }
 
+// ── Server config (pre-seeded from USB) ─────────────────────────────────────────
+
+// serverConfigPath is where user-data drops the USB's server.conf during install.
+const serverConfigPath = "/etc/meteritpro/server.conf"
+
+// loadServerConfig reads SYNC_SERVER_ID and SYNC_SERVER_BOOTSTRAP_KEY from the
+// pre-seeded config file. Returns ok=true only if both are present, so a
+// partial/garbled file falls back to manual entry.
+func loadServerConfig() (id, key string, ok bool) {
+	data, err := os.ReadFile(serverConfigPath)
+	if err != nil {
+		return "", "", false
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		k, v, found := strings.Cut(line, "=")
+		if !found {
+			continue
+		}
+		switch strings.TrimSpace(k) {
+		case "SYNC_SERVER_ID":
+			id = strings.TrimSpace(v)
+		case "SYNC_SERVER_BOOTSTRAP_KEY":
+			key = strings.TrimSpace(v)
+		}
+	}
+	return id, key, id != "" && key != ""
+}
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
-func fetchBootstrap(serverID, key string) bootstrapData {
+// fetchBootstrap returns the server config, or an error the caller can show
+// before re-prompting. Network failures are retried internally (5x); an API
+// error (bad ID/key, not provisioned) is returned immediately so the caller
+// can ask the user to re-enter the values.
+func fetchBootstrap(serverID, key string) (bootstrapData, error) {
 	url := fmt.Sprintf("%s/sync-servers/%s/bootstrap?key=%s", defaultAPIURL, serverID, key)
 
 	for attempt := 1; attempt <= 5; attempt++ {
@@ -135,23 +198,22 @@ func fetchBootstrap(serverID, key string) bootstrapData {
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&envelope); err != nil {
 			resp.Body.Close()
-			die("Invalid response from API: " + err.Error())
+			return bootstrapData{}, fmt.Errorf("invalid response from API: %s", err)
 		}
 		resp.Body.Close()
 
 		if !envelope.Success {
-			die("API error: " + envelope.Message)
+			return bootstrapData{}, fmt.Errorf("API error: %s", envelope.Message)
 		}
 		switch envelope.Data.ProvisionStatus {
 		case "pending", "provisioning":
-			die("Server not yet provisioned — click 'Provision Tunnel' on the client site first.")
+			return bootstrapData{}, fmt.Errorf("server not yet provisioned — click 'Provision Tunnel' on the client site first")
 		case "error":
-			die("Server provisioning failed: " + envelope.Data.ProvisionError)
+			return bootstrapData{}, fmt.Errorf("server provisioning failed: %s", envelope.Data.ProvisionError)
 		}
-		return envelope.Data
+		return envelope.Data, nil
 	}
-	die("Could not reach MeterItPro API after 5 attempts. Check internet connection.")
-	return bootstrapData{}
+	return bootstrapData{}, fmt.Errorf("could not reach MeterItPro API after 5 attempts. Check internet connection")
 }
 
 // ── Network check ─────────────────────────────────────────────────────────────

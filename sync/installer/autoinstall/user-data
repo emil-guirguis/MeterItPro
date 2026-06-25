@@ -64,6 +64,10 @@ autoinstall:
     - cp /cdrom/autoinstall/MeterItPro-SyncSetup-linux /target/usr/local/bin/meteritpro-install
     - chmod +x /target/usr/local/bin/meteritpro-install
 
+    # Copy pre-seeded server config (written by the admin portal) if present, so
+    # the first-boot wizard skips manual ID/Bootstrap Key entry. Non-fatal.
+    - "bash -c 'mkdir -p /target/etc/meteritpro && [ -f /cdrom/autoinstall/server.conf ] && cp /cdrom/autoinstall/server.conf /target/etc/meteritpro/server.conf || true'"
+
     # Copy first-boot script and systemd service
     - cp /cdrom/autoinstall/firstboot.sh /target/usr/local/bin/meteritpro-firstboot.sh
     - chmod +x /target/usr/local/bin/meteritpro-firstboot.sh

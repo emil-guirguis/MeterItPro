@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { MenuItem, TextField } from '@mui/material';
+import { Box, IconButton, MenuItem, TextField, Tooltip } from '@mui/material';
+import UsbIcon from '@mui/icons-material/Usb';
 import { BaseForm } from '@framework/components/form/BaseForm';
 import { useAdminSyncServersEnhanced, type AdminSyncServerEntity } from './adminSyncServersStore';
 
@@ -12,9 +13,39 @@ interface AdminSyncServerFormProps {
 }
 
 /**
+ * Writes server.conf to the autoinstall folder of a USB drive the operator
+ * picks, using the File System Access API (Chromium desktop only). The Linux
+ * installer reads this file at first boot so the operator never hand-types the
+ * Sync Server ID / Bootstrap Key.
+ */
+async function writeConfigToUsb(serverId: number, key: string): Promise<void> {
+  const picker = (window as any).showDirectoryPicker;
+  if (typeof picker !== 'function') {
+    alert('Writing to USB needs Chrome or Edge on desktop. Otherwise copy the values manually.');
+    return;
+  }
+  try {
+    const root = await picker({ mode: 'readwrite' });
+    // Write into the USB's autoinstall folder (create if missing) — user-data
+    // copies /cdrom/autoinstall/server.conf onto the installed system.
+    const dir = await root.getDirectoryHandle('autoinstall', { create: true });
+    const handle = await dir.getFileHandle('server.conf', { create: true });
+    const writable = await handle.createWritable();
+    await writable.write(`SYNC_SERVER_ID=${serverId}\nSYNC_SERVER_BOOTSTRAP_KEY=${key}\n`);
+    await writable.close();
+    alert('Config written to USB (autoinstall/server.conf). Boot the new server from this stick.');
+  } catch (e: any) {
+    if (e?.name === 'AbortError') return; // user cancelled the picker
+    alert('Failed to write config to USB: ' + (e?.message ?? e));
+  }
+}
+
+/**
  * Admin sync server form — fully schema-driven via BaseForm.
- * Only the tenant field is custom-rendered: a tenant picker in create mode,
- * a read-only label in edit mode (tenant is immutable once provisioned).
+ * Custom-rendered fields:
+ *  - tenant: a tenant picker in create mode, a read-only label in edit mode.
+ *  - bootstrap_key: read-only value plus a "write config to USB" disk button
+ *    (enabled once the server is provisioned/active).
  */
 export const AdminSyncServerForm: React.FC<AdminSyncServerFormProps> = ({ syncServer, isNew, onCancel }) => {
   const store = useAdminSyncServersEnhanced();
@@ -36,30 +67,61 @@ export const AdminSyncServerForm: React.FC<AdminSyncServerFormProps> = ({ syncSe
       store={store}
       onCancel={onCancel}
       showTabs={true}
-      renderCustomField={(fieldName, _fieldDef, value, error, _isDisabled, onChange) => {
-        if (fieldName !== 'tenant_id') return null;
-
-        // Edit mode: tenant is fixed
-        if (!isNew) {
+      renderCustomField={(fieldName, fieldDef, value, error, _isDisabled, onChange) => {
+        if (fieldName === 'tenant_id') {
+          // Edit mode: tenant is fixed
+          if (!isNew) {
+            return (
+              <TextField label="Tenant" value={syncServer?.tenant_name ?? ''} fullWidth disabled />
+            );
+          }
+          // Create mode: tenant picker
           return (
-            <TextField label="Tenant" value={syncServer?.tenant_name ?? ''} fullWidth disabled />
+            <TextField
+              select label="Tenant" required fullWidth
+              value={value ?? ''}
+              error={!!error}
+              helperText={error}
+              onChange={e => onChange(Number(e.target.value))}
+            >
+              {tenants.map(t => (
+                <MenuItem key={t.tenant_id} value={t.tenant_id}>{t.name}</MenuItem>
+              ))}
+            </TextField>
           );
         }
 
-        // Create mode: tenant picker
-        return (
-          <TextField
-            select label="Tenant" required fullWidth
-            value={value ?? ''}
-            error={!!error}
-            helperText={error}
-            onChange={e => onChange(Number(e.target.value))}
-          >
-            {tenants.map(t => (
-              <MenuItem key={t.tenant_id} value={t.tenant_id}>{t.name}</MenuItem>
-            ))}
-          </TextField>
-        );
+        if (fieldName === 'bootstrap_key' && value) {
+          const isActive = syncServer?.provision_status === 'active';
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+              <TextField
+                label={fieldDef.label}
+                value={String(value)}
+                multiline
+                rows={2}
+                InputProps={{ readOnly: true, sx: { fontFamily: 'monospace', fontSize: 12 } }}
+                fullWidth
+                helperText={isActive
+                  ? 'Insert the installer USB, click the disk icon, and select the USB drive.'
+                  : 'Provision the server before writing config to USB.'}
+              />
+              <Tooltip title={isActive ? 'Write config to USB' : 'Provision first'}>
+                <span>
+                  <IconButton
+                    size="small"
+                    disabled={!isActive || !syncServer?.sync_server_id}
+                    onClick={() => writeConfigToUsb(syncServer!.sync_server_id, String(value))}
+                  >
+                    <UsbIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+          );
+        }
+
+        return null;
       }}
     />
   );
