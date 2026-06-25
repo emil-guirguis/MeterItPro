@@ -35,10 +35,12 @@ async function requireSuperAdmin(c: any, next: any) {
 
 adminApp.use('*', requireAdminOrSupport);
 
-// Cost catalog and impersonation are superadmin-only
+// Cost catalog, impersonation, and sync-server admin view are superadmin-only
 adminApp.use('/costs', requireSuperAdmin);
 adminApp.use('/costs/*', requireSuperAdmin);
 adminApp.use('/impersonate/*', requireSuperAdmin);
+adminApp.use('/sync-servers', requireSuperAdmin);
+adminApp.use('/sync-servers/*', requireSuperAdmin);
 
 // List all tenants
 adminApp.get('/clients', async (c) => {
@@ -498,6 +500,205 @@ adminApp.get('/clients/:id/documents/:did/download', async (c) => {
   } catch (error: any) {
     logError('Error downloading tenant document', error);
     return c.json({ success: false, message: 'Failed to download document' }, 500);
+  }
+});
+
+// ── Admin Sync Servers (cross-tenant view) ────────────────────────────────────
+
+adminApp.get('/sync-servers', async (c) => {
+  try {
+    const result = await execQuery(
+      c.env,
+      `SELECT ss.sync_server_id, ss.tenant_id, t.name AS tenant_name,
+              ss.name, ss.tunnel_url, ss.timezone, ss.active, ss.notes,
+              ss.bootstrap_key, ss.provision_status, ss.tunnel_id, ss.created_at, ss.updated_at
+       FROM public.sync_server ss
+       JOIN public.tenant t ON t.tenant_id = ss.tenant_id
+       ORDER BY t.name, ss.name`,
+      []
+    );
+    return c.json({ success: true, data: { items: result.rows } });
+  } catch (error: any) {
+    logError('Error fetching admin sync servers', error);
+    return c.json({ success: false, message: 'Failed to fetch sync servers' }, 500);
+  }
+});
+
+adminApp.post('/sync-servers', async (c) => {
+  const { tenant_id, name, timezone = 'UTC', active = true, notes = '' } = await c.req.json();
+  if (!tenant_id || !name) return c.json({ success: false, message: 'tenant_id and name required' }, 400);
+  try {
+    const bootstrapKey = crypto.randomUUID();
+    const result = await execQuery(
+      c.env,
+      `INSERT INTO public.sync_server (tenant_id, name, timezone, active, notes, bootstrap_key, provision_status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+       RETURNING sync_server_id, tenant_id, name, tunnel_url, timezone, active, notes,
+                 bootstrap_key, tunnel_id, provision_status, provision_error, created_at, updated_at`,
+      [tenant_id, name, timezone, active, notes, bootstrapKey]
+    );
+    return c.json({ success: true, data: result.rows[0] }, 201);
+  } catch (error: any) {
+    return c.json({ success: false, message: error.message }, 500);
+  }
+});
+
+adminApp.put('/sync-servers/:id', async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json({ success: false, message: 'Invalid id' }, 400);
+  const { name, timezone, active, notes } = await c.req.json();
+  try {
+    const result = await execQuery(
+      c.env,
+      `UPDATE public.sync_server
+       SET name = COALESCE($1, name), timezone = COALESCE($2, timezone),
+           active = COALESCE($3, active), notes = COALESCE($4, notes), updated_at = NOW()
+       WHERE sync_server_id = $5
+       RETURNING sync_server_id, tenant_id, name, tunnel_url, timezone, active, notes,
+                 bootstrap_key, tunnel_id, provision_status, provision_error, created_at, updated_at`,
+      [name ?? null, timezone ?? null, active ?? null, notes ?? null, id]
+    );
+    if (result.rows.length === 0) return c.json({ success: false, message: 'Not found' }, 404);
+    return c.json({ success: true, data: result.rows[0] });
+  } catch (error: any) {
+    return c.json({ success: false, message: error.message }, 500);
+  }
+});
+
+adminApp.delete('/sync-servers/:id', async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json({ success: false, message: 'Invalid id' }, 400);
+  try {
+    const existing = await execQuery(
+      c.env,
+      'SELECT tunnel_id, dns_record_id FROM public.sync_server WHERE sync_server_id = $1',
+      [id]
+    );
+    if (existing.rows.length === 0) return c.json({ success: false, message: 'Not found' }, 404);
+    const { tunnel_id, dns_record_id } = existing.rows[0];
+    if (tunnel_id) {
+      try {
+        const accountId = c.env.CLOUDFLARE_ACCOUNT_ID;
+        const apiToken = c.env.CLOUDFLARE_API_TOKEN;
+        if (accountId && apiToken) {
+          const cfBase = 'https://api.cloudflare.com/client/v4';
+          const cfHeaders = { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json' };
+          if (dns_record_id) {
+            const zones: any = await fetch(`${cfBase}/zones?name=meteritpro.com`, { headers: cfHeaders }).then(r => r.json());
+            const zoneId = zones.result?.[0]?.id;
+            if (zoneId) await fetch(`${cfBase}/zones/${zoneId}/dns_records/${dns_record_id}`, { method: 'DELETE', headers: cfHeaders });
+          }
+          await fetch(`${cfBase}/accounts/${accountId}/cfd_tunnel/${tunnel_id}`, { method: 'DELETE', headers: cfHeaders });
+        }
+      } catch { /* non-fatal */ }
+    }
+    await execQuery(c.env, 'DELETE FROM public.sync_server WHERE sync_server_id = $1', [id]);
+    return c.json({ success: true });
+  } catch (error: any) {
+    return c.json({ success: false, message: error.message }, 500);
+  }
+});
+
+adminApp.post('/sync-servers/:id/provision', async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json({ success: false, message: 'Invalid id' }, 400);
+  await execQuery(c.env,
+    `UPDATE public.sync_server SET provision_status = 'provisioning', provision_error = NULL, updated_at = NOW() WHERE sync_server_id = $1`,
+    [id]
+  );
+  try {
+    const serverRes = await execQuery(c.env, 'SELECT * FROM public.sync_server WHERE sync_server_id = $1', [id]);
+    if (serverRes.rows.length === 0) return c.json({ success: false, message: 'Not found' }, 404);
+    const server = serverRes.rows[0];
+    const accountId = c.env.CLOUDFLARE_ACCOUNT_ID;
+    const apiToken = c.env.CLOUDFLARE_API_TOKEN;
+    if (!accountId || !apiToken) throw new Error('Cloudflare credentials not configured');
+
+    const cfBase = 'https://api.cloudflare.com/client/v4';
+    const cfFetch = async (path: string, options: RequestInit = {}) => {
+      const res = await fetch(`${cfBase}${path}`, {
+        ...options,
+        headers: { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json', ...(options.headers as Record<string,string> || {}) },
+      });
+      const data: any = await res.json();
+      if (!data.success) throw new Error(data.errors?.[0]?.message || 'Cloudflare API error');
+      return data.result;
+    };
+
+    if (server.tunnel_id) {
+      try {
+        if (server.dns_record_id) {
+          const zones = await cfFetch(`/zones?name=meteritpro.com`);
+          const zoneId = zones[0]?.id;
+          if (zoneId) await cfFetch(`/zones/${zoneId}/dns_records/${server.dns_record_id}`, { method: 'DELETE' });
+        }
+        await cfFetch(`/accounts/${accountId}/cfd_tunnel/${server.tunnel_id}`, { method: 'DELETE' });
+      } catch { /* non-fatal */ }
+    }
+
+    const slug = server.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const tunnel = await cfFetch(`/accounts/${accountId}/cfd_tunnel`, {
+      method: 'POST',
+      body: JSON.stringify({ name: `meteritpro-sync-${slug}`, config_src: 'cloudflare' }),
+    });
+    await cfFetch(`/accounts/${accountId}/cfd_tunnel/${tunnel.id}/configurations`, {
+      method: 'PUT',
+      body: JSON.stringify({ config: { ingress: [{ hostname: `${slug}.meteritpro.com`, service: 'http://sync-frontend:80' }, { service: 'http_status:404' }] } }),
+    });
+    const zones = await cfFetch(`/zones?name=meteritpro.com`);
+    const zoneId = zones[0]?.id;
+    if (!zoneId) throw new Error('Zone not found for meteritpro.com');
+    const dnsRecord = await cfFetch(`/zones/${zoneId}/dns_records`, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'CNAME', name: slug, content: `${tunnel.id}.cfargotunnel.com`, proxied: true, ttl: 1 }),
+    });
+    await execQuery(c.env,
+      `UPDATE public.sync_server SET tunnel_id = $1, tunnel_token = $2, tunnel_url = $3, dns_record_id = $4,
+       provision_status = 'active', provision_error = NULL, updated_at = NOW() WHERE sync_server_id = $5`,
+      [tunnel.id, tunnel.token, `https://${slug}.meteritpro.com`, dnsRecord.id, id]
+    );
+    const updated = await execQuery(c.env,
+      `SELECT ss.sync_server_id, ss.tenant_id, t.name AS tenant_name, ss.name, ss.tunnel_url,
+              ss.timezone, ss.active, ss.provision_status, ss.tunnel_id, ss.created_at, ss.updated_at
+       FROM public.sync_server ss JOIN public.tenant t ON t.tenant_id = ss.tenant_id WHERE ss.sync_server_id = $1`,
+      [id]
+    );
+    return c.json({ success: true, data: updated.rows[0] });
+  } catch (error: any) {
+    await execQuery(c.env,
+      `UPDATE public.sync_server SET provision_status = 'error', provision_error = $1, updated_at = NOW() WHERE sync_server_id = $2`,
+      [error.message, id]
+    );
+    return c.json({ success: false, message: error.message }, 500);
+  }
+});
+
+adminApp.post('/sync-servers/:id/check-status', async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json({ success: false, message: 'Invalid sync server id' }, 400);
+
+  try {
+    const result = await execQuery(
+      c.env,
+      'SELECT tunnel_url FROM public.sync_server WHERE sync_server_id = $1',
+      [id]
+    );
+    if (result.rows.length === 0) return c.json({ success: false, message: 'Sync server not found' }, 404);
+
+    const { tunnel_url } = result.rows[0];
+    if (!tunnel_url) return c.json({ success: true, online: false, message: 'No tunnel URL configured' });
+
+    try {
+      const response = await fetch(`${tunnel_url.replace(/\/$/, '')}/health`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      return c.json({ success: true, online: response.ok, message: response.ok ? 'Connected' : `HTTP ${response.status}` });
+    } catch (fetchErr: any) {
+      return c.json({ success: true, online: false, message: fetchErr.message || 'Connection failed' });
+    }
+  } catch (error: any) {
+    logError('Error checking sync server status', error);
+    return c.json({ success: false, message: 'Failed to check status' }, 500);
   }
 });
 

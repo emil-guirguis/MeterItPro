@@ -25,6 +25,7 @@ import { notificationSchema } from './notificationSchema';
 import { notificationSettingsSchema } from './notificationSettingsSchema';
 import { notificationRuleSchema } from './notificationRuleSchema';
 import { syncServerSchema } from './syncServerSchema';
+import { adminSyncServerSchema } from './adminSyncServerSchema';
 import { costSchema } from './costSchema';
 import { supportTicketSchema } from './supportTicketSchema';
 
@@ -65,6 +66,7 @@ const schemas: Record<string, any> = {
   notification_settings: notificationSettingsSchema,
   notification_rule: notificationRuleSchema,
   sync_server: syncServerSchema,
+  admin_sync_server: adminSyncServerSchema,
   cost: costSchema,
   support_ticket: supportTicketSchema,
 };

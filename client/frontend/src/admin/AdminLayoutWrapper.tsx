@@ -14,6 +14,7 @@ const adminIconMappings = {
   admin_users:      'people',
   admin_costs:      'payments',
   admin_devices:    'devices',
+  admin_sync:       'dns',
   support_tickets:  'confirmation_number',
 };
 
@@ -24,13 +25,14 @@ if (!iconsRegistered) {
 }
 
 const superAdminItems: MenuItem[] = [
-  { id: 'admin-dashboard',  label: 'Dashboard',   icon: 'admin_dashboard', path: '/admin/dashboard' },
-  { id: 'admin-clients',    label: 'Clients',      icon: 'clients',         path: '/admin/clients' },
-  { id: 'admin-financials', label: 'Financials',   icon: 'financials',      path: '/admin/financials' },
-  { id: 'admin-reports',    label: 'Reports',      icon: 'admin_reports',   path: '/admin/reports' },
-  { id: 'admin-devices',    label: 'Devices',      icon: 'admin_devices',   path: '/admin/devices' },
-  { id: 'admin-costs',      label: 'Costs',        icon: 'admin_costs',     path: '/admin/costs' },
-  { id: 'admin-users',      label: 'Users',        icon: 'admin_users',     path: '/admin/users' },
+  { id: 'admin-dashboard',    label: 'Dashboard',    icon: 'admin_dashboard', path: '/admin/dashboard' },
+  { id: 'admin-clients',      label: 'Clients',      icon: 'clients',         path: '/admin/clients' },
+  { id: 'admin-financials',   label: 'Financials',   icon: 'financials',      path: '/admin/financials' },
+  { id: 'admin-reports',      label: 'Reports',      icon: 'admin_reports',   path: '/admin/reports' },
+  { id: 'admin-devices',      label: 'Devices',      icon: 'admin_devices',   path: '/admin/devices' },
+  { id: 'admin-costs',        label: 'Costs',        icon: 'admin_costs',     path: '/admin/costs' },
+  { id: 'admin-users',        label: 'Users',        icon: 'admin_users',     path: '/admin/users' },
+  { id: 'admin-sync-servers', label: 'Sync Servers', icon: 'admin_sync',      path: '/admin/sync-servers' },
 ];
 
 const supportOnlyItems: MenuItem[] = [

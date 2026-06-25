@@ -3,15 +3,16 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 
-const AdminDashboardPage  = lazy(() => import('./pages/AdminDashboardPage'));
-const ClientsPage         = lazy(() => import('./pages/ClientsPage'));
-const FinancialsPage      = lazy(() => import('./pages/FinancialsPage'));
-const AdminReportsPage    = lazy(() => import('./pages/AdminReportsPage'));
-const AdminUsersPage      = lazy(() => import('./pages/AdminUsersPage'));
-const CostsPage           = lazy(() => import('./pages/CostsPage'));
-const DevicesPage         = lazy(() => import('./pages/DevicesPage'));
-const SupportTicketsPage  = lazy(() => import('../support/pages/SupportTicketsPage'));
-const TicketDetailPage    = lazy(() => import('../support/pages/TicketDetailPage'));
+const AdminDashboardPage    = lazy(() => import('./pages/AdminDashboardPage'));
+const ClientsPage           = lazy(() => import('./pages/ClientsPage'));
+const FinancialsPage        = lazy(() => import('./pages/FinancialsPage'));
+const AdminReportsPage      = lazy(() => import('./pages/AdminReportsPage'));
+const AdminUsersPage        = lazy(() => import('./pages/AdminUsersPage'));
+const CostsPage             = lazy(() => import('./pages/CostsPage'));
+const DevicesPage           = lazy(() => import('./pages/DevicesPage'));
+const AdminSyncServersPage  = lazy(() => import('./pages/AdminSyncServersPage'));
+const SupportTicketsPage    = lazy(() => import('../support/pages/SupportTicketsPage'));
+const TicketDetailPage      = lazy(() => import('../support/pages/TicketDetailPage'));
 
 const Spinner = () => (
   <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
@@ -58,7 +59,8 @@ const AdminRoutes: React.FC = () => {
         <Route path="/admin/financials" element={<SuperAdminGuard><FinancialsPage /></SuperAdminGuard>} />
         <Route path="/admin/reports"    element={<SuperAdminGuard><AdminReportsPage /></SuperAdminGuard>} />
         <Route path="/admin/costs"      element={<SuperAdminGuard><CostsPage /></SuperAdminGuard>} />
-        <Route path="/admin/users"      element={<SuperAdminGuard><AdminUsersPage /></SuperAdminGuard>} />
+        <Route path="/admin/users"        element={<SuperAdminGuard><AdminUsersPage /></SuperAdminGuard>} />
+        <Route path="/admin/sync-servers" element={<SuperAdminGuard><AdminSyncServersPage /></SuperAdminGuard>} />
 
         {/* Both admin types */}
         <Route path="/admin/clients"  element={<AdminGuard><ClientsPage /></AdminGuard>} />

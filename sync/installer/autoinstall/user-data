@@ -28,8 +28,8 @@ autoinstall:
       name: direct
 
   identity:
-    hostname: meteritpro-sync
-    username: meteritpro
+    hostname: meteritprosync
+    username: admin
     # Temporary hash — late-commands changes password to MeterItPro1! before first boot
     password: "$6$exDY1mhS4KUYCE/2$zmn9ToZwTKLhCw.b4/b.ZRTIZM30JZ4QrOQ2aOXJ8yk96xpcCy68O0nG3VX7MOFzGj3/3JkiJoJDQCjVBM9Q0"
 
@@ -37,13 +37,28 @@ autoinstall:
     install-server: true
     allow-pw: true
 
+  # Only packages on the ISO pool — installing anything that needs the internet
+  # here crashes curtin (no network during install). wpasupplicant IS on the
+  # Server ISO and lets the first-boot wizard scan (wpa_cli) and join (netplan)
+  # WiFi offline. NOT on the ISO, do not add: network-manager, iw — both crash.
   packages:
     - wget
     - curl
+    - wpasupplicant
+
+  # No automatic shutdown/reboot: subiquity halts at the "Installation
+  # complete!" screen and waits. The operator pulls the USB there, then presses
+  # "Reboot Now" — so the machine reboots into the installed disk (USB gone, no
+  # reinstall loop) and the MeterItPro wizard runs.
 
   late-commands:
-    # Set real password (override temp hash above)
-    - echo 'meteritpro:MeterItPro1!' | chpasswd --root /target
+    # Ensure user exists (in case identity block failed) and set password
+    - chroot /target /bin/bash -c "id admin || useradd -m -s /bin/bash admin"
+    - chroot /target /bin/bash -c "usermod -aG sudo admin"
+    - chroot /target /bin/bash -c "echo 'admin:admin' | chpasswd"
+
+    # Set unique hostname (non-fatal)
+    - "bash -c 'HN=meteritprosync-$(cat /proc/sys/kernel/random/uuid | tr -d - | head -c 8); echo $HN > /target/etc/hostname; sed -i s/meteritprosync/$HN/g /target/etc/hosts' || true"
 
     # Copy MeterItPro installer from USB to installed system
     - cp /cdrom/autoinstall/MeterItPro-SyncSetup-linux /target/usr/local/bin/meteritpro-install
@@ -55,4 +70,4 @@ autoinstall:
     - cp /cdrom/autoinstall/meteritpro-setup.service /target/etc/systemd/system/meteritpro-setup.service
 
     # Enable first-boot service
-    - curtin in-target --target=/target -- systemctl enable meteritpro-setup.service
+    - chroot /target /bin/bash -c "systemctl enable meteritpro-setup.service"
