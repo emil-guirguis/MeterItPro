@@ -120,7 +120,20 @@ describe('SyncServers Routes', () => {
       expect(body.data.provision_status).toBe('pending');
     });
 
-    it('returns 400 when name is missing', async () => {
+    it('auto-generates a sync- name when name is missing', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any) // auth
+        .mockResolvedValueOnce({ rows: [] } as any)           // auto-gen uniqueness check
+        .mockImplementationOnce((_env: any, _sql: any, params: any = []) => Promise.resolve({
+          rows: [{
+            sync_server_id: 2, tenant_id: 1, name: params[2],
+            tunnel_url: '', timezone: 'UTC', active: true, notes: '',
+            bootstrap_key: 'some-uuid', tunnel_id: null,
+            provision_status: 'pending', provision_error: null, dns_record_id: null,
+            created_at: new Date(), updated_at: new Date(),
+          }],
+        }) as any);
+
       const res = await syncServersApp.request('/', {
         method: 'POST',
         headers: {
@@ -130,9 +143,10 @@ describe('SyncServers Routes', () => {
         body: JSON.stringify({ timezone: 'UTC' }),
       }, TEST_ENV);
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.message).toContain('name');
+      expect(body.success).toBe(true);
+      expect(body.data.name).toMatch(/^sync-[0-9a-f]{6}$/);
     });
 
     it('returns 409 when server with same name exists', async () => {

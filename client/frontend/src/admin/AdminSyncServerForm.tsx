@@ -18,7 +18,7 @@ interface AdminSyncServerFormProps {
  * installer reads this file at first boot so the operator never hand-types the
  * Sync Server ID / Bootstrap Key.
  */
-async function writeConfigToUsb(serverId: number, key: string): Promise<void> {
+async function writeConfigToUsb(serverId: number, name: string, key: string): Promise<void> {
   const picker = (window as any).showDirectoryPicker;
   if (typeof picker !== 'function') {
     alert('Writing to USB needs Chrome or Edge on desktop. Otherwise copy the values manually.');
@@ -35,7 +35,7 @@ async function writeConfigToUsb(serverId: number, key: string): Promise<void> {
       : await root.getDirectoryHandle('autoinstall', { create: true });
     const handle = await dir.getFileHandle('server.conf', { create: true });
     const writable = await handle.createWritable();
-    await writable.write(`SYNC_SERVER_ID=${serverId}\nSYNC_SERVER_BOOTSTRAP_KEY=${key}\n`);
+    await writable.write(`SYNC_SERVER_NAME=${name}\nSYNC_SERVER_ID=${serverId}\nSYNC_SERVER_BOOTSTRAP_KEY=${key}\n`);
     await writable.close();
     alert('Config written to USB (autoinstall/server.conf). Boot the new server from this stick.');
   } catch (e: any) {
@@ -115,7 +115,7 @@ export const AdminSyncServerForm: React.FC<AdminSyncServerFormProps> = ({ syncSe
                   <IconButton
                     size="small"
                     disabled={!isActive || !syncServer?.sync_server_id}
-                    onClick={() => writeConfigToUsb(syncServer!.sync_server_id, String(value))}
+                    onClick={() => writeConfigToUsb(syncServer!.sync_server_id, syncServer!.name ?? '', String(value))}
                   >
                     <UsbIcon fontSize="small" />
                   </IconButton>

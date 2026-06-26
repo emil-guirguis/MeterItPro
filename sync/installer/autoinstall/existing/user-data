@@ -1,0 +1,19 @@
+#cloud-config
+# Docker-only datasource: install MeterItPro onto an ALREADY-installed Ubuntu
+# WITHOUT reinstalling the OS. The grub entry "Install MeterItPro Docker
+# (existing Linux)" points subiquity here.
+#
+# early-commands run before any storage/partitioning. install-existing.sh does
+# the reseed and ALWAYS powers the machine off, so subiquity never reaches the
+# storage step and the disk is never wiped. interactive-sections is a safety net:
+# if the script ever failed to power off, subiquity would pause for a human at
+# storage instead of auto-wiping.
+autoinstall:
+  version: 1
+
+  early-commands:
+    - bash /cdrom/autoinstall/install-existing.sh
+
+  interactive-sections:
+    - storage
+    - identity

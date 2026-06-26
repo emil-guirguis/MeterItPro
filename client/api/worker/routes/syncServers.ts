@@ -62,16 +62,31 @@ app.post('/', requirePermission('settings:update'), async (c) => {
     if (!tenantId) return c.json({ success: false, message: 'Tenant context required' }, 401);
 
     const body = await c.req.json();
-    const { name, tunnel_url = '', timezone = 'UTC', active = true, notes = '', location_id = null } = body;
+    const { tunnel_url = '', timezone = 'UTC', active = true, notes = '', location_id = null } = body;
+    let name: string = (body.name ?? '').trim();
 
-    if (!name) return c.json({ success: false, message: 'name is required' }, 400);
-
-    const existing = await execQuery(
-      c.env,
-      'SELECT 1 FROM public.sync_server WHERE tenant_id = $1 AND LOWER(name) = LOWER($2)',
-      [tenantId, name]
-    );
-    if (existing.rows.length > 0) return c.json({ success: false, message: `A sync server named "${name}" already exists.` }, 409);
+    if (name) {
+      const existing = await execQuery(
+        c.env,
+        'SELECT 1 FROM public.sync_server WHERE tenant_id = $1 AND LOWER(name) = LOWER($2)',
+        [tenantId, name]
+      );
+      if (existing.rows.length > 0) return c.json({ success: false, message: `A sync server named "${name}" already exists.` }, 409);
+    } else {
+      // Auto-generate a unique sync-<6hex> name. The operator never types it;
+      // it becomes the hostname + tunnel slug, and is written to the USB config.
+      name = '';
+      for (let i = 0; i < 10 && !name; i++) {
+        const candidate = `sync-${crypto.randomUUID().replace(/-/g, '').slice(0, 6)}`;
+        const dup = await execQuery(
+          c.env,
+          'SELECT 1 FROM public.sync_server WHERE tenant_id = $1 AND LOWER(name) = LOWER($2)',
+          [tenantId, candidate]
+        );
+        if (dup.rows.length === 0) name = candidate;
+      }
+      if (!name) return c.json({ success: false, message: 'Failed to generate a unique server name' }, 500);
+    }
 
     const bootstrapKey = crypto.randomUUID();
 
@@ -357,7 +372,7 @@ app.get('/:id/bootstrap', async (c) => {
 
     const result = await execQuery(
       c.env,
-      `SELECT provision_status, provision_error, tunnel_token
+      `SELECT name, provision_status, provision_error, tunnel_token
        FROM public.sync_server
        WHERE sync_server_id = $1 AND bootstrap_key = $2`,
       [id, key]
@@ -370,6 +385,7 @@ app.get('/:id/bootstrap', async (c) => {
     return c.json({
       success: true,
       data: {
+        name:               row.name,
         provision_status:   row.provision_status,
         provision_error:    row.provision_error,
         tunnel_token:       row.provision_status === 'active' ? row.tunnel_token : null,

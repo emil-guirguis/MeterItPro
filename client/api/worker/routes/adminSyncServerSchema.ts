@@ -20,7 +20,7 @@ export const adminSyncServerSchema = defineSchema({
           fields: [
             field({ name: 'tenant_name', order: 0, type: FieldTypes.STRING,  default: '',   readOnly: true,  label: 'Tenant',  dbField: 'tenant_name', showOn: ['list'] }),
             field({ name: 'tenant_id',  order: 1, type: FieldTypes.NUMBER,   default: null, required: true,  label: 'Tenant',   dbField: 'tenant_id',  showOn: ['form'] }),
-            field({ name: 'name',       order: 2, type: FieldTypes.STRING,   default: '',   required: true,  label: 'Name',     dbField: 'name',       minLength: 1, maxLength: 255, filterable: ['main'], showOn: ['list', 'form'] }),
+            field({ name: 'name',       order: 2, type: FieldTypes.STRING,   default: '',   required: false, readOnly: true, label: 'Name', dbField: 'name', maxLength: 255, placeholder: 'Auto-generated on save (sync-xxxxxx)', filterable: ['main'], showOn: ['list', 'form'] }),
             field({ name: 'timezone',   order: 3, type: FieldTypes.TIMEZONE, default: 'UTC', required: false, label: 'Timezone', dbField: 'timezone',   showOn: ['form'] }),
             field({ name: 'notes',      order: 4, type: FieldTypes.STRING,   default: '',   required: false, label: 'Notes',    dbField: 'notes',      maxLength: 2000, showOn: ['form'] }),
           ],

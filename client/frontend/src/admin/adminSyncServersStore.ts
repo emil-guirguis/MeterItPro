@@ -53,7 +53,7 @@ class AdminSyncServerAPI {
     return item;
   }
 
-  async create(data: { tenant_id: number; name: string; timezone?: string; active?: boolean; notes?: string }): Promise<AdminSyncServerEntity> {
+  async create(data: { tenant_id: number; name?: string; timezone?: string; active?: boolean; notes?: string }): Promise<AdminSyncServerEntity> {
     const res = await this.request<any>('/admin/sync-servers', { method: 'POST', body: JSON.stringify(data) });
     return this.normalize(res.data);
   }

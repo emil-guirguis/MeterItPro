@@ -161,17 +161,23 @@ USB is ready.
 
 ## Step 6 — Automated Ubuntu install (no action needed)
 
+In the grub menu pick one of **three** options:
+
+1. **Install MeterItPro Sync Server (Ubuntu + Docker)** — fresh server. **Wipes the disk**, installs Ubuntu + MeterItPro. Use this normally.
+2. **Install Ubuntu only (no MeterItPro)** — **wipes the disk** and installs a plain Ubuntu Server with no MeterItPro. For staging a machine to add MeterItPro later (via option 3).
+3. **Install MeterItPro Docker — existing Linux, keep data** — the server already runs Ubuntu and you only want to (re)install MeterItPro. **Does not reinstall Ubuntu or wipe the disk.** See [Docker-only install](#docker-only-install-existing-ubuntu).
+
 Ubuntu installs silently. You will see installation progress on screen with no prompts.
 
 Duration: ~10–15 minutes depending on hardware.
 
-When install finishes, the server reboots automatically. **Remove the USB when the screen goes black for reboot.**
+When the install finishes, the machine **powers off** (it does not reboot — that avoids re-entering the installer with the USB still in). **Remove the USB, then power the machine back on.** It boots the installed disk and the MeterItPro setup runs.
 
 ---
 
 ## Step 7 — MeterItPro setup (first boot)
 
-After reboot, the MeterItPro setup runs automatically on screen — be at the keyboard:
+After you remove the USB and power the machine back on, the MeterItPro setup runs automatically on screen — be at the keyboard:
 
 ```
 ╔════════════════════════════════════════════════════════╗
@@ -227,6 +233,28 @@ When complete:
 | Setup hangs at Docker install | No internet | Check ethernet cable; confirm DHCP assigned IP |
 | Server stays Offline | Wrong Sync Server ID or Bootstrap Key | Re-run `/usr/local/bin/meteritpro-install` with correct values |
 | `grub.cfg not found` in Step 4 | Rufus used DD mode | Re-flash USB with ISO Image mode |
+
+---
+
+## Docker-only install (existing Ubuntu)
+
+Use this when the server **already runs Ubuntu** and you only want to install (or
+re-install) MeterItPro — without wiping the disk or reinstalling the OS.
+
+1. Boot the server from the prepared USB (Step 5).
+2. In the grub menu choose **Install MeterItPro Docker — existing Linux, keep data**.
+3. It automatically finds the installed Ubuntu, drops the MeterItPro installer +
+   first-boot service onto it, and **powers the machine off**. The disk is never
+   wiped — partitioning never runs.
+4. Remove the USB, power the machine back on.
+5. The MeterItPro setup runs on screen exactly like Step 7 (uses the pre-seeded
+   `server.conf` if present, otherwise prompts for Sync Server ID + Bootstrap Key).
+
+> Under the hood this boots the Ubuntu live environment and runs
+> `autoinstall/install-existing.sh`, which mounts the installed root and enables
+> the first-boot service. Docker itself installs on the next real boot (it can't
+> run inside the live session). If no installed Ubuntu is found, it powers off
+> without changing anything — use the full install option instead.
 
 ---
 

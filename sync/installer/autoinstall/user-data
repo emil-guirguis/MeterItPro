@@ -2,6 +2,12 @@
 autoinstall:
   version: 1
 
+  # Power the machine OFF when the install finishes (instead of rebooting into a
+  # still-inserted USB and looping the installer). Subiquity shows "Installation
+  # complete!" then powers down — the operator removes the USB and powers the
+  # machine back on, which boots the installed disk and runs the MeterItPro wizard.
+  shutdown: poweroff
+
   locale: en_US.UTF-8
 
   keyboard:
@@ -46,10 +52,9 @@ autoinstall:
     - curl
     - wpasupplicant
 
-  # No automatic shutdown/reboot: subiquity halts at the "Installation
-  # complete!" screen and waits. The operator pulls the USB there, then presses
-  # "Reboot Now" — so the machine reboots into the installed disk (USB gone, no
-  # reinstall loop) and the MeterItPro wizard runs.
+  # End behavior is set by the top-level `shutdown: poweroff` above — the machine
+  # powers off when the install completes. Operator removes USB, powers on, and
+  # the MeterItPro first-boot wizard runs on the installed disk.
 
   late-commands:
     # Ensure user exists (in case identity block failed) and set password

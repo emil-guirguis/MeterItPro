@@ -1,0 +1,59 @@
+#cloud-config
+# Ubuntu-only datasource: installs a plain Ubuntu Server with NO MeterItPro.
+# Identical to the full install (../user-data) minus the MeterItPro late-commands
+# (no installer binary, no first-boot service). Used by the grub entry
+# "Install Ubuntu only (no MeterItPro)".
+autoinstall:
+  version: 1
+
+  # Power off when done (same as the full install) so the operator removes the
+  # USB before powering on — no reinstall loop.
+  shutdown: poweroff
+
+  locale: en_US.UTF-8
+
+  keyboard:
+    layout: us
+
+  network:
+    network:
+      version: 2
+      ethernets:
+        all-en:
+          match:
+            name: "en*"
+          dhcp4: true
+          optional: true
+        all-eth:
+          match:
+            name: "eth*"
+          dhcp4: true
+          optional: true
+
+  storage:
+    layout:
+      name: direct
+
+  identity:
+    hostname: ubuntu
+    username: admin
+    # Temporary hash — late-commands sets the password below before first boot
+    password: "$6$exDY1mhS4KUYCE/2$zmn9ToZwTKLhCw.b4/b.ZRTIZM30JZ4QrOQ2aOXJ8yk96xpcCy68O0nG3VX7MOFzGj3/3JkiJoJDQCjVBM9Q0"
+
+  ssh:
+    install-server: true
+    allow-pw: true
+
+  packages:
+    - wget
+    - curl
+    - wpasupplicant
+
+  late-commands:
+    # Ensure user exists and set password — base setup only, no MeterItPro.
+    - chroot /target /bin/bash -c "id admin || useradd -m -s /bin/bash admin"
+    - chroot /target /bin/bash -c "usermod -aG sudo admin"
+    - chroot /target /bin/bash -c "echo 'admin:admin' | chpasswd"
+
+    # Unique hostname (non-fatal)
+    - "bash -c 'HN=ubuntu-$(cat /proc/sys/kernel/random/uuid | tr -d - | head -c 8); echo $HN > /target/etc/hostname; sed -i s/ubuntu/$HN/g /target/etc/hosts' || true"

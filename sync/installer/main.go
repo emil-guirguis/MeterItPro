@@ -37,6 +37,7 @@ var (
 // ── Bootstrap response ────────────────────────────────────────────────────────
 
 type bootstrapData struct {
+	Name             string `json:"name"`
 	ProvisionStatus  string `json:"provision_status"`
 	ProvisionError   string `json:"provision_error"`
 	TunnelToken      string `json:"tunnel_token"`
@@ -77,7 +78,7 @@ func main() {
 	// The admin portal can write these to a USB via the File System Access API;
 	// the installer copies that file to /etc/meteritpro/server.conf at install
 	// time, so the operator never hand-types the long Bootstrap Key.
-	serverID, bootstrapKey, fromFile := loadServerConfig()
+	serverID, bootstrapKey, serverName, fromFile := loadServerConfig()
 	if fromFile {
 		fmt.Printf("  Loaded Sync Server ID %s and Bootstrap Key from USB config.\n", serverID)
 	} else {
@@ -104,6 +105,10 @@ func main() {
 		cfg, err = fetchBootstrap(serverID, bootstrapKey)
 		if err == nil {
 			ok("Config received")
+			// USB config may predate name pre-seeding; the API is authoritative.
+			if cfg.Name != "" {
+				serverName = cfg.Name
+			}
 			break
 		}
 		fmt.Printf("  ✗ %s\n", err)
@@ -116,6 +121,9 @@ func main() {
 
 	step(4, "Configuring system for 24/7 operation")
 	hardenSystem()
+	if runtime.GOOS == "linux" && serverName != "" {
+		setLinuxHostname(serverName)
+	}
 
 	step(5, "Docker")
 	ensureDocker(r)
@@ -126,7 +134,7 @@ func main() {
 	step(7, "Writing install files")
 	mustMkdir(installDir)
 	mustMkdir(filepath.Join(installDir, "docker", "init"))
-	writeEnv(serverID, bootstrapKey, cfg)
+	writeEnv(serverID, bootstrapKey, serverName, cfg)
 	writeFile(filepath.Join(installDir, "docker-compose.yml"), dockerComposeYML, 0644)
 	writeFile(filepath.Join(installDir, "docker", "init", "00-schema.sql"), schemaSQL, 0644)
 	ok("Files written to " + installDir)
@@ -150,10 +158,10 @@ const serverConfigPath = "/etc/meteritpro/server.conf"
 // loadServerConfig reads SYNC_SERVER_ID and SYNC_SERVER_BOOTSTRAP_KEY from the
 // pre-seeded config file. Returns ok=true only if both are present, so a
 // partial/garbled file falls back to manual entry.
-func loadServerConfig() (id, key string, ok bool) {
+func loadServerConfig() (id, key, name string, ok bool) {
 	data, err := os.ReadFile(serverConfigPath)
 	if err != nil {
-		return "", "", false
+		return "", "", "", false
 	}
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
@@ -169,9 +177,11 @@ func loadServerConfig() (id, key string, ok bool) {
 			id = strings.TrimSpace(v)
 		case "SYNC_SERVER_BOOTSTRAP_KEY":
 			key = strings.TrimSpace(v)
+		case "SYNC_SERVER_NAME":
+			name = strings.TrimSpace(v)
 		}
 	}
-	return id, key, id != "" && key != ""
+	return id, key, name, id != "" && key != ""
 }
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
@@ -558,6 +568,23 @@ func hardenLinux() {
 	}
 }
 
+// setLinuxHostname sets the system hostname to the sync server's name so the box
+// is identifiable on the network and matches the admin portal. Best-effort.
+func setLinuxHostname(name string) {
+	fmt.Printf("  %-58s", "Setting hostname to "+name+"...")
+	if err := exec.Command("hostnamectl", "set-hostname", name).Run(); err != nil {
+		fmt.Println("⚠ skipped")
+		return
+	}
+	// Map the new name to loopback so sudo and local resolution don't lag.
+	if hosts, err := os.ReadFile("/etc/hosts"); err == nil {
+		if !strings.Contains(string(hosts), "127.0.1.1\t"+name) {
+			_ = os.WriteFile("/etc/hosts", append(hosts, []byte("127.0.1.1\t"+name+"\n")...), 0644)
+		}
+	}
+	fmt.Println("✓")
+}
+
 // ── Docker ────────────────────────────────────────────────────────────────────
 
 func dockerRunning() bool {
@@ -721,7 +748,7 @@ func dockerLogin(cfg bootstrapData) {
 
 // ── File writing ──────────────────────────────────────────────────────────────
 
-func writeEnv(serverID, bootstrapKey string, cfg bootstrapData) {
+func writeEnv(serverID, bootstrapKey, serverName string, cfg bootstrapData) {
 	clientAPIURL := cfg.ClientAPIURL
 	if clientAPIURL == "" {
 		clientAPIURL = defaultAPIURL
@@ -760,6 +787,7 @@ CLIENT_API_KEY=%s
 
 # API + Provisioner
 CLIENT_API_URL=%s
+SYNC_SERVER_NAME=%s
 SYNC_SERVER_ID=%s
 SYNC_SERVER_BOOTSTRAP_KEY=%s
 
@@ -779,6 +807,7 @@ BACNET_DEBUG_POST_READ_CHECK=false
 		randHex(32),
 		cfg.ApiKey,
 		clientAPIURL,
+		serverName,
 		serverID,
 		bootstrapKey,
 	)
