@@ -13,6 +13,8 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 </head>
 <body>
+<div id="site-nav"></div>
+<script src="nav.js"></script>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
 
@@ -51,72 +53,6 @@ const ArrowDiag = ({ size = 14 }) => (
 );
 
 // ── NAV ────────────────────────────────────────────────────────────────────
-function Nav() {
-  const [scrolled, setScrolled] = React.useState(false);
-  const [dropOpen, setDropOpen] = React.useState(false);
-  const dropRef = React.useRef(null);
-
-  React.useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  React.useEffect(() => {
-    if (!dropOpen) return;
-    const handler = (e) => {
-      if (dropRef.current && !dropRef.current.contains(e.target)) setDropOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [dropOpen]);
-
-  return (
-    <nav className="nav" data-scrolled={scrolled ? '1' : '0'}>
-      <div className="wrap nav__inner">
-        <a href="index.html" className="brand" aria-label="TBWC — home">
-          <span className="brand__quad" aria-hidden="true">
-            <span>T</span><span>B</span><span>W</span><span className="brand__quad-c">C</span>
-          </span>
-          <span className="brand__lockup">
-            <span>Technology</span>
-          </span>
-        </a>
-        <div className="nav__links">
-          <a className="nav__link" href="index.html">Home</a>
-          <a className="nav__link" href="index.html#reps">Representatives</a>
-          <a className="nav__link" href="index.html#about">About</a>
-          <a className="nav__link" href="index.html#contact">Contact Us</a>
-        </div>
-        <div className="nav__cta-group" ref={dropRef} style={{ position: 'relative' }}>
-          <button className="btn btn--primary btn--sm" onClick={() => setDropOpen(v => !v)}>
-            Rep Portal
-          </button>
-          <a className="btn btn--sm" href="https://meteritpro.com" target="_blank" rel="noopener noreferrer" style={{ background: '#1a73e8', color: '#fff' }}>
-            MeterItPro
-          </a>
-          {dropOpen && (
-            <div className="portal-drop">
-              <p className="portal-drop__title">Rep Portal</p>
-              <form onSubmit={(e) => { e.preventDefault(); window.location.href = 'products.html'; }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <input className="portal-drop__input" type="email" placeholder="Email" required autoFocus />
-                <input className="portal-drop__input" type="password" placeholder="Password" required />
-                <button type="submit" className="btn btn--primary" style={{ width: '100%', justifyContent: 'center' }}>
-                  Log in
-                </button>
-              </form>
-              <div className="portal-drop__links">
-                <a href="https://tbwctechnology.com/rep-portal/" target="_blank" rel="noopener noreferrer">Forgot password?</a>
-                <a href="https://tbwctechnology.com/newrep-request/" target="_blank" rel="noopener noreferrer" className="btn btn--ghost btn--sm">Become a Rep</a>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </nav>
-  );
-}
 
 // ── DATA ───────────────────────────────────────────────────────────────────
 const TBWC = 'https://tbwctechnology.com';
@@ -268,7 +204,6 @@ function Products() {
 function App() {
   return (
     <>
-      <Nav />
       <main>
         <Products />
       </main>

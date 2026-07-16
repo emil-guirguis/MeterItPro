@@ -35,6 +35,8 @@
       </g>
     </svg>
   </template>
+  <div id="site-nav"></div>
+  <script src="nav.js"></script>
   <div id="root"></div>
   <script type="text/babel" data-presets="react">// sections.jsx — homepage sections for TBWC modernized site
 
@@ -79,90 +81,6 @@
     );
 
     // ── NAV ────────────────────────────────────────────────────────────────────
-    function Nav() {
-      const [scrolled, setScrolled] = React.useState(false);
-      const [mobileOpen, setMobileOpen] = React.useState(false);
-      const [dropOpen, setDropOpen] = React.useState(false);
-      const dropRef = React.useRef(null);
-
-      React.useEffect(() => {
-        const onScroll = () => setScrolled(window.scrollY > 8);
-        onScroll();
-        window.addEventListener('scroll', onScroll, { passive: true });
-        return () => window.removeEventListener('scroll', onScroll);
-      }, []);
-
-      React.useEffect(() => {
-        if (!dropOpen) return;
-        const handler = (e) => {
-          if (dropRef.current && !dropRef.current.contains(e.target)) setDropOpen(false);
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-      }, [dropOpen]);
-
-      return (
-        <nav className="nav" data-scrolled={scrolled ? '1' : '0'}>
-          <div className="wrap nav__inner">
-            <a href="#" className="brand" aria-label="TBWC — home">
-              <img src="TBWC%20Technology%20Logo%20.png" alt="TBWC Technology" className="brand__logo-img" />
-            </a>
-            <div className="nav__links">
-              <a className="nav__link" href="#applications">Applications</a>
-              <span className="nav__link" style={{ opacity: 0.35, cursor: 'not-allowed', pointerEvents: 'none' }}>Representatives</span>
-              <a className="nav__link" href="#about">About</a>
-              <a className="nav__link" href="#footer-contact" onClick={() => {
-                const el = document.getElementById('footer-contact');
-                if (!el) return;
-                el.style.background = '#fffde7';
-                el.style.borderRadius = '6px';
-                el.style.padding = '8px';
-              }}>Contact</a>
-            </div>
-            <div className="nav__cta-group" ref={dropRef} style={{ position: 'relative' }}>
-              <button className="btn btn--primary btn--sm" onClick={() => setDropOpen(v => !v)}>
-                Rep Portal
-              </button>
-              <button className="nav__burger" aria-label="Menu" onClick={() => setMobileOpen(v => !v)} data-open={mobileOpen ? '1' : '0'}>
-                <span /><span /><span />
-              </button>
-              {dropOpen && (
-                <div className="portal-drop">
-                  <p className="portal-drop__title">Rep Portal</p>
-                  <form onSubmit={(e) => { e.preventDefault(); window.location.href = 'products.html'; }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <input className="portal-drop__input" type="email" placeholder="Email" required autoFocus />
-                    <input className="portal-drop__input" type="password" placeholder="Password" required />
-                    <button type="submit" className="btn btn--primary" style={{ width: '100%', justifyContent: 'center' }}>
-                      Log in
-                    </button>
-                  </form>
-                  <div className="portal-drop__links">
-                    <a href="https://tbwctechnology.com/rep-portal/" target="_blank" rel="noopener noreferrer">Forgot password?</a>
-                    <a href="https://tbwctechnology.com/newrep-request/" target="_blank" rel="noopener noreferrer" className="btn btn--ghost btn--sm">Become a Rep</a>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          {mobileOpen && (
-            <div className="nav__mobile">
-              <a href="#applications" onClick={() => setMobileOpen(false)}>Applications</a>
-              <span style={{ opacity: 0.35, cursor: 'not-allowed' }}>Representatives</span>
-              <a href="#about" onClick={() => setMobileOpen(false)}>About</a>
-              <a href="#footer-contact" onClick={() => {
-                setMobileOpen(false);
-                const el = document.getElementById('footer-contact');
-                if (!el) return;
-                el.style.background = '#fffde7';
-                el.style.borderRadius = '6px';
-                el.style.padding = '8px';
-              }}>Contact</a>
-            </div>
-          )}
-        </nav>
-      );
-    }
-
     // ── HERO ───────────────────────────────────────────────────────────────────
     function Hero() {
       const gridRef = useFadeIn();
@@ -171,16 +89,16 @@
       const headlineA = (
         <>
           <h1 className="display" style={{ fontSize: 'clamp(24px, 3.2vw, 70px)' }}>
-            You cannot manage what you do not <em style={{ color: '#03a84e' }}>measure</em>.
+            You cannot <em style={{ color: '#03a84e' }}>manage</em> what you do not <em style={{ color: '#03a84e' }}>measure</em>.
           </h1>
-          <p className="lede" style={{ marginTop: 32, fontSize: '0.85em' }}>
-            When the goal is to gain visibility of energy use within the building, putting all the pieces together can be difficult.
+          <p className="lede" style={{ marginTop: 32, fontSize: '1em' }}>
+            When the goal is to make the invisible visible for energy management and control purposes, putting all the pieces together can be difficult.
           </p>
-          <p className="lede" style={{ marginTop: 12, fontSize: '0.85em' }}>
-            From engineered design and long-term post-installation support, TBWC delivers accurate, scalable energy monitoring solutions; TBWC Technology is there to help.
+          <p className="lede" style={{ marginTop: 12, fontSize: '1em' }}>
+            From initial design to post-installation support, TBWC provides the intelligence and the expertise to mitigate the risk and eliminate the hidden costs associated with energy management systems today.
           </p>
-          <p className="lede" style={{ marginTop: 12, fontSize: '0.85em' }}>
-            While TBWC makes it look easy by delivering practical, end-to-end energy monitoring solutions engineers, installers and end-users prefer.
+          <p className="lede" style={{ marginTop: 12, fontSize: '1em' }}>
+            TBWC takes the complex and makes it easy to deliver the vital energy information the way engineers, installers and end users need and prefer.
           </p>
         </>
       );
@@ -198,9 +116,9 @@
               <div className="hero__overlay-card">
                 {headlineA}
                 <div className="hero__trust">
-                  <div><span className="mono num">24+</span><span>Years</span></div>
-                  <div><span className="mono num">15</span><span>Authorized reps</span></div>
-                  <div><span className="mono num">BAA</span><span>·TAA·BABA compliant</span></div>
+                  <div><span className="mono num">25+</span><span>Years</span></div>
+                  <div><span className="mono num">27</span><span>Rep offices</span></div>
+                  <div><span className="num"><svg width="30" height="16" viewBox="0 0 38 20" style={{ borderRadius: 2, verticalAlign: 'baseline' }} xmlns="http://www.w3.org/2000/svg"><rect width="38" height="20" fill="#fff"/><g fill="#b22234"><rect width="38" height="1.54" y="0"/><rect width="38" height="1.54" y="3.08"/><rect width="38" height="1.54" y="6.15"/><rect width="38" height="1.54" y="9.23"/><rect width="38" height="1.54" y="12.31"/><rect width="38" height="1.54" y="15.38"/><rect width="38" height="1.54" y="18.46"/></g><rect width="15.2" height="10.77" fill="#3c3b6e"/></svg></span><span>BAA, TAA, BABA compliant</span></div>
                 </div>
               </div>
             </div>
@@ -297,7 +215,7 @@
 
             <div className="locs stagger" ref={locsRef}>
               <article className="loc">
-                <div className="loc__hd" style={{ justifyContent: 'flex-start' }}>
+                <div className="loc__hd">
                   <span className="loc__type">Corporate · NV</span>
                 </div>
                 <h3 className="loc__title">TBWC Technology, Inc.</h3>
@@ -309,7 +227,7 @@
               </article>
 
               <article className="loc">
-                <div className="loc__hd" style={{ justifyContent: 'flex-start' }}>
+                <div className="loc__hd">
                   <span className="loc__type">Service Center · CA</span>
                 </div>
                 <h3 className="loc__title">TBWC Service Center</h3>
@@ -326,63 +244,6 @@
       );
     }
 
-    // ── METERITPRO SOFTWARE SECTION ───────────────────────────────────────────
-    function MeterItProSection() {
-      const secHdRef = useFadeIn();
-      const featRef = useStagger();
-      const ctaRef = useFadeIn();
-
-      const features = [
-        { label: 'AI anomaly detection and notification', desc: 'Flags consumption outliers, billing errors, and equipment faults before they become problems.' },
-        { label: 'Real-time data streaming', desc: 'Live meter readings pushed to reps, property managers, and end customers.' },
-        { label: 'Cloud-native', desc: 'Deployed on Cloudflare\'s global edge — 270+ data centers, sub-50ms latency.' },
-        { label: 'Open API & integrations', desc: 'REST API and webhook events for BMS, SCADA, utility billing, and property management systems.' },
-      ];
-
-      return (
-        <section className="mip row" id="software">
-          <div className="wrap">
-            <div className="sec-hd fade-up" ref={secHdRef}>
-              <div className="sec-hd__label">
-                <span><span className="sec-hd__num">-</span> · Software</span>
-                <span>AI-native platform</span>
-              </div>
-              <div>
-                <div className="mip__ai-badge">AI-powered · Live now</div>
-                <h2 className="h2 sec-hd__title">The intelligent software<br />layer for every meter.</h2>
-                <p className="sec-hd__sub">MeterItPro is TBWC's AI-native platform, built to make meter data actually useful — notifications, automated reporting in your inbox, and AI insights in one place.</p>
-              </div>
-            </div>
-
-            <div className="mip__feat-grid stagger" ref={featRef}>
-              {features.map((f) => (
-                <div className="mip__feat" key={f.label}>
-                  <span className="mip__feat-n">{f.n}</span>
-                  <strong className="mip__feat-label">{f.label}</strong>
-                  <p className="mip__feat-desc">{f.desc}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mip__screenshots">
-              <img src="software1.jpg" alt="Peak kW chart" className="mip__screenshot" />
-              <img src="software2.jpg" alt="Meter readings dashboard" className="mip__screenshot" />
-            </div>
-
-            <div className="mip__cta-bar fade-up" ref={ctaRef}>
-              <div className="mip__cta-copy">
-                <span className="mip__cta-tag">AI · Cloud-native · Real-time · Open API</span>
-                <h3 className="h3">Turn your meter data<br />into business intelligence.</h3>
-              </div>
-              <a className="btn btn--sm" href="https://meteritpro.com" target="_blank" rel="noopener noreferrer"
-                style={{ background: '#1a73e8', color: '#fff', fontSize: 14, padding: '14px 24px' }}>
-                Explore MeterItPro <Arrow size={13} />
-              </a>
-            </div>
-          </div>
-        </section>
-      );
-    }
 
     // ── FOOTER ────────────────────────────────────────────────────────────────
     function Footer() {
@@ -461,18 +322,18 @@
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <h2 className="h2" style={{ fontSize: 'clamp(15px, 1.4vw, 32px)', fontWeight: 700, marginBottom: 10 }}>
-                Whether for <em style={{ color: '#03a84e', fontStyle: 'italic' }}>cost allocation</em>, <em style={{ color: '#03a84e', fontStyle: 'italic' }}>energy awareness</em>, or for <em style={{ color: '#03a84e', fontStyle: 'italic' }}>compliance</em>&hellip;
+                Whether for <em style={{ color: '#03a84e', fontStyle: 'italic' }}>cost</em> allocation, LEED energy <em style={{ color: '#03a84e', fontStyle: 'italic' }}>awareness,</em> or for code <em style={{ color: '#03a84e', fontStyle: 'italic' }}>compliance</em>&hellip;
               </h2>
               <p style={{ maxWidth: '66ch', lineHeight: 1.65 }}>
-                TBWC has transformed the process of submetering from selecting the meters, to delivering a fully integrated and scalable energy management tool that is easier-to-install, easier to own, and easier-to-manage over the life of the building.
+                &hellip;TBWC has transformed the process of &lsquo;buying a meter&rsquo; to deliver the energy intelligence ecosystem that transforms complex metering and monitoring requirements into the reliable, scalable solution that&rsquo;s easier to install, own and manage over the life of the building.
               </p>
             </div>
             <div>
               <h2 className="h2" style={{ fontSize: 'clamp(15px, 1.4vw, 32px)', fontWeight: 700, marginBottom: 10 }}>
-                From initial concept, deployment and post-installation <em style={{ color: '#03a84e', fontStyle: 'italic' }}>support</em>.
+                Meter it, <em style={{ color: '#03a84e', fontStyle: 'italic' }}>MeterIT&trade;,</em> Manage it. TBWC delivers <em style={{ color: '#03a84e', fontStyle: 'italic' }}>more than a meter</em>.
               </h2>
               <p style={{ maxWidth: '66ch', lineHeight: 1.65 }}>
-                TBWC delivers owner/operators the data in the way they need to immediately put into practice and achieve the goal of submetering: Gain control of energy.
+                We deliver MeterIT&trade;&mdash;the engineered combination of advanced metering, information technology, and energy intelligence that powers smarter buildings. Whether you are an electrical distributor, contractor, engineer, building owner, OEM, or specifying professional, TBWC is committed to delivering the expertise, solutions, and long-term support your project deserves.
               </p>
             </div>
           </div>
@@ -480,16 +341,18 @@
       );
 
       return (
-        <section id="applications" className="row">
-          <div className="wrap">
-            <div className="fade-up" ref={gridRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
-              <div>
+        <section id="applications" className="hero">
+          <div className="wrap" style={{ display: 'flex', gap: 'clamp(24px, 3vw, 56px)', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="fade-up" ref={gridRef} style={{ flex: '1 1 420px', minWidth: 0 }}>
+              <div style={{ color: '#000' }}>
                 {headlineA}
               </div>
+            </div>
+            <div style={{ flex: '1 1 420px', minWidth: 0 }}>
               <img
                 src="applications.jpg"
                 alt=""
-                style={{ width: '100%', height: 'auto', borderRadius: 12, display: 'block' }}
+                style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block' }}
               />
             </div>
           </div>
@@ -497,7 +360,7 @@
       );
     }
 
-    Object.assign(window, { Nav, Hero, Locations, MeterItProSection, Footer, Applications });
+    Object.assign(window, { Hero, Locations, Footer, Applications });
   </script>
   <script type="text/babel" data-presets="react">
 
@@ -529,7 +392,6 @@
 
       return (
         <>
-          <Nav />
           <main>
             <Hero />
             <div className="reveal"><Applications /></div>

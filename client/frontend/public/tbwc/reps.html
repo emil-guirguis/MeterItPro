@@ -1,10 +1,10 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Representatives â€” TBWC Technology</title>
+  <title>Representatives — TBWC Technology</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -26,11 +26,13 @@
 </head>
 
 <body>
+  <div id="site-nav"></div>
+  <script src="nav.js"></script>
   <div id="root"></div>
 
   <script type="text/babel" data-presets="react">
 
-    // â”€â”€ Hooks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Hooks ──────────────────────────────────────────────────────────────────
 
     function useFadeIn() {
       const ref = React.useRef(null);
@@ -72,85 +74,10 @@
       </svg>
     );
 
-    // â”€â”€ NAV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── NAV ────────────────────────────────────────────────────────────────────
 
-    function Nav() {
-      const [scrolled, setScrolled] = React.useState(false);
-      const [mobileOpen, setMobileOpen] = React.useState(false);
-      const [dropOpen, setDropOpen] = React.useState(false);
-      const dropRef = React.useRef(null);
 
-      React.useEffect(() => {
-        const onScroll = () => setScrolled(window.scrollY > 8);
-        onScroll();
-        window.addEventListener('scroll', onScroll, { passive: true });
-        return () => window.removeEventListener('scroll', onScroll);
-      }, []);
-
-      React.useEffect(() => {
-        if (!dropOpen) return;
-        const handler = (e) => {
-          if (dropRef.current && !dropRef.current.contains(e.target)) setDropOpen(false);
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-      }, [dropOpen]);
-
-      return (
-        <nav className="nav" data-scrolled={scrolled ? '1' : '0'}>
-          <div className="wrap nav__inner">
-            <a href="index.html" className="brand" aria-label="TBWC â€” home">
-              <img src="TBWC%20Technology%20Logo%20.png" alt="TBWC Technology" className="brand__logo-img" />
-            </a>
-            <div className="nav__links">
-              <a className="nav__link" href="index.html#applications">Applications</a>
-              <a className="nav__link" href="index.html#software">Energy Information System</a>
-              <a className="nav__link" href="#reps" aria-current="page">Representatives</a>
-              <a className="nav__link" href="index.html#about">About</a>
-              <a className="nav__link" href="index.html#footer-contact">Contact</a>
-            </div>
-            <div className="nav__cta-group" ref={dropRef} style={{ position: 'relative' }}>
-              <button className="btn btn--primary btn--sm" onClick={() => setDropOpen(v => !v)}>
-                Rep Portal
-              </button>
-              <a className="btn btn--sm" href="https://meteritpro.com" target="_blank" rel="noopener noreferrer" style={{ background: '#1a73e8', color: '#fff' }}>
-                MeterItPro
-              </a>
-              <button className="nav__burger" aria-label="Menu" onClick={() => setMobileOpen(v => !v)} data-open={mobileOpen ? '1' : '0'}>
-                <span /><span /><span />
-              </button>
-              {dropOpen && (
-                <div className="portal-drop">
-                  <p className="portal-drop__title">Rep Portal</p>
-                  <form onSubmit={(e) => { e.preventDefault(); window.location.href = 'products.html'; }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <input className="portal-drop__input" type="email" placeholder="Email" required autoFocus />
-                    <input className="portal-drop__input" type="password" placeholder="Password" required />
-                    <button type="submit" className="btn btn--primary" style={{ width: '100%', justifyContent: 'center' }}>
-                      Log in
-                    </button>
-                  </form>
-                  <div className="portal-drop__links">
-                    <a href="https://tbwctechnology.com/rep-portal/" target="_blank" rel="noopener noreferrer">Forgot password?</a>
-                    <a href="https://tbwctechnology.com/newrep-request/" target="_blank" rel="noopener noreferrer" className="btn btn--ghost btn--sm">Become a Rep</a>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          {mobileOpen && (
-            <div className="nav__mobile">
-              <a href="index.html#applications" onClick={() => setMobileOpen(false)}>Applications</a>
-              <a href="index.html#software" onClick={() => setMobileOpen(false)}>Software</a>
-              <a href="#reps" onClick={() => setMobileOpen(false)}>Representatives</a>
-              <a href="index.html#about" onClick={() => setMobileOpen(false)}>About</a>
-              <a href="index.html#footer-contact" onClick={() => setMobileOpen(false)}>Contact</a>
-            </div>
-          )}
-        </nav>
-      );
-    }
-
-    // â”€â”€ FOOTER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── FOOTER ────────────────────────────────────────────────────────────────
 
     function Footer() {
       return (
@@ -161,7 +88,7 @@
                 <a href="index.html" className="brand">
                   <img src="TBWC%20Technology%20Logo%20.png" alt="TBWC Technology" className="brand__logo-img" />
                 </a>
-                <p className="foot__tag">TBWC Technology with precision since 2002.</p>
+                <p className="foot__tag">TTBWC Technology with precision since 2002.</p>
               </div>
               <div className="foot__col">
                 <h4>Support</h4>
@@ -210,32 +137,32 @@
             </div>
 
             <div className="foot__bot">
-              <span>Â© 2026 TBWC TECHNOLOGY, INC. Â· ALL RIGHTS RESERVED.</span>
-              <span>LAS VEGAS, NV Â· ONTARIO, CA</span>
+              <span>© 2026 TBWC TECHNOLOGY, INC. · ALL RIGHTS RESERVED.</span>
+              <span>LAS VEGAS, NV · ONTARIO, CA</span>
             </div>
           </div>
         </footer>
       );
     }
 
-    // â”€â”€ REPRESENTATIVES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── REPRESENTATIVES ────────────────────────────────────────────────────────
 
     const AGENCIES = [
-      { id: 'usnw', name: 'Unified Solutions NW', contact: 'Kevin Adams', phone: '(503) 624-8293', region: 'Pacific Northwest', territories: 'WA Â· OR Â· ID Â· MT Â· AK', states: ['WA', 'OR', 'ID', 'MT', 'AK'], logo: 'https://tbwctechnology.com/wp-content/uploads/USNW.png', url: 'https://www.usxnw.com/' },
-      { id: 'dz', name: 'D.Z. Cook', contact: 'Steve Mobley', phone: '(510) 293-6810', region: 'Pacific', territories: 'Northern California Â· Northern Nevada', states: ['CA', 'NV'], logo: 'https://tbwctechnology.com/wp-content/uploads/DZ-e1710094110554-1024x315.png', url: 'https://dzcook.com/' },
-      { id: 'ba', name: 'Blanchard Associates', contact: 'James Blanchard', phone: '(909) 974-0111', region: 'Pacific', territories: 'Southern CA Â· Southern NV Â· HI Â· AZ', states: ['CA', 'NV', 'HI', 'AZ'], logo: 'https://tbwctechnology.com/wp-content/uploads/BA-e1710094190784-1024x825.png', url: 'https://www.blanchardassociates.com/' },
-      { id: 'intriq', name: 'Intriq', contact: 'Mark Jeffrey', phone: '(303) 758-5530', region: 'Mountain', territories: 'CO Â· UT Â· WY Â· SD', states: ['CO', 'UT', 'WY', 'SD'], logo: 'https://tbwctechnology.com/wp-content/uploads/intriq-1024x545.jpg', url: 'https://www.intriq.com/' },
-      { id: 'meglio', name: 'Meglio & Associates', contact: 'Dave Meglio', phone: '(314) 524-4424', region: 'Central', territories: 'MO Â· KS Â· Southern IL', states: ['MO', 'KS'], logo: 'https://tbwctechnology.com/wp-content/uploads/meglio-e1710094088378-1024x656.png', url: 'https://www.meglio.com/' },
-      { id: 'mercer', name: 'Mercer Sales', contact: 'Steve Mercer', phone: '(920) 915-6223', region: 'Central', territories: 'WI Â· U.P. Michigan', states: ['WI', 'MI'], logo: 'https://tbwctechnology.com/wp-content/uploads/Mercer-e1710094071367-1024x431.png', url: 'https://mercersalesinc.com/' },
+      { id: 'usnw', name: 'Unified Solutions NW', contact: 'Kevin Adams', phone: '(503) 624-8293', region: 'Pacific Northwest', territories: 'WA · OR · ID · MT · AK', states: ['WA', 'OR', 'ID', 'MT', 'AK'], logo: 'https://tbwctechnology.com/wp-content/uploads/USNW.png', url: 'https://www.usxnw.com/' },
+      { id: 'dz', name: 'D.Z. Cook', contact: 'Steve Mobley', phone: '(510) 293-6810', region: 'Pacific', territories: 'Northern California · Northern Nevada', states: ['CA', 'NV'], logo: 'https://tbwctechnology.com/wp-content/uploads/DZ-e1710094110554-1024x315.png', url: 'https://dzcook.com/' },
+      { id: 'ba', name: 'Blanchard Associates', contact: 'James Blanchard', phone: '(909) 974-0111', region: 'Pacific', territories: 'Southern CA · Southern NV · HI · AZ', states: ['CA', 'NV', 'HI', 'AZ'], logo: 'https://tbwctechnology.com/wp-content/uploads/BA-e1710094190784-1024x825.png', url: 'https://www.blanchardassociates.com/' },
+      { id: 'intriq', name: 'Intriq', contact: 'Mark Jeffrey', phone: '(303) 758-5530', region: 'Mountain', territories: 'CO · UT · WY · SD', states: ['CO', 'UT', 'WY', 'SD'], logo: 'https://tbwctechnology.com/wp-content/uploads/intriq-1024x545.jpg', url: 'https://www.intriq.com/' },
+      { id: 'meglio', name: 'Meglio & Associates', contact: 'Dave Meglio', phone: '(314) 524-4424', region: 'Central', territories: 'MO · KS · Southern IL', states: ['MO', 'KS'], logo: 'https://tbwctechnology.com/wp-content/uploads/meglio-e1710094088378-1024x656.png', url: 'https://www.meglio.com/' },
+      { id: 'mercer', name: 'Mercer Sales', contact: 'Steve Mercer', phone: '(920) 915-6223', region: 'Central', territories: 'WI · U.P. Michigan', states: ['WI', 'MI'], logo: 'https://tbwctechnology.com/wp-content/uploads/Mercer-e1710094071367-1024x431.png', url: 'https://mercersalesinc.com/' },
       { id: 'am', name: 'A&M', contact: 'Ray Doerrer', phone: '(630) 501-0880', region: 'Great Lakes', territories: '', states: [], logo: 'https://tbwctechnology.com/wp-content/uploads/AM-e1710094211761-1024x521.png' },
       { id: 'pt', name: 'Power Techniques', contact: 'Ken Piron', phone: '(248) 291-6213', region: 'Great Lakes', territories: 'Michigan', states: ['MI'], logo: 'https://tbwctechnology.com/wp-content/uploads/PT.png', url: 'https://powertechniquesinc.com/' },
-      { id: 'invictus', name: 'Invictus', contact: 'Bill Holton', phone: '(540) 239-1033', region: 'Mid-Atlantic', territories: 'West Virginia Â· Southern Virginia', states: ['WV', 'VA'], logo: 'https://tbwctechnology.com/wp-content/uploads/invictus-1024x298.jpeg', url: 'https://myinvictussales.com/' },
-      { id: 'phoenix', name: 'Phoenix Sales and Marketing', contact: 'Bob Fern', phone: '(703) 282-4597', region: 'Mid-Atlantic', territories: 'Northern Virginia Â· MD Â· DC', states: ['VA', 'MD', 'DC'], logo: 'https://tbwctechnology.com/wp-content/uploads/Phoenix-e1710094055127-1024x479.png', url: 'https://www.myphoenixsales.com/' },
-      { id: 'pollart', name: 'Pollart Sales', contact: 'Eric Vogelsong', phone: '(609) 238-8414', region: 'Mid-Atlantic', territories: 'Eastern PA Â· Southern NJ Â· DE', states: ['DE'], logo: 'https://tbwctechnology.com/wp-content/uploads/Pollart-e1710094039654-1024x439.png', url: 'https://www.pollartsales.com/' },
-      { id: 'damin', name: 'Damin Sales', contact: 'Justin Felber', phone: '(917) 414-0098', region: 'Northeast', territories: 'NYC Â· Long Island Â· Westchester Â· Rockland Â· Orange Â· Putnam Â· Northern & Central NJ', states: ['NY', 'NJ'], logo: 'https://tbwctechnology.com/wp-content/uploads/Damin-Sales.png', url: 'https://www.daminsales.com/' },
-      { id: 'sss', name: 'Submeter Service Solutions', contact: "Jay O'Connor", phone: '(508) 326-2708', region: 'Northeast', territories: 'MA Â· CT Â· ME Â· NH Â· VT Â· RI Â· Upstate NY', states: ['MA', 'CT', 'ME', 'NH', 'VT', 'RI', 'NY'], logo: 'https://tbwctechnology.com/wp-content/uploads/SSS-1024x380.png', url: 'https://www.submeterservicesolutions.com/' },
-      { id: 'ues', name: 'United Electrical Sales', contact: 'Tom Holcombe', phone: '(336) 803-8338', region: 'Southeast', territories: 'NC Â· SC Â· GA Â· FL Â· AL Â· MS', states: ['NC', 'SC', 'GA', 'FL', 'AL', 'MS'], logo: 'https://tbwctechnology.com/wp-content/uploads/UES-e1710093979574-1024x377.png', url: 'https://uesrep.com/' },
-      { id: 'bellmccoy', name: 'Bell & McCoy', contact: 'Scott Thomas', phone: '(972) 489-2879', region: 'South Central', territories: 'TX Â· OK Â· AR Â· LA Â· MS Â· TN Â· NM', states: ['TX', 'OK', 'AR', 'LA', 'MS', 'TN', 'NM'], logo: 'https://tbwctechnology.com/wp-content/uploads/Bell-and-Mccoy-e1710094170962-1024x433.png', url: 'https://www.bellandmccoy.com/' },
+      { id: 'invictus', name: 'Invictus', contact: 'Bill Holton', phone: '(540) 239-1033', region: 'Mid-Atlantic', territories: 'West Virginia · Southern Virginia', states: ['WV', 'VA'], logo: 'https://tbwctechnology.com/wp-content/uploads/invictus-1024x298.jpeg', url: 'https://myinvictussales.com/' },
+      { id: 'phoenix', name: 'Phoenix Sales and Marketing', contact: 'Bob Fern', phone: '(703) 282-4597', region: 'Mid-Atlantic', territories: 'Northern Virginia · MD · DC', states: ['VA', 'MD', 'DC'], logo: 'https://tbwctechnology.com/wp-content/uploads/Phoenix-e1710094055127-1024x479.png', url: 'https://www.myphoenixsales.com/' },
+      { id: 'pollart', name: 'Pollart Sales', contact: 'Eric Vogelsong', phone: '(609) 238-8414', region: 'Mid-Atlantic', territories: 'Eastern PA · Southern NJ · DE', states: ['DE'], logo: 'https://tbwctechnology.com/wp-content/uploads/Pollart-e1710094039654-1024x439.png', url: 'https://www.pollartsales.com/' },
+      { id: 'damin', name: 'Damin Sales', contact: 'Justin Felber', phone: '(917) 414-0098', region: 'Northeast', territories: 'NYC · Long Island · Westchester · Rockland · Orange · Putnam · Northern & Central NJ', states: ['NY', 'NJ'], logo: 'https://tbwctechnology.com/wp-content/uploads/Damin-Sales.png', url: 'https://www.daminsales.com/' },
+      { id: 'sss', name: 'Submeter Service Solutions', contact: "Jay O'Connor", phone: '(508) 326-2708', region: 'Northeast', territories: 'MA · CT · ME · NH · VT · RI · Upstate NY', states: ['MA', 'CT', 'ME', 'NH', 'VT', 'RI', 'NY'], logo: 'https://tbwctechnology.com/wp-content/uploads/SSS-1024x380.png', url: 'https://www.submeterservicesolutions.com/' },
+      { id: 'ues', name: 'United Electrical Sales', contact: 'Tom Holcombe', phone: '(336) 803-8338', region: 'Southeast', territories: 'NC · SC · GA · FL · AL · MS', states: ['NC', 'SC', 'GA', 'FL', 'AL', 'MS'], logo: 'https://tbwctechnology.com/wp-content/uploads/UES-e1710093979574-1024x377.png', url: 'https://uesrep.com/' },
+      { id: 'bellmccoy', name: 'Bell & McCoy', contact: 'Scott Thomas', phone: '(972) 489-2879', region: 'South Central', territories: 'TX · OK · AR · LA · MS · TN · NM', states: ['TX', 'OK', 'AR', 'LA', 'MS', 'TN', 'NM'], logo: 'https://tbwctechnology.com/wp-content/uploads/Bell-and-Mccoy-e1710094170962-1024x433.png', url: 'https://www.bellandmccoy.com/' },
     ];
 
     const STATE_TO_AGENCY = (() => {
@@ -288,7 +215,7 @@
               </div>
               <div className="agency__actions">
                 <a className="agency__phone mono" href={`tel:${a.phone.replace(/\D/g, '')}`} onClick={(e) => e.stopPropagation()}>{a.phone}</a>
-                <a className="agency__email mono" href="https://tbwctechnology.com/contacttbwc/" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Email â†’</a>
+                <a className="agency__email mono" href="https://tbwctechnology.com/contacttbwc/" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Email →</a>
               </div>
             </div>
           </div>
@@ -348,7 +275,7 @@
       }, []);
 
       if (!pathFn || !features.length) {
-        return <div className="usmap"><div className="usmap__loading">Loading territory mapâ€¦</div></div>;
+        return <div className="usmap"><div className="usmap__loading">Loading territory map…</div></div>;
       }
 
       const repList = AGENCIES.filter(a => a.states.length > 0).slice().sort((a, b) => a.contact.localeCompare(b.contact));
@@ -413,7 +340,7 @@
                     onMouseLeave={() => setTooltip(null)}
                     onClick={() => agency && onSelect && onSelect(agency)}
                   >
-                    <title>{st || ''}{agency ? ' â€” ' + agency.name : ''}</title>
+                    <title>{st || ''}{agency ? ' — ' + agency.name : ''}</title>
                   </path>
                 );
               })}
@@ -667,7 +594,7 @@
                 <div className="usmap__tt-state">{tooltip.st}</div>
                 <div className="usmap__tt-name">{tooltip.agency.name}</div>
                 <div className="usmap__tt-terr">{tooltip.agency.territories}</div>
-                <div className="usmap__tt-hint">Click to view details â†“</div>
+                <div className="usmap__tt-hint">Click to view details ↓</div>
               </div>
             )}
           </div>
@@ -699,7 +626,7 @@
           setMatch({ agency, state: hit.state });
           setActiveAgency(hit.agency);
         } else {
-          setMatch({ err: 'No direct match â€” browse the directory below.' });
+          setMatch({ err: 'No direct match — browse the directory below.' });
           setActiveAgency(null);
         }
       };
@@ -716,11 +643,11 @@
       const sorted = [...filtered].sort((a, b) => a.contact.localeCompare(b.contact));
 
       return (
-        <section id="reps" className="row">
+        <section id="reps" className="row" style={{ paddingTop: 'clamp(12px, 2vw, 24px)' }}>
           <div className="wrap">
             <div style={{ marginBottom: 'clamp(24px, 3vw, 40px)', textAlign: 'center' }}>
-              <h2 className="h2 sec-hd__title">Find your representative</h2>
-              <span style={{ display: 'block', marginTop: 8, fontFamily: 'var(--f-mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>15 agencies Â· 50 states</span>
+              <h2 className="h2 sec-hd__title" style={{ fontSize: 'clamp(20px, 2.4vw, 32px)' }}>Find your representative</h2>
+              <span style={{ display: 'block', marginTop: 8, fontFamily: 'var(--f-mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>15 agencies · 50 states</span>
             </div>
 
             <USMapSVG highlightId={activeAgency} onSelect={onMapSelect} />
@@ -744,8 +671,7 @@
                   Submit your agency for review. Most applications are approved within one business day with portal credentials and a dedicated account manager.
                 </p>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  <a className="btn btn--accent" href="https://tbwctechnology.com/newrep-request/" target="_blank" rel="noopener noreferrer">Registration request <Arrow /></a>
-                  <a className="btn btn--ghost" href="https://tbwctechnology.com/contacttbwc/" target="_blank" rel="noopener noreferrer">Talk to a person</a>
+                  <a className="btn btn--accent" href="newrep-request.html">Registration request <Arrow /></a>
                 </div>
               </div>
             </div>
@@ -754,7 +680,7 @@
       );
     }
 
-    // â”€â”€ APP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── APP ────────────────────────────────────────────────────────────────────
 
     function App() {
       React.useEffect(() => {
@@ -770,7 +696,6 @@
 
       return (
         <>
-          <Nav />
           <main>
             <RepsMap />
           </main>

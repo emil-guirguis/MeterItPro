@@ -199,6 +199,9 @@ h1, h2, h3, h4 {
 .btn:hover .arrow { transform: translateX(3px); }
 
 /* ===== NAV ===== */
+#site-nav { display: contents; }
+.portal-drop[hidden] { display: none; }
+.nav__mobile[hidden] { display: none; }
 .nav {
   position: sticky;
   top: 0;
@@ -437,7 +440,9 @@ h1, h2, h3, h4 {
 }
 .hero__trust .num {
   font-size: 22px; font-weight: 500; letter-spacing: -0.02em; color: var(--ink);
+  display: flex; align-items: center; height: 26px; line-height: 1;
 }
+.hero__trust .num svg { display: block; }
 .hero__trust span:last-child {
   font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.06em;
   color: var(--ink-3); text-transform: uppercase;
@@ -1409,7 +1414,8 @@ h1, h2, h3, h4 {
 /* ===== US Rep Map ===== */
 .usmap {
   position: relative;
-  margin-bottom: 40px;
+  max-width: 940px;
+  margin: 0 auto 40px;
   border-radius: 12px;
   overflow: hidden;
   background: var(--bg-inset);
