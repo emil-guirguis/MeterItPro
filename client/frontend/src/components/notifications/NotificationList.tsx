@@ -17,12 +17,14 @@ import {
   Divider
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import type { Notification, NotificationSeverity, NotificationType } from '../../types/notifications';
 import { formatDistanceToNow } from 'date-fns';
 
 interface NotificationListProps {
   notifications: Notification[];
   onClear: (notificationId: string) => void;
+  onAcknowledge?: (notificationId: string) => void;
   onClearAll?: () => void;
 }
 
@@ -33,14 +35,16 @@ const getSeverityColor = (severity: NotificationSeverity): 'error' | 'warning' |
 };
 
 const getTypeLabel = (type: NotificationType): string => {
-  if (type === 'stale') return 'No Readings';
-  if (type === 'all_zero') return 'Zero Readings';
+  if (type === 'stale' || type === 'meter_no_reading') return 'No Readings';
+  if (type === 'all_zero' || type === 'meter_zero_reading') return 'Zero Readings';
+  if (type === 'demand_threshold') return 'Demand';
   return 'Error';
 };
 
 export const NotificationList: React.FC<NotificationListProps> = ({
   notifications,
-  onClear
+  onClear,
+  onAcknowledge
 }) => {
   const formatTimestamp = (timestamp: string): string => {
     try {
@@ -73,6 +77,15 @@ export const NotificationList: React.FC<NotificationListProps> = ({
                     color={getSeverityColor(notification.severity)}
                     variant="outlined"
                   />
+                  {notification.status === 'acknowledged' && (
+                    <Chip
+                      label="Acked"
+                      size="small"
+                      color="default"
+                      variant="outlined"
+                      data-testid={`acked-chip-${notification.id}`}
+                    />
+                  )}
                 </Box>
               }
               secondary={
@@ -96,6 +109,18 @@ export const NotificationList: React.FC<NotificationListProps> = ({
               }
             />
             <ListItemSecondaryAction>
+              {onAcknowledge && notification.status !== 'acknowledged' && (
+                <IconButton
+                  edge="end"
+                  aria-label="acknowledge"
+                  title="Acknowledge — stop repeat emails"
+                  onClick={() => onAcknowledge(notification.id)}
+                  size="small"
+                  data-testid={`ack-notification-${notification.id}`}
+                >
+                  <CheckCircleOutlineIcon fontSize="small" />
+                </IconButton>
+              )}
               <IconButton
                 edge="end"
                 aria-label="delete"

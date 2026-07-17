@@ -8,6 +8,7 @@
 import { Hono } from 'hono';
 import { runAllActiveReports } from './reportRunner';
 import { runAllActiveNotificationRules } from './notificationRunner';
+import { runQualityEngine } from './qualityEngine';
 import { cors } from 'hono/cors';
 import { Env, execQuery } from './db';
 
@@ -240,7 +241,7 @@ app.all('*', (c) => {
 });
 
 // --- Cron trigger (Cloudflare scheduled event) --------------------------------
-// Runs every hour per wrangler.toml [triggers] crons setting.
+// Runs every 15 min per wrangler.toml [triggers] crons setting.
 // Executes all active reports whose schedule matches the current time.
 
 export default {
@@ -251,9 +252,16 @@ export default {
       runAllActiveReports(env, now).catch(err =>
         console.error('[cron] runAllActiveReports failed:', err instanceof Error ? err.message : err)
       ),
-      runAllActiveNotificationRules(env, now).catch(err =>
-        console.error('[cron] runAllActiveNotificationRules failed:', err instanceof Error ? err.message : err)
-      ),
+      // Quality engine maintains gap/watermark state that notification rules
+      // read, so it must complete before the rules run.
+      runQualityEngine(env)
+        .catch(err =>
+          console.error('[cron] runQualityEngine failed:', err instanceof Error ? err.message : err)
+        )
+        .then(() => runAllActiveNotificationRules(env, now))
+        .catch(err =>
+          console.error('[cron] runAllActiveNotificationRules failed:', err instanceof Error ? err.message : err)
+        ),
     ]));
   },
 };

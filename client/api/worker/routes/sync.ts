@@ -8,6 +8,7 @@ import { transaction, Env, execQuery } from '../db';
 
 import { authenticateSyncServer, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
+import { checkReadingQuality } from '../qualityChecks';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -35,6 +36,8 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
         try {
           await client.query(`SAVEPOINT ${savepointName}`);
 
+          const { quality, flags } = checkReadingQuality(reading);
+
           const readingQuery = `
             INSERT INTO meter_reading (
               tenant_id, meter_id, created_at, sync_status,
@@ -49,7 +52,8 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
               voltage_a_b, voltage_a_n, voltage_b_c, voltage_b_n,
               voltage_c_a, voltage_c_n, voltage_p_n, voltage_p_p,
               total_thdv, phase_thdv_a, phase_thdv_b, phase_thdv_c,
-              meter_element_id, calculated_kwh
+              meter_element_id, calculated_kwh,
+              quality, validation_flags
             )
             VALUES (
               $1, $2, $3, $4,
@@ -64,7 +68,8 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
               $33, $34, $35, $36,
               $37, $38, $39, $40,
               $41, $42, $43, $44,
-              $45, $46
+              $45, $46,
+              $47, $48
             )
             ON CONFLICT (tenant_id, meter_id, meter_element_id, created_at) WHERE meter_element_id IS NOT NULL DO NOTHING
             RETURNING meter_reading_id
@@ -115,7 +120,9 @@ app.post('/readings/batch', authenticateSyncServer, async (c) => {
             reading.phase_thdv_b ?? null,
             reading.phase_thdv_c ?? null,
             reading.meter_element_id ?? null,
-            reading.calculated_kwh ?? null
+            reading.calculated_kwh ?? null,
+            quality,
+            flags.length > 0 ? flags : null
           ];
 
           console.log(`[Sync] INSERT params[${i}]:`, JSON.stringify(readingParams));

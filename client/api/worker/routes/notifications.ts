@@ -45,7 +45,8 @@ app.get('/', async (c) => {
     const result = await execQuery(
       c.env,
       `SELECT notification_id, tenant_id, users_id, meter_id, meter_element_id,
-              notification_type, severity, title, description, created_at
+              notification_type, severity, title, description, created_at,
+              status, first_detected_at, acknowledged_at, acknowledged_by
        FROM public.notification
        WHERE tenant_id = $1 AND (users_id IS NULL OR users_id = $2)
        ORDER BY created_at DESC
@@ -119,6 +120,38 @@ app.post('/', async (c) => {
   } catch (error: any) {
     logError('Error creating notification:', error);
     return c.json({ success: false, message: 'Failed to create notification' }, 500);
+  }
+});
+
+// POST /:id/acknowledge - Mark an alert as acknowledged (stops re-notify emails)
+app.post('/:id/acknowledge', async (c) => {
+  try {
+    const tenantId = c.get('tenantId');
+    const userId = c.get('user').users_id;
+    const id = c.req.param('id');
+
+    if (isNaN(Number(id))) {
+      return c.json({ success: false, message: 'Invalid notification ID' }, 400);
+    }
+
+    const result = await execQuery(
+      c.env,
+      `UPDATE public.notification
+       SET status = 'acknowledged', acknowledged_at = NOW(), acknowledged_by = $3
+       WHERE notification_id = $1 AND tenant_id = $2
+       RETURNING notification_id, status, acknowledged_at, acknowledged_by`,
+      [id, tenantId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return c.json({ success: false, message: 'Notification not found' }, 404);
+    }
+
+    const row = result.rows[0];
+    return c.json({ success: true, data: { notification: { ...row, id: String(row.notification_id) } } });
+  } catch (error: any) {
+    logError('Error acknowledging notification:', error);
+    return c.json({ success: false, message: 'Failed to acknowledge notification' }, 500);
   }
 });
 

@@ -46,6 +46,13 @@ export const notificationService = {
   },
 
   /**
+   * Acknowledge a notification — stops re-notify emails, keeps the alert visible
+   */
+  async acknowledgeNotification(notificationId: string): Promise<void> {
+    await apiClient.post(`/notifications/${notificationId}/acknowledge`);
+  },
+
+  /**
    * Clear (delete) a specific notification
    */
   async clearNotification(notificationId: string): Promise<void> {

@@ -2,8 +2,9 @@
  * Notification types for the frontend
  */
 
-export type NotificationType = 'stale' | 'all_zero' | 'error_status' | 'meter_no_reading' | 'meter_zero_reading';
+export type NotificationType = 'stale' | 'all_zero' | 'error_status' | 'meter_no_reading' | 'meter_zero_reading' | 'demand_threshold';
 export type NotificationSeverity = 'info' | 'warning' | 'error';
+export type NotificationStatus = 'open' | 'acknowledged';
 
 export interface Notification {
   id: string;                        // maps from notification_id
@@ -16,6 +17,10 @@ export interface Notification {
   title: string;
   description: string | null;
   created_at: string;
+  status: NotificationStatus;
+  first_detected_at: string | null;
+  acknowledged_at: string | null;
+  acknowledged_by: string | null;
 }
 
 export interface NotificationListResponse {

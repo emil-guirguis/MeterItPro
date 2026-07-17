@@ -100,6 +100,19 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     }
   };
 
+  // Handle acknowledge notification — keeps it in the list, marks acked
+  const handleAcknowledge = async (notificationId: string) => {
+    try {
+      await notificationService.acknowledgeNotification(notificationId);
+      setNotifications(notifications.map(n =>
+        n.id === notificationId ? { ...n, status: 'acknowledged' as const } : n
+      ));
+    } catch (err) {
+      console.error('Error acknowledging notification:', err);
+      setError('Failed to acknowledge notification');
+    }
+  };
+
   // Handle clear all notifications
   const handleClearAll = async () => {
     try {
@@ -185,6 +198,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                 <NotificationList
                   notifications={notifications}
                   onClear={handleClearNotification}
+                  onAcknowledge={handleAcknowledge}
                   onClearAll={handleClearAll}
                 />
               )}
