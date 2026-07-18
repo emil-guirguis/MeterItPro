@@ -26,7 +26,7 @@ jobs:
       matrix:
         service:
           - name: meteritpro-sync-api
-            context: sync/api
+            context: .
             file: sync/api/Dockerfile
           - name: meteritpro-sync-frontend
             context: sync/frontend

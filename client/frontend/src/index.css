@@ -1,28 +1,36 @@
 :root {
-  font-family: 'Roboto', system-ui, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  /* CSS Variables — Google Material palette */
-  --color-primary: #1a73e8;
-  --color-primary-light: rgba(26, 115, 232, 0.12);
-  --color-primary-dark: #1557b0;
-  --color-secondary: #34a853;
-  --color-success: #34a853;
-  --color-warning: #fbbc04;
-  --color-error: #ea4335;
-  --color-error-light: rgba(234, 67, 53, 0.1);
-  --color-info: #1a73e8;
+  /* CSS Variables — Modern SaaS palette (indigo/violet, soft neutrals) */
+  --color-primary: #4f46e5;
+  --color-primary-light: rgba(79, 70, 229, 0.1);
+  --color-primary-dark: #4338ca;
+  --color-secondary: #7c3aed;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+  --color-error-light: rgba(220, 38, 38, 0.1);
+  --color-info: #0ea5e9;
 
-  --color-background: #f1f3f4;
+  --color-background: #fafafa;
   --color-surface: #ffffff;
-  --color-border: #e0e0e0;
-  --color-border-light: #f0f0f0;
-  --color-hover: rgba(0, 0, 0, 0.04);
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
+  --color-hover: rgba(17, 24, 39, 0.04);
 
-  --color-text-primary: #202124;
-  --color-text-secondary: #5f6368;
-  --color-text-disabled: #9aa0a6;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-disabled: #9ca3af;
+
+  /* Soft layered elevation */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 1px 3px rgba(16, 24, 40, 0.08), 0 4px 12px rgba(16, 24, 40, 0.05);
+  --shadow-lg: 0 4px 12px rgba(16, 24, 40, 0.08), 0 12px 32px rgba(16, 24, 40, 0.08);
+
+  /* Header brand gradient */
+  --gradient-brand: linear-gradient(120deg, #4f46e5 0%, #6d5ae8 55%, #7c3aed 100%);
 
   color-scheme: light dark;
   color: var(--color-text-primary);

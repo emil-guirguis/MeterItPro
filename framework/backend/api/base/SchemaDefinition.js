@@ -292,6 +292,10 @@ function defineSchema(definition) {
     entityFields: definition.entityFields || {},
     relationships: definition.relationships || {},
     validation: definition.validation || {},
+    // Delete restrictions: block deleting a row while child rows still reference it.
+    // Each rule: { table, fk, label?, message? } — enforced by checkDeleteRestrictions()
+    // in the API layer; mirror with an ON DELETE RESTRICT FK in the database.
+    deleteRestrictions: definition.deleteRestrictions || [],
     idFieldName: definition.idFieldName || null,
     version: '1.2.0', // Updated to include formTabs support
     generatedAt: new Date().toISOString(),

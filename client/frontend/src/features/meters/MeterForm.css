@@ -23,24 +23,4 @@
   padding: 16px;
 }
 
-/* Physical/Virtual type bubble */
-.meter-type-bubble {
-  display: inline-block;
-  padding: 4px 14px;
-  border-radius: 16px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.meter-type-bubble--physical {
-  background-color: #e3f2fd;
-  color: #1565c0;
-}
-
-.meter-type-bubble--virtual {
-  background-color: #f3e5f5;
-  color: #7b1fa2;
-}
+/* Physical/Virtual type bubble is defined once in MeterList.css (shared via global bundle) */

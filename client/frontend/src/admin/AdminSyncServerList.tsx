@@ -188,6 +188,7 @@ export const AdminSyncServerList: React.FC<AdminSyncServerListProps> = ({ onEdit
         onDelete={baseList.handleDelete}
         pagination={baseList.pagination}
       />
+      {baseList.renderDeleteConfirmation()}
     </Box>
   );
 };

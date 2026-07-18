@@ -15,7 +15,7 @@ const SupportPage: React.FC = () => {
 
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
-            navigate('/dashboard', { replace: true });
+            navigate('/home', { replace: true });
         }
     }, [isAuthenticated, isLoading, navigate]);
 

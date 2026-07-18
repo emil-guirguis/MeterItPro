@@ -161,7 +161,7 @@ app.get('/virtual-consumption', requirePermission('meter:read'), async (c) => {
       ? qs.excludeIds.split(',').map(Number).filter((n) => !isNaN(n))
       : [];
 
-    // overrides format: "elementId:op,elementId2:op2" — overrides mv.operation for matching elements
+    // overrides format: "elementId:op,elementId2:op2" ï¿½ overrides mv.operation for matching elements
     const overrideMinusIds: number[] = [];
     const overridePlusIds: number[] = [];
     if (qs.overrides) {
@@ -188,7 +188,7 @@ app.get('/virtual-consumption', requirePermission('meter:read'), async (c) => {
       params.push(...excludeIds);
     }
 
-    // Build operation CASE — overrides take precedence over mv.operation
+    // Build operation CASE ï¿½ overrides take precedence over mv.operation
     let operationExpr: string;
     if (overrideMinusIds.length === 0 && overridePlusIds.length === 0) {
       operationExpr = `CASE WHEN mv.operation = '-' THEN -mr.calculated_kwh ELSE mr.calculated_kwh END`;
@@ -290,7 +290,7 @@ app.get('/virtual-demand', requirePermission('meter:read'), async (c) => {
       ? qs.excludeIds.split(',').map(Number).filter((n) => !isNaN(n))
       : [];
 
-    // overrides format: "elementId:op,elementId2:op2" — overrides mv.operation for matching elements
+    // overrides format: "elementId:op,elementId2:op2" ï¿½ overrides mv.operation for matching elements
     const overrideMinusIds: number[] = [];
     const overridePlusIds: number[] = [];
     if (qs.overrides) {
@@ -317,7 +317,7 @@ app.get('/virtual-demand', requirePermission('meter:read'), async (c) => {
       params.push(...excludeIds);
     }
 
-    // Build operation CASE — overrides take precedence over mv.operation
+    // Build operation CASE ï¿½ overrides take precedence over mv.operation
     let operationExpr: string;
     if (overrideMinusIds.length === 0 && overridePlusIds.length === 0) {
       operationExpr = `CASE WHEN mv.operation = '-' THEN -mr.kw ELSE mr.kw END`;
@@ -398,6 +398,118 @@ app.get('/virtual-demand', requirePermission('meter:read'), async (c) => {
   } catch (error: any) {
     logError('[MeterReadings] Error fetching virtual demand data:', error);
     return c.json({ success: false, message: 'Failed to fetch virtual demand data', error: error.message }, 500);
+  }
+});
+
+// GET /home-summary - Aggregated stats for the Home page (energy today, peak demand, meter counts, favorites)
+app.get('/home-summary', requirePermission('meter:read'), async (c) => {
+  try {
+    const tenantId = c.get('tenantId');
+    if (!tenantId) {
+      return c.json({ success: false, message: 'Unauthorized: tenant context required' }, 401);
+    }
+
+    const user = c.get('user');
+    const usersId = user?.users_id;
+    const qs = c.req.query();
+    const tzOffset = qs.tzOffset ? parseInt(qs.tzOffset) : 0;
+
+    // Energy consumed today vs yesterday (local dates via tz offset)
+    const energySql = `
+      SELECT
+        COALESCE(SUM(calculated_kwh) FILTER (
+          WHERE (created_at + ($2::int * INTERVAL '1 minute'))::date = (NOW() + ($2::int * INTERVAL '1 minute'))::date
+        ), 0) AS energy_today_kwh,
+        COALESCE(SUM(calculated_kwh) FILTER (
+          WHERE (created_at + ($2::int * INTERVAL '1 minute'))::date = (NOW() + ($2::int * INTERVAL '1 minute'))::date - 1
+        ), 0) AS energy_yesterday_kwh
+      FROM meter_reading
+      WHERE tenant_id = $1
+        AND created_at >= NOW() - INTERVAL '2 days'
+    `;
+
+    // Peak demand today â€” single row so the timestamp stays attached to the max value
+    const peakSql = `
+      SELECT kw AS peak_kw, created_at AS peaked_at
+      FROM meter_reading
+      WHERE tenant_id = $1
+        AND kw IS NOT NULL
+        AND (created_at + ($2::int * INTERVAL '1 minute'))::date = (NOW() + ($2::int * INTERVAL '1 minute'))::date
+      ORDER BY kw DESC
+      LIMIT 1
+    `;
+
+    const metersSql = `
+      SELECT
+        COUNT(*) FILTER (WHERE active = true) AS active_meters,
+        COUNT(*) AS total_meters
+      FROM meter
+      WHERE tenant_id = $1
+    `;
+
+    // User's favorites with last reading time (virtual meters read through their components)
+    const favoritesSql = `
+      SELECT
+        f.favorite_id,
+        f.id1 AS meter_id,
+        f.id2 AS meter_element_id,
+        m.name AS meter_name,
+        m.is_virtual,
+        me.element,
+        me.name AS element_name,
+        CASE
+          WHEN me.meter_element_id IS NOT NULL THEN
+            CONCAT(COALESCE(m.name, 'Unknown Meter'), ' (', COALESCE(TRIM(me.element), '?'), ') ', COALESCE(me.name, 'Unknown'))
+          ELSE
+            COALESCE(m.name, 'Unknown Meter')
+        END AS favorite_name,
+        latest.created_at AS last_reading_at
+      FROM public.favorite f
+      LEFT JOIN public.meter m ON f.id1 = m.meter_id AND m.tenant_id = $1
+      LEFT JOIN public.meter_element me ON f.id1 = me.meter_id AND f.id2 = me.meter_element_id AND me.tenant_id = $1
+      LEFT JOIN LATERAL (
+        SELECT mr.created_at
+        FROM public.meter_reading mr
+        WHERE mr.tenant_id = $1
+          AND (
+            (f.id2 <> 0 AND mr.meter_id = f.id1 AND mr.meter_element_id = f.id2)
+            OR (f.id2 = 0 AND mr.meter_element_id IN (
+              SELECT mv.select_meter_element_id FROM public.meter_virtual mv WHERE mv.meter_id = f.id1
+            ))
+          )
+        ORDER BY mr.created_at DESC
+        LIMIT 1
+      ) latest ON true
+      WHERE f.tenant_id = $1 AND f.users_id = $2 AND f.table_name = 'meter'
+      ORDER BY COALESCE(f.order_by, 999999) ASC, f.favorite_id ASC
+    `;
+
+    const [energyResult, peakResult, metersResult, favoritesResult] = await Promise.all([
+      execQuery(c.env, energySql, [tenantId, tzOffset]),
+      execQuery(c.env, peakSql, [tenantId, tzOffset]),
+      execQuery(c.env, metersSql, [tenantId]),
+      execQuery(c.env, favoritesSql, [tenantId, usersId]),
+    ]);
+
+    const energy = energyResult.rows?.[0] || {};
+    const peak = peakResult.rows?.[0] || null;
+    const meters = metersResult.rows?.[0] || {};
+
+    return c.json({
+      success: true,
+      data: {
+        energy_today_kwh: parseFloat(energy.energy_today_kwh || '0'),
+        energy_yesterday_kwh: parseFloat(energy.energy_yesterday_kwh || '0'),
+        peak_kw: peak ? parseFloat(peak.peak_kw) : null,
+        peaked_at: peak ? peak.peaked_at : null,
+        active_meters: parseInt(meters.active_meters || '0'),
+        total_meters: parseInt(meters.total_meters || '0'),
+        favorites: favoritesResult.rows || [],
+      },
+    });
+  } catch (error: any) {
+    logError('[MeterReadings] Error fetching home summary:', error);
+    return c.json({ success: false, message: 'Failed to fetch home summary', error: error.message }, 500);
   }
 });
 

@@ -2,20 +2,21 @@
   "name": "meteritpro-sync-api",
   "version": "1.0.0",
   "description": "Backend API for MeterIt Pro Sync Service",
-  "main": "dist/server.js",
+  "main": "dist/sync/api/src/server.js",
   "type": "module",
   "scripts": {
     "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true})\"",
     "build": "npm run clean && tsc",
-    "start": "node --env-file=../../.env dist/server.js",
+    "start": "node --env-file=../../.env dist/sync/api/src/server.js",
     "dev": "tsx watch --env-file=../../.env src/server.ts",
-    "dev:node": "npm run build && node --env-file=../../.env dist/server.js",
+    "dev:node": "npm run build && node --env-file=../../.env dist/sync/api/src/server.js",
     "test": "vitest --run",
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "better-sqlite3": "^12.11.1",
     "dotenv": "^16.0.0",
     "express": "^5.1.0",
     "pg": "^8.16.3",
@@ -24,6 +25,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.5",
     "@types/node": "^20.19.25",
     "@types/pg": "^8.15.5",

@@ -1,10 +1,16 @@
 /**
  * Database Configuration for Sync Backend API
  *
- * Initializes PostgreSQL connection pools for the sync and remote databases.
+ * Sync database: local SQLite file (shared with sync/mcp via SQLITE_SYNC_PATH).
+ * Remote database: PostgreSQL (client database) — unchanged.
  */
 
 import { Pool } from 'pg';
+import {
+  SqlitePool,
+  ensureSyncSchema,
+  resolveSyncDbPath,
+} from '../../../../framework/backend/shared/helpers/sqlite-pool.js';
 // Note: dotenv is loaded by server.ts before this module is imported
 export interface DatabaseConfig {
   host: string;
@@ -15,42 +21,21 @@ export interface DatabaseConfig {
 }
 
 // Database pools
-export let syncPool: Pool;
+export let syncPool: SqlitePool;
 export let remotePool: Pool;
 
 /**
- * Initialize both database pools from environment variables
+ * Initialize the sync SQLite database and the remote Postgres pool
  */
 export async function initializePools(): Promise<void> {
-  // Initialize sync database pool
-  const syncConfig: DatabaseConfig = {
-    host: process.env.POSTGRES_SYNC_HOST || 'localhost',
-    port: parseInt(process.env.POSTGRES_SYNC_PORT || '5432', 10),
-    database: process.env.POSTGRES_SYNC_DB || 'postgres',
-    user: process.env.POSTGRES_SYNC_USER || 'postgres',
-    password: process.env.POSTGRES_SYNC_PASSWORD || '',
-  };
+  // Initialize sync database (SQLite)
+  const syncDbPath = resolveSyncDbPath();
 
-  console.log('\n📊 [Database] Initializing sync database pool:');
-  console.log(`   Host: ${syncConfig.host}`);
-  console.log(`   Port: ${syncConfig.port}`);
-  console.log(`   Database: ${syncConfig.database}`);
-  console.log(`   User: ${syncConfig.user}`);
+  console.log('\n📊 [Database] Initializing sync database (SQLite):');
+  console.log(`   Path: ${syncDbPath}`);
 
-  syncPool = new Pool({
-    host: syncConfig.host,
-    port: syncConfig.port,
-    database: syncConfig.database,
-    user: syncConfig.user,
-    password: syncConfig.password,
-    max: 5,
-    idleTimeoutMillis: 10000,
-    connectionTimeoutMillis: 5000,
-  });
-
-  syncPool.on('error', (err) => {
-    console.error('❌ [Database] Unexpected error on sync pool:', err);
-  });
+  syncPool = new SqlitePool(syncDbPath);
+  ensureSyncSchema(syncPool);
 
   // Initialize remote database pool
   const remoteConfig: DatabaseConfig = {
@@ -85,7 +70,7 @@ export async function initializePools(): Promise<void> {
   // Test connections
   try {
     const syncResult = await syncPool.query('SELECT NOW()');
-    console.log('✅ [Database] Sync database connected:', syncResult.rows[0].now);
+    console.log('✅ [Database] Sync database (SQLite) connected:', syncResult.rows[0].now);
   } catch (err) {
     console.error('❌ [Database] Failed to connect to sync database:', err);
   }

@@ -5,6 +5,28 @@ import type { DetailedMeterReading, MeterReadingStats } from '../types/entities'
 // API base URL - this would typically come from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
+export interface HomeSummaryFavorite {
+  favorite_id: number;
+  meter_id: number;
+  meter_element_id: number;
+  meter_name: string | null;
+  is_virtual: boolean | null;
+  element: string | null;
+  element_name: string | null;
+  favorite_name: string;
+  last_reading_at: string | null;
+}
+
+export interface HomeSummary {
+  energy_today_kwh: number;
+  energy_yesterday_kwh: number;
+  peak_kw: number | null;
+  peaked_at: string | null;
+  active_meters: number;
+  total_meters: number;
+  favorites: HomeSummaryFavorite[];
+}
+
 class MeterReadingService {
   private apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -223,6 +245,23 @@ class MeterReadingService {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const message = error.response?.data?.message || 'Failed to fetch virtual demand data';
+        throw new Error(message);
+      }
+      throw new Error('Network error occurred');
+    }
+  }
+
+  // Get aggregated stats for the Home page
+  async getHomeSummary(): Promise<HomeSummary> {
+    try {
+      const tzOffset = -new Date().getTimezoneOffset();
+      const response: AxiosResponse<{ success: boolean; data: HomeSummary }> = await this.apiClient.get('/meterreadings/home-summary', {
+        params: { tzOffset },
+      });
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.message || 'Failed to fetch home summary';
         throw new Error(message);
       }
       throw new Error('Network error occurred');

@@ -43,7 +43,7 @@ const SECTION_ICONS: Array<[RegExp, React.ElementType]> = [
 function getSectionIcon(sectionName: string): React.ReactElement | null {
   for (const [pattern, Icon] of SECTION_ICONS) {
     if (pattern.test(sectionName)) {
-      return <Icon sx={{ fontSize: 18, color: 'var(--color-primary, #1a73e8)', opacity: 1 }} />;
+      return <Icon sx={{ fontSize: 18, color: 'var(--color-primary, #4f46e5)', opacity: 1 }} />;
     }
   }
   return null;

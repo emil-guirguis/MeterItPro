@@ -143,7 +143,7 @@ export const meterSchema = defineSchema({
               description: 'Sync server responsible for reading this meter.',
               dbField: 'sync_server_id',
               min: 1,
-              showOn: ['form'],
+              showOn: ['list', 'form'],
               validate: true,
               validationFields: ['name'],
               visibleFor: ['physical'],

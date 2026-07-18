@@ -3,11 +3,11 @@
  *
  * ── Design system update (May 2026): "Direction A" ─────────────
  * - Removed the dated pale-yellow (#fffde7) focus wash.
- * - Focus now shows a subtle primary ring (#1a73e8) consistent with
+ * - Focus now shows a subtle primary ring (#4f46e5) consistent with
  *   the rest of the app, applied to the MUI notched outline.
  * - "Modified" indicator changed from a heavy 3px left bar to a small
  *   accent dot beside the label (cleaner, doesn't shift layout) plus a
- *   tinted outline. Accent unified to #1a73e8 (was #1976d2).
+ *   tinted outline. Accent unified to #4f46e5 (was #4f46e5).
  */
 
 .form-field-root {
@@ -18,15 +18,15 @@
 /* ── Focus: primary ring, no background wash ─────────────────── */
 .form-field-root .MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline,
 .form-field-root .MuiFormControl-root .MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #1a73e8;
+  border-color: #4f46e5;
   border-width: 1.5px;
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
 }
 
 /* ── Modified-since-load indicator ───────────────────────────── */
 /* tinted outline on the control */
 .form-field-root--modified .MuiOutlinedInput-notchedOutline {
-  border-color: #1a73e8;
+  border-color: #4f46e5;
 }
 
 /* small accent dot after the field label */
@@ -37,7 +37,7 @@
   height: 6px;
   margin-left: 6px;
   border-radius: 50%;
-  background: #1a73e8;
+  background: #4f46e5;
   vertical-align: middle;
 }
 

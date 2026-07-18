@@ -117,8 +117,8 @@
 
 .base-list__filters-panel .list__filter-item .form-control:focus {
   outline: none;
-  border-color: var(--color-primary, #007bff);
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  border-color: var(--color-primary, #4f46e5);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 .base-list__filters-panel .list__filter-item .form-control::placeholder {
@@ -150,7 +150,7 @@
 
 .base-list__filters-panel .btn:hover {
   background-color: var(--color-hover, rgba(0, 0, 0, 0.05));
-  border-color: var(--color-primary, #007bff);
+  border-color: var(--color-primary, #4f46e5);
 }
 
 .base-list__filters-panel .btn-secondary {
@@ -227,8 +227,8 @@
 
 .base-list__filters .list__filter-item .form-control:focus {
   outline: none;
-  border-color: var(--color-primary, #007bff);
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  border-color: var(--color-primary, #4f46e5);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 .base-list__filters .list__filter-item .form-control::placeholder {
@@ -260,7 +260,7 @@
 
 .base-list__filters .btn:hover {
   background-color: var(--color-hover, rgba(0, 0, 0, 0.05));
-  border-color: var(--color-primary, #007bff);
+  border-color: var(--color-primary, #4f46e5);
 }
 
 .base-list__filters .btn-secondary {
@@ -379,7 +379,7 @@
   padding: 0.5rem 0;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-primary, #007bff);
+  color: var(--color-primary, #4f46e5);
   cursor: pointer;
   text-align: left;
   text-decoration: none;

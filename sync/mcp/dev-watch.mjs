@@ -49,7 +49,7 @@ tscWatch.stderr.on('data', (data) => {
 
 function startServer() {
   console.log('🚀 Starting Sync MCP Server...');
-  const server = spawn('node', ['dist/index.js'], {
+  const server = spawn('node', ['dist/sync/mcp/src/index.js'], {
     cwd: __dirname,
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: true

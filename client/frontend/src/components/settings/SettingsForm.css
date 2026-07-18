@@ -1,9 +1,24 @@
+/* Shared settings-form styles — used by SystemConfigForm, CompanyInfoForm, ManagementForm */
+
+.settings-form {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 2rem;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
 .settings-form .MuiOutlinedInput-root {
   min-height: 40px !important;
 }
 
 .settings-form .MuiOutlinedInput-input {
   padding: 8px 12px !important;
+}
+
+.settings-form__section {
+  margin-bottom: 2rem;
 }
 
 .settings-form__fields {

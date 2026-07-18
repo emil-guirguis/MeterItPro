@@ -433,7 +433,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               {...(showError && { 'aria-invalid': true })}
               aria-describedby={showError ? errorId : undefined}
               InputProps={{
-                sx: value ? { color: '#1a73e8' } : {},
+                sx: value ? { color: '#4f46e5' } : {},
                 endAdornment: value ? (
                   <InputAdornment position="end">
                     <IconButton
@@ -442,7 +442,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
                       title="Send email"
                       onClick={(e) => { e.stopPropagation(); window.open(`mailto:${value}`, '_self'); }}
                     >
-                      <EmailOutlinedIcon fontSize="small" sx={{ color: '#1a73e8' }} />
+                      <EmailOutlinedIcon fontSize="small" sx={{ color: '#4f46e5' }} />
                     </IconButton>
                   </InputAdornment>
                 ) : undefined,
@@ -470,7 +470,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
               data-field={name}
               data-component="url"
               InputProps={{
-                sx: value ? { color: '#1a73e8' } : {},
+                sx: value ? { color: '#4f46e5' } : {},
                 endAdornment: value ? (
                   <InputAdornment position="end">
                     <IconButton
@@ -483,7 +483,7 @@ export const FormField = forwardRef<HTMLInputElement | HTMLTextAreaElement | HTM
                         window.open(url, '_blank', 'noopener,noreferrer');
                       }}
                     >
-                      <OpenInNewIcon fontSize="small" sx={{ color: '#1a73e8' }} />
+                      <OpenInNewIcon fontSize="small" sx={{ color: '#4f46e5' }} />
                     </IconButton>
                   </InputAdornment>
                 ) : undefined,

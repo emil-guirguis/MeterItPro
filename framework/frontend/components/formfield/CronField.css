@@ -79,7 +79,7 @@
   padding: 7px 12px;
   background: rgba(0, 0, 0, 0.04);
   border-radius: 6px;
-  border-left: 3px solid var(--md-sys-color-primary, #1976d2);
+  border-left: 3px solid var(--md-sys-color-primary, #4f46e5);
 }
 
 .cron-field__summary-text {

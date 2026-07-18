@@ -23,6 +23,7 @@ import { meterReadingService } from '../../services/meterReadingService';
 import { adaptMeterReading } from '../../features/meterReadings/meterReadingAdapter';
 // Application-specific icon mappings
 const appIconMappings = {
+  'home': 'home',
   'contacts': 'contacts',
   'meter': 'electric_bolt',
   'meters': 'electric_bolt',
@@ -66,6 +67,12 @@ const MemoizedSidebarMetersSection = React.memo(SidebarMetersSection, (prevProps
 
 // Static menu items (items without dynamic content)
 const staticMenuItems: MenuItem[] = [
+  {
+    id: 'home',
+    label: 'Home',
+    icon: 'home',
+    path: '/home'
+  },
   {
     id: 'dashboard',
     label: 'Dashboard',

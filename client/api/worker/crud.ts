@@ -194,6 +194,52 @@ export async function update(env: Env, table: string, primaryKey: string, id: an
   return result.rows.length > 0 ? result.rows[0] : null;
 }
 
+export interface DeleteRestriction {
+  table: string;      // child table holding the FK
+  fk: string;         // FK column in the child table
+  label?: string;     // human name for the children (defaults to table)
+  message?: string;   // full override for the error message
+}
+
+export interface DeleteRestrictionViolation {
+  table: string;
+  count: number;
+  message: string;
+}
+
+/**
+ * Check a schema's deleteRestrictions before deleting a row.
+ * Returns null when deletable, or a violation with a user-facing message.
+ * The matching DB FK should be ON DELETE RESTRICT as the backstop.
+ */
+export async function checkDeleteRestrictions(
+  env: Env,
+  schema: { deleteRestrictions?: DeleteRestriction[] },
+  id: any
+): Promise<DeleteRestrictionViolation | null> {
+  const rules = schema.deleteRestrictions || [];
+  for (const rule of rules) {
+    assertIdent(rule.table, 'table');
+    assertIdent(rule.fk, 'fk column');
+    const result = await execQuery(
+      env,
+      `SELECT COUNT(*)::int AS count FROM ${rule.table} WHERE ${rule.fk} = $1`,
+      [id]
+    );
+    const count = result.rows[0]?.count ?? 0;
+    if (count > 0) {
+      const label = rule.label || rule.table.replace(/_/g, ' ');
+      return {
+        table: rule.table,
+        count,
+        message: rule.message
+          || `Cannot delete — ${count} ${label}${count === 1 ? '' : 's'} still reference this record. Reassign or remove them first.`,
+      };
+    }
+  }
+  return null;
+}
+
 export async function remove(env: Env, table: string, primaryKey: string, id: any, tenantId?: number) {
   assertIdent(table, 'table');
   assertIdent(primaryKey, 'primaryKey');

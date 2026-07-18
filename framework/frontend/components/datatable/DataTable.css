@@ -73,7 +73,7 @@
     gap: 6px;
   }
 
-  .data-table__header-actions-inline .user-list__btn {
+  .data-table__header-actions-inline button {
     width: 100%;
   }
 }

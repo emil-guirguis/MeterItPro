@@ -14,6 +14,7 @@ const PasswordResetPage = lazy(() => import('../pages/auth').then(m => ({ defaul
 const TwoFactorManagementPage = lazy(() => import('../pages/auth').then(m => ({ default: m.TwoFactorManagementPage })));
 
 // Protected pages — lazy
+const HomePage = lazy(() => import('../pages/HomePage').then(m => ({ default: m.HomePage })));
 const DashboardPage = lazy(() => import('../pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const MeterReadingsPage = lazy(() => import('../pages/MeterReadingsPage').then(m => ({ default: m.MeterReadingsPage })));
 const UserManagementPage = lazy(() => import('../features/users').then(m => ({ default: m.UserManagementPage })));
@@ -52,6 +53,15 @@ const AppRoutes: React.FC = () => {
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         {/* Protected Routes - Require Authentication */}
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/dashboard"
           element={

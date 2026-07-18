@@ -8,43 +8,43 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1a73e8',
-      light: '#4791db',
-      dark: '#1557b0',
+      main: '#4f46e5',
+      light: '#818cf8',
+      dark: '#4338ca',
     },
     secondary: {
-      main: '#34a853',
-      light: '#5cbb75',
-      dark: '#247438',
+      main: '#7c3aed',
+      light: '#a78bfa',
+      dark: '#6d28d9',
     },
     error: {
-      main: '#ea4335',
+      main: '#dc2626',
     },
     warning: {
-      main: '#fbbc04',
+      main: '#f59e0b',
       contrastText: '#3c4043',
     },
     success: {
-      main: '#34a853',
+      main: '#16a34a',
     },
     info: {
-      main: '#1a73e8',
+      main: '#0ea5e9',
     },
     background: {
-      default: '#f1f3f4',
+      default: '#fafafa',
       paper: '#ffffff',
     },
     text: {
-      primary: '#202124',
-      secondary: '#5f6368',
+      primary: '#111827',
+      secondary: '#6b7280',
     },
     divider: 'rgba(0, 0, 0, 0.08)',
   },
   shape: {
-    borderRadius: 8,
+    borderRadius: 10,
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Inter", system-ui, "Segoe UI", Helvetica, Arial, sans-serif',
     h4: { fontWeight: 600 },
     h5: { fontWeight: 600 },
     h6: { fontWeight: 600 },
@@ -77,9 +77,9 @@ const theme = createTheme({
           letterSpacing: 0.25,
         },
         containedPrimary: {
-          boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+          boxShadow: '0 1px 2px rgba(79,70,229,0.25)',
           '&:hover': {
-            boxShadow: '0 2px 6px rgba(26, 115, 232, 0.4)',
+            boxShadow: '0 2px 8px rgba(79, 70, 229, 0.35)',
           },
         },
       },
@@ -108,14 +108,14 @@ const theme = createTheme({
           width: 'calc(100% - 16px)',
           transition: 'background-color 0.15s ease',
           '&.Mui-selected': {
-            backgroundColor: 'rgba(26, 115, 232, 0.12)',
-            color: '#1a73e8',
+            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+            color: '#4f46e5',
             fontWeight: 600,
             '& .MuiListItemIcon-root': {
-              color: '#1a73e8',
+              color: '#4f46e5',
             },
             '&:hover': {
-              backgroundColor: 'rgba(26, 115, 232, 0.16)',
+              backgroundColor: 'rgba(79, 70, 229, 0.14)',
             },
           },
           '&.Mui-disabled': {

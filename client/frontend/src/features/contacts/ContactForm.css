@@ -18,7 +18,7 @@
 }
 
 .contact-form__tags-container:focus-within {
-  border-color: var(--color-primary, #1976d2);
+  border-color: var(--color-primary, #4f46e5);
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
 }
 
@@ -34,7 +34,7 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem 0.5rem;
-  background: var(--color-primary, #1976d2);
+  background: var(--color-primary, #4f46e5);
   color: white;
   border-radius: 4px;
   font-size: 0.75rem;

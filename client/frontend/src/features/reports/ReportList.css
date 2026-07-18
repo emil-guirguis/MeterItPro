@@ -1,43 +1,11 @@
+/* Report List Component Styles */
+/* Table/toolbar styling comes from framework (BaseList.css); status badge in TableCellStyles.css */
+
 .report-list {
   width: 100%;
 }
 
-.report-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.report-name__text {
-  font-weight: 500;
-  color: var(--text-primary, #333);
-}
-
-.report-type-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.report-type-badge--meter_readings {
-  background-color: #e3f2fd;
-  color: #1976d2;
-}
-
-.report-type-badge--usage_summary {
-  background-color: #f3e5f5;
-  color: #7b1fa2;
-}
-
-.report-type-badge--daily_summary {
-  background-color: #e8f5e9;
-  color: #388e3c;
-}
-
+/* Schedule cron display — also used by ReportsPage */
 .schedule-code {
   font-family: 'Courier New', monospace;
   font-size: 0.875rem;
@@ -47,6 +15,7 @@
   color: #d32f2f;
 }
 
+/* Recipients cell with hover tooltip — also used by ReportsPage */
 .recipients-list {
   position: relative;
 }
@@ -96,34 +65,4 @@
 .no-recipients {
   color: var(--text-disabled, #999);
   font-style: italic;
-}
-
-.status-cell {
-  display: flex;
-  justify-content: center;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.status-badge--active {
-  background-color: #c8e6c9;
-  color: #2e7d32;
-}
-
-.status-badge--inactive {
-  background-color: #ffccbc;
-  color: #d84315;
-}
-
-.date-text {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #666);
 }

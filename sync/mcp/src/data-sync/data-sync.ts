@@ -8,6 +8,11 @@
 import { Pool, PoolClient, QueryResult } from 'pg';
 import { TenantEntity, MeterEntity, MeterReadingEntity, SyncLog } from '../entities/index.js';
 import { execQuery } from '../../../../framework/backend/shared/helpers/sql-functions.js';
+import {
+  SqlitePool,
+  ensureSyncSchema,
+  resolveSyncDbPath,
+} from '../../../../framework/backend/shared/helpers/sqlite-pool.js';
 import { cacheManager } from '../cache/cache-manager.js';
 
 
@@ -40,41 +45,16 @@ export let remotePool: Pool;
  * Initialize both database pools from environment variables
  */
 export async function initializePools() {
-    let sync, remote;
+  // Initialize sync database (SQLite file shared with sync/api via SQLITE_SYNC_PATH).
+  // SqlitePool implements the pg Pool subset used here (query/connect/end/on),
+  // so it is cast to Pool to keep existing call sites unchanged.
+  const syncDbPath = resolveSyncDbPath();
+  console.log('\n📊 [Database Config] Sync database (SQLite):');
+  console.log(`   Path: ${syncDbPath}`);
 
-  // Initialize sync database pool
-  const syncConfig: DatabaseConfig = {
-    host: process.env.POSTGRES_SYNC_HOST || 'localhost',
-    port: parseInt(process.env.POSTGRES_SYNC_PORT || '5432', 10),
-    database: process.env.POSTGRES_SYNC_DB || 'postgres',
-    user: process.env.POSTGRES_SYNC_USER || 'postgres',
-    password: process.env.POSTGRES_SYNC_PASSWORD || '',
-  };
-
-  syncPool = new Pool({
-    host: syncConfig.host,
-    port: syncConfig.port,
-    database: syncConfig.database,
-    user: syncConfig.user,
-    password: syncConfig.password,
-    max: 5,
-    idleTimeoutMillis: 10000,
-    connectionTimeoutMillis: 5000,
-  } as any);
-
-  syncPool.on('error', (err) => {
-    console.error('Unexpected error on sync database sync lient', err);
-    throw err;
-  });
-
-  // try {
-  //   sync = await syncPool.connect();
-  //   console.log('Successfully connected to the local sync database');
-  //   sync.release(); // Release client back to the pool
-  // } catch (err) {
-  //   console.error('Failed to connect to the local sync database', err);
-  //   throw err;
-  // }
+  const sqlitePool = new SqlitePool(syncDbPath);
+  ensureSyncSchema(sqlitePool);
+  syncPool = sqlitePool as unknown as Pool;
 
   // Initialize remote database pool
   const remoteConfig: DatabaseConfig = {
@@ -142,157 +122,8 @@ export class SyncDatabase {
   async initialize(): Promise<void> {
     try {
       console.log('\n🔧 [SQL] Initializing database schema...');
-
-      // Create tenant table
-      await execQuery(this.pool,
-        `CREATE TABLE IF NOT EXISTS tenant (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          url VARCHAR(255),
-          street VARCHAR(255),
-          street2 VARCHAR(255),
-          city VARCHAR(100),
-          state VARCHAR(50),
-          zip VARCHAR(20),
-          country VARCHAR(100),
-          active BOOLEAN DEFAULT true,
-          api_key VARCHAR(255),
-          download_batch_size INTEGER NOT NULL DEFAULT 1000,
-          upload_batch_size INTEGER NOT NULL DEFAULT 100,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
-
-      // Add batch size columns if they don't exist (for existing tables)
-      await execQuery(this.pool,
-        `ALTER TABLE tenant ADD COLUMN IF NOT EXISTS download_batch_size INTEGER NOT NULL DEFAULT 1000`);
-      await execQuery(this.pool,
-        `ALTER TABLE tenant ADD COLUMN IF NOT EXISTS upload_batch_size INTEGER NOT NULL DEFAULT 100`);
-
-      // Create meter table
-      await execQuery(this.pool,
-        `CREATE TABLE IF NOT EXISTS meter (
-          meter_id INTEGER NOT NULL,
-          device_id INTEGER,
-          register_id INTEGER,
-          location_id INTEGER,
-          name VARCHAR(255),
-          ip VARCHAR(50),
-          port VARCHAR(10),
-          active BOOLEAN DEFAULT true,
-          meter_element_id INTEGER NOT NULL DEFAULT 0,
-          element VARCHAR(255),
-          PRIMARY KEY (meter_id, meter_element_id)
-        )`);
-
-      // Add columns if they don't exist (for existing tables created before these were added)
-      await execQuery(this.pool,
-        `ALTER TABLE meter ADD COLUMN IF NOT EXISTS meter_element_id INTEGER NOT NULL DEFAULT 0`);
-      await execQuery(this.pool,
-        `ALTER TABLE meter ADD COLUMN IF NOT EXISTS element VARCHAR(255)`);
-      await execQuery(this.pool,
-        `ALTER TABLE meter ADD COLUMN IF NOT EXISTS name VARCHAR(255)`);
-
-      // Create register table
-      await execQuery(this.pool,
-        `CREATE TABLE IF NOT EXISTS register (
-          register_id INTEGER PRIMARY KEY,
-          name VARCHAR(255),
-          register INTEGER,
-          unit VARCHAR(50),
-          field_name VARCHAR(255)
-        )`);
-
-      // Create device_register table
-      await execQuery(this.pool,
-        `CREATE TABLE IF NOT EXISTS device_register (
-          device_id INTEGER NOT NULL,
-          register_id INTEGER NOT NULL,
-          PRIMARY KEY (device_id, register_id)
-        )`);
-
-      // Create meter_reading table
-      await execQuery(this.pool,
-        `
-         CREATE TABLE IF NOT EXISTS public.meter_reading
-         (
-             meter_reading_id uuid NOT NULL DEFAULT gen_random_uuid(),
-             created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-             sync_status character varying(20) COLLATE pg_catalog."default",
-             tenant_id bigint NOT NULL DEFAULT 0,
-             meter_id bigint NOT NULL DEFAULT 0,
-             kwh numeric(18,4) DEFAULT 0,
-             mwh numeric(18,4) DEFAULT 0,
-             kvah numeric(18,4) DEFAULT 0,
-             kvah_export numeric(18,4) DEFAULT 0,
-             kva numeric(18,4) DEFAULT 0,
-             phase_kva_a numeric(18,4) DEFAULT 0,
-             phase_kva_b numeric(18,4) DEFAULT 0,
-             phase_kva_c numeric(18,4) DEFAULT 0,
-             amperage numeric(18,4) DEFAULT 0,
-             phase_amperage_a numeric(18,4) DEFAULT 0,
-             phase_amperage_b numeric(18,4) DEFAULT 0,
-             phase_amperage_c numeric(18,4) DEFAULT 0,
-             frequency numeric(18,4) DEFAULT 0,
-             peak_kw numeric(18,4) DEFAULT 0,
-             kw numeric(18,4) DEFAULT 0,
-             pf numeric(18,4) DEFAULT 0,
-             pf_a numeric(18,4) DEFAULT 0,
-             pf_b numeric(18,4) DEFAULT 0,
-             pf_c numeric(18,4) DEFAULT 0,
-             phase_kw_a numeric(18,4) DEFAULT 0,
-             phase_kw_b numeric(18,4) DEFAULT 0,
-             phase_kw_c numeric(18,4) DEFAULT 0,
-             kvarh numeric(18,4) DEFAULT 0,
-             kvarh_export numeric(18,4) DEFAULT 0,
-             kvar numeric(18,4) DEFAULT 0,
-             phase_kvar_a numeric(18,4) DEFAULT 0,
-             phase_kvar_b numeric(18,4) DEFAULT 0,
-             phase_kvar_c numeric(18,4) DEFAULT 0,
-             voltage_a_b numeric(18,4) DEFAULT 0,
-             voltage_a_n numeric(18,4) DEFAULT 0,
-             voltage_b_c numeric(18,4) DEFAULT 0,
-             voltage_b_n numeric(18,4) DEFAULT 0,
-             voltage_c_a numeric(18,4) DEFAULT 0,
-             voltage_c_n numeric(18,4) DEFAULT 0,
-             voltage_p_n numeric(18,4) DEFAULT 0,
-             voltage_p_p numeric(18,4) DEFAULT 0,
-             total_thdv numeric(18,4) DEFAULT 0,
-             phase_thdv_a numeric(18,4) DEFAULT 0,
-             phase_thdv_b numeric(18,4) DEFAULT 0,
-             phase_thdv_c numeric(18,4) DEFAULT 0,
-             meter_element_id bigint,
-             is_synchronized boolean DEFAULT false,
-             retry_count bigint DEFAULT 0,
-             calculated_kwh numeric(18,4) DEFAULT NULL,
-             CONSTRAINT meter_readings_realtime_pkey PRIMARY KEY (meter_reading_id)
-         )
-        `);
-
-      // Add calculated_kwh to existing databases that predate this column
-      await execQuery(this.pool,
-        `ALTER TABLE meter_reading ADD COLUMN IF NOT EXISTS calculated_kwh numeric(18,4) DEFAULT NULL`
-      );
-
-      // Create sync_log table
-      await execQuery(this.pool,
-        `
-        CREATE TABLE IF NOT EXISTS sync_log (
-          id SERIAL PRIMARY KEY,
-          operation_type VARCHAR(50),
-          batch_size INTEGER,
-          success BOOLEAN,
-          error_message TEXT,
-          synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      // Add details column to existing databases that predate it
-      await execQuery(this.pool,
-        `ALTER TABLE sync_log ADD COLUMN IF NOT EXISTS details TEXT DEFAULT NULL`
-      );
-
-
+      // Schema lives in the shared SQLite adapter (idempotent CREATE IF NOT EXISTS)
+      ensureSyncSchema(this.pool as unknown as SqlitePool);
       console.log('✅ [SQL] Database schema initialized successfully');
     } catch (error) {
       console.error('❌ [SQL] Failed to initialize database schema:', error);
@@ -338,7 +169,7 @@ export class SyncDatabase {
    */
   async validateTenantTable(): Promise<TenantEntity | null> {
     try {
-      const query = 'SELECT TOP 2 * FROM tenant';
+      const query = 'SELECT * FROM tenant LIMIT 2';
       const result = await execQuery(this.pool, query);
       const rowCount = result.rows.length;
 
@@ -356,7 +187,7 @@ export class SyncDatabase {
       // More than one record - database may be corrupted
     } catch (error: any) {
       // Check if error is due to table not existing
-      if (error.message.includes('does not exist') || error.code === '42P01') {
+      if (error.message.includes('does not exist') || error.message.includes('no such table') || error.code === '42P01') {
         console.error('❌ [SQL] Tenant table does not exist in the database');
         return null;
       }
@@ -1151,7 +982,7 @@ export class SyncDatabase {
 
       const sql = `INSERT INTO register (register_id, name, register, unit, field_name)
          VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (id) DO UPDATE SET
+         ON CONFLICT (register_id) DO UPDATE SET
            name = EXCLUDED.name,
            register = EXCLUDED.register,
            unit = EXCLUDED.unit,

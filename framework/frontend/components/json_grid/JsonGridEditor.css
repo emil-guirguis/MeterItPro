@@ -29,7 +29,7 @@
 
 .btn-import-empty {
   padding: 10px 16px;
-  background: #007bff;
+  background: #4f46e5;
   color: white;
   border: none;
   border-radius: 4px;
@@ -55,7 +55,7 @@
 .btn-add-row,
 .btn-import {
   padding: 8px 16px;
-  background: #007bff;
+  background: #4f46e5;
   color: white;
   border: none;
   border-radius: 4px;
@@ -124,7 +124,7 @@
   height: 100%;
   padding: 10px 12px;
   border: none;
-  outline: 2px solid #007bff;
+  outline: 2px solid #4f46e5;
   font-size: 14px;
   font-family: inherit;
 }

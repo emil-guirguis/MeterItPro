@@ -15,7 +15,7 @@ import {
   IconButton,
   Box
 } from '@mui/material';
-import './ManagementForm.css';
+import '../settings/SettingsForm.css';
 
 export interface ManagementFormProps {
   values?: any;

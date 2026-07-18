@@ -47,7 +47,7 @@
   justify-content: space-between;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--color-border, #e0e0e0);
-  background-color: var(--color-primary, #007bff);
+  background-color: var(--color-primary, #4f46e5);
   color: white;
   min-height: 64px;
 }
@@ -109,7 +109,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background-color: var(--color-primary, #007bff);
+  background-color: var(--color-primary, #4f46e5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,8 +207,8 @@
 }
 
 .mobile-menu-link.active {
-  background-color: var(--color-primary-light, rgba(0, 123, 255, 0.1));
-  color: var(--color-primary, #007bff);
+  background-color: var(--color-primary-light, rgba(79, 70, 229, 0.1));
+  color: var(--color-primary, #4f46e5);
 }
 
 .mobile-menu-link.active::before {
@@ -219,7 +219,7 @@
   transform: translateY(-50%);
   width: 3px;
   height: 24px;
-  background-color: var(--color-primary, #007bff);
+  background-color: var(--color-primary, #4f46e5);
   border-radius: 0 2px 2px 0;
 }
 
@@ -242,7 +242,7 @@
 }
 
 .menu-badge {
-  background-color: var(--color-primary, #007bff);
+  background-color: var(--color-primary, #4f46e5);
   color: white;
   font-size: 0.75rem;
   font-weight: 600;

@@ -86,15 +86,15 @@
 /* Focus state */
 .dual-list-selector__item:focus,
 .dual-list-selector__item--focused {
-  background-color: var(--color-primary-light, rgba(26, 115, 232, 0.12));
+  background-color: var(--color-primary-light, rgba(79, 70, 229, 0.12));
   color: var(--color-text-primary, #202124);
-  box-shadow: inset 0 0 0 2px var(--color-primary, #1a73e8);
+  box-shadow: inset 0 0 0 2px var(--color-primary, #4f46e5);
 }
 
 /* Dragging state */
 .dual-list-selector__item--dragging {
   opacity: 0.5;
-  background-color: var(--color-primary-light, rgba(26, 115, 232, 0.12));
+  background-color: var(--color-primary-light, rgba(79, 70, 229, 0.12));
 }
 
 /* Empty state message */

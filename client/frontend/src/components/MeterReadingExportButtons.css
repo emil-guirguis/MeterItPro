@@ -65,7 +65,7 @@
 
 /* Loading indicator (CircularProgress) styling */
 .meter-reading-export-buttons .MuiCircularProgress-root {
-  color: #1976d2;
+  color: #4f46e5;
 }
 
 /* Tooltip styling */
@@ -134,7 +134,7 @@
 
 /* Focus state for keyboard navigation - WCAG AA compliant */
 .meter-reading-export-buttons .MuiButton-root:focus-visible {
-  outline: 3px solid #1976d2;
+  outline: 3px solid #4f46e5;
   outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.25);
 }
@@ -147,7 +147,7 @@
 
 /* Ensure focus is visible even when button is disabled */
 .meter-reading-export-buttons .MuiButton-root:focus {
-  outline: 3px solid #1976d2;
+  outline: 3px solid #4f46e5;
   outline-offset: 2px;
 }
 
@@ -187,7 +187,7 @@
 
   /* Ensure focus indicator is still visible in reduced motion mode */
   .meter-reading-export-buttons .MuiButton-root:focus-visible {
-    outline: 3px solid #1976d2;
+    outline: 3px solid #4f46e5;
     outline-offset: 2px;
   }
 }

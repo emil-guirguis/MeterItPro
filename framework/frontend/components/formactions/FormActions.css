@@ -2,8 +2,8 @@
  * Form Actions Styles
  *
  * ── Design system update (May 2026): "Direction A" ─────────────
- * Primary action recolored from #3b82f6 → app primary #1a73e8 (and
- * hover → #1557b0) to match muiTheme.ts. Radius bumped to 8px and
+ * Primary action recolored from #3b82f6 → app primary #4f46e5 (and
+ * hover → #4338ca) to match muiTheme.ts. Radius bumped to 8px and
  * height settled to 38px so the bar matches the rest of the chrome.
  */
 .form-actions {
@@ -37,19 +37,19 @@
 
 .form-actions__btn--primary {
   color: #ffffff;
-  background-color: #1a73e8;   /* was #3b82f6 */
-  border-color: #1a73e8;
+  background-color: #4f46e5;   /* was #3b82f6 */
+  border-color: #4f46e5;
 }
 
 .form-actions__btn--primary:hover:not(:disabled) {
-  background-color: #1557b0;   /* was #2563eb */
-  border-color: #1557b0;
-  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.25);
+  background-color: #4338ca;   /* was #2563eb */
+  border-color: #4338ca;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
 }
 
 .form-actions__btn--primary:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.3);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
 }
 
 .form-actions__btn--secondary {

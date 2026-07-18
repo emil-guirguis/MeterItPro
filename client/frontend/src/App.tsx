@@ -11,6 +11,7 @@ import { useAuth } from './hooks/useAuth';
 import { setupDebugConsole } from './utils/debugConsole';
 import { MeterSelectionProvider } from './contexts/MeterSelectionContext';
 import { NotificationProvider } from './components/NotificationProvider';
+import '@framework/components/common/TableCellStyles.css';
 import './App.css';
 
 setupDebugConsole();

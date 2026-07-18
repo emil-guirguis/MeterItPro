@@ -8,6 +8,10 @@
     "allowJs": true,
     "outDir": "./dist",
     "rootDir": "../../",
+    "baseUrl": "./",
+    "paths": {
+      "better-sqlite3": ["node_modules/@types/better-sqlite3", "node_modules/better-sqlite3"]
+    },
     "strict": true,
     "declaration": true,
     "skipLibCheck": true,

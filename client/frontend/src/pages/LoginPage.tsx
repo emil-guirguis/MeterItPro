@@ -19,7 +19,7 @@ const LoginPage: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   const locationState = location.state as any;
-  const from = locationState?.from?.pathname || '/dashboard';
+  const from = locationState?.from?.pathname || '/home';
   const prefilledEmail = locationState?.email || '';
   const prefilledPassword = locationState?.password || '';
   const successMessage = locationState?.message || '';

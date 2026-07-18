@@ -145,7 +145,7 @@
   padding: 1.25rem;
   background: var(--color-surface, #ffffff);
   border: 1px solid var(--color-border, #e5e7eb);
-  border-left: 3px solid var(--color-primary, #1976d2);
+  border-left: 3px solid var(--color-primary, #4f46e5);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   min-width: 0;
@@ -391,7 +391,7 @@ div.form-container div.MuiFormControl-root {
 }
 
 .base-form__btn--primary {
-  background: var(--color-primary, #1976d2);
+  background: var(--color-primary, #4f46e5);
   color: white;
 }
 
@@ -604,19 +604,19 @@ div.form-container div.MuiFormControl-root {
 /* rules above without touching the existing markup. Section cards */
 /* are targeted via the centralized .base-form__sections-container */
 /* so the per-form class prefix (meter-form__section etc.) does    */
-/* not matter. Accent unified to the app primary #1a73e8.          */
+/* not matter. Accent unified to the app primary #4f46e5.          */
 /* ============================================================= */
 
 /* One source of truth for the accent inside every form. This also */
 /* fixes per-form buttons that read var(--color-primary, …) which  */
-/* previously resolved to #007bff / #1976d2 — never the brand blue. */
+/* previously resolved to #4f46e5 / #4f46e5 — never the brand blue. */
 .base-form,
 .form-container {
-  --color-primary: #1a73e8;
-  --color-primary-dark: #1557b0;
-  --color-primary-light: rgba(26, 115, 232, 0.12);
-  --mf-accent: #1a73e8;
-  --mf-accent-tint: rgba(26, 115, 232, 0.12);
+  --color-primary: #4f46e5;
+  --color-primary-dark: #4338ca;
+  --color-primary-light: rgba(79, 70, 229, 0.12);
+  --mf-accent: #4f46e5;
+  --mf-accent-tint: rgba(79, 70, 229, 0.12);
   --mf-hairline: #f0f0f0;
 }
 
@@ -694,7 +694,7 @@ div.form-container div.MuiFormControl-root {
 }
 .base-form__btn--primary:hover:not(:disabled) {
   background: var(--color-primary-dark);
-  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.25);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
 }
 
 /* ── Responsive ─────────────────────────────────────────────────── */

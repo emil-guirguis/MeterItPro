@@ -3,7 +3,7 @@
  *
  * ── Design system update (May 2026): "Direction A" ─────────────
  * Plain underline tabs replaced with a segmented pill control that
- * sits on a tinted track. Accent unified to the app primary #1a73e8
+ * sits on a tinted track. Accent unified to the app primary #4f46e5
  * (was #3b82f6 here — inconsistent with muiTheme.ts).
  * Structural markup is unchanged: .form-tabs > .form-tabs__tabs (+ optional
  * .form-tabs__actions), each tab is a .form-tabs__tab button.
@@ -11,8 +11,8 @@
 
 /* one source of truth for the accent in this file */
 .form-tabs {
-  --ft-accent: #1a73e8;
-  --ft-accent-tint: rgba(26, 115, 232, 0.12);
+  --ft-accent: #4f46e5;
+  --ft-accent-tint: rgba(79, 70, 229, 0.12);
   --ft-track: #f1f3f4;
 
   display: flex;

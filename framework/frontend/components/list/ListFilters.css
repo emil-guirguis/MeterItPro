@@ -31,8 +31,8 @@
 
 .list__filter-item .form-control:focus {
   outline: none;
-  border-color: var(--color-primary, #007bff);
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  border-color: var(--color-primary, #4f46e5);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 .list__filter-item .form-control::placeholder {
@@ -64,7 +64,7 @@
 
 .list__filters .btn:hover {
   background-color: var(--color-hover, rgba(0, 0, 0, 0.05));
-  border-color: var(--color-primary, #007bff);
+  border-color: var(--color-primary, #4f46e5);
 }
 
 .list__filters .btn-secondary {

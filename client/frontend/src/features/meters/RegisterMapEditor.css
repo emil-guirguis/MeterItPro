@@ -202,10 +202,10 @@
 }
 
 .template-item:hover {
-  border-color: #007bff;
+  border-color: #4f46e5;
   background: #f8f9ff;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
 }
 
 .template-item--default {
