@@ -9,9 +9,11 @@ import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import dotenv from 'dotenv';
 
-// Load .env from project root regardless of process CWD
+// Load .env from project root regardless of process CWD.
+// Two candidates: running from src (tsx dev) vs compiled dist/sync/api/src.
 const __dirname_local = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname_local, '../../../.env') });
+dotenv.config({ path: resolve(__dirname_local, '../../../../../../.env') });
 
 import express, { Request, Response, NextFunction } from 'express';
 import swaggerUi from 'swagger-ui-express';
@@ -897,9 +899,6 @@ app.get('/api/sync/meter-reading-upload/log', async (_req, res) => {
   try {
     logger.info('📥 [API] GET /api/sync/meter-reading-upload/log - Request received');
 
-    // Ensure details column exists before querying (safe no-op if already present)
-    await syncPool.query(`ALTER TABLE sync_log ADD COLUMN IF NOT EXISTS details TEXT DEFAULT NULL`);
-
     const query = `
       SELECT sync_log_id as sync_operation_id, operation_type, batch_size as readings_count, success, error_message, details, synced_at as created_at
       FROM sync_log
@@ -1095,6 +1094,10 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
     let updated = 0;
 
     for (const meter of remoteMeters.rows) {
+      const existing = await syncPool.query(
+        `SELECT 1 FROM meter WHERE meter_id = $1 AND meter_element_id = $2`,
+        [meter.meter_id, meter.meter_element_id]
+      );
       const upsertQuery = `
         INSERT INTO meter (meter_id, device_id, name, active, ip, port, meter_element_id, element)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -1105,9 +1108,8 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
           ip = EXCLUDED.ip,
           port = EXCLUDED.port,
           element = EXCLUDED.element
-        RETURNING (xmax = 0) as is_insert
       `;
-      const result = await syncPool.query(upsertQuery, [
+      await syncPool.query(upsertQuery, [
         meter.meter_id,
         meter.device_id,
         meter.name,
@@ -1118,7 +1120,7 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
         meter.element,
       ]);
 
-      if (result.rows[0]?.is_insert) {
+      if (existing.rows.length === 0) {
         inserted++;
       } else {
         updated++;
@@ -1136,6 +1138,10 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
     let registerUpdated = 0;
 
     for (const reg of remoteRegisters.rows) {
+      const regExisting = await syncPool.query(
+        `SELECT 1 FROM register WHERE register_id = $1`,
+        [reg.register_id]
+      );
       const upsertRegQuery = `
         INSERT INTO register (register_id, name, register, unit, field_name)
         VALUES ($1, $2, $3, $4, $5)
@@ -1144,9 +1150,8 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
           register = EXCLUDED.register,
           unit = EXCLUDED.unit,
           field_name = EXCLUDED.field_name
-        RETURNING (xmax = 0) as is_insert
       `;
-      const regResult = await syncPool.query(upsertRegQuery, [
+      await syncPool.query(upsertRegQuery, [
         reg.register_id,
         reg.name,
         reg.register,
@@ -1154,7 +1159,7 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
         reg.field_name,
       ]);
 
-      if (regResult.rows[0]?.is_insert) {
+      if (regExisting.rows.length === 0) {
         registerInserted++;
       } else {
         registerUpdated++;
@@ -1172,19 +1177,18 @@ app.post('/api/local/meter-sync-trigger', async (_req, res) => {
     let drUpdated = 0;
 
     for (const dr of remoteDeviceRegisters.rows) {
-      const upsertDrQuery = `
-        INSERT INTO device_register (device_id, register_id)
-        VALUES ($1, $2)
-        ON CONFLICT (device_id, register_id) DO UPDATE SET
-          device_id = EXCLUDED.device_id
-        RETURNING (xmax = 0) as is_insert
-      `;
-      const drResult = await syncPool.query(upsertDrQuery, [
-        dr.device_id,
-        dr.register_id,
-      ]);
+      const drExisting = await syncPool.query(
+        `SELECT 1 FROM device_register WHERE device_id = $1 AND register_id = $2`,
+        [dr.device_id, dr.register_id]
+      );
+      await syncPool.query(
+        `INSERT INTO device_register (device_id, register_id)
+         VALUES ($1, $2)
+         ON CONFLICT (device_id, register_id) DO NOTHING`,
+        [dr.device_id, dr.register_id]
+      );
 
-      if (drResult.rows[0]?.is_insert) {
+      if (drExisting.rows.length === 0) {
         drInserted++;
       } else {
         drUpdated++;
@@ -1330,40 +1334,91 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 
 // ==================== SERVER STARTUP ====================
 
+/**
+ * Seed the local tenant record from the client API bootstrap endpoint.
+ * Uses SYNC_SERVER_ID + SYNC_SERVER_BOOTSTRAP_KEY (written by the installer),
+ * so no manual email/API-key login is needed on first run. Non-fatal: retries
+ * a few times, and the frontend login flow still works as a fallback.
+ */
+async function seedTenantFromBootstrap() {
+  const serverId = process.env.SYNC_SERVER_ID;
+  const bootstrapKey = process.env.SYNC_SERVER_BOOTSTRAP_KEY;
+  if (!serverId || !bootstrapKey) {
+    logger.info('ℹ️ [Sync API] SYNC_SERVER_ID/BOOTSTRAP_KEY not set — skipping tenant auto-seed');
+    return;
+  }
+
+  const existing = await syncPool.query('SELECT tenant_id FROM tenant LIMIT 1');
+  if (existing.rows.length > 0) {
+    logger.info('ℹ️ [Sync API] Local tenant already present — skipping tenant auto-seed');
+    return;
+  }
+
+  const apiUrl = process.env.CLIENT_API_URL || 'https://meteritpro.com/api';
+  const url = `${apiUrl}/sync-servers/${serverId}/bootstrap?key=${encodeURIComponent(bootstrapKey)}`;
+
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const resp = await fetch(url);
+      const envelope: any = await resp.json();
+      if (!envelope?.success) throw new Error(envelope?.message || `HTTP ${resp.status}`);
+
+      const tenant = envelope.data?.tenant;
+      if (!tenant?.tenant_id) {
+        logger.warn('⚠️ [Sync API] Bootstrap response has no tenant record — cannot auto-seed');
+        return;
+      }
+
+      await syncPool.query(
+        `INSERT INTO tenant (tenant_id, name, url, street, street2, city, state, zip, country, active, api_key)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         ON CONFLICT (tenant_id) DO UPDATE SET
+           name = EXCLUDED.name,
+           url = EXCLUDED.url,
+           street = EXCLUDED.street,
+           street2 = EXCLUDED.street2,
+           city = EXCLUDED.city,
+           state = EXCLUDED.state,
+           zip = EXCLUDED.zip,
+           country = EXCLUDED.country,
+           active = EXCLUDED.active,
+           api_key = EXCLUDED.api_key`,
+        [
+          tenant.tenant_id,
+          tenant.name,
+          tenant.url || null,
+          tenant.street || null,
+          tenant.street2 || null,
+          tenant.city || null,
+          tenant.state || null,
+          tenant.zip || null,
+          tenant.country || null,
+          tenant.active ?? true,
+          tenant.api_key || null,
+        ]
+      );
+      logger.info(`✅ [Sync API] Tenant auto-seeded from bootstrap: ${tenant.name}`);
+      return;
+    } catch (error) {
+      logger.warn(`⚠️ [Sync API] Tenant auto-seed attempt ${attempt}/5 failed:`, error);
+      if (attempt < 5) await new Promise((r) => setTimeout(r, 10_000));
+    }
+  }
+  logger.warn('⚠️ [Sync API] Tenant auto-seed failed — frontend login can still seed the tenant');
+}
+
 async function startServer() {
   try {
     logger.info('\n🚀 [Sync API] Starting server...');
 
-    // Initialize database pools
+    // Initialize database pools (initializePools also ensures the SQLite schema)
     await initializePools();
-
-    // Ensure required tables exist (sync/api doesn't rely on MCP having run first)
-    await syncPool.query(`
-      CREATE TABLE IF NOT EXISTS sync_log (
-        sync_log_id SERIAL PRIMARY KEY,
-        operation_type VARCHAR(50),
-        batch_size INTEGER,
-        success BOOLEAN,
-        error_message TEXT,
-        synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    // Add details column if it doesn't exist (added in a later version)
-    await syncPool.query(`
-      ALTER TABLE sync_log ADD COLUMN IF NOT EXISTS details TEXT DEFAULT NULL
-    `);
-    await syncPool.query(`
-      CREATE TABLE IF NOT EXISTS device_register (
-        device_id INTEGER NOT NULL,
-        register_id INTEGER NOT NULL,
-        PRIMARY KEY (device_id, register_id)
-      )
-    `);
-    await syncPool.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS device_register_device_id_register_id_key
-      ON device_register (device_id, register_id)
-    `);
     logger.info('✅ [Sync API] Required tables verified');
+
+    // Auto-seed tenant from bootstrap (background — server starts regardless)
+    seedTenantFromBootstrap().catch((err) =>
+      logger.warn('⚠️ [Sync API] Tenant auto-seed error:', err)
+    );
 
     // Start listening (bind to all interfaces for Docker compatibility)
     const server = app.listen(PORT, '0.0.0.0', () => {

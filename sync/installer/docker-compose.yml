@@ -11,36 +11,16 @@ services:
     command: sh -c "echo $$GITHUB_TOKEN | docker login ghcr.io -u $$GITHUB_USER --password-stdin"
     restart: "no"
 
-  db:
-    image: postgres:18
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: ${POSTGRES_SYNC_DB}
-      POSTGRES_USER: ${POSTGRES_SYNC_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_SYNC_PASSWORD}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./docker/init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SYNC_USER} -d ${POSTGRES_SYNC_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    labels:
-      com.centurylinklabs.watchtower.enable: "false"
-
+  # Sync database is a SQLite file on the shared "syncdata" volume —
+  # sync-api and sync-mcp mount the same volume (WAL mode handles both writers).
   sync-api:
     image: ghcr.io/${GITHUB_OWNER}/meteritpro-sync-api:latest
     ports:
       - "3002:3002"
+    volumes:
+      - syncdata:/data
     environment:
-      POSTGRES_SYNC_HOST: db
-      POSTGRES_SYNC_PORT: 5432
-      POSTGRES_SYNC_DB: ${POSTGRES_SYNC_DB}
-      POSTGRES_SYNC_USER: ${POSTGRES_SYNC_USER}
-      POSTGRES_SYNC_PASSWORD: ${POSTGRES_SYNC_PASSWORD}
+      SQLITE_SYNC_PATH: /data/sync.db
       POSTGRES_CLIENT_HOST: ${POSTGRES_CLIENT_HOST}
       POSTGRES_CLIENT_PORT: ${POSTGRES_CLIENT_PORT}
       POSTGRES_CLIENT_DB: ${POSTGRES_CLIENT_DB}
@@ -49,9 +29,9 @@ services:
       MCP_HTTP_URL: http://sync-mcp:${MCP_HTTP_PORT:-3003}
       JWT_SECRET: ${JWT_SECRET}
       CLIENT_API_URL: ${CLIENT_API_URL}
+      SYNC_SERVER_ID: ${SYNC_SERVER_ID}
+      SYNC_SERVER_BOOTSTRAP_KEY: ${SYNC_SERVER_BOOTSTRAP_KEY}
     depends_on:
-      db:
-        condition: service_healthy
       sync-mcp:
         condition: service_started
     restart: unless-stopped
@@ -72,20 +52,16 @@ services:
     image: ghcr.io/${GITHUB_OWNER}/meteritpro-sync-mcp:latest
     ports:
       - "47808:47808/udp"
+    volumes:
+      - syncdata:/data
     environment:
-      POSTGRES_SYNC_HOST: db
-      POSTGRES_SYNC_PORT: 5432
-      POSTGRES_SYNC_DB: ${POSTGRES_SYNC_DB}
-      POSTGRES_SYNC_USER: ${POSTGRES_SYNC_USER}
-      POSTGRES_SYNC_PASSWORD: ${POSTGRES_SYNC_PASSWORD}
+      SQLITE_SYNC_PATH: /data/sync.db
       MCP_HTTP_PORT: ${MCP_HTTP_PORT:-3003}
       CLIENT_API_URL: ${CLIENT_API_URL}
       CLIENT_API_KEY: ${CLIENT_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
+      SYNC_SERVER_ID: ${SYNC_SERVER_ID}
       BACNET_DEBUG_POST_READ_CHECK: ${BACNET_DEBUG_POST_READ_CHECK:-false}
-    depends_on:
-      db:
-        condition: service_healthy
     restart: unless-stopped
     labels:
       com.centurylinklabs.watchtower.enable: "true"
@@ -116,4 +92,4 @@ services:
       com.centurylinklabs.watchtower.enable: "false"
 
 volumes:
-  pgdata:
+  syncdata:

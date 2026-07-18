@@ -21,9 +21,6 @@ import (
 //go:embed docker-compose.yml
 var dockerComposeYML []byte
 
-//go:embed 00-schema.sql
-var schemaSQL []byte
-
 const (
 	defaultAPIURL = "https://meteritpro.com/api"
 	githubOwner   = "emil-guirguis"
@@ -133,10 +130,8 @@ func main() {
 
 	step(7, "Writing install files")
 	mustMkdir(installDir)
-	mustMkdir(filepath.Join(installDir, "docker", "init"))
 	writeEnv(serverID, bootstrapKey, serverName, cfg)
 	writeFile(filepath.Join(installDir, "docker-compose.yml"), dockerComposeYML, 0644)
-	writeFile(filepath.Join(installDir, "docker", "init", "00-schema.sql"), schemaSQL, 0644)
 	ok("Files written to " + installDir)
 
 	step(8, "Pulling Docker images  (this may take several minutes)")
@@ -646,8 +641,8 @@ func ensureDockerLinux() {
 		label string
 		args  []string
 	}{
-		{"Update apt", []string{"apt-get", "update", "-qq"}},
-		{"Install prerequisites", []string{"apt-get", "install", "-y", "-qq", "ca-certificates", "curl"}},
+		{"Update apt", []string{"apt-get", "-o", "DPkg::Lock::Timeout=600", "update", "-qq"}},
+		{"Install prerequisites", []string{"apt-get", "-o", "DPkg::Lock::Timeout=600", "install", "-y", "-qq", "ca-certificates", "curl"}},
 		{"Create keyrings directory", []string{"install", "-m", "0755", "-d", "/etc/apt/keyrings"}},
 	}
 	for _, s := range prereqs {
@@ -688,7 +683,7 @@ func ensureDockerLinux() {
 	fmt.Println("✓")
 
 	fmt.Printf("  %-58s", "Update apt cache...")
-	cmd := exec.Command("apt-get", "update", "-qq")
+	cmd := exec.Command("apt-get", "-o", "DPkg::Lock::Timeout=600", "update", "-qq")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -697,7 +692,7 @@ func ensureDockerLinux() {
 	fmt.Println("✓")
 
 	fmt.Printf("  %-58s", "Install Docker Engine + Compose plugin...")
-	cmd = exec.Command("apt-get", "install", "-y", "-qq",
+	cmd = exec.Command("apt-get", "-o", "DPkg::Lock::Timeout=600", "install", "-y", "-qq",
 		"docker-ce", "docker-ce-cli", "containerd.io",
 		"docker-buildx-plugin", "docker-compose-plugin")
 	cmd.Stdout = os.Stdout
@@ -769,10 +764,8 @@ GITHUB_OWNER=`+githubOwner+`
 GITHUB_USER=%s
 GITHUB_TOKEN=%s
 
-# Local PostgreSQL (auto-generated credentials, do not share)
-POSTGRES_SYNC_DB=syncdb
-POSTGRES_SYNC_USER=syncuser
-POSTGRES_SYNC_PASSWORD=%s
+# Local sync database is SQLite on the shared "syncdata" Docker volume
+# (path is set per-service in docker-compose.yml; nothing to configure here)
 
 # Remote Client Database
 POSTGRES_CLIENT_HOST=%s
@@ -798,7 +791,6 @@ BACNET_DEBUG_POST_READ_CHECK=false
 		time.Now().Format("2006-01-02 15:04:05"),
 		githubUser,
 		cfg.GithubToken,
-		randHex(16),
 		cfg.RemoteDbHost,
 		remotePort,
 		cfg.RemoteDbName,

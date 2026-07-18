@@ -49,6 +49,7 @@ export interface EntityMetadata {
   columns: string[];                    // Columns to sync
   compositeKey?: string[];              // For composite keys (e.g., ['device_id', 'register_id'])
   tenantFiltered?: boolean;             // Whether to filter by tenant_id
+  syncServerFiltered?: boolean;         // Whether to filter by SYNC_SERVER_ID ($2, null = no filter)
   remoteQuery?: string;                 // Custom remote query template (optional)
 }
 
@@ -68,11 +69,13 @@ export const ENTITY_METADATA: Record<string, EntityMetadata> = {
     columns: ['meter_id', 'device_id', 'name', 'active', 'ip', 'port', 'meter_element_id', 'element'],
     compositeKey: ['meter_id', 'meter_element_id'],
     tenantFiltered: true,
+    syncServerFiltered: true,
     remoteQuery: `select m.meter_id, m.device_id, m.ip, m.port, m.active,
                          me.meter_element_id, me.element, me.name as name
                   from meter m
                      join meter_element me on me.meter_id = m.meter_id
-                  where m.tenant_id = $1`,
+                  where m.tenant_id = $1
+                    and ($2::int is null or m.sync_server_id = $2::int)`,
   },
   register: {
     tableName: 'register',

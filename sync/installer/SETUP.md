@@ -17,7 +17,7 @@
 
 - Ubuntu Server 24.04 LTS
 - Docker Engine + Compose plugin
-- PostgreSQL, Sync API, Sync Frontend, Sync MCP, Sync Provisioner containers
+- Sync API, Sync Frontend, Sync MCP, Sync Provisioner containers (local sync data stored in SQLite on a shared Docker volume)
 - Cloudflare Tunnel (activates automatically — no port forwarding needed)
 - Watchtower (auto-updates containers when new versions are published)
 

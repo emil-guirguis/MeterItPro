@@ -63,6 +63,8 @@ services:
       MCP_HTTP_URL: http://sync-mcp:${MCP_HTTP_PORT:-3003}
       JWT_SECRET: ${JWT_SECRET}
       CLIENT_API_URL: ${CLIENT_API_URL}
+      SYNC_SERVER_ID: ${SYNC_SERVER_ID}
+      SYNC_SERVER_BOOTSTRAP_KEY: ${SYNC_SERVER_BOOTSTRAP_KEY}
     depends_on:
       db:
         condition: service_healthy
@@ -99,6 +101,7 @@ services:
       CLIENT_API_URL: ${CLIENT_API_URL}
       CLIENT_API_KEY: ${CLIENT_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
+      SYNC_SERVER_ID: ${SYNC_SERVER_ID}
       BACNET_DEBUG_POST_READ_CHECK: ${BACNET_DEBUG_POST_READ_CHECK:-false}
     depends_on:
       db:

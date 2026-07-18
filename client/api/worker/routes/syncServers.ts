@@ -372,9 +372,12 @@ app.get('/:id/bootstrap', async (c) => {
 
     const result = await execQuery(
       c.env,
-      `SELECT name, provision_status, provision_error, tunnel_token
-       FROM public.sync_server
-       WHERE sync_server_id = $1 AND bootstrap_key = $2`,
+      `SELECT ss.name, ss.provision_status, ss.provision_error, ss.tunnel_token,
+              t.tenant_id, t.name AS tenant_name, t.url AS tenant_url, t.street, t.street2,
+              t.city, t.state, t.zip, t.country, t.active AS tenant_active, t.api_key AS tenant_api_key
+       FROM public.sync_server ss
+       LEFT JOIN public.tenant t ON t.tenant_id = ss.tenant_id
+       WHERE ss.sync_server_id = $1 AND ss.bootstrap_key = $2`,
       [id, key]
     );
 
@@ -393,10 +396,23 @@ app.get('/:id/bootstrap', async (c) => {
         github_owner:       c.env.GITHUB_OWNER ?? '',
         github_token:       c.env.GITHUB_TOKEN ?? '',
         remote_db_host:     c.env.REMOTE_DB_HOST ?? '',
-        remote_db_port:     c.env.REMOTE_DB_PORT ?? 5432,
+        remote_db_port:     Number(c.env.REMOTE_DB_PORT) || 5432,
         remote_db_name:     c.env.REMOTE_DB_NAME ?? '',
         remote_db_user:     c.env.REMOTE_DB_USER ?? '',
         remote_db_password: row.provision_status === 'active' ? (c.env.REMOTE_DB_PASSWORD ?? '') : null,
+        tenant: row.tenant_id == null ? null : {
+          tenant_id: row.tenant_id,
+          name:      row.tenant_name,
+          url:       row.tenant_url,
+          street:    row.street,
+          street2:   row.street2,
+          city:      row.city,
+          state:     row.state,
+          zip:       row.zip,
+          country:   row.country,
+          active:    row.tenant_active,
+          api_key:   row.tenant_api_key,
+        },
       },
     });
   } catch (error: any) {

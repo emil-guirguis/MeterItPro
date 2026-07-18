@@ -340,6 +340,25 @@ export default function CompanyInfoCard() {
     fetchTenantInfo();
   }, []);
 
+  // The sync API auto-seeds the tenant from the bootstrap endpoint shortly
+  // after first boot — poll until it lands so no manual login/refresh is needed.
+  useEffect(() => {
+    if (tenantInfo || isLoading) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await tenantApi.getTenantInfo();
+        if (data && isValidTenantInfo(data)) {
+          console.log('✅ [Auth] Tenant appeared (auto-seeded):', data.name);
+          setTenantInfo(data);
+          setError(null);
+        }
+      } catch {
+        // still not seeded — keep polling
+      }
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [tenantInfo, isLoading]);
+
   // Handle login and tenant sync
   const handleLogin = async () => {
     try {

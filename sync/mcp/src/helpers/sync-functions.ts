@@ -53,6 +53,11 @@ export async function getRemoteEntities(
       if (metadata.tenantFiltered && tenantId) {
         params = [tenantId];
       }
+      if (metadata.syncServerFiltered) {
+        // $2 — this server's id; null (no SYNC_SERVER_ID env) disables the filter
+        const syncServerId = process.env.SYNC_SERVER_ID ? Number(process.env.SYNC_SERVER_ID) : null;
+        params.push(syncServerId);
+      }
     } else {
       // Build standard query
       const columns = metadata.columns.join(', ');

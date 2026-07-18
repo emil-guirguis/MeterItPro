@@ -179,6 +179,31 @@ export const useValidationDataProvider = () => {
       }
     }
 
+    // Handle sync_server entity (meter → sync server assignment)
+    if (entityName === 'sync_server') {
+      try {
+        const response = await (authService as any).apiClient.get('/sync-servers');
+
+        let servers = [];
+        if (response.data.success && Array.isArray(response.data.data)) {
+          servers = response.data.data;
+        } else if (response.data.data?.items) {
+          servers = response.data.data.items;
+        } else if (Array.isArray(response.data)) {
+          servers = response.data;
+        }
+
+        const labelField = fieldDef.validationFields?.[0] || 'name';
+        return servers.map((server: any) => ({
+          id: server.sync_server_id,
+          label: server[labelField] || `Sync Server ${server.sync_server_id}`,
+        }));
+      } catch (error) {
+        console.error(`[ValidationDataProvider] Error fetching sync servers:`, error);
+        return [];
+      }
+    }
+
     // Add more entity types here as needed
     console.warn(`[ValidationDataProvider] Entity type '${entityName}' not yet supported`);
     return [];
