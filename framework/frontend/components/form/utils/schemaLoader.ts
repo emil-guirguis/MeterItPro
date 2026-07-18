@@ -54,14 +54,17 @@ export interface BackendSchema {
   formTabs?: Array<{
     name: string;
     order?: number | null;
+    visibleFor?: ('physical' | 'virtual')[];
     sectionOrientation?: 'horizontal' | 'vertical' | null;
     sections: Array<{
       name: string;
       description?: string | null;
       order?: number | null;
+      visibleFor?: ('physical' | 'virtual')[];
       fields: Array<{
         name: string;
         order?: number | null;
+        visibleFor?: ('physical' | 'virtual')[];
       }>;
       minWidth?: string | null;
       maxWidth?: string | null;
@@ -103,6 +106,17 @@ const CACHE_TTL = 30 * 60 * 1000;
 
 const LS_PREFIX = 'schema_cache_';
 
+/**
+ * Minimum backend schema version this frontend understands. Cached schemas
+ * with an older version are discarded so backend schema-format changes
+ * propagate immediately instead of waiting out the cache TTL.
+ */
+const MIN_SCHEMA_VERSION = '1.3.0';
+
+function isStaleVersion(schema: BackendSchema): boolean {
+  return (schema.version || '0.0.0').localeCompare(MIN_SCHEMA_VERSION, undefined, { numeric: true }) < 0;
+}
+
 /** Persist a cache entry to localStorage so it survives F5 */
 function persistToStorage(entityName: string, entry: CacheEntry): void {
   try {
@@ -118,7 +132,7 @@ function hydrateFromStorage(entityName: string): CacheEntry | null {
     const raw = localStorage.getItem(LS_PREFIX + entityName);
     if (!raw) return null;
     const entry: CacheEntry = JSON.parse(raw);
-    if (Date.now() - entry.timestamp >= CACHE_TTL) {
+    if (Date.now() - entry.timestamp >= CACHE_TTL || isStaleVersion(entry.schema)) {
       localStorage.removeItem(LS_PREFIX + entityName);
       return null;
     }
@@ -150,7 +164,7 @@ export async function fetchSchema(
   if (cache && schemaCache.has(entityName)) {
     const entry = schemaCache.get(entityName)!;
     const age = Date.now() - entry.timestamp;
-    if (age < ttl) {
+    if (age < ttl && !isStaleVersion(entry.schema)) {
       return entry.schema;
     }
     schemaCache.delete(entityName);
@@ -507,10 +521,11 @@ export async function getAvailableSchemas(baseUrl?: string): Promise<Array<{
  * Read schema from cache synchronously, returning null if missing or expired.
  */
 function getFromCache(entityName: string): ConvertedSchema | null {
-  const entry = schemaCache.get(entityName);
+  const entry = schemaCache.get(entityName) ?? hydrateFromStorage(entityName);
   if (!entry) return null;
-  if (Date.now() - entry.timestamp >= CACHE_TTL) {
+  if (Date.now() - entry.timestamp >= CACHE_TTL || isStaleVersion(entry.schema)) {
     schemaCache.delete(entityName);
+    try { localStorage.removeItem(LS_PREFIX + entityName); } catch {}
     return null;
   }
   return convertSchema(entry.schema);

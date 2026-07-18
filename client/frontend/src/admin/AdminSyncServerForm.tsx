@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, IconButton, MenuItem, TextField, Tooltip } from '@mui/material';
+import { Box, Button, Chip, CircularProgress, IconButton, MenuItem, TextField, Tooltip } from '@mui/material';
+import CloudIcon from '@mui/icons-material/Cloud';
 import UsbIcon from '@mui/icons-material/Usb';
 import { BaseForm } from '@framework/components/form/BaseForm';
 import { useAdminSyncServersEnhanced, type AdminSyncServerEntity } from './adminSyncServersStore';
@@ -54,6 +55,25 @@ async function writeConfigToUsb(serverId: number, name: string, key: string): Pr
 export const AdminSyncServerForm: React.FC<AdminSyncServerFormProps> = ({ syncServer, isNew, onCancel }) => {
   const store = useAdminSyncServersEnhanced();
   const [tenants, setTenants] = useState<Array<{ tenant_id: number; name: string }>>([]);
+  const [provisioned, setProvisioned] = useState<AdminSyncServerEntity | undefined>();
+  const [provisioning, setProvisioning] = useState(false);
+  const [provisionError, setProvisionError] = useState<string | undefined>();
+  // Latest known server state — provision updates it without waiting for a form reload
+  const current = provisioned ?? syncServer;
+
+  const handleProvision = async () => {
+    if (!current?.sync_server_id) return;
+    setProvisioning(true);
+    setProvisionError(undefined);
+    try {
+      const updated = await store.provisionServer(String(current.sync_server_id));
+      setProvisioned(updated);
+    } catch (e: any) {
+      setProvisionError(e?.message ?? 'Provisioning failed');
+    } finally {
+      setProvisioning(false);
+    }
+  };
 
   useEffect(() => {
     if (!isNew) return;
@@ -95,8 +115,35 @@ export const AdminSyncServerForm: React.FC<AdminSyncServerFormProps> = ({ syncSe
           );
         }
 
+        if (fieldName === 'provision_status' && !isNew) {
+          const status = current?.provision_status ?? 'pending';
+          const isActive = status === 'active';
+          const chipColor = ({ pending: 'default', provisioning: 'info', active: 'success', error: 'error' } as const)[status] ?? 'default';
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Chip label={status} color={chipColor} size="small" />
+              <Tooltip title={isActive ? 'Already provisioned' : 'Create tunnel + DNS for this server'}>
+                <span>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={provisioning ? <CircularProgress size={14} /> : <CloudIcon fontSize="small" />}
+                    disabled={isActive || provisioning || status === 'provisioning'}
+                    onClick={() => void handleProvision()}
+                  >
+                    Provision
+                  </Button>
+                </span>
+              </Tooltip>
+              {(provisionError || current?.provision_error) && !isActive && (
+                <Box sx={{ color: 'error.main', fontSize: 12 }}>{provisionError ?? current?.provision_error}</Box>
+              )}
+            </Box>
+          );
+        }
+
         if (fieldName === 'bootstrap_key' && value) {
-          const isActive = syncServer?.provision_status === 'active';
+          const isActive = current?.provision_status === 'active';
           return (
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
               <TextField

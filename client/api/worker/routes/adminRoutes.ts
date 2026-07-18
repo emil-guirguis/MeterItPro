@@ -636,37 +636,53 @@ adminApp.post('/sync-servers/:id/provision', async (c) => {
       return data.result;
     };
 
+    const slug = server.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const hostname = `${slug}.meteritpro.com`;
+    const tunnelName = `meteritpro-sync-${slug}`;
+
+    // Idempotent: reuse a live tunnel when one exists — never delete-then-recreate,
+    // so a re-provision can't take down a connected server or rotate its token.
+    let tunnel: any = null;
     if (server.tunnel_id) {
       try {
-        if (server.dns_record_id) {
-          const zones = await cfFetch(`/zones?name=meteritpro.com`);
-          const zoneId = zones[0]?.id;
-          if (zoneId) await cfFetch(`/zones/${zoneId}/dns_records/${server.dns_record_id}`, { method: 'DELETE' });
-        }
-        await cfFetch(`/accounts/${accountId}/cfd_tunnel/${server.tunnel_id}`, { method: 'DELETE' });
-      } catch { /* non-fatal */ }
+        const existing = await cfFetch(`/accounts/${accountId}/cfd_tunnel/${server.tunnel_id}`);
+        if (existing && !existing.deleted_at) tunnel = existing;
+      } catch { /* tunnel gone — fall through to adopt/create */ }
     }
+    if (!tunnel) {
+      const byName = await cfFetch(`/accounts/${accountId}/cfd_tunnel?name=${tunnelName}&is_deleted=false`);
+      if (Array.isArray(byName) && byName.length > 0) tunnel = byName[0];
+    }
+    if (!tunnel) {
+      tunnel = await cfFetch(`/accounts/${accountId}/cfd_tunnel`, {
+        method: 'POST',
+        body: JSON.stringify({ name: tunnelName, config_src: 'cloudflare' }),
+      });
+    }
+    const tunnelToken = tunnel.token || await cfFetch(`/accounts/${accountId}/cfd_tunnel/${tunnel.id}/token`);
 
-    const slug = server.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const tunnel = await cfFetch(`/accounts/${accountId}/cfd_tunnel`, {
-      method: 'POST',
-      body: JSON.stringify({ name: `meteritpro-sync-${slug}`, config_src: 'cloudflare' }),
-    });
     await cfFetch(`/accounts/${accountId}/cfd_tunnel/${tunnel.id}/configurations`, {
       method: 'PUT',
-      body: JSON.stringify({ config: { ingress: [{ hostname: `${slug}.meteritpro.com`, service: 'http://sync-frontend:80' }, { service: 'http_status:404' }] } }),
+      body: JSON.stringify({ config: { ingress: [{ hostname, service: 'http://sync-frontend:80' }, { service: 'http_status:404' }] } }),
     });
+
     const zones = await cfFetch(`/zones?name=meteritpro.com`);
     const zoneId = zones[0]?.id;
     if (!zoneId) throw new Error('Zone not found for meteritpro.com');
-    const dnsRecord = await cfFetch(`/zones/${zoneId}/dns_records`, {
-      method: 'POST',
-      body: JSON.stringify({ type: 'CNAME', name: slug, content: `${tunnel.id}.cfargotunnel.com`, proxied: true, ttl: 1 }),
-    });
+    const dnsContent = `${tunnel.id}.cfargotunnel.com`;
+    const dnsPayload = { type: 'CNAME', name: slug, content: dnsContent, proxied: true, ttl: 1 };
+    const existingDns = await cfFetch(`/zones/${zoneId}/dns_records?type=CNAME&name=${hostname}`);
+    let dnsRecord = Array.isArray(existingDns) && existingDns.length > 0 ? existingDns[0] : null;
+    if (dnsRecord && dnsRecord.content !== dnsContent) {
+      dnsRecord = await cfFetch(`/zones/${zoneId}/dns_records/${dnsRecord.id}`, { method: 'PUT', body: JSON.stringify(dnsPayload) });
+    } else if (!dnsRecord) {
+      dnsRecord = await cfFetch(`/zones/${zoneId}/dns_records`, { method: 'POST', body: JSON.stringify(dnsPayload) });
+    }
+
     await execQuery(c.env,
       `UPDATE public.sync_server SET tunnel_id = $1, tunnel_token = $2, tunnel_url = $3, dns_record_id = $4,
        provision_status = 'active', provision_error = NULL, updated_at = NOW() WHERE sync_server_id = $5`,
-      [tunnel.id, tunnel.token, `https://${slug}.meteritpro.com`, dnsRecord.id, id]
+      [tunnel.id, tunnelToken, `https://${hostname}`, dnsRecord.id, id]
     );
     const updated = await execQuery(c.env,
       `SELECT ss.sync_server_id, ss.tenant_id, t.name AS tenant_name, ss.name, ss.tunnel_url,

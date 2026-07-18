@@ -91,6 +91,13 @@ export const MeterList: React.FC<MeterListProps> = ({
           },
         };
       }
+      // Show the sync server's name from the joined sync_server column
+      if (col.key === 'sync_server_id') {
+        return {
+          ...col,
+          render: (_value: any, meter: Meter) => (meter as any).sync_server_name || '',
+        };
+      }
       // Show device manufacturer + model from the joined device columns
       if (col.key === 'device_id') {
         return {

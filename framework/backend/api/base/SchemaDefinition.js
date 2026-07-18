@@ -73,6 +73,7 @@ const FieldTypes = {
  * @param {number} [definition.order] - Order within section (for formTabs structure)
  * @param {string} [definition.minWidth] - CSS min-width for field container
  * @param {string} [definition.maxWidth] - CSS max-width for field container
+ * @param {Array<string>} [definition.visibleFor] - Form variants for which this field is visible (e.g., ['physical'])
  * @returns {Object} Field definition
  */
 function field(definition) {
@@ -104,6 +105,7 @@ function field(definition) {
     order: definition.order !== undefined ? definition.order : null,
     minWidth: definition.minWidth || null,
     maxWidth: definition.maxWidth || null,
+    visibleFor: definition.visibleFor || null,
   };
 }
 
@@ -171,6 +173,7 @@ function fieldRef(config) {
  * @param {number} [config.flex] - CSS flex property for section container (defaults to 1 for auto-grow)
  * @param {number} [config.flexGrow] - CSS flex-grow property for section container (defaults to 1 for auto-grow)
  * @param {number} [config.flexShrink] - CSS flex-shrink property for section container (defaults to 1 for auto-shrink)
+ * @param {Array<string>} [config.visibleFor] - Form variants for which this section is visible (e.g., ['physical'])
  * @returns {Object} Section definition
  */
 function section(config) {
@@ -185,6 +188,7 @@ function section(config) {
     flexShrink: config.flexShrink !== undefined ? config.flexShrink : 1,
     horizontal: config.horizontal || false,
     description: config.description || null,
+    visibleFor: config.visibleFor || null,
   };
 }
 
@@ -297,7 +301,7 @@ function defineSchema(definition) {
     // in the API layer; mirror with an ON DELETE RESTRICT FK in the database.
     deleteRestrictions: definition.deleteRestrictions || [],
     idFieldName: definition.idFieldName || null,
-    version: '1.2.0', // Updated to include formTabs support
+    version: '1.3.0', // Updated to include visibleFor on sections/fields
     generatedAt: new Date().toISOString(),
   };
 

@@ -1,6 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Chip, CircularProgress, IconButton, Tooltip } from '@mui/material';
-import CloudIcon from '@mui/icons-material/Cloud';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { BaseList } from '@framework/components/list/BaseList';
@@ -31,7 +30,6 @@ export const AdminSyncServerList: React.FC<AdminSyncServerListProps> = ({ onEdit
   const store = useAdminSyncServersEnhanced();
   const { schema } = useSchema('admin_sync_server');
   const [onlineStatuses, setOnlineStatuses] = useState<Record<number, OnlineStatus>>({});
-  const [provisioning, setProvisioning] = useState<Record<number, boolean>>({});
   const [checkingAll, setCheckingAll] = useState(false);
 
   const schemaColumns = useMemo(() => {
@@ -49,15 +47,6 @@ export const AdminSyncServerList: React.FC<AdminSyncServerListProps> = ({ onEdit
       setOnlineStatuses(prev => ({ ...prev, [row.sync_server_id]: result.online ? 'online' : 'offline' }));
     } catch {
       setOnlineStatuses(prev => ({ ...prev, [row.sync_server_id]: 'offline' }));
-    }
-  }, [store]);
-
-  const handleProvision = useCallback(async (row: AdminSyncServerEntity) => {
-    setProvisioning(prev => ({ ...prev, [row.sync_server_id]: true }));
-    try {
-      await store.provisionServer(String(row.sync_server_id));
-    } finally {
-      setProvisioning(prev => ({ ...prev, [row.sync_server_id]: false }));
     }
   }, [store]);
 
@@ -79,6 +68,17 @@ export const AdminSyncServerList: React.FC<AdminSyncServerListProps> = ({ onEdit
     onCreate,
     authContext: allowedAuth,
   });
+
+  // Auto-check online status once per server when the list loads
+  const autoCheckedRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    for (const row of baseList.data) {
+      if (row.tunnel_url && !autoCheckedRef.current.has(row.sync_server_id)) {
+        autoCheckedRef.current.add(row.sync_server_id);
+        void checkStatus(row);
+      }
+    }
+  }, [baseList.data, checkStatus]);
 
   const checkAll = useCallback(async () => {
     setCheckingAll(true);
@@ -112,24 +112,6 @@ export const AdminSyncServerList: React.FC<AdminSyncServerListProps> = ({ onEdit
 
     const actionCols: ColumnDefinition<AdminSyncServerEntity>[] = [
       {
-        key: 'provision_action',
-        label: '',
-        align: 'center',
-        render: (_v, row) => (
-          <Tooltip title={row.provision_status === 'active' ? 'Re-provision tunnel' : 'Provision tunnel'}>
-            <span>
-              <IconButton
-                size="small"
-                onClick={(e) => { e.stopPropagation(); void handleProvision(row); }}
-                disabled={provisioning[row.sync_server_id] || row.provision_status === 'provisioning'}
-              >
-                {provisioning[row.sync_server_id] ? <CircularProgress size={16} /> : <CloudIcon fontSize="small" />}
-              </IconButton>
-            </span>
-          </Tooltip>
-        ),
-      },
-      {
         key: 'connect',
         label: '',
         align: 'center',
@@ -162,7 +144,7 @@ export const AdminSyncServerList: React.FC<AdminSyncServerListProps> = ({ onEdit
     ];
 
     return [...cols, onlineCol, ...actionCols];
-  }, [baseList.columns, onlineStatuses, provisioning, checkStatus, handleProvision]);
+  }, [baseList.columns, onlineStatuses, checkStatus]);
 
   return (
     <Box>
