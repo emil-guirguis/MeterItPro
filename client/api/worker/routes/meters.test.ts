@@ -26,6 +26,7 @@ vi.mock('../crud', () => ({
   create: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
+  checkDeleteRestrictions: vi.fn(),
 }));
 
 import { verify } from 'hono/jwt';

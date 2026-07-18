@@ -8,6 +8,9 @@ import { sign } from 'hono/jwt';
 import { Env, execQuery } from '../db';
 import { authenticateToken, getCachedUser, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
+import { checkDeleteRestrictions } from '../crud';
+import { adminSyncServerSchema } from './adminSyncServerSchema';
+import { deviceSchema } from './deviceSchema';
 
 const adminApp = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -247,6 +250,9 @@ adminApp.delete('/devices/:id', async (c) => {
   const deviceId = parseInt(c.req.param('id'), 10);
   if (isNaN(deviceId)) return c.json({ success: false, message: 'Invalid device id' }, 400);
   try {
+    const violation = await checkDeleteRestrictions(c.env, deviceSchema, deviceId);
+    if (violation) return c.json({ success: false, message: violation.message }, 409);
+
     await execQuery(c.env, `DELETE FROM device WHERE device_id = $1`, [deviceId]);
     return c.json({ success: true });
   } catch (error: any) {
@@ -575,6 +581,11 @@ adminApp.delete('/sync-servers/:id', async (c) => {
       [id]
     );
     if (existing.rows.length === 0) return c.json({ success: false, message: 'Not found' }, 404);
+
+    // Schema-declared delete restrictions (DB FK ON DELETE RESTRICT is the backstop)
+    const violation = await checkDeleteRestrictions(c.env, adminSyncServerSchema, id);
+    if (violation) return c.json({ success: false, message: violation.message }, 409);
+
     const { tunnel_id, dns_record_id } = existing.rows[0];
     if (tunnel_id) {
       try {

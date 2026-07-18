@@ -6,7 +6,8 @@ import { Hono } from 'hono';
 import { Env, execQuery } from '../db';
 
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
-import { findAll, findById, create, update, remove } from '../crud';
+import { findAll, findById, create, update, remove, checkDeleteRestrictions } from '../crud';
+import { contactSchema } from './contactSchema';
 import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -196,6 +197,9 @@ app.delete('/:id', requirePermission('contact:delete'), async (c) => {
     if (!contact) {
       return c.json({ success: false, message: 'Contact not found' }, 404);
     }
+
+    const violation = await checkDeleteRestrictions(c.env, contactSchema, id);
+    if (violation) return c.json({ success: false, message: violation.message }, 409);
 
     await remove(c.env, 'contact', 'contact_id', id, tenantId);
     return c.json({ success: true, message: 'Contact deleted successfully' });

@@ -7,7 +7,8 @@ import bcrypt from 'bcryptjs';
 import { Env, execQuery } from '../db';
 
 import { authenticateToken, requirePermission, clearUserCache, AuthVariables } from '../middleware';
-import { findAll, findById, create, update, remove } from '../crud';
+import { findAll, findById, create, update, remove, checkDeleteRestrictions } from '../crud';
+import { userSchema } from './usersSchema';
 import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -383,6 +384,9 @@ app.delete('/:id', requirePermission('user:delete'), async (c) => {
     if (!user) {
       return c.json({ success: false, message: 'User not found' }, 404);
     }
+
+    const violation = await checkDeleteRestrictions(c.env, userSchema, id);
+    if (violation) return c.json({ success: false, message: violation.message }, 409);
 
     await remove(c.env, 'users', 'users_id', id, tenantId);
     return c.json({ success: true, message: 'User deleted successfully' });

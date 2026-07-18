@@ -29,4 +29,9 @@ export const emailTemplatesSchema = defineSchema({
   },
 
   validation: {},
+
+  deleteRestrictions: [
+    { table: 'email_logs', fk: 'template_id', label: 'email log' },
+    { table: 'notification_logs', fk: 'template_id', label: 'notification log' },
+  ],
 });

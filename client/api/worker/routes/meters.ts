@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import { transaction, Env, execQuery } from '../db';
 
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
-import { findAll, findById, create, update, remove } from '../crud';
+import { findAll, findById, create, update, remove, checkDeleteRestrictions } from '../crud';
 import { logError } from '../errorHandler';
 import { meterSchema } from './meterSchema';
 
@@ -392,6 +392,9 @@ app.delete('/:id', requirePermission('meter:delete'), async (c) => {
     if (!meter) {
       return c.json({ success: false, message: 'Meter not found' }, 404);
     }
+
+    const violation = await checkDeleteRestrictions(c.env, meterSchema, id);
+    if (violation) return c.json({ success: false, message: violation.message }, 409);
 
     await remove(c.env, 'meter', 'meter_id', id, tenantId);
     return c.json({ success: true, message: 'Meter deleted successfully' });

@@ -21,4 +21,8 @@ export const meterElementsSchema = defineSchema({
   },
 
   validation: {},
+
+  deleteRestrictions: [
+    { table: 'meter_reading', fk: 'meter_element_id', label: 'meter reading' },
+  ],
 });

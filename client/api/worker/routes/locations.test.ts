@@ -23,12 +23,13 @@ vi.mock('../crud', () => ({
   create: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
+  checkDeleteRestrictions: vi.fn(),
 }));
 
 import { verify } from 'hono/jwt';
 import { query } from '../db';
 import { clearUserCache } from '../middleware';
-import { findAll, findById, create, update, remove } from '../crud';
+import { findAll, findById, create, update, remove, checkDeleteRestrictions } from '../crud';
 import locationsApp from './locations';
 import type { Env } from '../db';
 
@@ -39,6 +40,7 @@ const mockFindById = vi.mocked(findById);
 const mockCreate = vi.mocked(create);
 const mockUpdate = vi.mocked(update);
 const mockRemove = vi.mocked(remove);
+const mockCheckDeleteRestrictions = vi.mocked(checkDeleteRestrictions);
 
 const TEST_ENV: Env = {
   JWT_SECRET: 'test-secret',
@@ -219,16 +221,19 @@ describe('Locations Routes', () => {
       mockFindById.mockResolvedValueOnce({
         location_id: 1, name: 'Busy Building', tenant_id: 1,
       });
-      mockQuery
-        .mockResolvedValueOnce({ rows: [ADMIN_USER] } as any) // auth
-        .mockResolvedValueOnce({ rows: [{ count: '3' }] } as any); // meter count
+      mockQuery.mockResolvedValueOnce({ rows: [ADMIN_USER] } as any); // auth
+      mockCheckDeleteRestrictions.mockResolvedValueOnce({
+        table: 'meter',
+        count: 3,
+        message: 'Cannot delete — 3 meters still reference this record. Reassign or remove them first.',
+      });
 
       const res = await locationsApp.request('/1', {
         method: 'DELETE',
         headers: { authorization: 'Bearer valid-token' },
       }, TEST_ENV);
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(409);
       const body = await res.json();
       expect(body.message).toContain('3 meters');
     });

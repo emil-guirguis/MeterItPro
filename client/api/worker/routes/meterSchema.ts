@@ -333,4 +333,9 @@ export const meterSchema = defineSchema({
   },
 
   validation: {},
+
+  deleteRestrictions: [
+    { table: 'meter_reading', fk: 'meter_id', label: 'meter reading' },
+    { table: 'meter_element', fk: 'meter_id', label: 'meter element' },
+  ],
 });

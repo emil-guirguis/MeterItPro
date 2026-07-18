@@ -5,6 +5,8 @@
 
 import { Hono } from 'hono';
 import { Env, execQuery } from '../db';
+import { checkDeleteRestrictions } from '../crud';
+import { meterElementsSchema } from './meterElementSchema';
 
 import { authenticateToken, AuthVariables } from '../middleware';
 
@@ -295,6 +297,9 @@ app.delete('/:elementId', async (c) => {
     if (elementResult.rows.length === 0) {
       return c.json({ success: false, message: 'Element not found' }, 404);
     }
+
+    const violation = await checkDeleteRestrictions(c.env, meterElementsSchema, elementId);
+    if (violation) return c.json({ success: false, message: violation.message }, 409);
 
     await execQuery(
       c.env,

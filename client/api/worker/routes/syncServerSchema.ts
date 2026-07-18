@@ -77,4 +77,8 @@ export const syncServerSchema = defineSchema({
   },
 
   validation: {},
+
+  deleteRestrictions: [
+    { table: 'meter', fk: 'sync_server_id', label: 'meter' },
+  ],
 });

@@ -96,4 +96,9 @@ export const userSchema = defineSchema({
   },
 
   validation: {},
+
+  deleteRestrictions: [
+    { table: 'support_ticket', fk: 'users_id', label: 'support ticket' },
+    { table: 'dashboard', fk: 'users_id', label: 'dashboard' },
+  ],
 });

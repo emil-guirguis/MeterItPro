@@ -19,6 +19,7 @@ vi.mock('../crud', () => ({
   create: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
+  checkDeleteRestrictions: vi.fn(),
 }));
 
 vi.mock('bcryptjs', () => ({

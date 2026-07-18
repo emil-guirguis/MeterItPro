@@ -556,6 +556,7 @@ ${assignments}
     formFields: schema.formFields,
     entityFields: schema.entityFields,
     relationships: schema.relationships,
+    deleteRestrictions: schema.deleteRestrictions,
     
     // Expose utility methods
     toJSON,

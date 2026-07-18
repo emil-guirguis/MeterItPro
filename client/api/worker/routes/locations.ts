@@ -6,7 +6,8 @@ import { Hono } from 'hono';
 import { Env, execQuery } from '../db';
 
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
-import { findAll, findById, create, update, remove } from '../crud';
+import { findAll, findById, create, update, remove, checkDeleteRestrictions } from '../crud';
+import { locationSchema } from './locationSchema';
 import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -143,20 +144,9 @@ app.delete('/:id', requirePermission('location:delete'), async (c) => {
       return c.json({ success: false, message: 'Location not found' }, 404);
     }
 
-    // Check for associated meters before deleting
-    const meterCountResult = await execQuery(
-      c.env,
-      'SELECT COUNT(*) as count FROM meter WHERE location_id = $1 AND tenant_id = $2',
-      [id, tenantId]
-    );
-    const meterCount = parseInt(meterCountResult.rows[0].count, 10);
-
-    if (meterCount > 0) {
-      return c.json({
-        success: false,
-        message: `Cannot delete location. It has ${meterCount} meters associated with it.`,
-      }, 400);
-    }
+    // Schema-declared delete restrictions (meters referencing this location)
+    const violation = await checkDeleteRestrictions(c.env, locationSchema, id);
+    if (violation) return c.json({ success: false, message: violation.message }, 409);
 
     await remove(c.env, 'location', 'location_id', id, tenantId);
     return c.json({ success: true, message: 'Location deleted successfully' });

@@ -52,4 +52,9 @@ export const deviceSchema = defineSchema({
 
   relationships: {},
   validation: {},
+
+  deleteRestrictions: [
+    { table: 'meter', fk: 'device_id', label: 'meter' },
+    { table: 'device_register', fk: 'device_id', label: 'register assignment' },
+  ],
 });

@@ -62,4 +62,8 @@ export const registerSchema = defineSchema({
   },
 
   validation: {},
+
+  deleteRestrictions: [
+    { table: 'device_register', fk: 'register_id', label: 'device register assignment' },
+  ],
 });

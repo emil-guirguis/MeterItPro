@@ -78,4 +78,8 @@ export const locationSchema = defineSchema({
   },
 
   validation: {},
+
+  deleteRestrictions: [
+    { table: 'meter', fk: 'location_id', label: 'meter' },
+  ],
 });

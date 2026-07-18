@@ -89,4 +89,8 @@ export const contactSchema = defineSchema({
 
   relationships: {},
   validation: {},
+
+  deleteRestrictions: [
+    { table: 'location', fk: 'contact_id', label: 'location' },
+  ],
 });

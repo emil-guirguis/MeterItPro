@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { Env, execQuery } from '../db';
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
+import { checkDeleteRestrictions } from '../crud';
+import { syncServerSchema } from './syncServerSchema';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -174,6 +176,10 @@ app.delete('/:id', requirePermission('settings:update'), async (c) => {
       [tenantId, id]
     );
     if (existing.rows.length === 0) return c.json({ success: false, message: 'Sync server not found' }, 404);
+
+    // Schema-declared delete restrictions (DB FK ON DELETE RESTRICT is the backstop)
+    const violation = await checkDeleteRestrictions(c.env, syncServerSchema, id);
+    if (violation) return c.json({ success: false, message: violation.message }, 409);
 
     // Best-effort CF cleanup
     const { tunnel_id, dns_record_id } = existing.rows[0];
