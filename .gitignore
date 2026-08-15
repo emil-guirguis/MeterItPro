@@ -1,3 +1,6 @@
+# Extracted into its own repo: C:\Projects\Framework (github.com/emil-guirguis/framework)
+/framework/
+
 # Environment variables
 .env
 .env.local
