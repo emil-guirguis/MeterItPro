@@ -1,0 +1,765 @@
+/**
+ * Base Form Styles
+ * 
+ * Comprehensive form styling that all modules inherit.
+ * Provides consistent styling for sections, fields, inputs, actions, and sidebar.
+ * 
+ * Import this in your form components: @import '@framework/forms/components/BaseForm.css';
+ */
+
+/* Import Sidebar styles for form sidebars */
+/* @import '../sidebar/Sidebar.css'; */
+
+/* Form Container - flex layout with main content and sidebar */
+.base-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  background: var(--color-background, #f9fafb);
+  overflow: visible;
+  width: 100%;
+  min-width: 0;
+  margin: 0 auto;
+}
+
+/* Form width constraints from CSS custom properties set via inline style */
+.base-form[data-form-max-width] {
+  width: var(--form-max-width);
+  max-width: 100%;
+}
+
+/* Content wrapper - contains main form and sidebar */
+.base-form__content {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1rem;
+  padding-top: 0;
+  width: 100%;
+  min-width: 0;
+  overflow-y: visible;
+  flex: 1;
+}
+
+.base-form__main {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  overflow-x: visible;
+  overflow-y: visible;
+}
+
+.base-form__sections-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Hidden tab container — keeps component mounted but invisible */
+.base-form__tab-container--hidden {
+  display: none !important;
+}
+
+/* Flexbox layout for sections with flex properties */
+.base-form__sections-container--flex {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  width: 100%;
+  align-items: flex-start;
+  margin: 0 auto;
+}
+
+/* Grid layout variants */
+.base-form__sections-container--grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.base-form__sections-container--grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.base-form__sections-container--grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Section flex properties */
+.base-form__section--flex {
+  flex: 1;
+}
+
+.base-form__section--flex[data-flex] {
+  flex: attr(data-flex);
+}
+
+.base-form__section--flex[data-flex-grow] {
+  flex-grow: attr(data-flex-grow);
+}
+
+.base-form__section--flex[data-flex-shrink] {
+  flex-shrink: attr(data-flex-shrink);
+}
+
+/* Horizontal fields row — renders section fields side-by-side */
+.base-form__fields-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.base-form__fields-row__item {
+  flex: 1 1 0;
+  min-width: 140px;
+}
+
+/* Grid Layout Classes - Applied dynamically based on schema */
+.base-form__main--grid-1 .base-form__sections-container {
+  grid-template-columns: 1fr !important;
+}
+
+.base-form__main--grid-2 .base-form__sections-container {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+.base-form__main--grid-3 .base-form__sections-container {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+
+/* Section positioning classes */
+.base-form__section--col-1 { grid-column: 1; }
+.base-form__section--col-2 { grid-column: 2; }
+.base-form__section--col-3 { grid-column: 3; }
+.base-form__section--row-1 { grid-row: 1; }
+.base-form__section--row-2 { grid-row: 2; }
+.base-form__section--row-3 { grid-row: 3; }
+.base-form__section--full-width { grid-column: 1 / -1; }
+
+/* Form Sections - card-based sections with borders and shadows */
+.base-form__section {
+  padding: 1.25rem;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-left: 3px solid var(--color-primary, #4f46e5);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  min-width: 0;
+  width: 100%;
+  display: block;
+  transition: box-shadow 0.15s ease;
+}
+
+.base-form__section:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Section width constraints from data attributes */
+.base-form__section[data-min-width] {
+  min-width: var(--section-min-width);
+}
+
+.base-form__section[data-max-width] {
+  max-width: var(--section-max-width);
+}
+
+/* Apply data attribute values as CSS variables */
+.base-form__section[data-min-width="auto"] { --section-min-width: auto; }
+.base-form__section[data-min-width]:not([data-min-width="auto"]) { --section-min-width: attr(data-min-width); }
+
+.base-form__section[data-max-width="none"] { --section-max-width: none; }
+.base-form__section[data-max-width]:not([data-max-width="none"]) { --section-max-width: attr(data-max-width); }
+
+.base-form__section:last-of-type {
+  margin-bottom: 0;
+}
+
+/* Section Titles */
+.base-form__section-title__maps-link {
+  margin-left: auto;
+}
+
+.base-form__section-title__maps-link img {
+  width: 16px;
+  height: 16px;
+  opacity: 0.85;
+  vertical-align: middle;
+}
+
+.base-form__section-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #111827);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+/* Form Rows - for side-by-side fields */
+.base-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Form Fields */
+.base-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem !important;
+  position: relative;
+}
+
+.base-form__section .base-form__field:last-child {
+  margin-bottom: 0.5rem !important;
+}
+
+/* Ensure proper spacing between fields */
+.form-container .base-form__field {
+  margin-bottom: 1rem !important;
+}
+
+.form-container .base-form__section .base-form__field:last-child {
+  margin-bottom: 0.5rem !important;
+}
+
+/* Form Field Input Wrapper - for floating label positioning */
+.base-form__field-wrapper {
+  position: relative;
+}
+
+/* Material Design field height and spacing overrides - UNIVERSAL for all forms */
+.base-form .MuiTextField-root,
+.form-container .MuiTextField-root {
+  margin-bottom: 20px !important;
+  margin-top: 0 !important;
+}
+
+.base-form .MuiFormControl-root,
+.form-container .MuiFormControl-root {
+  margin-bottom: 20px !important;
+  margin-top: 0 !important;
+}
+
+/* Ensure consistent field heights following Material Design */
+.base-form .MuiOutlinedInput-root,
+.form-container .MuiOutlinedInput-root {
+  min-height: 40px !important;
+  margin: 0 !important;
+}
+
+.base-form .MuiOutlinedInput-input,
+.form-container .MuiOutlinedInput-input {
+  padding: 8px 12px !important;
+}
+
+/* Remove any conflicting margins from MUI components */
+.base-form .MuiFormHelperText-root,
+.form-container .MuiFormHelperText-root {
+  margin-top: 2px !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Style date and time input icons for visibility */
+.base-form input[type="date"]::-webkit-calendar-picker-indicator,
+.form-container input[type="date"]::-webkit-calendar-picker-indicator,
+.base-form input[type="time"]::-webkit-calendar-picker-indicator,
+.form-container input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.8);
+  opacity: 0.7;
+}
+
+.base-form input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.form-container input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.base-form input[type="time"]::-webkit-calendar-picker-indicator:hover,
+.form-container input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Field container spacing */
+.base-form .base-form__field,
+.form-container .base-form__field {
+  margin-bottom: 12px !important;
+}
+
+/* Additional high-specificity overrides for consistent spacing */
+div.base-form div.MuiTextField-root,
+div.form-container div.MuiTextField-root {
+  margin-bottom: 20px !important;
+}
+
+div.base-form div.MuiFormControl-root,
+div.form-container div.MuiFormControl-root {
+  margin-bottom: 20px !important;
+}
+
+/* Prevent border overlap between adjacent fields */
+.base-form .base-form__field + .base-form__field,
+.form-container .base-form__field + .base-form__field {
+  margin-top: 4px !important;
+}
+
+/* Target MUI base classes that might add unwanted spacing */
+.base-form .MuiInputBase-root,
+.form-container .MuiInputBase-root {
+  margin: 0 !important;
+}
+
+.base-form .MuiInputLabel-root,
+.form-container .MuiInputLabel-root {
+  margin: 0 !important;
+}
+
+/* Form Labels - Material Design 3 Floating Label */
+.base-form__label {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #6b7280);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: left center;
+  pointer-events: none;
+  background-color: var(--color-surface, #ffffff);
+  padding: 0 0.25rem;
+  max-width: calc(100% - 1.5rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.base-form__label--error {
+  color: var(--color-error, #dc2626);
+  font-weight: 600;
+}
+
+/* Required Indicator */
+.base-form__required {
+  color: var(--color-error, #dc2626);
+}
+
+/* MUI components handle all input styling - removed to prevent conflicts */
+
+/* Error message */
+.base-form__error,
+.error-message,
+[role="alert"] {
+  color: var(--form-error-text, var(--color-error, #dc2626));
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* Help text */
+.help-text {
+  color: var(--form-help-text, var(--color-text-secondary, #6b7280));
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Form Actions - button container in sidebar */
+.base-form__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Form Buttons */
+.base-form__btn {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.base-form__btn--primary {
+  background: var(--color-primary, #4f46e5);
+  color: white;
+}
+
+.base-form__btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-dark, #1565c0);
+  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
+}
+
+.base-form__btn--secondary {
+  background: var(--color-background-alt, #f3f4f6);
+  color: var(--color-text-secondary, #6b7280);
+  border: 1px solid var(--color-border, #e5e7eb);
+}
+
+.base-form__btn--secondary:hover:not(:disabled) {
+  background: var(--color-background-hover, #e5e7eb);
+  color: var(--color-text-primary, #111827);
+  border-color: var(--color-border-hover, #d1d5db);
+}
+
+.base-form__btn:disabled {
+  background: var(--color-background-alt, #f3f4f6);
+  color: var(--color-text-secondary, #9ca3af);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Loading Spinner */
+.base-form__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: form-spin 1s linear infinite;
+}
+
+@keyframes form-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error Toast Notification */
+.form-error-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  animation: toast-slide-in 0.3s ease-out;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.form-error-toast__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: var(--color-error, #dc2626);
+  color: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  max-width: 500px;
+  min-width: 300px;
+}
+
+.form-error-toast__icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.form-error-toast__message {
+  flex: 1;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.form-error-toast__message strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.form-error-toast__details {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.form-error-toast__close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.form-error-toast__close:hover {
+  opacity: 1;
+}
+
+/* System Information Section - Read-only fields styling */
+.base-form__section:has(.base-form__field input:disabled) {
+  background: var(--color-background-alt, #f9fafb);
+  border-color: var(--color-border, #e5e7eb);
+  opacity: 0.85;
+}
+
+.base-form__section:has(.base-form__field input:disabled) .base-form__section-title {
+  color: var(--color-text-secondary, #6b7280);
+  font-weight: 500;
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .base-form__label {
+    transition: none;
+  }
+
+  .base-form__input,
+  .base-form__select,
+  .base-form__textarea,
+  input,
+  select,
+  textarea {
+    transition: none;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  .base-form__main--grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .base-form {
+    flex-direction: column;
+  }
+
+  .base-form__main--grid-2,
+  .base-form__main--grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .base-form__main {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* .base-form__sidebar {
+    flex: 1;
+    min-width: auto;
+    flex-direction: row;
+  } */
+}
+
+@media (max-width: 768px) {
+  .base-form {
+    padding: 1.5rem;
+    margin: 1rem;
+    flex-direction: column;
+  }
+
+  .base-form__row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* .base-form__sidebar {
+    flex-direction: column;
+  } */
+}
+
+@media (max-width: 480px) {
+  .base-form {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  .base-form__section-title {
+    font-size: 1.125rem;
+  }
+}
+
+/* ============================================================= */
+/* Design system update (May 2026): "Direction A" form redesign  */
+/* Modernizes EVERY schema-generated form (Meter, Device,         */
+/* Location, Contact, User, Cost, …). Appended so it overrides the */
+/* rules above without touching the existing markup. Section cards */
+/* are targeted via the centralized .base-form__sections-container */
+/* so the per-form class prefix (meter-form__section etc.) does    */
+/* not matter. Accent unified to the app primary #4f46e5.          */
+/* ============================================================= */
+
+/* One source of truth for the accent inside every form. This also */
+/* fixes per-form buttons that read var(--color-primary, …) which  */
+/* previously resolved to #4f46e5 / #4f46e5 — never the brand blue. */
+.base-form,
+.form-container {
+  --color-primary: #4f46e5;
+  --color-primary-dark: #4338ca;
+  --color-primary-light: rgba(79, 70, 229, 0.12);
+  --mf-accent: #4f46e5;
+  --mf-accent-tint: rgba(79, 70, 229, 0.12);
+  --mf-hairline: #f0f0f0;
+}
+
+/* ── Section card ───────────────────────────────────────────── */
+/* Every section is a direct child of the sections container.      */
+.base-form [class*="base-form__sections-container"] > * {
+  padding: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 14px !important;       /* was 8px; 3px accent stripe dropped */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  overflow: hidden;
+  margin-bottom: 0 !important;
+  transition: box-shadow 0.15s ease;
+}
+.base-form [class*="base-form__sections-container"] > *:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10) !important;
+}
+
+/* Keep the compact FormContainer override from re-adding padding   */
+/* to the card itself (padding now lives on header + fields).       */
+.form-container [class*="base-form__sections-container"] > * {
+  padding: 0 !important;
+}
+
+/* ── Section header (title is always .base-form__section-title) ── */
+.base-form .base-form__section-title {
+  margin: 0 !important;
+  padding: 15px 20px !important;
+  border-bottom: 1px solid var(--mf-hairline) !important;
+  font-size: 0.9375rem !important;      /* 15px — was 1.125rem/18px */
+  font-weight: 600;
+  color: #202124;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+/* Fields sit in their own padded body below the header.            */
+.base-form [class*="base-form__sections-container"] > * > *:not(.base-form__section-title) {
+  padding: 0 20px !important;
+}
+.base-form [class*="base-form__sections-container"] > * > *:not(.base-form__section-title):last-child {
+  padding-bottom: 18px !important;
+}
+.base-form [class*="base-form__sections-container"] > * > .base-form__section-title + * {
+  padding-top: 18px !important;
+}
+
+/* Tinted icon chip for the section icon (MUI svg rendered inline). */
+.base-form__section-title > svg {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--mf-accent-tint);
+  color: var(--mf-accent) !important;   /* override the inline sx color */
+  opacity: 1 !important;
+}
+.base-form__section-title__maps-link { margin-left: auto; }
+
+/* ── Read-only / system sections (e.g. Audit) ───────────────────── */
+.base-form [class*="base-form__sections-container"] > *:has(.base-form__field input:disabled),
+.base-form [class*="base-form__sections-container"] > *:has(.base-form__field .Mui-disabled) {
+  background: #f8f9fa !important;
+}
+
+/* ── Buttons: unify on brand (covers .base-form__btn and any        */
+/*    per-form *__btn--primary that reads var(--color-primary)).     */
+.base-form__btn--primary {
+  background: var(--mf-accent);
+  border-radius: 8px;
+}
+.base-form__btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .base-form [class*="base-form__sections-container"] > * { border-radius: 12px !important; }
+  .base-form__section-title { padding: 12px 16px; font-size: 0.875rem; }
+  .base-form__sections-container > * > *:not(.base-form__section-title) { padding: 0 16px; }
+}
+
+/* ── Dark mode (Direction A) ─────────────────────────────────── */
+/* Scoped to the app's existing dark hook: body[data-theme='dark']  */
+/* (with the .dark alias used in SettingsPage.css). Covers the      */
+/* framework-drawn form chrome. NOTE: the MUI inputs themselves are */
+/* still painted by the light muiTheme — a dark MUI palette is a    */
+/* separate, larger change tracked outside this redesign.           */
+body[data-theme='dark'] .base-form,
+body[data-theme='dark'] .form-container,
+.dark .base-form,
+.dark .form-container {
+  --color-primary: #8ab4f8;
+  --color-primary-dark: #aecbfa;
+  --color-primary-light: rgba(138, 180, 248, 0.18);
+  --mf-accent: #8ab4f8;
+  --mf-accent-tint: rgba(138, 180, 248, 0.18);
+  --mf-hairline: #2a2d31;
+}
+body[data-theme='dark'] .base-form [class*="base-form__sections-container"] > *,
+.dark .base-form [class*="base-form__sections-container"] > * {
+  background: #1e2024 !important;
+  border-color: #3c4043 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+}
+body[data-theme='dark'] .base-form__section-title,
+.dark .base-form__section-title {
+  color: #e8eaed;
+  border-bottom-color: #2a2d31;
+}
+body[data-theme='dark'] .base-form__sections-container > *:has(.base-form__field input:disabled),
+body[data-theme='dark'] .base-form__sections-container > *:has(.base-form__field .Mui-disabled),
+.dark .base-form__sections-container > *:has(.base-form__field input:disabled),
+.dark .base-form__sections-container > *:has(.base-form__field .Mui-disabled) {
+  background: #1a1c20;
+}
+/* light-blue primary needs dark text in dark mode */
+body[data-theme='dark'] .base-form__btn--primary,
+.dark .base-form__btn--primary { color: #0b1b33; }
+
+/* ── Section description (subtitle under the title) ─────────── */
+/* When a section has a description, the title drops its divider and  */
+/* the description carries the header hairline instead.               */
+.base-form [class*="base-form__sections-container"] > * > .base-form__section-title:has(+ .base-form__section-description) {
+  border-bottom: none !important;
+  padding-bottom: 3px !important;
+}
+.base-form [class*="base-form__sections-container"] > * > .base-form__section-description {
+  margin: 0 !important;
+  padding: 0 20px 15px 20px !important;
+  border-bottom: 1px solid var(--mf-hairline) !important;
+  font-size: 0.8125rem !important;   /* 13px */
+  font-weight: 400;
+  color: #9aa0a6;
+  line-height: 1.45;
+}
+body[data-theme='dark'] .base-form [class*="base-form__sections-container"] > * > .base-form__section-description,
+.dark .base-form [class*="base-form__sections-container"] > * > .base-form__section-description {
+  color: #9aa0a6;
+  border-bottom-color: #2a2d31 !important;
+}

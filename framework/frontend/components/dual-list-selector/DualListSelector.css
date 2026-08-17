@@ -1,0 +1,179 @@
+/* DualListSelector Component Styles */
+
+.dual-list-selector {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--color-surface, #ffffff);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.dual-list-selector__wrapper {
+  display: flex;
+  gap: 1rem;
+  height: 100%;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+/* Column styling */
+.dual-list-selector__column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  background-color: var(--color-background, #f1f3f4);
+  border-radius: 6px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  overflow: hidden;
+}
+
+/* Column header */
+.dual-list-selector__header {
+  padding: 8px 12px;
+  background-color: var(--color-background-alt, #f9fafb);
+  color: var(--color-text-primary, #202124);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  flex-shrink: 0;
+}
+
+/* List container */
+.dual-list-selector__list-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--color-surface, #ffffff);
+  display: flex;
+  flex-direction: column;
+}
+
+/* List wrapper */
+.dual-list-selector__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* List item */
+.dual-list-selector__item {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  background-color: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #202124);
+  font-size: 0.875rem;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color 0.2s ease;
+  outline: none;
+  position: relative;
+}
+
+.dual-list-selector__item:last-child {
+  border-bottom: none;
+}
+
+/* Hover state */
+.dual-list-selector__item:hover {
+  background-color: var(--color-background-hover, #f1f5f9);
+  color: var(--color-text-primary, #202124);
+}
+
+/* Focus state */
+.dual-list-selector__item:focus,
+.dual-list-selector__item--focused {
+  background-color: var(--color-primary-light, rgba(79, 70, 229, 0.12));
+  color: var(--color-text-primary, #202124);
+  box-shadow: inset 0 0 0 2px var(--color-primary, #4f46e5);
+}
+
+/* Dragging state */
+.dual-list-selector__item--dragging {
+  opacity: 0.5;
+  background-color: var(--color-primary-light, rgba(79, 70, 229, 0.12));
+}
+
+/* Empty state message */
+.dual-list-selector__empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem 1rem;
+  color: var(--color-text-disabled, #9aa0a6);
+  font-size: 0.875rem;
+  text-align: center;
+  background-color: var(--color-background, #f1f3f4);
+}
+
+/* Scrollbar styling */
+.dual-list-selector__list-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dual-list-selector__list-container::-webkit-scrollbar-track {
+  background: var(--color-background, #f1f3f4);
+  border-radius: 4px;
+}
+
+.dual-list-selector__list-container::-webkit-scrollbar-thumb {
+  background: var(--color-border, #e0e0e0);
+  border-radius: 4px;
+}
+
+.dual-list-selector__list-container::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary, #5f6368);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .dual-list-selector__wrapper {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .dual-list-selector__column {
+    min-height: 300px;
+  }
+
+  .dual-list-selector__item {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .dual-list-selector__header {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dual-list-selector__wrapper {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .dual-list-selector__column {
+    min-height: 250px;
+  }
+
+  .dual-list-selector__item {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .dual-list-selector__header {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .dual-list-selector__empty-state {
+    padding: 1rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}

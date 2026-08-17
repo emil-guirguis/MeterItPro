@@ -1,0 +1,94 @@
+.hamburger-icon {
+  width: 24px;
+  height: 18px;
+  position: relative;
+  transform: rotate(0deg);
+  transition: transform 0.3s ease-in-out;
+  cursor: pointer;
+  /* Performance optimizations */
+  will-change: transform;
+  contain: strict;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+.hamburger-line {
+  display: block;
+  position: absolute;
+  height: 2px;
+  width: 100%;
+  background: currentColor;
+  border-radius: 1px;
+  opacity: 1;
+  left: 0;
+  transform: rotate(0deg);
+  transition: transform 0.25s ease-in-out, opacity 0.25s ease-in-out;
+  /* Performance optimizations */
+  will-change: transform, opacity;
+  contain: strict;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+.hamburger-line--top {
+  top: 0px;
+  transform-origin: left center;
+}
+
+.hamburger-line--middle {
+  top: 8px;
+  transform-origin: left center;
+}
+
+.hamburger-line--bottom {
+  top: 16px;
+  transform-origin: left center;
+}
+
+/* Animated hamburger to X transformation */
+.hamburger-icon.open .hamburger-line--top {
+  top: 8px;
+  left: 3px;
+  transform: rotate3d(0, 0, 1, 45deg); /* Use 3D transform for hardware acceleration */
+}
+
+.hamburger-icon.open .hamburger-line--middle {
+  opacity: 0;
+  transform: translate3d(-60px, 0, 0); /* Use 3D transform instead of left property */
+}
+
+.hamburger-icon.open .hamburger-line--bottom {
+  top: 8px;
+  left: 3px;
+  transform: rotate3d(0, 0, 1, -45deg); /* Use 3D transform for hardware acceleration */
+}
+
+/* Focus state for accessibility */
+.hamburger-icon:focus-visible {
+  outline: 2px solid var(--color-focus, #4f46e5);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .hamburger-line {
+    background: currentColor;
+    height: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .hamburger-icon,
+  .hamburger-line {
+    transition: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .hamburger-line {
+    background: var(--color-text-dark, #ffffff);
+  }
+}

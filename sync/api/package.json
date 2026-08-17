@@ -16,6 +16,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@meterit/framework-backend": "file:../../framework/backend",
     "better-sqlite3": "^12.11.1",
     "dotenv": "^16.0.0",
     "express": "^5.1.0",

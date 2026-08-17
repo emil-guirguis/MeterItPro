@@ -1,0 +1,179 @@
+/**
+ * Sidebar Styles
+ * 
+ * Provides styling for the sidebar component used in both lists and forms.
+ * Includes collapsible sections for actions, stats, and metadata.
+ */
+
+.sidebar {
+  flex: 0 0 280px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  /* position: relative; */
+  position: static;
+  z-index: 10;
+}
+
+/* Sidebar Card */
+.sidebar__card {
+  background-color: var(--color-surface, #ffffff);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid var(--color-border, #e5e7eb);
+}
+
+/* Card Header - Collapsible */
+.sidebar__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--color-background, #f5f5f5);
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar__card-header:hover {
+  background-color: var(--color-border, #e0e0e0);
+}
+
+/* Card Title */
+.sidebar__card-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #333333);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Card Toggle Arrow */
+.sidebar__card-toggle {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #666666);
+  transition: transform 0.2s ease;
+}
+
+/* Card Content */
+.sidebar__card-content {
+  padding: 1rem;
+}
+
+/* Action Links in Sidebar */
+.sidebar__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar__actions a,
+.sidebar__actions button {
+  background: none;
+  border: none;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-primary, #4f46e5);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar__actions a:hover,
+.sidebar__actions button:hover {
+  color: var(--color-primary-dark, #0056b3);
+  text-decoration: underline;
+}
+
+.sidebar__actions .material-symbols-outlined {
+  font-size: 1.25rem;
+  vertical-align: middle;
+}
+
+/* Disabled state */
+.sidebar__actions a[aria-disabled="true"],
+.sidebar__actions button:disabled {
+  color: var(--color-text-secondary, #9ca3af);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.sidebar__actions a[aria-disabled="true"]:hover,
+.sidebar__actions button:disabled:hover {
+  color: var(--color-text-secondary, #9ca3af);
+  text-decoration: none;
+}
+
+/* Stats Display */
+.sidebar__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sidebar__stat-item {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.sidebar__stat-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.sidebar__stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #666666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar__stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #333333);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .sidebar {
+    flex: 1;
+    min-width: auto;
+    flex-direction: row;
+  }
+
+  .sidebar__card {
+    flex: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    flex-direction: column;
+  }
+
+  .sidebar__card-header {
+    padding: 0.75rem;
+  }
+
+  .sidebar__card-content {
+    padding: 0.75rem;
+  }
+
+  .sidebar__actions a,
+  .sidebar__actions button {
+    padding: 0.375rem 0;
+    font-size: 0.8125rem;
+  }
+}

@@ -1,0 +1,152 @@
+/**
+ * Form Tabs Component Styles
+ *
+ * ── Design system update (May 2026): "Direction A" ─────────────
+ * Plain underline tabs replaced with a segmented pill control that
+ * sits on a tinted track. Accent unified to the app primary #4f46e5
+ * (was #3b82f6 here — inconsistent with muiTheme.ts).
+ * Structural markup is unchanged: .form-tabs > .form-tabs__tabs (+ optional
+ * .form-tabs__actions), each tab is a .form-tabs__tab button.
+ */
+
+/* one source of truth for the accent in this file */
+.form-tabs {
+  --ft-accent: #4f46e5;
+  --ft-accent-tint: rgba(79, 70, 229, 0.12);
+  --ft-track: #f1f3f4;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: transparent;   /* was a full-width white bar with a bottom border */
+  border: none;
+  padding: 0;
+  margin: 0 0 4px;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* The pill track — wraps just the tab buttons */
+.form-tabs__tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--ft-track);
+  border-radius: 11px;
+}
+
+.form-tabs__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Individual Tab Button — now a pill, not an underline */
+.form-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--color-text-secondary, #5f6368);
+  font-weight: 500;
+  font-size: 14px;            /* was 16px */
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-tabs__tab:hover {
+  color: var(--color-text-primary, #202124);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.form-tabs__tab:focus-visible {
+  outline: 2px solid var(--ft-accent);
+  outline-offset: 1px;
+}
+
+.form-tabs__tab--active,
+.form-tabs__tab--active:hover {
+  color: var(--ft-accent);
+  font-weight: 600;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Tab with validation errors */
+.form-tabs__tab--error {
+  color: var(--color-error, #ea4335);
+}
+
+.form-tabs__tab--error.form-tabs__tab--active {
+  color: var(--color-error, #ea4335);
+  box-shadow: 0 0 0 1px rgba(234, 67, 53, 0.4), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Red dot badge on tab label */
+.form-tabs__tab-error-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-error, #ea4335);
+  margin-left: 2px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .form-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .form-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .form-tabs__tabs {
+    flex-wrap: nowrap;
+  }
+
+  .form-tabs__tab {
+    padding: 8px 12px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+}
+
+/* ── Dark mode ───────────────────────────────────────────────── */
+body[data-theme='dark'] .form-tabs,
+.dark .form-tabs {
+  --ft-accent: #8ab4f8;
+  --ft-accent-tint: rgba(138, 180, 248, 0.18);
+  --ft-track: #25272c;
+}
+body[data-theme='dark'] .form-tabs__tab,
+.dark .form-tabs__tab { color: #9aa0a6; }
+body[data-theme='dark'] .form-tabs__tab:hover,
+.dark .form-tabs__tab:hover { color: #e8eaed; background: rgba(255, 255, 255, 0.06); }
+body[data-theme='dark'] .form-tabs__tab--active,
+body[data-theme='dark'] .form-tabs__tab--active:hover,
+.dark .form-tabs__tab--active,
+.dark .form-tabs__tab--active:hover {
+  color: #8ab4f8;
+  background: #1e2024;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* tab icon (mirrors the section icon accent) */
+.form-tabs__tab-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: currentColor;   /* inherits tab color: gray, or accent when active */
+}

@@ -1,0 +1,288 @@
+/* Date Picker Modal Styles - Component-specific only */
+
+.date-picker-modal__backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--md-color-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.date-picker-modal {
+  background-color: var(--md-color-surface);
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  max-width: 320px;
+  width: 90%;
+}
+
+.date-picker-modal__close-button {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.date-picker-modal__close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--md-color-text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease-in-out;
+}
+
+.date-picker-modal__close:hover {
+  color: var(--md-color-text-primary);
+}
+
+.date-picker-modal__close:focus {
+  outline: none;
+  color: var(--md-color-secondary);
+}
+
+/* Calendar Styles */
+.date-picker-modal__calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.date-picker-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.date-picker-modal__nav-button {
+  background: none;
+  border: 1px solid var(--md-color-border);
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 1.25rem;
+  color: var(--md-color-text-secondary);
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+}
+
+.date-picker-modal__nav-button:hover {
+  border-color: var(--md-color-secondary);
+  color: var(--md-color-secondary);
+  background-color: var(--md-color-background-light);
+}
+
+.date-picker-modal__nav-button:focus {
+  outline: none;
+  border-color: var(--md-color-secondary);
+  box-shadow: 0 0 0 3px var(--md-color-focus-ring);
+}
+
+.date-picker-modal__month-year {
+  background: none;
+  border: none;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--md-color-text-primary);
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  transition: all 0.15s ease-in-out;
+  flex: 1;
+  text-align: center;
+}
+
+.date-picker-modal__month-year:hover {
+  background-color: var(--md-color-border-lighter);
+}
+
+.date-picker-modal__month-year:focus {
+  outline: none;
+  background-color: var(--md-color-border-light);
+}
+
+/* Weekdays */
+.date-picker-modal__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.date-picker-modal__weekday {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--md-color-text-secondary);
+  padding: 0.5rem 0;
+}
+
+/* Days Grid */
+.date-picker-modal__days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+}
+
+.date-picker-modal__day {
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background-color: var(--md-color-surface);
+  color: var(--md-color-text-primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0;
+  transition: all 0.15s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.date-picker-modal__day:hover:not(:disabled) {
+  background-color: var(--md-color-border-lighter);
+  border-color: var(--md-color-border);
+}
+
+.date-picker-modal__day:focus:not(:disabled) {
+  outline: none;
+  border-color: var(--md-color-secondary);
+  box-shadow: 0 0 0 2px var(--md-color-focus-ring);
+}
+
+.date-picker-modal__day--selected {
+  background-color: var(--md-color-secondary);
+  color: var(--md-color-surface);
+  border-color: var(--md-color-secondary);
+  font-weight: 600;
+}
+
+.date-picker-modal__day--selected:hover {
+  background-color: var(--md-color-secondary-dark);
+  border-color: var(--md-color-secondary-dark);
+}
+
+.date-picker-modal__day--disabled {
+  color: var(--md-color-border);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.date-picker-modal__day--empty {
+  cursor: default;
+}
+
+/* Year Picker */
+.date-picker-modal__year-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.date-picker-modal__year-range {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--md-color-text-primary);
+  flex: 1;
+  text-align: center;
+}
+
+.date-picker-modal__years {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.date-picker-modal__year {
+  padding: 0.75rem;
+  border: 1px solid var(--md-color-border);
+  border-radius: 0.375rem;
+  background-color: var(--md-color-surface);
+  color: var(--md-color-text-primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.15s ease-in-out;
+}
+
+.date-picker-modal__year:hover {
+  border-color: var(--md-color-secondary);
+  background-color: var(--md-color-background-light);
+}
+
+.date-picker-modal__year:focus {
+  outline: none;
+  border-color: var(--md-color-secondary);
+  box-shadow: 0 0 0 3px var(--md-color-focus-ring);
+}
+
+.date-picker-modal__year--selected {
+  background-color: var(--md-color-secondary);
+  color: var(--md-color-surface);
+  border-color: var(--md-color-secondary);
+  font-weight: 600;
+}
+
+.date-picker-modal__year--selected:hover {
+  background-color: var(--md-color-secondary-dark);
+  border-color: var(--md-color-secondary-dark);
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 640px) {
+  .date-picker-modal {
+    max-width: 100%;
+    width: 95%;
+    padding: 1rem;
+  }
+
+  .date-picker-modal__header {
+    gap: 0.25rem;
+  }
+
+  .date-picker-modal__nav-button {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 1.125rem;
+    padding: 0.375rem;
+  }
+
+  .date-picker-modal__month-year {
+    font-size: 0.9375rem;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .date-picker-modal__weekday {
+    font-size: 0.6875rem;
+    padding: 0.375rem 0;
+  }
+
+  .date-picker-modal__day {
+    font-size: 0.8125rem;
+  }
+
+  .date-picker-modal__years {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.375rem;
+  }
+
+  .date-picker-modal__year {
+    padding: 0.625rem;
+    font-size: 0.8125rem;
+  }
+}

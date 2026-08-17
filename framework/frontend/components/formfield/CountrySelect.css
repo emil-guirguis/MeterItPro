@@ -1,0 +1,48 @@
+/* Country Select Styles - Uses base FormField styles */
+.country-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.country-select {
+  width: 100%;
+  padding: 1.25rem 1rem 0.75rem 1rem;
+  border: 1px solid var(--md-color-outline);
+  border-radius: 4px;
+  font-size: 1rem;
+  background-color: var(--md-color-surface);
+  color: var(--md-color-on-surface);
+  transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+}
+
+.country-select:focus {
+  outline: none;
+  border-color: var(--md-color-primary);
+  box-shadow: 0 0 0 1px var(--md-color-primary);
+}
+
+.country-select:disabled {
+  background-color: var(--md-color-surface-dim);
+  color: var(--md-color-on-surface-variant);
+  cursor: not-allowed;
+  opacity: 0.38;
+  border-color: var(--md-color-outline);
+}
+
+.country-select--error {
+  border-color: var(--md-color-error);
+}
+
+.country-select--error:focus {
+  border-color: var(--md-color-error);
+  box-shadow: 0 0 0 1px var(--md-color-error);
+}
+
+.country-select-error {
+  display: block;
+  color: var(--md-color-error);
+  font-size: 0.75rem;
+  margin-top: 0.375rem;
+}

@@ -1,0 +1,107 @@
+/* List Filters Component Styles */
+
+.list__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--color-surface, #ffffff);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.list__filter-item {
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+
+.list__filter-item .form-control {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  background-color: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #333333);
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.list__filter-item .form-control:focus {
+  outline: none;
+  border-color: var(--color-primary, #4f46e5);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.list__filter-item .form-control::placeholder {
+  color: var(--color-text-disabled, #999999);
+}
+
+.list__filter-item select.form-control {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 12px;
+  padding-right: 2.5rem;
+}
+
+.list__filters .btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  background-color: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #333333);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.list__filters .btn:hover {
+  background-color: var(--color-hover, rgba(0, 0, 0, 0.05));
+  border-color: var(--color-primary, #4f46e5);
+}
+
+.list__filters .btn-secondary {
+  background-color: var(--color-background, #f5f5f5);
+  color: var(--color-text-secondary, #666666);
+}
+
+.list__filters .btn-secondary:hover {
+  background-color: var(--color-border, #e0e0e0);
+  color: var(--color-text-primary, #333333);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .list__filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .list__filter-item {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .list__filters .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .list__filters {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+  
+  .list__filter-item .form-control {
+    font-size: 0.8125rem;
+  }
+}

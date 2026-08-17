@@ -1,0 +1,97 @@
+/* Email Link Wrapper - Uses base FormField styles */
+
+.email-link__wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Email Link Input - Editable Text Box */
+.email-link__input {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--md-color-border);
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.15s ease-in-out;
+  width: 100%;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+.email-link__input:focus {
+  outline: none;
+  border-color: var(--md-color-secondary);
+  box-shadow: 0 0 0 3px var(--md-color-focus-ring);
+}
+
+.email-link__input:disabled {
+  background-color: var(--md-color-border-lighter);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.email-link__input--error {
+  border-color: var(--md-color-error);
+}
+
+.email-link__input--error:focus {
+  box-shadow: 0 0 0 3px var(--md-color-error-ring);
+}
+
+.email-link__input--valid {
+  border-color: var(--md-color-success);
+}
+
+.email-link__input--valid:focus {
+  box-shadow: 0 0 0 3px var(--md-color-success-ring);
+}
+
+/* Email Link - Hyperlink Display */
+.email-link__link {
+  color: var(--md-color-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  word-break: break-all;
+  padding: 0.625rem 0.75rem;
+  display: inline-block;
+  border-radius: 0.25rem;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+
+.email-link__link:hover {
+  color: var(--md-color-secondary-dark);
+  text-decoration: underline;
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.email-link__link:focus {
+  outline: 2px solid var(--md-color-secondary);
+  outline-offset: 2px;
+}
+
+.email-link__link:active {
+  color: var(--md-color-secondary-darker);
+}
+
+.email-link--disabled {
+  pointer-events: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 640px) {
+  .email-link__input {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.625rem;
+  }
+
+  .email-link__link {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.625rem;
+    margin-left: 0.25rem;
+  }
+}

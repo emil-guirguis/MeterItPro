@@ -106,7 +106,7 @@ export default defineConfig({
     fs: {
       allow: [
         '.',
-        '../../framework/frontend',
+        '../../Framework/frontend',
         '../../node_modules',
       ],
     },

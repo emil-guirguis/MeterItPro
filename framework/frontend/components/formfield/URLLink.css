@@ -1,0 +1,66 @@
+/* URL Link Styles - Uses base FormField styles */
+
+.url-link {
+  display: inline-block;
+  color: var(--md-color-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.375rem;
+  transition: all 0.15s ease-in-out;
+  word-break: break-all;
+}
+
+.url-link:hover {
+  color: var(--md-color-secondary-dark);
+  text-decoration: underline;
+  background-color: var(--md-color-background-light);
+}
+
+.url-link:focus {
+  outline: none;
+  color: var(--md-color-secondary-dark);
+  box-shadow: 0 0 0 3px var(--md-color-focus-ring);
+}
+
+.url-link:active {
+  color: var(--md-color-secondary-darker);
+}
+
+.url-link__input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--md-color-border);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--md-color-text-primary);
+  background-color: var(--md-color-surface);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.url-link__input:focus {
+  outline: none;
+  border-color: var(--md-color-secondary);
+  box-shadow: 0 0 0 3px var(--md-color-focus-ring);
+  background-color: var(--md-color-background-highlight);
+}
+
+.url-link__input:disabled {
+  background-color: var(--md-color-border-lighter);
+  color: var(--md-color-text-disabled);
+  cursor: not-allowed;
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 640px) {
+  .url-link {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.625rem;
+  }
+
+  .url-link__input {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.625rem;
+  }
+}

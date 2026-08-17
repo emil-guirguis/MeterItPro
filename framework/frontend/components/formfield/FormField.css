@@ -1,0 +1,70 @@
+/**
+ * Form Field Styles
+ *
+ * ── Design system update (May 2026): "Direction A" ─────────────
+ * - Removed the dated pale-yellow (#fffde7) focus wash.
+ * - Focus now shows a subtle primary ring (#4f46e5) consistent with
+ *   the rest of the app, applied to the MUI notched outline.
+ * - "Modified" indicator changed from a heavy 3px left bar to a small
+ *   accent dot beside the label (cleaner, doesn't shift layout) plus a
+ *   tinted outline. Accent unified to #4f46e5 (was #4f46e5).
+ */
+
+.form-field-root {
+  position: relative;
+  transition: none;
+}
+
+/* ── Focus: primary ring, no background wash ─────────────────── */
+.form-field-root .MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.form-field-root .MuiFormControl-root .MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #4f46e5;
+  border-width: 1.5px;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+/* ── Modified-since-load indicator ───────────────────────────── */
+/* tinted outline on the control */
+.form-field-root--modified .MuiOutlinedInput-notchedOutline {
+  border-color: #4f46e5;
+}
+
+/* small accent dot after the field label */
+.form-field-root--modified .MuiInputLabel-root::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #4f46e5;
+  vertical-align: middle;
+}
+
+/* ── Error state ─────────────────────────────────────────────── */
+.form-field-root .MuiInputBase-root.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #ea4335;
+  box-shadow: 0 0 0 3px rgba(234, 67, 53, 0.12);
+}
+
+/* ── Disabled / read-only (e.g. Audit fields) ────────────────── */
+.form-field-root .MuiInputBase-root.Mui-disabled .MuiOutlinedInput-notchedOutline {
+  border-style: dashed;
+  border-color: #e0e0e0;
+}
+
+/* ── Dark mode ───────────────────────────────────────────────── */
+body[data-theme='dark'] .form-field-root .MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.dark .form-field-root .MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #8ab4f8;
+  box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.18);
+}
+body[data-theme='dark'] .form-field-root--modified .MuiOutlinedInput-notchedOutline,
+.dark .form-field-root--modified .MuiOutlinedInput-notchedOutline { border-color: #8ab4f8; }
+body[data-theme='dark'] .form-field-root--modified .MuiInputLabel-root::after,
+.dark .form-field-root--modified .MuiInputLabel-root::after { background: #8ab4f8; }
+body[data-theme='dark'] .form-field-root .MuiInputBase-root.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline,
+.dark .form-field-root .MuiInputBase-root.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #f28b82;
+  box-shadow: 0 0 0 3px rgba(242, 139, 130, 0.18);
+}

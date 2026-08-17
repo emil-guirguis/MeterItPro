@@ -1,0 +1,84 @@
+/* Phone Link Wrapper - Uses base FormField styles */
+
+.phone-link__wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+/* Phone Link Input - Editable Text Box */
+.phone-link__input {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--md-color-border);
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.15s ease-in-out;
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.phone-link__input:focus {
+  outline: none;
+  border-color: var(--md-color-secondary);
+  box-shadow: 0 0 0 3px var(--md-color-focus-ring);
+}
+
+.phone-link__input:disabled {
+  background-color: var(--md-color-border-lighter);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.phone-link__input--error {
+  border-color: var(--md-color-error);
+}
+
+.phone-link__input--error:focus {
+  box-shadow: 0 0 0 3px var(--md-color-error-ring);
+}
+
+.phone-link__input--valid {
+  border-color: var(--md-color-success);
+}
+
+.phone-link__input--valid:focus {
+  box-shadow: 0 0 0 3px var(--md-color-success-ring);
+}
+
+/* Phone Link - Hyperlink Display */
+.phone-link__link {
+  color: var(--md-color-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  padding: 0.625rem 0.75rem;
+  display: inline-block;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.phone-link__link:hover {
+  color: var(--md-color-secondary-dark);
+  text-decoration: underline;
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.phone-link__link:focus {
+  outline: 2px solid var(--md-color-secondary);
+  outline-offset: 2px;
+}
+
+.phone-link__link:active {
+  color: var(--md-color-secondary-darker);
+}
+
+.phone-link--disabled {
+  pointer-events: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}

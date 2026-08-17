@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@framework': path.resolve(__dirname, '../../../Framework/frontend'),
+      '@framework': path.resolve(__dirname, '../../framework/frontend'),
       // Force MUI and emotion to resolve from client node_modules to avoid CJS issues
       // from framework/frontend/node_modules in tests
       '@mui/material': path.resolve(__dirname, 'node_modules/@mui/material'),
