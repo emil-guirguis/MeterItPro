@@ -29,7 +29,7 @@ export DATA_SYNC_INTERVAL_SECONDS=30
 
 ### Option 2: Edit Constants File
 
-Edit `sync/mcp/src/config/scheduling-constants.ts`:
+Edit `MeterItProSync/mcp/src/config/scheduling-constants.ts`:
 
 ```typescript
 // Change default values
@@ -42,14 +42,14 @@ export const DATA_SYNC_INTERVAL_SECONDS = 30;               // was 60
 ## Files to Update
 
 All scheduling is centralized in one file:
-- **`sync/mcp/src/config/scheduling-constants.ts`** - Central configuration
+- **`MeterItProSync/mcp/src/config/scheduling-constants.ts`** - Central configuration
 
 These files automatically use the constants:
-- `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
-- `sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
-- `sync/mcp/src/remote_to_local-sync/sync-agent.ts`
-- `sync/mcp/src/data-sync/sync-scheduler.ts`
-- `sync/mcp/src/index.ts`
+- `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
+- `MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
+- `MeterItProSync/mcp/src/remote_to_local-sync/sync-agent.ts`
+- `MeterItProSync/mcp/src/data-sync/sync-scheduler.ts`
+- `MeterItProSync/mcp/src/index.ts`
 
 ## Cron Expression Syntax
 

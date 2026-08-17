@@ -7,7 +7,7 @@ After cleanup, the sync system is now streamlined with a single, clear implement
 ## Active Components
 
 ### 1. BACnet Meter Reading Agent
-**Location**: `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
+**Location**: `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
 
 **Responsibilities**:
 - Collects meter readings from BACnet devices
@@ -24,7 +24,7 @@ After cleanup, the sync system is now streamlined with a single, clear implement
 - ClientSystemApiClient - Communicates with remote API
 
 ### 2. Remote to Local Sync Agent
-**Location**: `sync/mcp/src/remote_to_local-sync/sync-agent.ts`
+**Location**: `MeterItProSync/mcp/src/remote_to_local-sync/sync-agent.ts`
 
 **Responsibilities**:
 - Syncs tenant data from remote to local
@@ -80,7 +80,7 @@ After cleanup, the sync system is now streamlined with a single, clear implement
 ## Scheduling Configuration
 
 All intervals are centralized in:
-**`sync/mcp/src/config/scheduling-constants.ts`**
+**`MeterItProSync/mcp/src/config/scheduling-constants.ts`**
 
 ### Constants
 

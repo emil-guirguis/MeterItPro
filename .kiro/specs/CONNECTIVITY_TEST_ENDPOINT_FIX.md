@@ -16,7 +16,7 @@ Changed the `testConnection()` method to use the `/sync/heartbeat` endpoint whic
 
 ## Changes Made
 
-### Updated `sync/mcp/src/api/client-system-api.ts`
+### Updated `MeterItProSync/mcp/src/api/client-system-api.ts`
 
 Changed from:
 ```typescript
@@ -96,4 +96,4 @@ To verify the fix works:
 4. **Check frontend** - System Connection card should show "Connected" (green)
 
 ## Files Modified
-- `sync/mcp/src/api/client-system-api.ts` - Updated `testConnection()` method to use correct endpoint
+- `MeterItProSync/mcp/src/api/client-system-api.ts` - Updated `testConnection()` method to use correct endpoint

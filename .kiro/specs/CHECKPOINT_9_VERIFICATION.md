@@ -16,7 +16,7 @@ This checkpoint verifies that the core infrastructure for element-specific meter
 
 ### 1. RegisterCache Implementation ✅
 
-**File**: `sync/mcp/src/bacnet-collection/register-cache.ts`
+**File**: `MeterItProSync/mcp/src/bacnet-collection/register-cache.ts`
 
 **Verification**:
 - ✅ RegisterCache class exists with proper structure
@@ -37,7 +37,7 @@ This checkpoint verifies that the core infrastructure for element-specific meter
 
 ### 2. Register Number Calculation ✅
 
-**File**: `sync/mcp/src/helpers/register-number-calculator.ts`
+**File**: `MeterItProSync/mcp/src/helpers/register-number-calculator.ts`
 
 **Test Coverage**: 70 tests, all passing
 
@@ -66,7 +66,7 @@ This checkpoint verifies that the core infrastructure for element-specific meter
 
 ### 3. Device Register Querying ✅
 
-**File**: `sync/mcp/src/meter-collection/collector.ts`
+**File**: `MeterItProSync/mcp/src/meter-collection/collector.ts`
 
 **Implementation in `collectMeterData()` method**:
 1. Gets device_id from cached meter
@@ -95,7 +95,7 @@ This checkpoint verifies that the core infrastructure for element-specific meter
 
 ### 4. Field Name Mapping ✅
 
-**File**: `sync/mcp/src/meter-collection/collector.ts`
+**File**: `MeterItProSync/mcp/src/meter-collection/collector.ts`
 
 **Implementation in `storeReading()` method**:
 - Uses fieldName from register mapping when available
@@ -118,7 +118,7 @@ This checkpoint verifies that the core infrastructure for element-specific meter
 
 ### 5. MCP Server Integration ✅
 
-**File**: `sync/mcp/src/index.ts`
+**File**: `MeterItProSync/mcp/src/index.ts`
 
 **Verification**:
 - ✅ RegisterCache initialized at MCP server startup
@@ -205,11 +205,11 @@ The checkpoint is complete. The implementation is ready for:
 
 ## Verification Artifacts
 
-- RegisterCache implementation: `sync/mcp/src/bacnet-collection/register-cache.ts`
-- Register number calculator: `sync/mcp/src/helpers/register-number-calculator.ts`
-- MeterCollector integration: `sync/mcp/src/meter-collection/collector.ts`
+- RegisterCache implementation: `MeterItProSync/mcp/src/bacnet-collection/register-cache.ts`
+- Register number calculator: `MeterItProSync/mcp/src/helpers/register-number-calculator.ts`
+- MeterCollector integration: `MeterItProSync/mcp/src/meter-collection/collector.ts`
 - Test files: All tests passing (95 tests total)
-- MCP server integration: `sync/mcp/src/index.ts`
+- MCP server integration: `MeterItProSync/mcp/src/index.ts`
 
 ---
 

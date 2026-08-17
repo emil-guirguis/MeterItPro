@@ -1,0 +1,899 @@
+#!/usr/bin/env node
+
+/**
+ * Sync MCP Server
+ *
+ * Model Context Protocol server for Sync operations.
+ * Provides AI tools for controlling meter collection, synchronization, and local data queries.
+ */
+
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+import dotenv from 'dotenv';
+
+// Load .env from project root regardless of process CWD (works for both src/ and dist/)
+const __dirname_local = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: resolve(__dirname_local, '../../../.env') });
+import express from 'express';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  Tool,
+} from '@modelcontextprotocol/sdk/types.js';
+import type { Logger } from '@meterit/framework-backend/shared/helpers/logger';
+import winston from 'winston';
+import { existsSync, mkdirSync } from 'fs';
+import { Pool } from 'pg';
+import { initializePools, remotePool as globalRemotePool } from './data-sync/data-sync.js';
+import { ClientSystemApiClient } from './api/client-system-api.js';
+// API Server has been moved to MeterItProSync/api for consistency with client architecture
+// import { LocalApiServer, createAndStartLocalApiServer } from './api/server.js';
+import { RemoteToLocalSyncAgent } from './remote_to_local-sync/sync-agent.js';
+import { BACnetMeterReadingAgent } from './bacnet-collection/bacnet-reading-agent.js';
+import { MeterReadingCleanupAgent } from './bacnet-collection/meter-reading-cleanup-agent.js';
+import { SyncDatabase } from './data-sync/data-sync.js';
+import {
+  getBACnetCollectionIntervalSeconds,
+  getBACnetUploadCronExpression,
+} from './config/scheduling-constants.js';
+
+import { cacheManager } from './cache/cache-manager.js';
+
+const _logDir = 'logs';
+if (!existsSync(_logDir)) mkdirSync(_logDir, { recursive: true });
+
+const logger: Logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+    }),
+    new winston.transports.File({ filename: 'logs/sync-mcp.log', maxsize: 10_485_760, maxFiles: 5 }),
+  ],
+});
+
+/**
+ * Sync MCP Server Class
+ */
+class SyncMcpServer {
+  private server: Server;
+  private httpServer?: express.Application;
+  // API Server has been moved to MeterItProSync/api
+  // private apiServer?: LocalApiServer;
+  private syncDatabase?: SyncDatabase;
+  private remotePool?: Pool;
+  private remoteToLocalSyncAgent?: RemoteToLocalSyncAgent;
+  private bacnetMeterReadingAgent?: BACnetMeterReadingAgent;
+  private meterReadingCleanupAgent?: MeterReadingCleanupAgent;
+  private isInitialized: boolean = false;
+  private isDatabaseReady: boolean = false;
+  private tenantCheckInterval?: ReturnType<typeof setInterval>;
+
+  constructor() {
+    this.server = new Server(
+      {
+        name: 'sync-mcp-server',
+        version: '1.0.0',
+      },
+      {
+        capabilities: {
+          tools: {},
+        },
+      }
+    );
+
+    this.setupHandlers();
+    console.log('🚀 [Init] Sync MCP Server created');
+  }
+
+  /**
+   * Initialize database services (called once at startup)
+   */
+  private async initializeDatabase(): Promise<void> {
+    if (this.isDatabaseReady) {
+      return;
+    }
+
+    try {
+      console.log('\n🔧 [Services] Initializing database...');
+
+      // Step 1: Initialize database pools (creates global syncPool and remotePool)
+      console.log('🔗 [Services] Initializing database pools...');
+      await initializePools();
+      console.log('✅ [Services] Database pools initialized');
+
+      // Step 2: Create SyncDatabase service (will use global syncPool)
+      console.log('📊 [Services] Creating SyncDatabase service...');
+      this.syncDatabase = new SyncDatabase();
+      console.log('✅ [Services] SyncDatabase service created');
+
+      // Step 3: Test sync database connection
+      console.log('🔧 [Services] Testing sync database connection...');
+      const syncConnected = await this.syncDatabase.testConnectionLocal();
+      if (!syncConnected) {
+        throw new Error('Failed to connect to sync database - connection test failed');
+      }
+      console.log('✅ [Services] Sync database connection successful');
+
+      // Step 4: Initialize database schema
+      console.log('🔧 [Services] Initializing database schema...');
+      await this.syncDatabase.initialize();
+      console.log('✅ [Services] Database schema initialized');
+
+      this.isDatabaseReady = true;
+      console.log('✅ [Services] Database ready\n');
+    } catch (error) {
+      console.error('❌ [Services] Failed to initialize database:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Initialize agents (only when tenant exists)
+   */
+  private async initializeAgents(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+
+    if (!this.isDatabaseReady || !this.syncDatabase) {
+      console.log('⏳ [Services] Database not ready, cannot start agents');
+      return;
+    }
+
+    try {
+      // Re-initialize tenant cache to check for tenant
+      await cacheManager.tenantCache.initialize(this.syncDatabase);
+      const tenant = cacheManager.tenantCache.getTenant();
+      const tenantId = tenant?.tenant_id || 0;
+
+      if (tenantId <= 0) {
+        console.log('⏳ [Services] No tenant found, agents will not start. Waiting for tenant sync...');
+        return;
+      }
+
+      console.log(`\n🔧 [Services] Tenant found (ID: ${tenantId}), initializing agents...`);
+
+      // Stop tenant check interval since we found a tenant
+      if (this.tenantCheckInterval) {
+        clearInterval(this.tenantCheckInterval);
+        this.tenantCheckInterval = undefined;
+        console.log('✅ [Services] Stopped tenant check polling');
+      }
+
+      // Get API key from tenant cache (loaded from database)
+      const apiKey = tenant?.api_key || '';
+      if (!apiKey) {
+        console.warn('⚠️  [Services] No api_key in tenant record - API uploads may fail');
+      } else {
+        console.log(`🔑 [Services] Using api_key from tenant: ${apiKey.substring(0, 8)}...`);
+      }
+
+      // Create API client for uploads
+      const apiClient = new ClientSystemApiClient({
+        apiUrl: process.env.CLIENT_API_URL || 'https://meteritpro.com/api',
+        apiKey: apiKey,
+        timeout: parseInt(process.env.API_TIMEOUT || '30000', 10),
+        maxRetries: parseInt(process.env.MAX_RETRIES || '5', 10),
+      });
+      console.log('✅ [Services] Client System API Client created');
+
+      this.bacnetMeterReadingAgent = new BACnetMeterReadingAgent({
+        syncDatabase: this.syncDatabase,
+        collectionIntervalSeconds: getBACnetCollectionIntervalSeconds(),
+        uploadCronExpression: getBACnetUploadCronExpression(),
+        enableAutoStart: process.env.BACNET_AUTO_START !== 'false',
+        bacnetInterface: process.env.BACNET_INTERFACE || '0.0.0.0',
+        bacnetPort: parseInt(process.env.BACNET_PORT || '47808', 10),
+        connectionTimeoutMs: parseInt(process.env.BACNET_CONNECTION_TIMEOUT_MS || '5000', 10),
+        readTimeoutMs: parseInt(process.env.BACNET_READ_TIMEOUT_MS || '1000', 10),
+        batchReadTimeoutMs: parseInt(process.env.BACNET_BATCH_READ_TIMEOUT_MS || '1000', 10),
+        sequentialReadTimeoutMs: parseInt(process.env.BACNET_SEQUENTIAL_READ_TIMEOUT_MS || '1000', 10),
+        connectivityCheckTimeoutMs: parseInt(process.env.BACNET_CONNECTIVITY_CHECK_TIMEOUT_MS || '2000', 10),
+        enableConnectivityCheck: process.env.BACNET_ENABLE_CONNECTIVITY_CHECK !== 'false',
+        enableSequentialFallback: process.env.BACNET_ENABLE_SEQUENTIAL_FALLBACK !== 'false',
+        adaptiveBatchSizing: process.env.BACNET_ADAPTIVE_BATCH_SIZING !== 'false',
+        apiClient: apiClient,
+      }, logger);
+      console.log('✅ [Services] BACnet Meter Reading Agent initialized');
+
+      // Initialize Remote to Local Sync Agent
+      console.log('🔄 [Services] Initializing Remote to Local Sync Agent...');
+      this.remotePool = this.getRemoteDatabasePool();
+
+      this.remoteToLocalSyncAgent = new RemoteToLocalSyncAgent({
+        syncDatabase: this.syncDatabase,
+        remotePool: this.remotePool,
+        syncIntervalMinutes: parseInt(process.env.METER_SYNC_INTERVAL_MINUTES || '60', 10),
+        enableAutoSync: process.env.METER_SYNC_AUTO_START !== 'false',
+        bacnetMeterReadingAgent: this.bacnetMeterReadingAgent,
+      });
+      console.log('✅ [Services] Remote to Local Sync Agent initialized');
+
+      // Step 7: Start Sync Agent (syncs all 3 entities AND loads caches)
+      console.log('▶️  [Services] Starting Remote to Local Sync Agent...');
+      await this.remoteToLocalSyncAgent.start();
+      console.log('✅ [Services] Remote to Local Sync Agent started (all data synced and caches loaded)');
+
+      // Step 8: Start BACnet Meter Reading Agent AFTER sync agent completes
+      console.log('▶️  [Services] Starting BACnet Meter Reading Agent...');
+      await this.bacnetMeterReadingAgent.start();
+      console.log('✅ [Services] BACnet Meter Reading Agent started');
+
+      // Step 9: Initialize and start Meter Reading Cleanup Agent
+      console.log('🧹 [Services] Initializing Meter Reading Cleanup Agent...');
+      this.meterReadingCleanupAgent = new MeterReadingCleanupAgent({
+        database: this.syncDatabase,
+        retentionDays: parseInt(process.env.METER_READING_RETENTION_DAYS || '60', 10),
+        enableAutoStart: process.env.METER_READING_CLEANUP_AUTO_START !== 'false',
+      }, logger);
+      console.log('✅ [Services] Meter Reading Cleanup Agent initialized');
+
+      console.log('▶️  [Services] Starting Meter Reading Cleanup Agent...');
+      await this.meterReadingCleanupAgent.start();
+      console.log('✅ [Services] Meter Reading Cleanup Agent started');
+
+
+      this.isInitialized = true;
+      console.log('✅ [Services] All agents initialized and started successfully\n');
+    } catch (error) {
+      console.error('❌ [Services] Failed to initialize agents:', error);
+      if (this.remotePool) {
+        await this.closeRemotePool(this.remotePool);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Start periodic tenant check (polls for tenant every 30 seconds)
+   */
+  private startTenantCheckPolling(): void {
+    if (this.tenantCheckInterval) {
+      return;
+    }
+
+    console.log('🔍 [Services] Starting tenant check polling (every 30 seconds)...');
+    this.tenantCheckInterval = setInterval(async () => {
+      if (this.isInitialized) {
+        // Already initialized, stop polling
+        if (this.tenantCheckInterval) {
+          clearInterval(this.tenantCheckInterval);
+          this.tenantCheckInterval = undefined;
+        }
+        return;
+      }
+
+      console.log('🔍 [Services] Checking for tenant...');
+      try {
+        await this.initializeAgents();
+      } catch (error) {
+        console.error('❌ [Services] Error during tenant check:', error);
+      }
+    }, 30000); // Check every 30 seconds
+  }
+
+  /**
+   * Initialize services (database first, then agents if tenant exists)
+   */
+  private async initializeServices(): Promise<void> {
+    if (this.isInitialized) {
+      console.log('ℹ️  [Services] Already initialized, skipping...');
+      return;
+    }
+
+    // Initialize database first
+    await this.initializeDatabase();
+
+    // Try to initialize agents (will succeed if tenant exists)
+    await this.initializeAgents();
+
+    // If agents didn't start, start polling for tenant
+    if (!this.isInitialized) {
+      this.startTenantCheckPolling();
+    }
+  }
+
+  /**
+   * Get remote database pool (uses global remotePool from initializePools)
+   */
+  private getRemoteDatabasePool(): Pool {
+    if (!globalRemotePool) {
+      throw new Error('Remote database pool not initialized. Call initializePools() first.');
+    }
+    return globalRemotePool;
+  }
+
+  /**
+   * Close remote database pool
+   */
+  private async closeRemotePool(pool: Pool): Promise<void> {
+    try {
+      await pool.end();
+      console.log('✅ Remote pool closed');
+    } catch (error) {
+      console.error('Failed to close remote pool:', error);
+    }
+  }
+
+  /**
+   * Setup MCP request handlers
+   */
+  private setupHandlers(): void {
+    // List available tools
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: this.getTools(),
+      };
+    });
+
+    // Handle tool calls
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+
+      try {
+        // Ensure services are initialized
+        await this.initializeServices();
+
+        // Route to appropriate tool handler
+        switch (name) {
+          case 'get_upload_status':
+            return await this.handleGetUploadStatus();
+
+          case 'trigger_upload':
+            return await this.handleTriggerUpload();
+
+          case 'query_meter_reading':
+            return await this.handleQueryMeterReadings(args);
+
+          case 'get_meter_status':
+            return await this.handleGetMeterStatus(args);
+
+          case 'trigger_meter_reading':
+            return await this.handleTriggerMeterReading();
+
+          case 'get_meter_reading_status':
+            return await this.handleGetMeterReadingStatus();
+
+          default:
+            throw new Error(`Unknown tool: ${name}`);
+        }
+      } catch (error) {
+        logger.error(`Tool execution error (${name}):`, error);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    });
+  }
+
+  /**
+   * Get list of available tools
+   */
+  private getTools(): Tool[] {
+    return [
+      {
+        name: 'get_upload_status',
+        description: 'Get the current upload status including connectivity, queue size, and recent upload operations',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'trigger_upload',
+        description: 'Manually trigger an upload operation to send queued readings to the Client System',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'query_meter_reading',
+        description: 'Query local meter readings with optional filters',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            meter_id: {
+              type: 'string',
+              description: 'Filter by meter external ID (optional)',
+            },
+            hours: {
+              type: 'number',
+              description: 'Number of hours to look back (default: 24)',
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum number of readings to return (default: 100)',
+            },
+          },
+        },
+      },
+      {
+        name: 'get_meter_status',
+        description: 'Get the connectivity and health status of BACnet meters',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            meter_id: {
+              type: 'string',
+              description: 'Get status for specific meter (optional, returns all if omitted)',
+            },
+          },
+        },
+      },
+      {
+        name: 'trigger_meter_reading',
+        description: 'Manually trigger an immediate BACnet meter reading collection cycle',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'get_meter_reading_status',
+        description: 'Get the current status of the BACnet meter reading agent including cycle results and metrics',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+    ];
+  }
+
+  /**
+   * Tool Handler: get_upload_status
+   */
+  private async handleGetUploadStatus(): Promise<any> {
+    if (!this.bacnetMeterReadingAgent) {
+      throw new Error('BACnet Meter Reading Agent not initialized');
+    }
+
+    const status = this.bacnetMeterReadingAgent.getStatus();
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            message: 'Upload status is managed by BACnet Meter Reading Agent',
+            agent_status: {
+              isRunning: status.isRunning,
+              totalCyclesExecuted: status.totalCyclesExecuted,
+              totalReadingsCollected: status.totalReadingsCollected,
+              totalErrorsEncountered: status.totalErrorsEncountered,
+            },
+            last_cycle: status.lastCycleResult ? {
+              cycleId: status.lastCycleResult.cycleId,
+              metersProcessed: status.lastCycleResult.metersProcessed,
+              readingsCollected: status.lastCycleResult.readingsCollected,
+              errorCount: status.lastCycleResult.errors.length,
+            } : null,
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  /**
+   * Tool Handler: trigger_upload
+   */
+  private async handleTriggerUpload(): Promise<any> {
+    if (!this.bacnetMeterReadingAgent) {
+      throw new Error('BACnet Meter Reading Agent not initialized');
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            message: 'Upload is managed automatically by BACnet Meter Reading Agent every 5 minutes',
+            note: 'Use trigger_meter_reading to manually trigger a collection cycle',
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  /**
+   * Tool Handler: query_meter_reading
+   */
+  private async handleQueryMeterReadings(args: any): Promise<any> {
+    const meterId = args.meter_id as string | undefined;
+    const limit = (args.limit as number) || 100;
+
+    let readings: any[] = [];
+
+    if (meterId) {
+      // Query specific meter
+      // TODO: Implement getReadingsByMeterAndTimeRange when database service is available
+      readings = [];
+      readings = readings.slice(0, limit);
+    } else {
+      // Query all recent readings
+      // TODO: Implement getRecentReadings when database service is available
+      readings = [];
+      readings = readings.slice(0, limit);
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            count: readings.length,
+            readings,
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  /**
+   * Tool Handler: get_meter_status
+   */
+  private async handleGetMeterStatus(args: any): Promise<any> {
+    if (!this.bacnetMeterReadingAgent) {
+      throw new Error('BACnet Meter Reading Agent not initialized');
+    }
+
+    const meterId = args.meter_id as string | undefined;
+    const status = this.bacnetMeterReadingAgent.getStatus();
+
+    if (meterId) {
+      // Filter for specific meter from last cycle result
+      if (!status.lastCycleResult) {
+        throw new Error('No collection cycle has been executed yet');
+      }
+
+      // Find meter in the cycle result
+      const meterError = status.lastCycleResult.errors.find((e: any) => e.meterId === meterId);
+      if (meterError) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                meter_id: meterId,
+                status: 'error',
+                error: meterError.error,
+                lastChecked: meterError.timestamp,
+              }, null, 2),
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              meter_id: meterId,
+              status: 'healthy',
+              lastCycleId: status.lastCycleResult.cycleId,
+              lastCycleTime: status.lastCycleResult.endTime,
+            }, null, 2),
+          },
+        ],
+      };
+    } else {
+      // Return overall agent status
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              agent_status: {
+                isRunning: status.isRunning,
+                totalCyclesExecuted: status.totalCyclesExecuted,
+                totalReadingsCollected: status.totalReadingsCollected,
+                totalErrorsEncountered: status.totalErrorsEncountered,
+              },
+              last_cycle: status.lastCycleResult ? {
+                cycleId: status.lastCycleResult.cycleId,
+                metersProcessed: status.lastCycleResult.metersProcessed,
+                readingsCollected: status.lastCycleResult.readingsCollected,
+                errorCount: status.lastCycleResult.errors.length,
+              } : null,
+              offline_meters: status.offlineMeters.length,
+            }, null, 2),
+          },
+        ],
+      };
+    }
+  }
+
+  /**
+   * Tool Handler: trigger_meter_reading
+   */
+  private async handleTriggerMeterReading(): Promise<any> {
+    if (!this.bacnetMeterReadingAgent) {
+      throw new Error('BACnet Meter Reading Agent not initialized');
+    }
+
+    if (!this.bacnetMeterReadingAgent.getStatus().isRunning) {
+      throw new Error('BACnet Meter Reading Agent is not running');
+    }
+
+    try {
+      const result = await this.bacnetMeterReadingAgent.triggerCollection();
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: 'Meter reading collection cycle triggered successfully',
+              cycle_result: {
+                cycleId: result.cycleId,
+                startTime: result.startTime,
+                endTime: result.endTime,
+                metersProcessed: result.metersProcessed,
+                readingsCollected: result.readingsCollected,
+                errorCount: result.errors.length,
+                errors: result.errors,
+              },
+            }, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to trigger meter reading collection: ${errorMsg}`);
+    }
+  }
+
+  /**
+   * Tool Handler: get_meter_reading_status
+   */
+  private async handleGetMeterReadingStatus(): Promise<any> {
+    if (!this.bacnetMeterReadingAgent) {
+      throw new Error('BACnet Meter Reading Agent not initialized');
+    }
+
+    const status = this.bacnetMeterReadingAgent.getStatus();
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            agent_status: {
+              isRunning: status.isRunning,
+              totalCyclesExecuted: status.totalCyclesExecuted,
+              totalReadingsCollected: status.totalReadingsCollected,
+              totalErrorsEncountered: status.totalErrorsEncountered,
+            },
+            last_cycle_result: status.lastCycleResult ? {
+              cycleId: status.lastCycleResult.cycleId,
+              startTime: status.lastCycleResult.startTime,
+              endTime: status.lastCycleResult.endTime,
+              metersProcessed: status.lastCycleResult.metersProcessed,
+              readingsCollected: status.lastCycleResult.readingsCollected,
+              errorCount: status.lastCycleResult.errors.length,
+              success: status.lastCycleResult.success,
+            } : null,
+            active_errors: status.activeErrors.map(err => ({
+              meterId: err.meterId,
+              dataPoint: err.dataPoint,
+              operation: err.operation,
+              error: err.error,
+              timestamp: err.timestamp,
+            })),
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  /**
+   * Initialize HTTP server for connectivity checks and other endpoints
+   */
+  private initializeHttpServer(): void {
+    this.httpServer = express();
+    this.httpServer.use(express.json());
+
+    // Health check endpoint
+    this.httpServer.get('/health', (_req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    });
+
+    // Meter connectivity check endpoint
+    this.httpServer.post('/api/check-connectivity', async (req, res) => {
+      try {
+        const { ip, port } = req.body;
+
+        if (!ip) {
+          return res.status(400).json({ error: 'Missing required parameter: ip' });
+        }
+
+        if (!this.bacnetMeterReadingAgent) {
+          return res.status(503).json({ error: 'BACnet agent not initialized' });
+        }
+
+        // Find a meter at this IP to get its device_id and element,
+        // then read its first real register — the only probe this device responds to.
+        const meters = cacheManager.getMeterCache().getMeters();
+        const meter = meters.find((m: any) => m.ip === ip);
+
+        let online = false;
+
+        if (meter) {
+          const registers = cacheManager.getDeviceRegisterCache().getDeviceRegisters(Number(meter.device_id));
+          if (registers.length > 0) {
+            const elementLetter = (meter.element || 'A').trim().toUpperCase();
+            const elementIndex = elementLetter.charCodeAt(0) - 'A'.charCodeAt(0) + 1;
+            const baseOffset = (elementIndex - 1) * 10000;
+            const firstInstance = baseOffset + Number(registers[0].register);
+
+            const results = await (this.bacnetMeterReadingAgent as any).bacnetClient.readPropertyMultiple(
+              ip, port || 47808,
+              [{ objectType: 'analogInput', objectInstance: firstInstance, propertyId: 'presentValue' }],
+              5000
+            );
+            // Any response (success or BACnet error) means the device is reachable
+            online = results.length > 0 && results[0].error !== 'Batch read timeout after 6000ms'
+              && !results[0].error?.includes('timeout');
+          }
+        }
+
+        res.json({ ip, online, timestamp: new Date().toISOString() });
+      } catch (error) {
+        console.error('Error checking connectivity:', error);
+        res.status(500).json({
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+
+    // Reinitialize (cold-restart) a BACnet device by IP
+    this.httpServer.post('/api/reinitialize-device', async (req, res) => {
+      try {
+        const { ip } = req.body;
+        if (!ip) return res.status(400).json({ success: false, error: 'Missing ip' });
+        if (!this.bacnetMeterReadingAgent) {
+          return res.status(503).json({ success: false, error: 'BACnet agent not initialized' });
+        }
+        const result = await this.bacnetMeterReadingAgent.reinitializeDevice(ip, 0);
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
+      }
+    });
+
+    // Debug: read specific analogInput instances from a device
+    this.httpServer.post('/api/debug/read-registers', async (req, res) => {
+      try {
+        const { ip, port, instances } = req.body;
+        if (!ip || !Array.isArray(instances)) {
+          return res.status(400).json({ error: 'Missing ip or instances[]' });
+        }
+        if (!this.bacnetMeterReadingAgent) {
+          return res.status(503).json({ error: 'BACnet agent not initialized' });
+        }
+        const results = await (this.bacnetMeterReadingAgent as any).bacnetClient.readPropertyMultiple(
+          ip, port || 47808,
+          instances.map((inst: number) => ({ objectType: 'analogInput', objectInstance: inst, propertyId: 'presentValue' })),
+          8000
+        );
+        res.json(results.map((r: any, i: number) => ({ instance: instances[i], ...r })));
+      } catch (error) {
+        res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+      }
+    });
+
+    // Trigger BACnet meter reading collection
+    this.httpServer.post('/api/meter-reading/trigger', async (_req, res) => {
+      try {
+        if (!this.bacnetMeterReadingAgent) {
+          return res.status(503).json({ success: false, error: 'BACnet meter reading agent not initialized' });
+        }
+        const result = await this.bacnetMeterReadingAgent.triggerCollection();
+        res.json({ success: true, message: 'Collection triggered', cycle_result: result });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        res.status(409).json({ success: false, error: errorMsg });
+      }
+    });
+
+    const httpPort = parseInt(process.env.MCP_HTTP_PORT || '3001', 10);
+    this.httpServer.listen(httpPort, '0.0.0.0', () => {
+      console.log(`✅ [HTTP] MCP HTTP server listening on http://0.0.0.0:${httpPort}`);
+      console.log(`   Connectivity check: POST http://localhost:${httpPort}/api/check-connectivity`);
+      console.log(`   Meter reading trigger: POST http://localhost:${httpPort}/api/meter-reading/trigger`);
+    });
+  }
+
+  /**
+   * Start the MCP server
+   */
+  async start(): Promise<void> {
+    console.log('\n🚀 [MCP] Starting Sync MCP Server...');
+
+    // Initialize services immediately
+    console.log('🔧 [MCP] Initializing services before connecting transport...');
+    await this.initializeServices();
+
+    // Initialize HTTP server for connectivity checks
+    console.log('🔧 [MCP] Initializing HTTP server...');
+    this.initializeHttpServer();
+
+    const transport = new StdioServerTransport();
+    console.log('🔌 [MCP] Connecting to stdio transport...');
+    await this.server.connect(transport);
+
+    console.log('✅ [MCP] Sync MCP Server started');
+    console.log('📋 [MCP] Available tools: get_upload_status, trigger_upload, query_meter_reading, get_meter_status, trigger_meter_reading, get_meter_reading_status');
+  }
+
+  /**
+   * Shutdown the server
+   */
+  async shutdown(): Promise<void> {
+    logger.info('Shutting down Sync MCP Server...');
+
+    // Stop tenant check polling
+    if (this.tenantCheckInterval) {
+      clearInterval(this.tenantCheckInterval);
+      this.tenantCheckInterval = undefined;
+    }
+
+    if (this.meterReadingCleanupAgent) {
+      await this.meterReadingCleanupAgent.stop();
+    }
+
+    if (this.bacnetMeterReadingAgent) {
+      await this.bacnetMeterReadingAgent.stop();
+    }
+
+    if (this.remoteToLocalSyncAgent) {
+      await this.remoteToLocalSyncAgent.stop();
+    }
+
+    // API Server has been moved to MeterItProSync/api
+    // if (this.apiServer) {
+    //   await this.apiServer.stop();
+    // }
+
+    if (this.remotePool) {
+      await this.closeRemotePool(this.remotePool);
+    }
+
+    logger.info('Sync MCP Server shutdown complete');
+  }
+}
+
+// Main execution
+const server = new SyncMcpServer();
+
+// Handle graceful shutdown
+process.on('SIGINT', async () => {
+  await server.shutdown();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await server.shutdown();
+  process.exit(0);
+});
+
+// Start server
+server.start().catch((error) => {
+  logger.error('Failed to start Sync MCP Server:', error);
+  process.exit(1);
+});

@@ -155,14 +155,14 @@ console.log(`Invalid readings: ${report.invalidReadings}`);
 
 ## Files Modified
 
-- `sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts` - Integrated validation into upload pipeline
-- `sync/mcp/src/helpers/meter-reading-validator.ts` - Fixed TypeScript warnings
+- `MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts` - Integrated validation into upload pipeline
+- `MeterItProSync/mcp/src/helpers/meter-reading-validator.ts` - Fixed TypeScript warnings
 
 ## Files Created (Previously)
 
-- `sync/mcp/src/helpers/meter-reading-validator.ts` - Core validation logic
-- `sync/mcp/src/bacnet-collection/reading-validation-middleware.ts` - Middleware integration
-- `sync/mcp/src/config/validation-config.ts` - Configuration management
+- `MeterItProSync/mcp/src/helpers/meter-reading-validator.ts` - Core validation logic
+- `MeterItProSync/mcp/src/bacnet-collection/reading-validation-middleware.ts` - Middleware integration
+- `MeterItProSync/mcp/src/config/validation-config.ts` - Configuration management
 - `METER_READING_VALIDATION_GUIDE.md` - Comprehensive documentation
 
 ## Next Steps

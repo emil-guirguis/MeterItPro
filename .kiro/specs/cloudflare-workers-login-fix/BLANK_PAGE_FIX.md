@@ -11,7 +11,7 @@ The LoginForm component was using `window.location.href = redirectTo;` to redire
 
 ## Solution Applied ✅
 
-**File:** `client/frontend/src/components/auth/LoginForm.tsx`
+**File:** `MeterItPro/frontend/src/components/auth/LoginForm.tsx`
 
 Changed from:
 ```typescript
@@ -80,7 +80,7 @@ navigate(redirectTo, { replace: true });
 
 ## Files Modified
 
-1. `client/frontend/src/components/auth/LoginForm.tsx`
+1. `MeterItPro/frontend/src/components/auth/LoginForm.tsx`
    - Line ~119: Changed `window.location.href` to `navigate()`
    - Line ~145: Changed `window.location.href` to `navigate()` in 2FA handler
 
@@ -88,7 +88,7 @@ navigate(redirectTo, { replace: true });
 
 ```bash
 # Build frontend (already done)
-cd client/frontend
+cd MeterItPro/frontend
 npm run build
 
 # Deploy to Cloudflare Pages

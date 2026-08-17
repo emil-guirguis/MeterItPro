@@ -1,24 +1,24 @@
 # Dashboard Framework Analysis
 
-## Existing Dashboard Patterns in client/frontend
+## Existing Dashboard Patterns in MeterItPro/frontend
 
 ### Dashboard Components Identified
 
-1. **Main Dashboard Page** (`client/frontend/src/pages/Dashboard.tsx`)
+1. **Main Dashboard Page** (`MeterItPro/frontend/src/pages/Dashboard.tsx`)
    - Displays collapsible statistics section with multiple stat cards
    - Displays latest meter readings list
    - Uses grid layout for stat cards
    - Implements auto-refresh (30 seconds)
    - Stores collapse state in localStorage
 
-2. **Sync Dashboard** (`sync/frontend/src/pages/LocalDashboard.tsx`)
+2. **Sync Dashboard** (`MeterItProSync/frontend/src/pages/LocalDashboard.tsx`)
    - Uses Material-UI components (Grid, Card, CardContent)
    - Displays summary cards (Total Meters, Connected Meters, Readings, Unsynchronized)
    - Shows meter status cards in grid layout
    - Includes readings chart component
    - Implements polling for data updates
 
-3. **System Health Component** (`client/frontend/src/components/system/SystemHealth.tsx`)
+3. **System Health Component** (`MeterItPro/frontend/src/components/system/SystemHealth.tsx`)
    - Displays service health status cards
    - Shows system metrics in grid layout
    - Uses Material-UI Card components

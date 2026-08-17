@@ -10,7 +10,7 @@ cd client/backend
 npm start
 
 # Terminal 2 - Frontend
-cd client/frontend
+cd MeterItPro/frontend
 npm run dev
 ```
 

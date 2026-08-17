@@ -15,7 +15,7 @@ This checkpoint verifies that the cache reload integration is complete and worki
 **Requirement**: WHEN a remote-to-local sync completes successfully, THE system SHALL check which tables were modified
 
 **Implementation**:
-- File: `sync/mcp/src/remote_to_local-sync/sync-agent.ts`
+- File: `MeterItProSync/mcp/src/remote_to_local-sync/sync-agent.ts`
 - Method: `reloadCachesAfterSync(comprehensiveResult: ComprehensiveSyncResult)`
 - Lines: 133-180
 - The method receives a `ComprehensiveSyncResult` containing modification counts for:
@@ -34,7 +34,7 @@ This checkpoint verifies that the cache reload integration is complete and worki
 - Lines: 145-152 in sync-agent.ts
 - Checks: `if (registerTableModified && this.registerCache)`
 - Action: `await this.registerCache.reload(this.syncDatabase)`
-- RegisterCache.reload() method in `sync/mcp/src/bacnet-collection/register-cache.ts` (lines 60-62)
+- RegisterCache.reload() method in `MeterItProSync/mcp/src/bacnet-collection/register-cache.ts` (lines 60-62)
 
 **Verification**: ✅ PASS
 - RegisterCache is reloaded when register table has any modifications
@@ -47,7 +47,7 @@ This checkpoint verifies that the cache reload integration is complete and worki
 - Lines: 154-161 in sync-agent.ts
 - Checks: `if ((meterTableModified || deviceRegisterTableModified) && this.meterCache)`
 - Action: `await this.meterCache.reload(this.syncDatabase)`
-- MeterCache.reload() method in `sync/mcp/src/bacnet-collection/meter-cache.ts` (lines 15-35)
+- MeterCache.reload() method in `MeterItProSync/mcp/src/bacnet-collection/meter-cache.ts` (lines 15-35)
 
 **Verification**: ✅ PASS
 - MeterCache is reloaded when meter table OR device_register table has modifications
@@ -108,7 +108,7 @@ This checkpoint verifies that the cache reload integration is complete and worki
 ## Integration Verification
 
 ### Cache Reload Trigger Point
-**File**: `sync/mcp/src/remote_to_local-sync/sync-agent.ts`  
+**File**: `MeterItProSync/mcp/src/remote_to_local-sync/sync-agent.ts`  
 **Method**: `performSync()`  
 **Lines**: 422-424
 
@@ -125,7 +125,7 @@ if (comprehensiveResult.success) {
 - Happens before returning sync result
 
 ### Cache Initialization
-**File**: `sync/mcp/src/index.ts`  
+**File**: `MeterItProSync/mcp/src/index.ts`  
 **Lines**: 115-125
 
 ```typescript

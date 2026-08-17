@@ -41,7 +41,7 @@ The approach follows this sequence:
   - **Validates: Requirements 3.2, 3.5**
 
 - [x] 3. Refactor DashboardPage Component for Framework
-  - Move `client/frontend/src/pages/DashboardPage.tsx` logic to `framework/frontend/dashboards/components/DashboardPage.tsx`
+  - Move `MeterItPro/frontend/src/pages/DashboardPage.tsx` logic to `framework/frontend/dashboards/components/DashboardPage.tsx`
   - Remove all API calls and business logic
   - Accept all data and callbacks through props
   - Update component to use framework types
@@ -56,7 +56,7 @@ The approach follows this sequence:
   - **Validates: Requirements 1.1, 1.2**
 
 - [x] 4. Refactor DashboardCard Component for Framework
-  - Move `client/frontend/src/components/dashboard/DashboardCard.tsx` to framework
+  - Move `MeterItPro/frontend/src/components/dashboard/DashboardCard.tsx` to framework
   - Remove all API calls and business logic
   - Accept all data and callbacks through props
   - Update component to use framework types
@@ -71,8 +71,8 @@ The approach follows this sequence:
   - **Validates: Requirements 1.1, 1.2**
 
 - [x] 5. Move Modal Components to Framework
-  - Move `client/frontend/src/components/dashboard/DashboardCardModal.tsx` to framework
-  - Move `client/frontend/src/components/dashboard/ExpandedCardModal.tsx` to framework
+  - Move `MeterItPro/frontend/src/components/dashboard/DashboardCardModal.tsx` to framework
+  - Move `MeterItPro/frontend/src/components/dashboard/ExpandedCardModal.tsx` to framework
   - Remove all API calls and business logic
   - Accept all data and callbacks through props
   - _Requirements: 1.4, 1.5_
@@ -82,7 +82,7 @@ The approach follows this sequence:
   - **Validates: Requirements 1.4, 1.5**
 
 - [x] 6. Move Visualization Component to Framework
-  - Move `client/frontend/src/components/dashboard/VisualizationComponents.tsx` to framework
+  - Move `MeterItPro/frontend/src/components/dashboard/VisualizationComponents.tsx` to framework
   - Ensure component works with generic data structures
   - Remove client-specific logic
   - _Requirements: 1.3, 1.5_
@@ -112,7 +112,7 @@ The approach follows this sequence:
   - _Requirements: 7.2, 7.3_
 
 - [x] 9. Update Client DashboardPage to Use Framework
-  - Update `client/frontend/src/pages/DashboardPage.tsx` to import framework components
+  - Update `MeterItPro/frontend/src/pages/DashboardPage.tsx` to import framework components
   - Keep dashboardService for API communication
   - Pass data and callbacks to framework components
   - Maintain all existing functionality

@@ -63,7 +63,7 @@ END as favorite_name
 
 ### 3. Frontend: MeterElementItem Component
 
-**File**: `client/frontend/src/components/sidebar-meters/MeterElementItem.tsx`
+**File**: `MeterItPro/frontend/src/components/sidebar-meters/MeterElementItem.tsx`
 
 **Change**: Enhanced element name formatting with comprehensive fallback values
 
@@ -92,7 +92,7 @@ const formattedElementName = element.element && element.name
 
 ### 4. Frontend: FavoritesSection Component
 
-**File**: `client/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
+**File**: `MeterItPro/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
 
 **Change**: Added fallback display for favorite_name
 

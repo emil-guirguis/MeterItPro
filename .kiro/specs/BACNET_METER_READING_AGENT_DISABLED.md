@@ -4,7 +4,7 @@
 
 The BACnet Meter Reading Agent is initialized and started in:
 
-**File:** `sync/mcp/src/index.ts`
+**File:** `MeterItProSync/mcp/src/index.ts`
 
 **Lines:** 145-157
 
@@ -56,16 +56,16 @@ console.log('✅ [Services] BACnet Meter Reading Agent started');
 ## Related Components
 
 ### Initialization
-- **File:** `sync/mcp/src/index.ts` (line 145)
+- **File:** `MeterItProSync/mcp/src/index.ts` (line 145)
 - **Class:** `BACnetMeterReadingAgent`
-- **File:** `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
+- **File:** `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
 
 ### API Endpoints
 - `GET /api/meter-reading/status` - Get agent status
 - `POST /api/meter-reading/trigger` - Manually trigger collection
 
 ### Frontend Component
-- **File:** `sync/frontend/src/components/BACnetMeterReadingCard.tsx`
+- **File:** `MeterItProSync/frontend/src/components/BACnetMeterReadingCard.tsx`
 - Shows agent status and allows manual triggering
 
 ## Configuration
@@ -85,7 +85,7 @@ BACNET_READ_TIMEOUT_MS=3000                 # Read timeout
 
 1. **Rebuild the project:**
    ```bash
-   cd sync/mcp
+   cd MeterItProSync/mcp
    npm run build
    ```
 
@@ -127,4 +127,4 @@ The MCP server also has:
 
 ## Files Modified
 
-- `sync/mcp/src/index.ts` - Disabled the `start()` call
+- `MeterItProSync/mcp/src/index.ts` - Disabled the `start()` call

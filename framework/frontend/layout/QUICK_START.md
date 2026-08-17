@@ -215,7 +215,7 @@ user: {
 
 ## Examples
 
-See `client/frontend/src/components/layout/AppLayoutWrapper.tsx` for a complete implementation example.
+See `MeterItPro/frontend/src/components/layout/AppLayoutWrapper.tsx` for a complete implementation example.
 
 ## Documentation
 

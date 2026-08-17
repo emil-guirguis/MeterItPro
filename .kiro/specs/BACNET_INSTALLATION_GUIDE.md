@@ -4,7 +4,7 @@
 
 ### Step 1: Install Dependencies
 ```bash
-cd sync/mcp
+cd MeterItProSync/mcp
 npm install
 ```
 
@@ -82,9 +82,9 @@ npm install bacnet-node@0.2.23
 Error: Cannot find module 'bacnet-node'
 ```
 
-**Solution**: Run `npm install` in the sync/mcp directory:
+**Solution**: Run `npm install` in the MeterItProSync/mcp directory:
 ```bash
-cd sync/mcp
+cd MeterItProSync/mcp
 npm install
 ```
 

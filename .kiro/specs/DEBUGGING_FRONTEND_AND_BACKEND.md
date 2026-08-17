@@ -23,7 +23,7 @@ This will:
 
 ### Step 2: Set Breakpoints in Both Places
 
-**In Frontend** (`sync/frontend/src/components/CompanyInfoCard.tsx`):
+**In Frontend** (`MeterItProSync/frontend/src/components/CompanyInfoCard.tsx`):
 ```typescript
 const fetchTenantInfo = async () => {
   try {
@@ -35,7 +35,7 @@ const fetchTenantInfo = async () => {
 }
 ```
 
-**In Backend** (`sync/mcp/src/api/server.ts`):
+**In Backend** (`MeterItProSync/mcp/src/api/server.ts`):
 ```typescript
 this.app.get('/api/local/tenant', async (_req, res, next) => {
   try {
@@ -217,8 +217,8 @@ tenant
 
 **Solution:**
 1. Make sure MCP server is not already running
-2. Kill any existing Node processes: `pkill -f "sync/mcp"`
-3. Rebuild: `npm run build` (in sync/mcp)
+2. Kill any existing Node processes: `pkill -f "MeterItProSync/mcp"`
+3. Rebuild: `npm run build` (in MeterItProSync/mcp)
 4. Try again with F5
 
 ### Issue: Frontend Debugger Doesn't Start
@@ -240,20 +240,20 @@ tenant
 ### Issue: Breakpoints Not Working in Backend
 
 **Solution:**
-1. Rebuild the project: `npm run build` (in sync/mcp)
+1. Rebuild the project: `npm run build` (in MeterItProSync/mcp)
 2. Restart the debugger (Shift+F5, then F5)
 3. Make sure breakpoints are in `src/`, not `dist/`
-4. Check that source maps are generated: `ls sync/mcp/dist/*.map`
+4. Check that source maps are generated: `ls MeterItProSync/mcp/dist/*.map`
 
 ## Files to Debug
 
 **Frontend:**
-- `sync/frontend/src/components/CompanyInfoCard.tsx` - Tenant loading
-- `sync/frontend/src/api/services.ts` - API calls
+- `MeterItProSync/frontend/src/components/CompanyInfoCard.tsx` - Tenant loading
+- `MeterItProSync/frontend/src/api/services.ts` - API calls
 
 **Backend:**
-- `sync/mcp/src/api/server.ts` - API endpoints
-- `sync/mcp/src/data-sync/connection-manager.ts` - Database connections
+- `MeterItProSync/mcp/src/api/server.ts` - API endpoints
+- `MeterItProSync/mcp/src/data-sync/connection-manager.ts` - Database connections
 
 ## Next Steps
 

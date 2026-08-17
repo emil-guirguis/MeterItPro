@@ -10,7 +10,7 @@ The AI search feature is implemented and tested. To use it:
 
 2. **Start Frontend**
    ```bash
-   cd client/frontend && npm run dev
+   cd MeterItPro/frontend && npm run dev
    ```
 
 3. **Login** to the application

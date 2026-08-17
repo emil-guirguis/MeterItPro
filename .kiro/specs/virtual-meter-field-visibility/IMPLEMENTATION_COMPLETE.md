@@ -93,7 +93,7 @@ if (fieldRef.visibleFor && fieldRef.visibleFor.length > 0) {
 No changes needed - already supports `meterType` prop and passes it to useFormTabs.
 
 ### 4. MeterForm.tsx
-**File:** `client/frontend/src/features/meters/MeterForm.tsx`
+**File:** `MeterItPro/frontend/src/features/meters/MeterForm.tsx`
 
 No changes needed - already determines meter type and passes it to BaseForm.
 
@@ -160,7 +160,7 @@ When editing a physical meter:
 ## Files Not Modified (Already Support Feature)
 
 1. `framework/frontend/components/form/BaseForm.tsx` - Already has `meterType` prop
-2. `client/frontend/src/features/meters/MeterForm.tsx` - Already passes `meterType`
+2. `MeterItPro/frontend/src/features/meters/MeterForm.tsx` - Already passes `meterType`
 
 ## Verification Checklist
 

@@ -65,7 +65,7 @@ app.use('/api/schema', schemaRoutes);
 ### 4. Update Frontend to Use Dynamic Schema
 
 ```typescript
-// client/frontend/src/features/meters/MeterForm.tsx
+// MeterItPro/frontend/src/features/meters/MeterForm.tsx
 import { useSchema } from '@framework/forms/utils/schemaLoader';
 
 export const MeterForm = ({ meter, onSubmit }) => {

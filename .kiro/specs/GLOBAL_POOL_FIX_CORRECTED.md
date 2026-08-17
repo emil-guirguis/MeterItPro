@@ -30,12 +30,12 @@ client = await syncPool.connect();
 
 ## Changes Made
 
-### 1. `sync/mcp/src/bacnet-collection/reading-batcher.ts`
+### 1. `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts`
 - Added import: `import { syncPool } from '../data-sync/data-sync.js';`
 - Changed pool access to use global `syncPool` directly
 - Removed the wrapper method call
 
-### 2. `sync/mcp/src/data-sync/data-sync.ts`
+### 2. `MeterItProSync/mcp/src/data-sync/data-sync.ts`
 - Removed the unnecessary `getPool()` method
 - `SyncDatabase` still uses the global `syncPool` internally
 - No changes to the global pool initialization
@@ -64,8 +64,8 @@ client = await syncPool.connect();
 ## Verification
 
 Both files compile without errors:
-- ✅ `sync/mcp/src/bacnet-collection/reading-batcher.ts`
-- ✅ `sync/mcp/src/data-sync/data-sync.ts`
+- ✅ `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts`
+- ✅ `MeterItProSync/mcp/src/data-sync/data-sync.ts`
 
 ## Next Steps
 

@@ -38,13 +38,13 @@ Fix the meter reading collection interval discrepancy by:
   - Convert seconds to minutes and use `minutesToCronEvery()`
   - Add logging to show which source was used (env var or default)
   - _Requirements: Requirement 5 (Environment Variable Detection)_
-  - _File: `sync/mcp/src/config/scheduling-constants.ts`_
+  - _File: `MeterItProSync/mcp/src/config/scheduling-constants.ts`_
 
 - [ ] 2.2 Update BACnetMeterReadingAgent to use new function
   - Replace hardcoded `CRON_METER_READ` with `getBACnetCollectionCronExpression()`
   - Log the resolved cron expression at startup
   - _Requirements: Requirement 1.1, 5.3_
-  - _File: `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`_
+  - _File: `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`_
 
 ### Phase 3: Implement Interval Verification
 
@@ -85,13 +85,13 @@ Fix the meter reading collection interval discrepancy by:
   - Test `getBACnetCollectionCronExpression()` with various intervals
   - Test environment variable override
   - Test fallback to default
-  - _File: `sync/mcp/src/config/scheduling-constants.test.ts`_
+  - _File: `MeterItProSync/mcp/src/config/scheduling-constants.test.ts`_
 
 - [ ] 5.2 Write integration tests for interval tracking
   - Mock cron scheduler
   - Verify logging output
   - Verify metrics calculation
-  - _File: `sync/mcp/src/bacnet-collection/bacnet-reading-agent.test.ts`_
+  - _File: `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.test.ts`_
 
 - [ ] 5.3 Manual verification
   - Deploy to test environment

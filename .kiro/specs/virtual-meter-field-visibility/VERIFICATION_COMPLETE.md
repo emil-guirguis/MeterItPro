@@ -81,7 +81,7 @@ const apiData = formSchema.toApi(cleanFormData);  // ← elements NOT included
 ## Files NOT Modified (but related)
 - `client/backend/src/routes/meters.js` - Already has fallback deletion
 - `client/backend/src/models/MeterWithSchema.js` - Schema definition
-- `client/frontend/src/features/meters/MeterForm.tsx` - Uses BaseForm
+- `MeterItPro/frontend/src/features/meters/MeterForm.tsx` - Uses BaseForm
 
 ## Deployment Steps
 

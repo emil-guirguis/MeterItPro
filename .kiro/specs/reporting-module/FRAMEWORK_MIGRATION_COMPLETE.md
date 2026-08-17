@@ -15,14 +15,14 @@ Successfully migrated the reporting module from custom components to use the fra
 **Schema Endpoint**: `/api/schema/report`
 
 ### 2. Frontend Store (✅ Complete)
-**File**: `client/frontend/src/features/reports/reportsStore.ts`
+**File**: `MeterItPro/frontend/src/features/reports/reportsStore.ts`
 - Created Zustand store using `createEntityStore` pattern
 - Implemented API service with full CRUD operations
 - Added enhanced hook with computed values (enabledReports, disabledReports)
 - Integrated with token refresh middleware
 
 ### 3. Frontend Configuration (✅ Complete)
-**File**: `client/frontend/src/features/reports/config.ts`
+**File**: `MeterItPro/frontend/src/features/reports/config.ts`
 - Defined stats: Enabled Reports, Disabled Reports, Total Reports
 - Configured export settings for CSV export
 - No bulk actions (reports are managed individually)
@@ -30,34 +30,34 @@ Successfully migrated the reporting module from custom components to use the fra
 ### 4. Frontend Components (✅ Complete)
 
 #### ReportList Component
-**File**: `client/frontend/src/features/reports/ReportList.tsx`
+**File**: `MeterItPro/frontend/src/features/reports/ReportList.tsx`
 - Uses `BaseList` component from framework
 - Auto-generates columns and filters from schema
 - Implements delete confirmation dialog
 - Supports search, filters, stats, and export
 
 #### ReportForm Component
-**File**: `client/frontend/src/features/reports/ReportForm.tsx`
+**File**: `MeterItPro/frontend/src/features/reports/ReportForm.tsx`
 - Uses `BaseForm` component from framework
 - Dynamically loads schema from backend
 - Handles all validation and field rendering
 - Supports tabbed form layout
 
 #### ReportManagementPage Component
-**File**: `client/frontend/src/features/reports/ReportManagementPage.tsx`
+**File**: `MeterItPro/frontend/src/features/reports/ReportManagementPage.tsx`
 - Uses `EntityManagementPage` wrapper
 - Integrates ReportList and ReportForm
 - Handles modal display and form submission
 
 ### 5. Page Integration (✅ Complete)
-**File**: `client/frontend/src/pages/ReportsPage.tsx`
+**File**: `MeterItPro/frontend/src/pages/ReportsPage.tsx`
 - Updated to use `ReportManagementPage` instead of custom `ReportsManager`
 - Kept custom `HistoryTab` and `EmailLogsView` components (not CRUD operations)
 - Maintains tabbed interface for Reports and History
 - Wrapped in `AppLayoutWrapper` for consistent layout
 
 ### 6. Routes (✅ Already Configured)
-**File**: `client/frontend/src/routes/AppRoutes.tsx`
+**File**: `MeterItPro/frontend/src/routes/AppRoutes.tsx`
 - Reports route already configured at `/reports`
 - Uses ProtectedRoute for authentication
 - No changes needed
@@ -107,12 +107,12 @@ BaseList/BaseForm (auto-generate UI)
 
 These components are NOT part of standard CRUD operations and remain custom:
 
-1. **HistoryTab** (`client/frontend/src/components/reporting/HistoryTab.tsx`)
+1. **HistoryTab** (`MeterItPro/frontend/src/components/reporting/HistoryTab.tsx`)
    - Displays report execution history
    - Shows date range filters
    - Links to email logs
 
-2. **EmailLogsView** (`client/frontend/src/components/reporting/EmailLogsView.tsx`)
+2. **EmailLogsView** (`MeterItPro/frontend/src/components/reporting/EmailLogsView.tsx`)
    - Displays email delivery logs
    - Supports CSV/JSON export
    - Shows delivery status per recipient
@@ -145,7 +145,7 @@ These components are NOT part of standard CRUD operations and remain custom:
 ## Files Created
 
 ```
-client/frontend/src/features/reports/
+MeterItPro/frontend/src/features/reports/
 ├── index.ts                      # Public exports
 ├── types.ts                      # TypeScript types
 ├── reportsStore.ts              # Zustand store + API service
@@ -161,7 +161,7 @@ client/frontend/src/features/reports/
 
 ```
 client/backend/src/models/ReportWithSchema.js    # Added schema definition
-client/frontend/src/pages/ReportsPage.tsx        # Updated to use framework components
+MeterItPro/frontend/src/pages/ReportsPage.tsx        # Updated to use framework components
 ```
 
 ## Files Unchanged (Already Configured)
@@ -170,15 +170,15 @@ client/frontend/src/pages/ReportsPage.tsx        # Updated to use framework comp
 client/backend/src/routes/schema.js              # Report schema already registered
 client/backend/src/routes/reports.js             # API endpoints already implemented
 client/backend/src/server.js                     # Routes already mounted
-client/frontend/src/routes/AppRoutes.tsx         # Route already configured
-client/frontend/src/components/layout/AppLayoutWrapper.tsx  # Menu item already added
+MeterItPro/frontend/src/routes/AppRoutes.tsx         # Route already configured
+MeterItPro/frontend/src/components/layout/AppLayoutWrapper.tsx  # Menu item already added
 ```
 
 ## Next Steps
 
 1. **Test the implementation**:
    - Start backend: `cd client/backend && npm start`
-   - Start frontend: `cd client/frontend && npm run dev`
+   - Start frontend: `cd MeterItPro/frontend && npm run dev`
    - Navigate to `/reports` in the application
 
 2. **Verify functionality**:

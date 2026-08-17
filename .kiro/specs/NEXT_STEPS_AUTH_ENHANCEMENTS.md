@@ -56,7 +56,7 @@ After 2FA check:
 ## Phase 2: Frontend Implementation
 
 ### 1. Create ChangePasswordModal Component
-**File**: `client/frontend/src/components/auth/ChangePasswordModal.tsx`
+**File**: `MeterItPro/frontend/src/components/auth/ChangePasswordModal.tsx`
 
 Features:
 - Current password input (password type)
@@ -68,7 +68,7 @@ Features:
 - Call `POST /api/auth/change-password`
 
 ### 2. Create ForgotPasswordPage Component
-**File**: `client/frontend/src/pages/ForgotPasswordPage.tsx`
+**File**: `MeterItPro/frontend/src/pages/ForgotPasswordPage.tsx`
 
 Features:
 - Email input field
@@ -78,7 +78,7 @@ Features:
 - Call `POST /api/auth/forgot-password`
 
 ### 3. Create PasswordResetPage Component
-**File**: `client/frontend/src/pages/PasswordResetPage.tsx`
+**File**: `MeterItPro/frontend/src/pages/PasswordResetPage.tsx`
 
 Features:
 - Extract token from URL query parameter
@@ -91,7 +91,7 @@ Features:
 - Call `POST /api/auth/reset-password`
 
 ### 4. Create 2FASetupWizard Component
-**File**: `client/frontend/src/components/auth/2FASetupWizard.tsx`
+**File**: `MeterItPro/frontend/src/components/auth/2FASetupWizard.tsx`
 
 Features:
 - Step 1: Choose method (TOTP/Email/SMS)
@@ -102,7 +102,7 @@ Features:
 - Call `POST /api/auth/2fa/setup` and `POST /api/auth/2fa/verify-setup`
 
 ### 5. Create 2FAVerificationModal Component
-**File**: `client/frontend/src/components/auth/2FAVerificationModal.tsx`
+**File**: `MeterItPro/frontend/src/components/auth/2FAVerificationModal.tsx`
 
 Features:
 - Display method (TOTP/Email/SMS)
@@ -114,7 +114,7 @@ Features:
 - Call `POST /api/auth/verify-2fa`
 
 ### 6. Create 2FAManagementPage Component
-**File**: `client/frontend/src/pages/2FAManagementPage.tsx`
+**File**: `MeterItPro/frontend/src/pages/2FAManagementPage.tsx`
 
 Features:
 - Display all enabled 2FA methods
@@ -123,7 +123,7 @@ Features:
 - Call `GET /api/auth/2fa/methods`, `POST /api/auth/2fa/disable`, `POST /api/auth/2fa/regenerate-backup-codes`
 
 ### 7. Update LoginForm Component
-**File**: `client/frontend/src/components/auth/LoginForm.tsx`
+**File**: `MeterItPro/frontend/src/components/auth/LoginForm.tsx`
 
 Changes:
 - Add "Forgot Password?" link
@@ -133,7 +133,7 @@ Changes:
 - Show 2FA verification modal when `requires_2fa: true`
 
 ### 8. Update UserForm Component
-**File**: `client/frontend/src/features/users/UserForm.tsx`
+**File**: `MeterItPro/frontend/src/features/users/UserForm.tsx`
 
 Changes:
 - Add "Change Password" button (for current user)

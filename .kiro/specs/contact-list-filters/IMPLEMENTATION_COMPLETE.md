@@ -26,31 +26,31 @@ Successfully implemented framework-level filter processing that works identicall
 ✅ All frontend stores now flatten filter objects into URLSearchParams:
 
 1. **ContactAPI** (Reference Implementation)
-   - `client/frontend/src/features/contacts/contactsStore.ts`
+   - `MeterItPro/frontend/src/features/contacts/contactsStore.ts`
    - Already working correctly
 
 2. **DeviceAPI** (Previously Updated)
-   - `client/frontend/src/features/devices/devicesStore.ts`
+   - `MeterItPro/frontend/src/features/devices/devicesStore.ts`
    - Flattens filters into query parameters
 
 3. **UsersService** (NOW FIXED)
-   - `client/frontend/src/features/users/usersStore.ts`
+   - `MeterItPro/frontend/src/features/users/usersStore.ts`
    - Flattens filters into query parameters
    - Uses API_BASE_URL for consistency
    - Proper token handling
 
 4. **MetersService** (NOW FIXED)
-   - `client/frontend/src/features/meters/metersStore.ts`
+   - `MeterItPro/frontend/src/features/meters/metersStore.ts`
    - Flattens filters into query parameters
    - Uses API_BASE_URL for consistency
    - Proper token handling
 
 5. **LocationsService** (NOW FIXED)
-   - `client/frontend/src/features/locations/locationsStore.ts`
+   - `MeterItPro/frontend/src/features/locations/locationsStore.ts`
    - Flattens filters into query parameters
 
 6. **MeterReadingsService** (NOW FIXED)
-   - `client/frontend/src/features/meterReadings/meterReadingsStore.ts`
+   - `MeterItPro/frontend/src/features/meterReadings/meterReadingsStore.ts`
    - Flattens filters into query parameters
    - Supports params in fetchItems() method
 
@@ -105,10 +105,10 @@ All filters now work identically across all modules:
 - ✅ Meter Reading filters
 
 ## Files Modified
-1. `client/frontend/src/features/users/usersStore.ts`
-2. `client/frontend/src/features/meters/metersStore.ts`
-3. `client/frontend/src/features/locations/locationsStore.ts`
-4. `client/frontend/src/features/meterReadings/meterReadingsStore.ts`
+1. `MeterItPro/frontend/src/features/users/usersStore.ts`
+2. `MeterItPro/frontend/src/features/meters/metersStore.ts`
+3. `MeterItPro/frontend/src/features/locations/locationsStore.ts`
+4. `MeterItPro/frontend/src/features/meterReadings/meterReadingsStore.ts`
 
 ## Architecture Benefits
 - **DRY**: Filter logic centralized in framework

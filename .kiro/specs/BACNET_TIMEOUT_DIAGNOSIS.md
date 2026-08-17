@@ -14,7 +14,7 @@ The meter is **not responding to BACnet requests**. This is NOT a database issue
 
 ### Current Timeout Configuration
 
-From `sync/mcp/src/index.ts`:
+From `MeterItProSync/mcp/src/index.ts`:
 - `readTimeoutMs`: 3000ms (3 seconds)
 - `batchReadTimeoutMs`: 5000ms (5 seconds)  
 - `sequentialReadTimeoutMs`: 3000ms (3 seconds)
@@ -185,8 +185,8 @@ BACNET_ADAPTIVE_BATCH_SIZING=true
 
 ## Related Files
 
-- `sync/mcp/src/bacnet-collection/bacnet-client.ts` - BACnet communication
-- `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Collection orchestration
-- `sync/mcp/src/index.ts` - Configuration loading
+- `MeterItProSync/mcp/src/bacnet-collection/bacnet-client.ts` - BACnet communication
+- `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Collection orchestration
+- `MeterItProSync/mcp/src/index.ts` - Configuration loading
 - `.env` - Environment variables
-- `sync/mcp/.env` - Sync-specific configuration
+- `MeterItProSync/mcp/.env` - Sync-specific configuration

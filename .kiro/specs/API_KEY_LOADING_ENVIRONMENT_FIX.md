@@ -25,7 +25,7 @@ Modified the initialization to:
 ### Changes Made
 
 #### 1. Added `updateTenantApiKey()` method to SyncDatabase class
-**File:** `sync/mcp/src/data-sync/data-sync.ts`
+**File:** `MeterItProSync/mcp/src/data-sync/data-sync.ts`
 
 ```typescript
 async updateTenantApiKey(apiKey: string): Promise<void> {
@@ -35,7 +35,7 @@ async updateTenantApiKey(apiKey: string): Promise<void> {
 ```
 
 #### 2. Updated SyncDatabase interface
-**File:** `sync/mcp/src/types/entities.ts`
+**File:** `MeterItProSync/mcp/src/types/entities.ts`
 
 Added method signature to interface:
 ```typescript
@@ -43,7 +43,7 @@ updateTenantApiKey(apiKey: string): Promise<void>;
 ```
 
 #### 3. Modified initialization order in SyncMcpServer
-**File:** `sync/mcp/src/index.ts`
+**File:** `MeterItProSync/mcp/src/index.ts`
 
 New flow:
 ```
@@ -71,9 +71,9 @@ CLIENT_API_KEY=your_api_key_here
 If not set, the system will attempt to load it from the database (fallback).
 
 ## Files Modified
-- `sync/mcp/src/index.ts` - Updated initialization order
-- `sync/mcp/src/data-sync/data-sync.ts` - Added `updateTenantApiKey()` method
-- `sync/mcp/src/types/entities.ts` - Added method to interface
+- `MeterItProSync/mcp/src/index.ts` - Updated initialization order
+- `MeterItProSync/mcp/src/data-sync/data-sync.ts` - Added `updateTenantApiKey()` method
+- `MeterItProSync/mcp/src/types/entities.ts` - Added method to interface
 
 ## Build Status
 ✅ Build successful with `npm run build`

@@ -163,13 +163,13 @@ All requirements from the specification have been met:
 
 ### Findings from Client Codebase
 
-1. **MCP Report Tool**: Found `generate_report` tool in `client/mcp/src/tools/generate-report.ts`
+1. **MCP Report Tool**: Found `generate_report` tool in `MeterItPro/mcp/src/tools/generate-report.ts`
    - Generates summary, detailed, and comparison reports
    - Queries database for meter readings
    - Returns JSON data
    - Can be integrated with framework
 
-2. **CSV Export**: Existing CSV export utilities in `client/frontend/src/utils/exportHelpers.ts`
+2. **CSV Export**: Existing CSV export utilities in `MeterItPro/frontend/src/utils/exportHelpers.ts`
    - Fully functional
    - Integrated with framework
    - Used by lists framework

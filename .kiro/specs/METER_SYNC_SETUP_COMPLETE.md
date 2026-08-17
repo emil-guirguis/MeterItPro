@@ -9,8 +9,8 @@ I've set up **3 debugger breakpoints** to help you trace the meter sync flow fro
 ## 🔴 Debugger Locations
 
 ### Debugger #1: API Endpoint Entry Point
-**File:** `sync/mcp/src/api/server.ts` (Line ~440)  
-**Compiled:** `sync/mcp/dist/api/server.js` (Line ~391)  
+**File:** `MeterItProSync/mcp/src/api/server.ts` (Line ~440)  
+**Compiled:** `MeterItProSync/mcp/dist/api/server.js` (Line ~391)  
 **Endpoint:** `POST /api/local/meter-sync-trigger`
 
 ```typescript
@@ -28,8 +28,8 @@ this.app.post('/api/local/meter-sync-trigger', async (_req, res, next) => {
 ---
 
 ### Debugger #2: Main Sync Operation
-**File:** `sync/mcp/src/sync-service/meter-sync-agent.ts` (Line ~100)  
-**Compiled:** `sync/mcp/dist/sync-service/meter-sync-agent.js` (Line ~82)  
+**File:** `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` (Line ~100)  
+**Compiled:** `MeterItProSync/mcp/dist/sync-service/meter-sync-agent.js` (Line ~82)  
 **Method:** `performSync()`
 
 ```typescript
@@ -46,8 +46,8 @@ async performSync(): Promise<MeterSyncResult> {
 ---
 
 ### Debugger #3: Remote Database Query
-**File:** `sync/mcp/src/sync-service/meter-sync-agent.ts` (Line ~240)  
-**Compiled:** `sync/mcp/dist/sync-service/meter-sync-agent.js` (Line ~244)  
+**File:** `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` (Line ~240)  
+**Compiled:** `MeterItProSync/mcp/dist/sync-service/meter-sync-agent.js` (Line ~244)  
 **Method:** `getRemoteMeters(tenantId)`
 
 ```typescript
@@ -145,9 +145,9 @@ The meter sync reads from the **REMOTE** database (Client System) and writes to 
 
 | File | Change |
 |------|--------|
-| `sync/mcp/src/api/server.ts` | Added debugger #1 to `/api/local/meter-sync-trigger` endpoint |
-| `sync/mcp/src/sync-service/meter-sync-agent.ts` | Added debugger #2 to `performSync()` method |
-| `sync/mcp/src/sync-service/meter-sync-agent.ts` | Added debugger #3 to `getRemoteMeters()` method |
+| `MeterItProSync/mcp/src/api/server.ts` | Added debugger #1 to `/api/local/meter-sync-trigger` endpoint |
+| `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` | Added debugger #2 to `performSync()` method |
+| `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` | Added debugger #3 to `getRemoteMeters()` method |
 
 **All files have been compiled to the `dist/` folder.**
 

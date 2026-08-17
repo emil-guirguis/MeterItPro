@@ -140,4 +140,4 @@ If you continue to see no changes:
 ## Files Not Modified
 
 - `framework/frontend/components/form/BaseForm.tsx` - Already supports `meterType` prop
-- `client/frontend/src/features/meters/MeterForm.tsx` - Already passes `meterType`
+- `MeterItPro/frontend/src/features/meters/MeterForm.tsx` - Already passes `meterType`

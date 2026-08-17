@@ -9,7 +9,7 @@ Frontend was still pointing to `http://localhost:3001/api` instead of the Cloudf
 ## Solution Applied
 
 ### 1. Frontend API URL Updated ✅
-**File:** `client/frontend/.env`
+**File:** `MeterItPro/frontend/.env`
 ```properties
 # Before
 VITE_API_BASE_URL=http://localhost:3001/api
@@ -19,7 +19,7 @@ VITE_API_BASE_URL=https://meteritpro-api.emilguirguis.workers.dev/api
 ```
 
 ### 2. Improved Error Handling ✅
-**File:** `client/api/worker/routes/auth.ts`
+**File:** `MeterItPro/api/worker/routes/auth.ts`
 - Added detailed error logging to help diagnose issues
 - Error messages now include stack traces in development mode
 - Better console logging with [LOGIN] prefix
@@ -28,7 +28,7 @@ VITE_API_BASE_URL=https://meteritpro-api.emilguirguis.workers.dev/api
 
 ### Step 1: Rebuild Frontend
 ```bash
-cd client/frontend
+cd MeterItPro/frontend
 npm run build
 ```
 
@@ -37,7 +37,7 @@ Deploy the built frontend to Cloudflare Pages (via dashboard or CLI)
 
 ### Step 3: Verify Cloudflare Workers Secrets
 ```bash
-cd client/api
+cd MeterItPro/api
 npx wrangler secret list
 ```
 

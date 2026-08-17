@@ -31,7 +31,7 @@ The old extraction logic wasn't checking if the extracted value was actually a n
 
 ### Enhanced Value Extraction Logic
 
-**File: `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`**
+**File: `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`**
 
 1. **Check if value is an object**
    ```typescript
@@ -141,7 +141,7 @@ The code now handles:
 
 ## Files Changed
 
-✅ `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+✅ `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 - Enhanced value extraction logic
 - Added type checking for extracted values
 - Added debug logging for extraction process
@@ -150,7 +150,7 @@ The code now handles:
 ## Verification
 
 File compiles without errors:
-- ✅ `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+- ✅ `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 
 ## Next Steps
 

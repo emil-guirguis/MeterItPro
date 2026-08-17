@@ -43,13 +43,13 @@ The frontend needs to be rebuilt for the debug logging to appear.
 
 **If using npm:**
 ```bash
-cd client/frontend
+cd MeterItPro/frontend
 npm run build
 ```
 
 **Or if using dev server:**
 ```bash
-cd client/frontend
+cd MeterItPro/frontend
 npm run dev
 ```
 
@@ -134,7 +134,7 @@ You should see:
 
 **Verify MetersPage.tsx:**
 ```bash
-grep -A 5 "<MeterForm" client/frontend/src/pages/MetersPage.tsx
+grep -A 5 "<MeterForm" MeterItPro/frontend/src/pages/MetersPage.tsx
 ```
 
 You should see:

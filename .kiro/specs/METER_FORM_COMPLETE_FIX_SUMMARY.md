@@ -42,7 +42,7 @@ if (rawValue && rawValue !== 'undefined' && rawValue !== '') {
 }
 ```
 
-### 2. `client/frontend/src/hooks/useValidationDataProvider.ts`
+### 2. `MeterItPro/frontend/src/hooks/useValidationDataProvider.ts`
 
 **Changes**:
 - Added API fallback for locations
@@ -61,7 +61,7 @@ if (!locations || locations.length === 0) {
 }
 ```
 
-### 3. `client/frontend/src/contexts/AuthContext.tsx`
+### 3. `MeterItPro/frontend/src/contexts/AuthContext.tsx`
 
 **Changes**:
 - Enhanced login logging for locations

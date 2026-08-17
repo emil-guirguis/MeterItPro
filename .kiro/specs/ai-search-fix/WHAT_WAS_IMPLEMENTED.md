@@ -229,7 +229,7 @@ Tests:       15 passed, 15 total
 
 2. **Start Frontend**
    ```bash
-   cd client/frontend
+   cd MeterItPro/frontend
    npm run dev
    ```
 

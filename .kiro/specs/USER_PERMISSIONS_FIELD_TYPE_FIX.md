@@ -150,7 +150,7 @@ This prevents the frontend form from including permissions in the update request
    - Stores permissions as JSON strings
    - Handles empty permissions gracefully
 
-4. **client/frontend/src/features/users/UserForm.tsx**
+4. **MeterItPro/frontend/src/features/users/UserForm.tsx**
    - Excluded permissions field from form submission
    - Permissions are now managed separately through role assignment
 

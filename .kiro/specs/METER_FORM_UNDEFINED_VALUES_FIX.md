@@ -107,7 +107,7 @@ If you see `undefined` in the location object, that means the API is returning a
    - Added detailed logging for each option
    - Added NaN check after parsing
 
-2. `client/frontend/src/hooks/useValidationDataProvider.ts`
+2. `MeterItPro/frontend/src/hooks/useValidationDataProvider.ts`
    - Added fallback for location ID: `location.location_id || location.id`
    - Added logging to see location object structure
 

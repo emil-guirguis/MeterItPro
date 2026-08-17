@@ -32,7 +32,7 @@ Validation fails: "meter_id is null or undefined"
 
 ## The Fix
 
-### File: `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+### File: `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 
 **Before:**
 ```typescript
@@ -50,7 +50,7 @@ readings.push({
 });
 ```
 
-### File: `sync/mcp/src/bacnet-collection/reading-batcher.ts`
+### File: `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts`
 
 **Updated validation logging** to show more details about what's failing:
 - Shows the actual error for each field
@@ -83,18 +83,18 @@ readings.push({
 
 ## Files Changed
 
-✅ `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+✅ `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 - Added `Number()` conversion for `meter_id`
 
-✅ `sync/mcp/src/bacnet-collection/reading-batcher.ts`
+✅ `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts`
 - Enhanced validation error logging
 - Shows more details about what's failing
 
 ## Verification
 
 Both files compile without errors:
-- ✅ `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
-- ✅ `sync/mcp/src/bacnet-collection/reading-batcher.ts`
+- ✅ `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+- ✅ `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts`
 
 ## Next Steps
 

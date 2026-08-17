@@ -32,7 +32,7 @@ Each element gets unique readings
 
 ### 1. Update `SyncDatabase.getMeters()` Query
 
-**File**: `sync/mcp/src/data-sync/data-sync.ts`
+**File**: `MeterItProSync/mcp/src/data-sync/data-sync.ts`
 
 **Change**: Replace the simple `SELECT FROM meter` query with a JOIN query:
 

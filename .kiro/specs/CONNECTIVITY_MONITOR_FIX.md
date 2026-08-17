@@ -8,7 +8,7 @@ The Connectivity Monitor was returning an incorrect status (always disconnected)
 3. **No Logging**: There was no visibility into what URL was being tested or why it was failing
 
 ## Root Cause
-In `sync/mcp/src/index.ts`, the ClientSystemApiClient was being created with:
+In `MeterItProSync/mcp/src/index.ts`, the ClientSystemApiClient was being created with:
 ```typescript
 const apiClient = new ClientSystemApiClient({
   apiUrl: process.env.CLIENT_API_URL || 'http://localhost:3001/api',  // ← Fallback to default
@@ -113,8 +113,8 @@ If still showing disconnected:
 
 ## Files Modified
 1. `.env` - Added `CLIENT_API_URL` and `CLIENT_API_KEY`
-2. `sync/mcp/src/api/client-system-api.ts` - Enhanced logging in `testConnection()`
-3. `sync/mcp/src/api/connectivity-monitor.ts` - Enhanced error logging in `checkConnectivity()`
+2. `MeterItProSync/mcp/src/api/client-system-api.ts` - Enhanced logging in `testConnection()`
+3. `MeterItProSync/mcp/src/api/connectivity-monitor.ts` - Enhanced error logging in `checkConnectivity()`
 
 ## Expected Behavior After Fix
 

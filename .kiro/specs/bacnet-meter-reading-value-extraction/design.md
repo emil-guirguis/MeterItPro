@@ -24,7 +24,7 @@ Database Insertion
 
 ### 1. Collection Cycle Manager - Value Extraction Logic
 
-**Location:** `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+**Location:** `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 
 **Current Issue:** Lines 240-260 attempt to extract values but don't handle all cases properly.
 

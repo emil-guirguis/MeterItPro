@@ -6,16 +6,16 @@ Removed the unused `MeterCollector` class and all related code from the codebase
 
 ## Files Deleted
 
-1. **sync/mcp/src/meter-collection/collector.ts** - The unused MeterCollector class implementation
-2. **sync/mcp/src/meter-collection/collector.test.ts** - Tests for the unused MeterCollector
+1. **MeterItProSync/mcp/src/meter-collection/collector.ts** - The unused MeterCollector class implementation
+2. **MeterItProSync/mcp/src/meter-collection/collector.test.ts** - Tests for the unused MeterCollector
 
 ## Files Modified
 
-### sync/mcp/src/meter-collection/index.ts
+### MeterItProSync/mcp/src/meter-collection/index.ts
 - Removed exports for `MeterCollector`, `MeterConfig`, `MetersConfiguration`, `CollectorConfig`
 - Now only exports BACnet-related types
 
-### sync/mcp/src/index.ts
+### MeterItProSync/mcp/src/index.ts
 - Removed import of `MeterCollector` and `CollectorConfig`
 - Removed `meterCollector` property from `SyncMcpServer` class
 - Removed tool definitions for `start_collection` and `stop_collection`

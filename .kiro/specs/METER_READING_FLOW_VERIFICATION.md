@@ -143,10 +143,10 @@ LOG_LEVEL=info
 
 ## Key Files
 
-- `sync/mcp/src/bacnet-collection/reading-batcher.ts` - Handles batching and insertion
-- `sync/mcp/src/data-sync/data-sync.ts` - Database service with pool access
-- `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Orchestrates collection
-- `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` - Main agent with scheduling
+- `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts` - Handles batching and insertion
+- `MeterItProSync/mcp/src/data-sync/data-sync.ts` - Database service with pool access
+- `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Orchestrates collection
+- `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` - Main agent with scheduling
 
 ## Next Steps
 

@@ -20,7 +20,7 @@
 
 **Solution**: Added API fallback to fetch locations if not in auth context.
 
-**File**: `client/frontend/src/hooks/useValidationDataProvider.ts` (line ~25-45)
+**File**: `MeterItPro/frontend/src/hooks/useValidationDataProvider.ts` (line ~25-45)
 
 ---
 
@@ -29,8 +29,8 @@
 
 **Files**: 
 - `framework/frontend/components/validationfieldselect/ValidationFieldSelect.tsx`
-- `client/frontend/src/hooks/useValidationDataProvider.ts`
-- `client/frontend/src/contexts/AuthContext.tsx`
+- `MeterItPro/frontend/src/hooks/useValidationDataProvider.ts`
+- `MeterItPro/frontend/src/contexts/AuthContext.tsx`
 
 ---
 
@@ -72,7 +72,7 @@ If you see these, the fix is working correctly.
 ## Files Changed
 
 1. `framework/frontend/components/validationfieldselect/ValidationFieldSelect.tsx`
-2. `client/frontend/src/hooks/useValidationDataProvider.ts`
-3. `client/frontend/src/contexts/AuthContext.tsx`
+2. `MeterItPro/frontend/src/hooks/useValidationDataProvider.ts`
+3. `MeterItPro/frontend/src/contexts/AuthContext.tsx`
 
 All changes are backward compatible and don't affect other forms.

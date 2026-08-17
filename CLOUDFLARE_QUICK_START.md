@@ -7,7 +7,7 @@
 npm run build:client
 ```
 
-This will create the production build in `client/frontend/dist/`
+This will create the production build in `MeterItPro/frontend/dist/`
 
 ### 2. Deploy to Cloudflare Pages
 
@@ -18,14 +18,14 @@ This will create the production build in `client/frontend/dist/`
 4. Use these build settings:
    - **Root directory**: `/` (the project root)
    - **Build command**: `npm run build:client`
-   - **Build output directory**: `client/frontend/dist`
+   - **Build output directory**: `MeterItPro/frontend/dist`
    - **Node version**: 18 (or higher)
 
 #### Option B: Via Wrangler CLI
 ```bash
 npm install -g wrangler
 wrangler login
-wrangler pages deploy client/frontend/dist --project-name=your-project-name
+wrangler pages deploy MeterItPro/frontend/dist --project-name=your-project-name
 ```
 
 ### 3. Set Environment Variables
@@ -59,7 +59,7 @@ After deployment:
 ## 🔧 Troubleshooting
 
 **Routes return 404?**
-- The `_redirects` file should handle this. Verify it's in `client/frontend/public/`
+- The `_redirects` file should handle this. Verify it's in `MeterItPro/frontend/public/`
 
 **API calls fail?**
 - Check `VITE_API_BASE_URL` is set correctly

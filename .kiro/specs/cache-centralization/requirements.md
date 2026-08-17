@@ -21,7 +21,7 @@ The sync MCP server currently has three cache objects (TenantCache, MeterCache, 
 
 #### Acceptance Criteria
 
-1. WHEN the sync MCP source structure is reviewed, THE system SHALL have a new `sync/mcp/src/cache/` directory
+1. WHEN the sync MCP source structure is reviewed, THE system SHALL have a new `MeterItProSync/mcp/src/cache/` directory
 2. WHEN the cache directory is created, THE system SHALL contain three cache files:
    - `tenant-cache.ts` - TenantCache implementation
    - `meter-cache.ts` - MeterCache implementation

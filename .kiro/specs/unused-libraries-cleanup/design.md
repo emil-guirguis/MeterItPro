@@ -18,7 +18,7 @@ This design outlines the systematic removal of unused npm packages, dead code fi
 **Confirmed Used**:
 - express, cors, helmet, dotenv, pg, bcryptjs, jsonwebtoken, winston, node-cron, express-validator, joi, express-rate-limit, nodemailer
 
-### Frontend (client/frontend/package.json)
+### Frontend (MeterItPro/frontend/package.json)
 
 **Potentially Unused Packages**:
 - `@microlink/react-json-view` - Used in framework/frontend/components/jsonbfield/JSONBField.tsx (USED)
@@ -30,12 +30,12 @@ This design outlines the systematic removal of unused npm packages, dead code fi
 **Confirmed Used**:
 - react, react-dom, react-router-dom, axios, zustand, @mui/material, @mui/icons-material, @emotion/react, @emotion/styled, recharts
 
-### Client MCP (client/mcp/package.json)
+### Client MCP (MeterItPro/mcp/package.json)
 
 **Potentially Unused Packages**:
 - All packages appear to be used (AUDIT NEEDED)
 
-### Sync MCP (sync/mcp/package.json)
+### Sync MCP (MeterItProSync/mcp/package.json)
 
 **Potentially Unused Packages**:
 - All packages appear to be used (AUDIT NEEDED)
@@ -43,7 +43,7 @@ This design outlines the systematic removal of unused npm packages, dead code fi
 ### Framework Frontend (framework/frontend/package.json)
 
 **Potentially Unused Packages**:
-- `recharts` - Version mismatch with client/frontend (2.10.0 vs 3.6.0) - NEEDS ALIGNMENT
+- `recharts` - Version mismatch with MeterItPro/frontend (2.10.0 vs 3.6.0) - NEEDS ALIGNMENT
 
 ## Architecture
 
@@ -51,10 +51,10 @@ This design outlines the systematic removal of unused npm packages, dead code fi
 
 The solution has multiple workspaces with their own package.json files:
 - `client/backend` - Node.js Express backend
-- `client/frontend` - React TypeScript frontend
-- `client/mcp` - Client MCP server
-- `sync/mcp` - Sync MCP server
-- `sync/frontend` - Sync frontend
+- `MeterItPro/frontend` - React TypeScript frontend
+- `MeterItPro/mcp` - Client MCP server
+- `MeterItProSync/mcp` - Sync MCP server
+- `MeterItProSync/frontend` - Sync frontend
 - `framework/frontend` - Shared framework components
 
 ### Target Architecture
@@ -77,10 +77,10 @@ After cleanup:
 - `client/backend/src/helpers/` - Check for unused helper files
 
 **Frontend**:
-- `client/frontend/src/services/` - Check for unused service files
-- `client/frontend/src/components/` - Check for unused component files
-- `client/frontend/src/hooks/` - Check for unused hook files
-- `client/frontend/src/utils/` - Check for unused utility files
+- `MeterItPro/frontend/src/services/` - Check for unused service files
+- `MeterItPro/frontend/src/components/` - Check for unused component files
+- `MeterItPro/frontend/src/hooks/` - Check for unused hook files
+- `MeterItPro/frontend/src/utils/` - Check for unused utility files
 
 **Framework**:
 - `framework/frontend/components/` - Check for unused component files
@@ -179,7 +179,7 @@ After cleanup:
 ### Build Verification
 
 **Frontend Build**:
-- Run `npm run build` in client/frontend
+- Run `npm run build` in MeterItPro/frontend
 - Verify no errors or warnings
 - Verify bundle size is reduced
 
@@ -188,8 +188,8 @@ After cleanup:
 - Verify no errors or warnings
 
 **MCP Builds**:
-- Run `npm run build` in client/mcp
-- Run `npm run build` in sync/mcp
+- Run `npm run build` in MeterItPro/mcp
+- Run `npm run build` in MeterItProSync/mcp
 - Verify no errors or warnings
 
 **Framework Build**:

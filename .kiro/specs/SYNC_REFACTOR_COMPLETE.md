@@ -160,10 +160,10 @@ Each sync operation logs clearly:
 
 ## Files Modified
 
-- `sync/mcp/src/remote_to_local-sync/sync-tenant.ts` - Refactored with cache reload
-- `sync/mcp/src/remote_to_local-sync/sync-meter.ts` - Refactored with cache reload
-- `sync/mcp/src/remote_to_local-sync/sync-device-register.ts` - Refactored with cache reload
-- `sync/mcp/src/remote_to_local-sync/sync-agent.ts` - Simplified orchestration
+- `MeterItProSync/mcp/src/remote_to_local-sync/sync-tenant.ts` - Refactored with cache reload
+- `MeterItProSync/mcp/src/remote_to_local-sync/sync-meter.ts` - Refactored with cache reload
+- `MeterItProSync/mcp/src/remote_to_local-sync/sync-device-register.ts` - Refactored with cache reload
+- `MeterItProSync/mcp/src/remote_to_local-sync/sync-agent.ts` - Simplified orchestration
 
 ## Benefits
 

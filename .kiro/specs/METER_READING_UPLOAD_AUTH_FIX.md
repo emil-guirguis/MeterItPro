@@ -104,7 +104,7 @@ To verify the fix works:
 
 2. **Start the sync MCP server:**
    ```bash
-   cd sync/mcp
+   cd MeterItProSync/mcp
    npm start
    ```
 

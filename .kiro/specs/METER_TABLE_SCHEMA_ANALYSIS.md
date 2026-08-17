@@ -1,15 +1,15 @@
 # Meter Table Schema Analysis
 
 ## Overview
-This document provides a comprehensive analysis of the meter table structure in the sync/mcp database, including primary keys, unique constraints, and related schema definitions.
+This document provides a comprehensive analysis of the meter table structure in the MeterItProSync/mcp database, including primary keys, unique constraints, and related schema definitions.
 
 ---
 
 ## Meter Table Structure
 
 ### Location
-- **File:** `sync/mcp/src/database/connection-pools.ts` (lines 163-180)
-- **Compiled:** `sync/mcp/dist/database/connection-pools.js`
+- **File:** `MeterItProSync/mcp/src/database/connection-pools.ts` (lines 163-180)
+- **Compiled:** `MeterItProSync/mcp/dist/database/connection-pools.js`
 
 ### SQL Definition
 ```sql
@@ -76,8 +76,8 @@ CREATE TABLE IF NOT EXISTS meter (
 **Important:** The meter table uses a **composite unique constraint** on `(id, meter_element_id)` in the upsert operation.
 
 #### Location
-- **File:** `sync/mcp/src/database/sync-database.ts` (lines 89-100)
-- **File:** `sync/mcp/src/database/connection-pools.ts` (upsertMeter method)
+- **File:** `MeterItProSync/mcp/src/database/sync-database.ts` (lines 89-100)
+- **File:** `MeterItProSync/mcp/src/database/connection-pools.ts` (upsertMeter method)
 
 #### SQL Implementation
 ```sql
@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS sync_log (
 ## MeterEntity TypeScript Interface
 
 ### Location
-- **File:** `sync/mcp/src/types/entities.ts` (lines 44-50)
+- **File:** `MeterItProSync/mcp/src/types/entities.ts` (lines 44-50)
 
 ### Definition
 ```typescript
@@ -208,8 +208,8 @@ export interface MeterEntity {
 ## Upsert Operation
 
 ### Location
-- **File:** `sync/mcp/src/database/connection-pools.ts` (upsertMeter method)
-- **File:** `sync/mcp/src/database/sync-database.ts` (upsertMeter method)
+- **File:** `MeterItProSync/mcp/src/database/connection-pools.ts` (upsertMeter method)
+- **File:** `MeterItProSync/mcp/src/database/sync-database.ts` (upsertMeter method)
 
 ### Logic
 1. **Attempt INSERT** with the meter data
@@ -255,7 +255,7 @@ if (!localMap.has(compositeKey)) {
 ## Database Initialization
 
 ### Location
-- **File:** `sync/mcp/src/database/connection-pools.ts` (initialize method)
+- **File:** `MeterItProSync/mcp/src/database/connection-pools.ts` (initialize method)
 
 ### Initialization Process
 1. Creates `tenant` table
@@ -305,10 +305,10 @@ CREATE INDEX IF NOT EXISTS idx_sync_log_synced_at ON sync_log(synced_at);
 ## Related Documentation
 
 ### Files Referenced
-1. `sync/mcp/src/database/connection-pools.ts` - Schema definition and initialization
-2. `sync/mcp/src/database/sync-database.ts` - Upsert implementation
-3. `sync/mcp/src/types/entities.ts` - TypeScript interface definitions
-4. `sync/mcp/src/sync-service/meter-sync-agent.ts` - Sync logic with composite keys
+1. `MeterItProSync/mcp/src/database/connection-pools.ts` - Schema definition and initialization
+2. `MeterItProSync/mcp/src/database/sync-database.ts` - Upsert implementation
+3. `MeterItProSync/mcp/src/types/entities.ts` - TypeScript interface definitions
+4. `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` - Sync logic with composite keys
 5. `MeterItPro/METER_SYNC_COMPOSITE_KEY_FIX.md` - Composite key implementation details
 
 ### Key Concepts
@@ -320,7 +320,7 @@ CREATE INDEX IF NOT EXISTS idx_sync_log_synced_at ON sync_log(synced_at);
 
 ## Summary
 
-The meter table in the sync/mcp database uses:
+The meter table in the MeterItProSync/mcp database uses:
 - **Primary Key:** Single column `id` (VARCHAR(255))
 - **Unique Constraint:** Composite key on `(id, meter_element_id)` via PostgreSQL ON CONFLICT
 - **Purpose:** Store meter configurations with support for multiple elements per meter

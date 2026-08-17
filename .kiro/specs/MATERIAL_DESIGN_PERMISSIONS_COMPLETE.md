@@ -113,13 +113,13 @@ Permissions
 
 ## Files Modified
 
-1. `client/frontend/src/features/users/UserForm.tsx`
+1. `MeterItPro/frontend/src/features/users/UserForm.tsx`
    - Imported Material-UI components
    - Updated renderCustomField to use Material Design components
    - Improved layout with Grid system
    - Added proper spacing and styling
 
-2. `client/frontend/src/features/users/UserForm.css`
+2. `MeterItPro/frontend/src/features/users/UserForm.css`
    - Simplified CSS (Material-UI handles most styling)
    - Kept minimal CSS for layout structure
 

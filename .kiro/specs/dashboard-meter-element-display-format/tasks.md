@@ -21,7 +21,7 @@ Update the dashboard card form to display meter elements in a user-friendly form
   - _Requirements: 2.1, 2.2_
 
 - [ ] 2. Update frontend service to handle new response format
-  - Modify `getMeterElementsByMeter()` in `client/frontend/src/services/dashboardService.ts`
+  - Modify `getMeterElementsByMeter()` in `MeterItPro/frontend/src/services/dashboardService.ts`
   - Ensure the method returns elements with `element` and `name` fields
   - No transformation needed if backend returns correct format
   - _Requirements: 2.1_

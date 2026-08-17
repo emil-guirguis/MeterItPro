@@ -69,8 +69,8 @@ Contact Management
 
 ## Files Modified
 
-1. `client/frontend/src/features/users/UserForm.tsx` - Added grouping logic and updated render function
-2. `client/frontend/src/features/users/UserForm.css` - Added styles for grouped layout
+1. `MeterItPro/frontend/src/features/users/UserForm.tsx` - Added grouping logic and updated render function
+2. `MeterItPro/frontend/src/features/users/UserForm.css` - Added styles for grouped layout
 
 ## Testing
 

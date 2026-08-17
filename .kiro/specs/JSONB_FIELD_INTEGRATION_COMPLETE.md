@@ -7,7 +7,7 @@ Successfully integrated `@microlink/react-json-view` into the framework and crea
 ## What Was Done
 
 ### 1. Installed Library
-- Added `@microlink/react-json-view` to client/frontend dependencies
+- Added `@microlink/react-json-view` to MeterItPro/frontend dependencies
 - Used `--legacy-peer-deps` to resolve peer dependency conflicts
 
 ### 2. Created Framework Components
@@ -48,7 +48,7 @@ A specialized renderer for permissions that:
 
 ### 3. Updated UserForm
 
-**Location:** `client/frontend/src/features/users/UserForm.tsx`
+**Location:** `MeterItPro/frontend/src/features/users/UserForm.tsx`
 
 Changes:
 - Imported `JSONBPermissionsRenderer` from framework
@@ -87,7 +87,7 @@ framework/frontend/
 │   └── microlink-react-json-view.d.ts
 └── index.ts (updated)
 
-client/frontend/
+MeterItPro/frontend/
 └── src/features/users/
     └── UserForm.tsx (updated)
 ```

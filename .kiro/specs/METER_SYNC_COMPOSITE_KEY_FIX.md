@@ -134,8 +134,8 @@ meter_id | name      | element_id | element
 
 ## Files Modified
 
-- `sync/mcp/src/sync-service/meter-sync-agent.ts` - Updated `performSync()` method
-- `sync/mcp/dist/sync-service/meter-sync-agent.js` - Compiled JavaScript (auto-generated)
+- `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` - Updated `performSync()` method
+- `MeterItProSync/mcp/dist/sync-service/meter-sync-agent.js` - Compiled JavaScript (auto-generated)
 
 ## Testing
 

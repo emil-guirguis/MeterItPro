@@ -14,7 +14,7 @@ Added a public getter method to the `SyncDatabase` class to expose the pool:
 
 ### Changes Made
 
-#### 1. `sync/mcp/src/data-sync/data-sync.ts`
+#### 1. `MeterItProSync/mcp/src/data-sync/data-sync.ts`
 Added a public getter method after the constructor:
 ```typescript
 /**
@@ -25,7 +25,7 @@ getPool(): Pool {
 }
 ```
 
-#### 2. `sync/mcp/src/bacnet-collection/reading-batcher.ts`
+#### 2. `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts`
 Updated the `flushBatch` method to use the public getter:
 ```typescript
 // Get the pool from the database object

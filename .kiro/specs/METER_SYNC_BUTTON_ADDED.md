@@ -7,7 +7,7 @@ I've created a new **"Trigger Meter Sync"** button that is now always visible on
 ## Changes Made
 
 ### 1. Created New Component: `MeterSyncCard.tsx`
-**File:** `sync/frontend/src/components/MeterSyncCard.tsx`
+**File:** `MeterItProSync/frontend/src/components/MeterSyncCard.tsx`
 
 This component displays:
 - **Remote Meter Sync** status card with health indicator
@@ -17,7 +17,7 @@ This component displays:
 - Total meter count in local database
 
 ### 2. Updated SyncStatus Page
-**File:** `sync/frontend/src/pages/SyncStatus.tsx`
+**File:** `MeterItProSync/frontend/src/pages/SyncStatus.tsx`
 
 - Added import for `MeterSyncCard` component
 - Added `<MeterSyncCard />` to the page layout
@@ -88,8 +88,8 @@ Now you have TWO sync buttons on the SyncStatus page:
 
 ## Next Steps
 
-1. Start the MCP server: `npm run dev` (in sync/mcp)
-2. Start the frontend: `npm run dev` (in sync/frontend)
+1. Start the MCP server: `npm run dev` (in MeterItProSync/mcp)
+2. Start the frontend: `npm run dev` (in MeterItProSync/frontend)
 3. Navigate to SyncStatus page
 4. Click "Trigger Meter Sync" button
 5. Watch the console for detailed logs

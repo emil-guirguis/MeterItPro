@@ -56,8 +56,8 @@ this.connectivityMonitor.on('disconnected', () => {
 - The System Connection card now displays the correct status
 
 ## Files Modified
-- `sync/mcp/src/api/connectivity-monitor.ts` - Added method to expose internal status
-- `sync/mcp/src/sync-service/sync-manager.ts` - Updated to use monitor state and handle events
+- `MeterItProSync/mcp/src/api/connectivity-monitor.ts` - Added method to expose internal status
+- `MeterItProSync/mcp/src/sync-service/sync-manager.ts` - Updated to use monitor state and handle events
 
 ## Testing
 To verify the fix:

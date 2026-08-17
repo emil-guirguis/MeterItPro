@@ -6,7 +6,7 @@ This specification defines the requirements for auditing and removing unused lib
 
 ## Glossary
 
-- **Workspace**: A directory containing a package.json and source code (e.g., client/backend, client/frontend, sync/mcp)
+- **Workspace**: A directory containing a package.json and source code (e.g., client/backend, MeterItPro/frontend, MeterItProSync/mcp)
 - **Dependency**: An npm package listed in package.json (production or dev)
 - **Unused Dependency**: An npm package in package.json that is not imported or used anywhere in the codebase
 - **Unused Code**: Source files, components, hooks, utilities, or services that are not imported by any active code
@@ -30,10 +30,10 @@ This specification defines the requirements for auditing and removing unused lib
 1. WHEN the audit begins, THE System SHALL scan all package.json files in the following workspaces:
    - Root package.json
    - client/backend/package.json
-   - client/frontend/package.json
-   - client/mcp/package.json
-   - sync/mcp/package.json
-   - sync/frontend/package.json
+   - MeterItPro/frontend/package.json
+   - MeterItPro/mcp/package.json
+   - MeterItProSync/mcp/package.json
+   - MeterItProSync/frontend/package.json
    - framework/frontend/package.json
 
 2. WHEN scanning dependencies, THE System SHALL categorize each package as:
@@ -219,10 +219,10 @@ This specification defines the requirements for auditing and removing unused lib
 #### Acceptance Criteria
 
 1. WHEN running builds, THE System SHALL execute:
-   - npm run build in client/frontend
-   - npm run build in sync/frontend
+   - npm run build in MeterItPro/frontend
+   - npm run build in MeterItProSync/frontend
    - npm run build in client/backend (if applicable)
-   - npm run build in sync/mcp (if applicable)
+   - npm run build in MeterItProSync/mcp (if applicable)
 
 2. WHEN a build runs, THE System SHALL verify that:
    - The build completes without errors

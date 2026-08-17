@@ -1,0 +1,40 @@
+{
+  "folders": [
+    {
+      "name": "Synergy (root)",
+      "path": "."
+    },
+    {
+      "name": "MeterItPro",
+      "path": "MeterItPro"
+    },
+    {
+      "name": "MeterItProSync",
+      "path": "MeterItProSync"
+    },
+    {
+      "name": "Framework",
+      "path": "framework"
+    },
+    {
+      "name": "TBWC",
+      "path": "TBWC"
+    },
+    {
+      "name": "TBWC Site (separate repo)",
+      "path": "../tbwc-site"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "MeterItPro": true,
+      "MeterItProSync": true,
+      "framework": true,
+      "TBWC": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true
+    }
+  }
+}

@@ -145,8 +145,8 @@ The current implementation assumes:
 
 ## Files Modified
 
-- `sync/mcp/src/database/sync-database.ts` - Fixed `upsertMeter()` method
-- `sync/mcp/dist/database/sync-database.js` - Compiled JavaScript (auto-generated)
+- `MeterItProSync/mcp/src/database/sync-database.ts` - Fixed `upsertMeter()` method
+- `MeterItProSync/mcp/dist/database/sync-database.js` - Compiled JavaScript (auto-generated)
 
 ## Build Status
 

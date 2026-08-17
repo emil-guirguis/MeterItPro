@@ -109,7 +109,7 @@ export const BaseForm: React.FC<BaseFormProps> = ({
 
 ### 4. MeterForm Component Enhancement
 
-**File**: `client/frontend/src/features/meters/MeterForm.tsx`
+**File**: `MeterItPro/frontend/src/features/meters/MeterForm.tsx`
 
 Determine meter type and pass to BaseForm:
 

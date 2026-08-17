@@ -22,7 +22,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import {
   MeterElementRegisterSelectorGrid,
   type MeterRowValue,
-} from '../../../../client/frontend/src/components/shared/MeterElementRegisterSelectorGrid';
+} from '../../../../MeterItPro/frontend/src/components/shared/MeterElementRegisterSelectorGrid';
 import './DashboardCardForm.css';
 import {
   TIME_FRAME_OPTIONS,

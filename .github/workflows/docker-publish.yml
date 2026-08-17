@@ -4,10 +4,10 @@ on:
   push:
     branches: [main]
     paths:
-      - 'sync/api/**'
-      - 'sync/frontend/**'
-      - 'sync/mcp/**'
-      - 'sync/provisioner/**'
+      - 'MeterItProSync/api/**'
+      - 'MeterItProSync/frontend/**'
+      - 'MeterItProSync/mcp/**'
+      - 'MeterItProSync/provisioner/**'
       - 'framework/**'
       - 'version.json'
 
@@ -27,16 +27,16 @@ jobs:
         service:
           - name: meteritpro-sync-api
             context: .
-            file: sync/api/Dockerfile
+            file: MeterItProSync/api/Dockerfile
           - name: meteritpro-sync-frontend
-            context: sync/frontend
-            file: sync/frontend/Dockerfile
+            context: MeterItProSync/frontend
+            file: MeterItProSync/frontend/Dockerfile
           - name: meteritpro-sync-mcp
             context: .
-            file: sync/mcp/Dockerfile
+            file: MeterItProSync/mcp/Dockerfile
           - name: meteritpro-sync-provisioner
-            context: sync/provisioner
-            file: sync/provisioner/Dockerfile
+            context: MeterItProSync/provisioner
+            file: MeterItProSync/provisioner/Dockerfile
 
     steps:
       - name: Checkout

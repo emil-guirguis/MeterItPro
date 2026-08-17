@@ -40,18 +40,18 @@ The device module has been successfully converted to read-only mode. All create,
 - ✅ Added effect to call onTabChange when effectiveActiveTab changes
 - ✅ Fixed initial tab notification for parent components
 
-#### Device Management Page (`client/frontend/src/features/devices/DeviceManagementPage.tsx`)
+#### Device Management Page (`MeterItPro/frontend/src/features/devices/DeviceManagementPage.tsx`)
 - ✅ Converted from EntityManagementPage to custom read-only implementation
 - ✅ Uses onDeviceView instead of onDeviceEdit
 - ✅ Removed save button from modal (showSaveButton: false)
 - ✅ Updated modal title to "View Device"
 
-#### Management Form (`client/frontend/src/components/management/ManagementForm.tsx`)
+#### Management Form (`MeterItPro/frontend/src/components/management/ManagementForm.tsx`)
 - ✅ Updated to use onDeviceView instead of onDeviceEdit
 - ✅ Removed device creation functionality
 - ✅ Updated modal title to "View Device"
 
-#### Device Form (`client/frontend/src/features/devices/DeviceForm.tsx`)
+#### Device Form (`MeterItPro/frontend/src/features/devices/DeviceForm.tsx`)
 - ✅ Removed `onSubmit` prop requirement
 - ✅ Added read-only submit handler (no-op)
 - ✅ Removed `readOnly={true}` prop (not supported by BaseForm - read-only behavior comes from schema)
@@ -60,13 +60,13 @@ The device module has been successfully converted to read-only mode. All create,
 - ✅ Fixed RegistersGrid loading by using renderCustomField
 - ✅ Simplified tab handling - BaseForm manages all tabs
 
-#### Device Store (`client/frontend/src/features/devices/devicesStore.ts`)
+#### Device Store (`MeterItPro/frontend/src/features/devices/devicesStore.ts`)
 - ✅ Removed create, update, delete API methods
 - ✅ Added error throwing for mutation operations
 - ✅ Updated comments to reflect read-only nature
 - ✅ Kept read operations (getAll, getById)
 
-#### Device List (`client/frontend/src/features/devices/DeviceList.tsx`)
+#### Device List (`MeterItPro/frontend/src/features/devices/DeviceList.tsx`)
 - ✅ Disabled create, edit, delete features
 - ✅ Disabled bulk actions
 - ✅ Changed title to "Devices (Read-Only)"
@@ -77,7 +77,7 @@ The device module has been successfully converted to read-only mode. All create,
 - ✅ Added view column with eye icon (👁️) for viewing devices
 - ✅ Removed edit column functionality
 
-#### Registers Grid (`client/frontend/src/features/devices/RegistersGrid.tsx`)
+#### Registers Grid (`MeterItPro/frontend/src/features/devices/RegistersGrid.tsx`)
 - ✅ Changed import from `DataGrid` to `EditableDataGrid` (framework only provides EditableDataGrid)
 - ✅ Set all columns to `editable: false`
 - ✅ Removed add/edit/delete functionality by not providing handlers
@@ -95,7 +95,7 @@ The device module has been successfully converted to read-only mode. All create,
 
 ### 5. Styling Changes
 
-#### CSS Updates (`client/frontend/src/features/devices/DeviceForm.css`)
+#### CSS Updates (`MeterItPro/frontend/src/features/devices/DeviceForm.css`)
 - ✅ Added read-only styling classes
 - ✅ Visual indicators for read-only state
 - ✅ Reduced opacity for read-only elements
@@ -112,11 +112,11 @@ The device module has been successfully converted to read-only mode. All create,
 3. `client/backend/src/models/DeviceWithSchema.js`
 
 ### Frontend Files
-1. `client/frontend/src/features/devices/DeviceForm.tsx`
-2. `client/frontend/src/features/devices/devicesStore.ts`
-3. `client/frontend/src/features/devices/DeviceList.tsx`
-4. `client/frontend/src/features/devices/RegistersGrid.tsx`
-5. `client/frontend/src/features/devices/DeviceForm.css`
+1. `MeterItPro/frontend/src/features/devices/DeviceForm.tsx`
+2. `MeterItPro/frontend/src/features/devices/devicesStore.ts`
+3. `MeterItPro/frontend/src/features/devices/DeviceList.tsx`
+4. `MeterItPro/frontend/src/features/devices/RegistersGrid.tsx`
+5. `MeterItPro/frontend/src/features/devices/DeviceForm.css`
 
 ### Database Files
 1. `remove_device_permissions.sql` (new file)

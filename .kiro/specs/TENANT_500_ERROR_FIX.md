@@ -133,7 +133,7 @@ SELECT * FROM tenant;
 Check that your `.env` file has the correct database credentials:
 
 ```bash
-# In sync/mcp/.env or root .env
+# In MeterItProSync/mcp/.env or root .env
 POSTGRES_SYNC_HOST=localhost
 POSTGRES_SYNC_PORT=5432
 POSTGRES_SYNC_DB=sync_db
@@ -150,7 +150,7 @@ After making changes, restart the MCP server:
 ```bash
 # Stop the current server (Ctrl+C)
 # Then restart
-npm run dev  # in sync/mcp directory
+npm run dev  # in MeterItProSync/mcp directory
 ```
 
 ### Step 8: Test the Endpoint
@@ -233,7 +233,7 @@ DELETE FROM tenant WHERE id > 1;
 To see more detailed logs, set the log level:
 
 ```bash
-# In sync/mcp/.env
+# In MeterItProSync/mcp/.env
 LOG_LEVEL=debug
 ```
 
@@ -242,9 +242,9 @@ Then restart the server and check the console output.
 ## Files to Check
 
 - `.env` - Database credentials
-- `sync/mcp/src/api/server.ts` - API endpoint (GET /api/local/tenant)
-- `sync/mcp/src/data-sync/connection-manager.ts` - Database pool initialization
-- `sync/frontend/src/components/CompanyInfoCard.tsx` - Frontend component
+- `MeterItProSync/mcp/src/api/server.ts` - API endpoint (GET /api/local/tenant)
+- `MeterItProSync/mcp/src/data-sync/connection-manager.ts` - Database pool initialization
+- `MeterItProSync/frontend/src/components/CompanyInfoCard.tsx` - Frontend component
 
 ## Next Steps
 

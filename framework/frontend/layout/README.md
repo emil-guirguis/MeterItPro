@@ -270,4 +270,4 @@ import { AppLayout } from '@framework/layout';
 
 ## Examples
 
-See the `client/frontend` application for a complete implementation example.
+See the `MeterItPro/frontend` application for a complete implementation example.

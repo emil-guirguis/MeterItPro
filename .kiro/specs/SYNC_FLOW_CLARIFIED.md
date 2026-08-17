@@ -68,12 +68,12 @@ Remote Database (Client System)
 
 ## Files Modified
 
-1. **sync/mcp/src/remote_to_local-sync/sync-agent.ts**
+1. **MeterItProSync/mcp/src/remote_to_local-sync/sync-agent.ts**
    - Added cache loading after successful sync
    - Updated `start()` to always perform initial sync
    - Added cacheManager import
 
-2. **sync/mcp/src/index.ts**
+2. **MeterItProSync/mcp/src/index.ts**
    - Removed duplicate tenant syncing (lines 190-210)
    - Removed duplicate cache loading
    - Simplified initialization flow

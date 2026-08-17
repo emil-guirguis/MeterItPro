@@ -12,7 +12,7 @@ This plan implements element-specific meter reading by:
 ## Tasks
 
 - [x] 1. Create RegisterCache class
-  - Create new file: sync/mcp/src/bacnet-collection/register-cache.ts
+  - Create new file: MeterItProSync/mcp/src/bacnet-collection/register-cache.ts
   - Implement RegisterCache with Map<number, RegisterEntity>
   - Add initialize(syncDatabase) method to load all registers
   - Add getRegister(registerId) and getRegisterByNumber(registerNumber) methods

@@ -59,7 +59,7 @@ Caches (MeterCache, DeviceRegisterCache)
 
 ### 1. ReadingBatcher (Enhanced)
 
-**Location:** `sync/mcp/src/bacnet-collection/reading-batcher.ts`
+**Location:** `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts`
 
 **Responsibilities:**
 - Accumulate readings in memory during collection
@@ -95,7 +95,7 @@ class ReadingBatcher {
 
 ### 2. PendingReading Type
 
-**Location:** `sync/mcp/src/bacnet-collection/types.ts`
+**Location:** `MeterItProSync/mcp/src/bacnet-collection/types.ts`
 
 **Current Definition:**
 ```typescript

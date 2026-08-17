@@ -97,10 +97,10 @@ Added comprehensive logging throughout the connectivity chain:
    - Logs the `isClientConnected` value being returned
 
 ## Files Modified
-1. `sync/mcp/src/index.ts` - Added SyncManager initialization and fixed import
-2. `sync/mcp/src/sync-service/sync-manager.ts` - Updated connectivity checking and event handlers
-3. `sync/mcp/src/api/connectivity-monitor.ts` - Added logging to connectivity checks
-4. `sync/mcp/src/api/server.ts` - Added logging and removed debugger statement
+1. `MeterItProSync/mcp/src/index.ts` - Added SyncManager initialization and fixed import
+2. `MeterItProSync/mcp/src/sync-service/sync-manager.ts` - Updated connectivity checking and event handlers
+3. `MeterItProSync/mcp/src/api/connectivity-monitor.ts` - Added logging to connectivity checks
+4. `MeterItProSync/mcp/src/api/server.ts` - Added logging and removed debugger statement
 
 ## How It Works Now
 

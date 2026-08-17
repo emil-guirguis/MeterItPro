@@ -21,7 +21,7 @@ Task 10 requires verification of three key aspects:
 
 **Implementation Evidence**:
 
-**File**: `sync/mcp/src/meter-collection/collector.ts` (lines 234-280)
+**File**: `MeterItProSync/mcp/src/meter-collection/collector.ts` (lines 234-280)
 
 ```typescript
 // Get device_id from cached meter
@@ -41,7 +41,7 @@ if (registersForDevice.length === 0) {
 }
 ```
 
-**Test Coverage**: `sync/mcp/src/meter-collection/collector.test.ts`
+**Test Coverage**: `MeterItProSync/mcp/src/meter-collection/collector.test.ts`
 - ✅ Test: "should query device_register table for device_id"
 - ✅ Test: "should filter device_register results by device_id"
 - ✅ Test: "should join device_register with register table to get register details"
@@ -63,7 +63,7 @@ if (registersForDevice.length === 0) {
 
 **Implementation Evidence**:
 
-**File**: `sync/mcp/src/meter-collection/collector.ts` (lines 281-310)
+**File**: `MeterItProSync/mcp/src/meter-collection/collector.ts` (lines 281-310)
 
 ```typescript
 // Build BACnetDataPoint list with calculated register numbers
@@ -93,7 +93,7 @@ for (const deviceRegister of registersForDevice) {
 }
 ```
 
-**File**: `sync/mcp/src/meter-collection/bacnet-client.ts` (lines 180-195)
+**File**: `MeterItProSync/mcp/src/meter-collection/bacnet-client.ts` (lines 180-195)
 
 ```typescript
 // Use the calculated register number if provided, otherwise use instance
@@ -108,13 +108,13 @@ const value = await this.readProperty(
 );
 ```
 
-**Test Coverage**: `sync/mcp/src/meter-collection/bacnet-client.test.ts`
+**Test Coverage**: `MeterItProSync/mcp/src/meter-collection/bacnet-client.test.ts`
 - ✅ Test: "should use calculated register number when provided"
 - ✅ Test: "should fall back to instance when register number not provided"
 - ✅ Test: "should handle multiple data points with different register numbers"
 - ✅ Test: "should continue reading other data points if one fails"
 
-**Test Coverage**: `sync/mcp/src/helpers/register-number-calculator.test.ts`
+**Test Coverage**: `MeterItProSync/mcp/src/helpers/register-number-calculator.test.ts`
 - ✅ 70 tests covering all elements A-Z
 - ✅ Tests for element calculation logic
 - ✅ Tests for edge cases and error handling
@@ -133,7 +133,7 @@ const value = await this.readProperty(
 
 **Implementation Evidence**:
 
-**File**: `sync/mcp/src/meter-collection/collector.ts` (lines 312-330)
+**File**: `MeterItProSync/mcp/src/meter-collection/collector.ts` (lines 312-330)
 
 ```typescript
 // Store each reading with field_name from register
@@ -143,7 +143,7 @@ for (const reading of readings) {
 }
 ```
 
-**File**: `sync/mcp/src/meter-collection/collector.ts` (lines 195-215)
+**File**: `MeterItProSync/mcp/src/meter-collection/collector.ts` (lines 195-215)
 
 ```typescript
 private async storeReading(reading: MeterReading): Promise<void> {
@@ -175,7 +175,7 @@ private async storeReading(reading: MeterReading): Promise<void> {
 }
 ```
 
-**File**: `sync/mcp/src/meter-collection/bacnet-client.ts` (lines 200-220)
+**File**: `MeterItProSync/mcp/src/meter-collection/bacnet-client.ts` (lines 200-220)
 
 ```typescript
 const reading: MeterReading = {
@@ -192,14 +192,14 @@ const reading: MeterReading = {
 };
 ```
 
-**Test Coverage**: `sync/mcp/src/meter-collection/collector.test.ts`
+**Test Coverage**: `MeterItProSync/mcp/src/meter-collection/collector.test.ts`
 - ✅ Test: "should store reading with field_name when available"
 - ✅ Test: "should fall back to dataPoint when field_name is not available"
 - ✅ Test: "should use field_name over dataPoint when both are present"
 - ✅ Test: "should handle reading with registerNumber and fieldName"
 - ✅ Test: "should handle reading without unit"
 
-**Test Coverage**: `sync/mcp/src/meter-collection/bacnet-client.test.ts`
+**Test Coverage**: `MeterItProSync/mcp/src/meter-collection/bacnet-client.test.ts`
 - ✅ Test: "should include field name in returned readings"
 - ✅ Test: "should preserve data point name in reading"
 
@@ -213,7 +213,7 @@ const reading: MeterReading = {
 
 ## RegisterCache Initialization ✅
 
-**File**: `sync/mcp/src/index.ts` (lines 108-111)
+**File**: `MeterItProSync/mcp/src/index.ts` (lines 108-111)
 
 ```typescript
 // Initialize RegisterCache

@@ -7,7 +7,7 @@ This feature involves migrating the dashboard implementation from the client app
 ## Glossary
 
 - **Framework Dashboard**: Reusable dashboard components and utilities in `framework/frontend/dashboards`
-- **Client Dashboard**: Application-specific dashboard implementation in `client/frontend`
+- **Client Dashboard**: Application-specific dashboard implementation in `MeterItPro/frontend`
 - **Dashboard Card**: A configurable widget displaying aggregated meter data
 - **Visualization**: Chart/graph component (line, bar, pie, area, candlestick)
 - **Aggregated Data**: Processed meter readings grouped by time period

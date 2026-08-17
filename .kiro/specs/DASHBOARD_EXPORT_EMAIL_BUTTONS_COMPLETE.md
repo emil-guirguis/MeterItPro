@@ -7,7 +7,7 @@ The export and email buttons have been successfully integrated into the dashboar
 ## What Was Done
 
 ### 1. Updated DashboardPage.tsx (Client)
-**File**: `client/frontend/src/pages/DashboardPage.tsx`
+**File**: `MeterItPro/frontend/src/pages/DashboardPage.tsx`
 
 Modified the `handleExpandCard` function to fetch BOTH:
 - Aggregated data (for visualization)
@@ -138,7 +138,7 @@ Example filename: `Main_Panel-2024-01-28.csv`
 
 ## Files Modified
 
-1. `client/frontend/src/pages/DashboardPage.tsx`
+1. `MeterItPro/frontend/src/pages/DashboardPage.tsx`
    - Updated `handleExpandCard()` to fetch detailed readings
 
 2. `framework/frontend/dashboards/components/ExpandedCardModal.tsx`

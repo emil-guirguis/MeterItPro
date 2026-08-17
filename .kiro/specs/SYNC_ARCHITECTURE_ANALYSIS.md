@@ -19,19 +19,19 @@
 ### Unused Components (Dead Code)
 
 3. **SyncScheduler** ❌ NOT USED
-   - Located in: `sync/mcp/src/data-sync/sync-scheduler.ts`
+   - Located in: `MeterItProSync/mcp/src/data-sync/sync-scheduler.ts`
    - **Status**: Instantiated nowhere, never called
    - **Purpose**: Was intended to orchestrate UploadSyncManager + DownloadSyncManager
    - **Problem**: Duplicate functionality already handled by active agents
 
 4. **UploadSyncManager** ❌ NOT USED
-   - Located in: `sync/mcp/src/data-sync/upload-sync-manager.ts`
+   - Located in: `MeterItProSync/mcp/src/data-sync/upload-sync-manager.ts`
    - **Status**: Only imported by SyncScheduler (which isn't used)
    - **Purpose**: Upload meter readings to remote
    - **Duplicate of**: BACnetMeterReadingAgent's upload functionality
 
 5. **DownloadSyncManager** ❌ NOT USED
-   - Located in: `sync/mcp/src/data-sync/download-sync-manager.ts`
+   - Located in: `MeterItProSync/mcp/src/data-sync/download-sync-manager.ts`
    - **Status**: Only imported by SyncScheduler (which isn't used)
    - **Purpose**: Download meter/tenant config from remote
    - **Duplicate of**: RemoteToLocalSyncAgent's sync functionality
@@ -129,9 +129,9 @@ The codebase appears to have evolved with two parallel implementations:
 
 ### Option 1: Remove Dead Code (Recommended)
 Delete unused files:
-- `sync/mcp/src/data-sync/sync-scheduler.ts`
-- `sync/mcp/src/data-sync/upload-sync-manager.ts`
-- `sync/mcp/src/data-sync/download-sync-manager.ts`
+- `MeterItProSync/mcp/src/data-sync/sync-scheduler.ts`
+- `MeterItProSync/mcp/src/data-sync/upload-sync-manager.ts`
+- `MeterItProSync/mcp/src/data-sync/download-sync-manager.ts`
 
 **Pros**:
 - Reduces codebase complexity
@@ -186,18 +186,18 @@ Keep current agents but use centralized scheduling constants:
 ## Files Involved
 
 ### Active (In Use)
-- `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
-- `sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
-- `sync/mcp/src/remote_to_local-sync/sync-agent.ts`
-- `sync/mcp/src/index.ts` (initialization)
+- `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
+- `MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
+- `MeterItProSync/mcp/src/remote_to_local-sync/sync-agent.ts`
+- `MeterItProSync/mcp/src/index.ts` (initialization)
 
 ### Unused (Dead Code)
-- `sync/mcp/src/data-sync/sync-scheduler.ts`
-- `sync/mcp/src/data-sync/upload-sync-manager.ts`
-- `sync/mcp/src/data-sync/download-sync-manager.ts`
+- `MeterItProSync/mcp/src/data-sync/sync-scheduler.ts`
+- `MeterItProSync/mcp/src/data-sync/upload-sync-manager.ts`
+- `MeterItProSync/mcp/src/data-sync/download-sync-manager.ts`
 
 ### Configuration (Centralized)
-- `sync/mcp/src/config/scheduling-constants.ts` ✅ NEW
+- `MeterItProSync/mcp/src/config/scheduling-constants.ts` ✅ NEW
 
 ## Conclusion
 

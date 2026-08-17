@@ -31,7 +31,7 @@ Fix the data mapping mismatch by updating frontend code to use `meter_element_id
 ## Implementation Strategy
 
 ### Fix 1: Update Frontend Type Definition
-**File**: `client/frontend/src/services/dashboardService.ts`
+**File**: `MeterItPro/frontend/src/services/dashboardService.ts`
 
 **Change**: Update the return type of `getMeterElementsByMeter()` to match backend response:
 
@@ -95,7 +95,7 @@ When editing different cards:
 
 ## Files to Modify
 1. `framework/frontend/dashboards/components/DashboardCardModal.tsx` - Fix line 361 and related code
-2. `client/frontend/src/services/dashboardService.ts` - Update type definition
+2. `MeterItPro/frontend/src/services/dashboardService.ts` - Update type definition
 
 ## Testing Strategy
 

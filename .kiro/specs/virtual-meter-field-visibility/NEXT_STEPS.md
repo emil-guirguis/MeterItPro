@@ -10,13 +10,13 @@ The `ConvertedSchema` interface in `schemaLoader.ts` was updated to include `vis
 
 **Option A: Using npm dev server**
 ```bash
-cd client/frontend
+cd MeterItPro/frontend
 npm run dev
 ```
 
 **Option B: Using npm build**
 ```bash
-cd client/frontend
+cd MeterItPro/frontend
 npm run build
 ```
 
@@ -113,7 +113,7 @@ Wait for the build to complete.
 2. Verify all files were saved correctly
 3. Try deleting `node_modules` and reinstalling:
    ```bash
-   cd client/frontend
+   cd MeterItPro/frontend
    rm -rf node_modules
    npm install
    npm run dev

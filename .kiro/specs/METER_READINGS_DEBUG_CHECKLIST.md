@@ -3,7 +3,7 @@
 ## Pre-Debug Checklist
 
 - [ ] Backend is running (`npm start` in `client/backend`)
-- [ ] Frontend is running (`npm run dev` in `client/frontend`)
+- [ ] Frontend is running (`npm run dev` in `MeterItPro/frontend`)
 - [ ] Browser DevTools is open (F12)
 - [ ] Console tab is active
 - [ ] At least one favorite meter element exists in the sidebar

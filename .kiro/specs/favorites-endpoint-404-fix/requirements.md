@@ -11,7 +11,7 @@ The `/api/favorites` endpoint is currently returning a 404 error when called fro
 - **Route_Handler**: The function that processes HTTP requests for a specific endpoint
 - **Middleware**: Functions that process requests before they reach route handlers
 - **Global_Middleware**: Middleware applied to all routes matching a pattern at the server level
-- **Frontend**: The client-side application in `client/frontend/`
+- **Frontend**: The client-side application in `MeterItPro/frontend/`
 - **Backend**: The server-side application in `client/backend/`
 
 ## Requirements

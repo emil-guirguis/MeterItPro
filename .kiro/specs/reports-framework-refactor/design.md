@@ -96,7 +96,7 @@ interface FieldDefinition {
 
 ### 2. Refactored ReportForm Component
 
-**File**: `client/frontend/src/features/reports/ReportForm.tsx`
+**File**: `MeterItPro/frontend/src/features/reports/ReportForm.tsx`
 
 ```typescript
 interface ReportFormProps {
@@ -153,7 +153,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({
 
 ### 3. RecipientsField Custom Component
 
-**File**: `client/frontend/src/features/reports/components/RecipientsField.tsx`
+**File**: `MeterItPro/frontend/src/features/reports/components/RecipientsField.tsx`
 
 ```typescript
 interface RecipientsFieldProps {
@@ -254,7 +254,7 @@ export const RecipientsField: React.FC<RecipientsFieldProps> = ({
 
 ### 4. ScheduleField Custom Component
 
-**File**: `client/frontend/src/features/reports/components/ScheduleField.tsx`
+**File**: `MeterItPro/frontend/src/features/reports/components/ScheduleField.tsx`
 
 ```typescript
 const CRON_PRESETS = [
@@ -315,7 +315,7 @@ export const ScheduleField: React.FC<ScheduleFieldProps> = ({
 
 ### 5. Enhanced ReportList Component
 
-**File**: `client/frontend/src/features/reports/ReportList.tsx`
+**File**: `MeterItPro/frontend/src/features/reports/ReportList.tsx`
 
 The ReportList already uses BaseList but will be enhanced to:
 - Ensure all columns are properly defined

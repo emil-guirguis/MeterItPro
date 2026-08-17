@@ -54,10 +54,10 @@ CREATE TABLE favorite (
 - `client/backend/src/server.js` - Route registration
 
 ### Frontend
-- `client/frontend/src/services/favoritesService.ts` - Updated service with generic methods
-- `client/frontend/src/components/sidebar-meters/types.ts` - Updated Favorite interface
-- `client/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx` - Updated component
-- `client/frontend/src/components/sidebar-meters/MetersList.tsx` - Updated component
+- `MeterItPro/frontend/src/services/favoritesService.ts` - Updated service with generic methods
+- `MeterItPro/frontend/src/components/sidebar-meters/types.ts` - Updated Favorite interface
+- `MeterItPro/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx` - Updated component
+- `MeterItPro/frontend/src/components/sidebar-meters/MetersList.tsx` - Updated component
 
 ## API Endpoints
 

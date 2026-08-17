@@ -1,7 +1,7 @@
 # Code Analysis Report: Unused & Duplicate Code
 
 **Generated:** January 8, 2026  
-**Analysis Scope:** client/backend, sync/mcp, client/frontend  
+**Analysis Scope:** client/backend, MeterItProSync/mcp, MeterItPro/frontend  
 **Status:** Analysis Complete
 
 ---
@@ -9,7 +9,7 @@
 ## 📊 Executive Summary
 
 Found **significant unused imports** and **potential code duplication** across the codebase. The analysis identified:
-- ✅ **7 Unused Imports** in sync/mcp/src/index.ts (highest priority)
+- ✅ **7 Unused Imports** in MeterItProSync/mcp/src/index.ts (highest priority)
 - ✅ **Duplicate Helper Functions** in sync service utilities
 - ✅ **Duplicate Database Pool Creation** pattern in index.ts
 - ✅ **Multiple Validation Patterns** with similar logic
@@ -19,9 +19,9 @@ Found **significant unused imports** and **potential code duplication** across t
 
 ## 🎯 CRITICAL FINDINGS
 
-### 1. **UNUSED IMPORTS IN sync/mcp/src/index.ts** ⚠️ HIGH PRIORITY
+### 1. **UNUSED IMPORTS IN MeterItProSync/mcp/src/index.ts** ⚠️ HIGH PRIORITY
 
-**File:** [sync/mcp/src/index.ts](sync/mcp/src/index.ts#L20-L28)
+**File:** [MeterItProSync/mcp/src/index.ts](MeterItProSync/mcp/src/index.ts#L20-L28)
 
 Imports that are declared but **NEVER USED** in the code:
 
@@ -60,7 +60,7 @@ import { SyncDatabase } from './data-sync/data-sync.js';
 
 ### 2. **DUPLICATE DATABASE POOL CREATION PATTERN** ⚠️ MEDIUM PRIORITY
 
-**File:** [sync/mcp/src/index.ts](sync/mcp/src/index.ts#L317-L328)
+**File:** [MeterItProSync/mcp/src/index.ts](MeterItProSync/mcp/src/index.ts#L317-L328)
 
 **Issue:** The code creates `remotePool` twice:
 
@@ -94,7 +94,7 @@ private createRemoteDatabasePool(): Pool {
 
 ### 3. **DUPLICATE SYNC UTILITY FUNCTIONS** ⚠️ MEDIUM PRIORITY
 
-**Location:** [sync/mcp/src/helpers/](sync/mcp/src/helpers/)
+**Location:** [MeterItProSync/mcp/src/helpers/](MeterItProSync/mcp/src/helpers/)
 
 Two files contain overlapping/duplicate functionality:
 
@@ -132,7 +132,7 @@ const remoteMeters = await getRemoteEntities(remotePool, 'meter', tenantId, ...)
 
 ### 4. **DUPLICATE VALIDATION PATTERNS** ⚠️ MEDIUM PRIORITY
 
-**File:** [sync/mcp/src/remote_to_local-sync/sync-device.ts](sync/mcp/src/remote_to_local-sync/sync-device.ts#L101-L140)
+**File:** [MeterItProSync/mcp/src/remote_to_local-sync/sync-device.ts](MeterItProSync/mcp/src/remote_to_local-sync/sync-device.ts#L101-L140)
 
 The validation is duplicated in two places within the same file:
 
@@ -154,7 +154,7 @@ const registerExists = await validateEntityExists(syncPool, 'register', remoteAs
 
 ### 5. **DEPRECATED/COMMENTED CODE** ⚠️ LOW PRIORITY
 
-**File:** [sync/mcp/src/index.ts](sync/mcp/src/index.ts#L105-L115)
+**File:** [MeterItProSync/mcp/src/index.ts](MeterItProSync/mcp/src/index.ts#L105-L115)
 
 Large commented-out block:
 ```typescript
@@ -177,7 +177,7 @@ Large commented-out block:
 
 ### 6. **DEPRECATED FILE (For Reference Only)** ✅ ALREADY MARKED
 
-**File:** [sync/mcp/src/data-sync/database/sync-database.ts](sync/mcp/src/data-sync/database/sync-database.ts)
+**File:** [MeterItProSync/mcp/src/data-sync/database/sync-database.ts](MeterItProSync/mcp/src/data-sync/database/sync-database.ts)
 
 **Status:** ✅ Already marked as `@deprecated` with clear message
 
@@ -212,7 +212,7 @@ Large commented-out block:
 ## 🚀 RECOMMENDED CLEANUP ACTIONS
 
 ### Priority 1: IMMEDIATE (15 mins)
-1. **Remove unused imports from sync/mcp/src/index.ts**
+1. **Remove unused imports from MeterItProSync/mcp/src/index.ts**
    - Remove: `MeterCollector`, `CollectorConfig`, `createSyncManagerFromEnv`, duplicate `SyncDatabase`
    - Keep only what's actually used
    - Files affected: 1

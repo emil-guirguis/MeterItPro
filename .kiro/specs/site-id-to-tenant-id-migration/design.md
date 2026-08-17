@@ -24,11 +24,11 @@ This design document outlines the systematic replacement of incorrect database f
 Update MCP tool definitions and queries to use correct field names:
 
 **Files:**
-- `client/mcp/src/tools/query-readings.ts`
-- `client/mcp/src/tools/query-meters.ts`
-- `client/mcp/src/tools/generate-report.ts`
-- `client/mcp/src/tools/get-site-status.ts`
-- `client/mcp/src/index.ts`
+- `MeterItPro/mcp/src/tools/query-readings.ts`
+- `MeterItPro/mcp/src/tools/query-meters.ts`
+- `MeterItPro/mcp/src/tools/generate-report.ts`
+- `MeterItPro/mcp/src/tools/get-site-status.ts`
+- `MeterItPro/mcp/src/index.ts`
 
 **Changes:**
 - Replace `site_id` with `tenant_id` in SQL queries
@@ -41,7 +41,7 @@ Update MCP tool definitions and queries to use correct field names:
 Update service layer that executes queries:
 
 **Files:**
-- `client/mcp/src/services/report-executor.ts`
+- `MeterItPro/mcp/src/services/report-executor.ts`
 
 **Changes:**
 - Replace `site_id` with `tenant_id` in queries
@@ -64,7 +64,7 @@ Remove slave_id references from meter collection:
 Update entity metadata to reflect correct database schema:
 
 **Files:**
-- `sync/mcp/src/types/common.types.ts`
+- `MeterItProSync/mcp/src/types/common.types.ts`
 
 **Changes:**
 - Verify ENTITY_METADATA has correct column definitions
@@ -74,8 +74,8 @@ Update entity metadata to reflect correct database schema:
 Update test data and documentation:
 
 **Files:**
-- `client/mcp/src/services/report-executor.test.ts`
-- `client/mcp/SCHEDULER_IMPLEMENTATION.md`
+- `MeterItPro/mcp/src/services/report-executor.test.ts`
+- `MeterItPro/mcp/SCHEDULER_IMPLEMENTATION.md`
 - `.kiro/specs/POWER_COLUMN_DISCOVERY_*.md`
 
 **Changes:**

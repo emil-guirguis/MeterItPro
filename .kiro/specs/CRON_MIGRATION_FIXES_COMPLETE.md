@@ -94,11 +94,11 @@ The system maintains backward compatibility:
 ## Testing
 
 All TypeScript files compile without errors:
-- ✅ `sync/mcp/src/index.ts`
-- ✅ `sync/mcp/src/config/scheduling-constants.ts`
-- ✅ `sync/mcp/src/bacnet-collection/types.ts`
-- ✅ `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
-- ✅ `sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
+- ✅ `MeterItProSync/mcp/src/index.ts`
+- ✅ `MeterItProSync/mcp/src/config/scheduling-constants.ts`
+- ✅ `MeterItProSync/mcp/src/bacnet-collection/types.ts`
+- ✅ `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
+- ✅ `MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
 
 ## Next Steps
 

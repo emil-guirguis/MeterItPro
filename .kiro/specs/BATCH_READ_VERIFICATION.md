@@ -85,7 +85,7 @@ const manager = new CollectionCycleManager(
 - ✅ Metrics tracking for monitoring
 
 ## Files Involved
-- `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Orchestrates batch reads
-- `sync/mcp/src/bacnet-collection/batch-size-manager.ts` - Manages batch sizing
-- `sync/mcp/src/bacnet-collection/bacnet-client.ts` - Performs actual BACnet reads
-- `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` - Initializes the manager
+- `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Orchestrates batch reads
+- `MeterItProSync/mcp/src/bacnet-collection/batch-size-manager.ts` - Manages batch sizing
+- `MeterItProSync/mcp/src/bacnet-collection/bacnet-client.ts` - Performs actual BACnet reads
+- `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` - Initializes the manager

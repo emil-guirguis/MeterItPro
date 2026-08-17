@@ -69,7 +69,7 @@ When a user clicks the "Edit" button on a dashboard card, the edit modal crashes
 
 ### Affected Files
 - `framework/frontend/dashboards/components/DashboardCardModal.tsx` - Line 361 tries to access `element.id.toString()`
-- `client/frontend/src/services/dashboardService.ts` - Type definition expects `id` field
+- `MeterItPro/frontend/src/services/dashboardService.ts` - Type definition expects `id` field
 - `client/backend/src/routes/dashboard.js` - Returns `meter_element_id` instead of `id`
 
 ## Success Criteria

@@ -15,7 +15,7 @@ The debugger isn't stopping at breakpoints in the Sync MCP Server. This is becau
 Make sure the project is built with source maps:
 
 ```bash
-cd sync/mcp
+cd MeterItProSync/mcp
 npm run build
 ```
 
@@ -30,13 +30,13 @@ The launch.json has been updated with proper source map configuration:
   "name": "Sync MCP Server (Node.js)",
   "type": "node",
   "request": "launch",
-  "program": "${workspaceFolder}/sync/mcp/dist/index.js",
+  "program": "${workspaceFolder}/MeterItProSync/mcp/dist/index.js",
   "sourceMaps": true,
   "outFiles": [
-    "${workspaceFolder}/sync/mcp/dist/**/*.js"
+    "${workspaceFolder}/MeterItProSync/mcp/dist/**/*.js"
   ],
   "resolveSourceMapLocations": [
-    "${workspaceFolder}/sync/mcp/**",
+    "${workspaceFolder}/MeterItProSync/mcp/**",
     "!**/node_modules/**"
   ]
 }
@@ -48,7 +48,7 @@ The launch.json has been updated with proper source map configuration:
 2. Go to Run → Debug Configurations
 3. Select "Debug Sync Backend"
 4. Press F5 to start debugging
-5. Set breakpoints in the TypeScript source files (in `sync/mcp/src/`)
+5. Set breakpoints in the TypeScript source files (in `MeterItProSync/mcp/src/`)
 6. The debugger should now stop at breakpoints
 
 ### Step 4: Trigger the API Call
@@ -66,7 +66,7 @@ To debug the tenant loading issue:
 
 ### Set Breakpoints
 
-1. Open `sync/mcp/src/api/server.ts`
+1. Open `MeterItProSync/mcp/src/api/server.ts`
 2. Find the `GET /api/local/tenant` endpoint (around line 130)
 3. Click on the line number to set a breakpoint at:
    - `console.log('📥 [API] GET /api/local/tenant - Request received');`
@@ -102,7 +102,7 @@ To debug the tenant loading issue:
 
 **Solution:**
 1. Check that the preLaunchTask "build-sync-mcp" is configured
-2. Verify source maps are generated: `ls sync/mcp/dist/*.map`
+2. Verify source maps are generated: `ls MeterItProSync/mcp/dist/*.map`
 3. Try adding a `debugger;` statement in the code:
    ```typescript
    this.app.get('/api/local/tenant', async (_req, res, next) => {
@@ -123,7 +123,7 @@ To debug the tenant loading issue:
 If breakpoints aren't working, use console logging instead:
 
 ```typescript
-// In sync/mcp/src/api/server.ts
+// In MeterItProSync/mcp/src/api/server.ts
 this.app.get('/api/local/tenant', async (_req, res, next) => {
   try {
     console.log('📥 [API] GET /api/local/tenant - Request received');
@@ -215,10 +215,10 @@ JSON.stringify(tenant, null, 2)
 
 ## Files to Debug
 
-- `sync/mcp/src/api/server.ts` - API endpoints
-- `sync/mcp/src/data-sync/connection-manager.ts` - Database connections
-- `sync/mcp/src/index.ts` - Server initialization
-- `sync/mcp/src/sync-service/meter-sync-agent.ts` - Meter sync logic
+- `MeterItProSync/mcp/src/api/server.ts` - API endpoints
+- `MeterItProSync/mcp/src/data-sync/connection-manager.ts` - Database connections
+- `MeterItProSync/mcp/src/index.ts` - Server initialization
+- `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` - Meter sync logic
 
 ## Tips
 
@@ -226,14 +226,14 @@ JSON.stringify(tenant, null, 2)
 2. **Use the Debug Console** to inspect variables
 3. **Set breakpoints in src/, not dist/**
 4. **Watch the terminal** for console.log output
-5. **Check source maps** are generated: `ls sync/mcp/dist/*.map`
+5. **Check source maps** are generated: `ls MeterItProSync/mcp/dist/*.map`
 6. **Restart debugger** if breakpoints stop working
 
 ## Next Steps
 
 1. Rebuild the project
 2. Start debugging with F5
-3. Set breakpoints in `sync/mcp/src/api/server.ts`
+3. Set breakpoints in `MeterItProSync/mcp/src/api/server.ts`
 4. Trigger the API call from the frontend
 5. Inspect variables in the Debug Console
 6. Step through the code to find the issue

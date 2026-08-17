@@ -102,7 +102,7 @@ cp generated/Meter.js client/backend/src/models/
 
 # Frontend (merge with existing if using custom)
 # Review and merge the schema definition
-code --diff client/frontend/src/features/meters/meterConfig.ts generated/meterConfig-custom.ts
+code --diff MeterItPro/frontend/src/features/meters/meterConfig.ts generated/meterConfig-custom.ts
 ```
 
 ### 4. Customize
@@ -132,7 +132,7 @@ node scripts/schema-generator.js users
 
 # 4. Copy to project
 cp generated/User.js client/backend/src/models/
-cp generated/userConfig.ts client/frontend/src/features/users/
+cp generated/userConfig.ts MeterItPro/frontend/src/features/users/
 
 # 5. Customize and test
 ```
@@ -172,7 +172,7 @@ code generated/meterConfig-custom.ts
 - `client/backend/src/models/` - Copy backend models here
 
 ### Frontend Schemas
-- `client/frontend/src/features/<entity>s/` - Copy frontend schemas here
+- `MeterItPro/frontend/src/features/<entity>s/` - Copy frontend schemas here
 
 ### Mapping Files
 - `scripts/schema-mappings/` - Custom mapping configurations
