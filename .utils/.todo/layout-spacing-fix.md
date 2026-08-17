@@ -16,7 +16,7 @@ The layout uses a fixed sidebar (280px wide) that sits on the left. The header a
 2. The actual fix needed is simpler: just ensure the content area properly accounts for the fixed sidebar
 
 ## Files Modified (need to revert)
-- client/frontend/src/index.css
+- MeterItPro/frontend/src/index.css
 - framework/frontend/layout/components/AppLayout.css  
 - framework/frontend/layout/components/Header.css
 - framework/frontend/shared/components/EntityManagementPage.css (new file created)

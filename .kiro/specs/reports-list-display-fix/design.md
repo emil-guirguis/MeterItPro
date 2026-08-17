@@ -47,7 +47,7 @@ ReportForm.tsx
 
 ### 1. Fix ReportList Column Display
 
-**File**: `client/frontend/src/features/reports/ReportList.tsx`
+**File**: `MeterItPro/frontend/src/features/reports/ReportList.tsx`
 
 **Issue**: The component defines `reportColumns` but passes `baseList.columns` to BaseList, which is undefined.
 
@@ -166,7 +166,7 @@ Add new fields to the Report schema:
 
 ### 3. MeterElementSelector Component
 
-**File**: `client/frontend/src/features/reports/components/MeterElementSelector.tsx`
+**File**: `MeterItPro/frontend/src/features/reports/components/MeterElementSelector.tsx`
 
 ```typescript
 interface MeterElementSelectorProps {
@@ -275,7 +275,7 @@ export const MeterElementSelector: React.FC<MeterElementSelectorProps> = ({
 
 ### 4. RegisterSelector Component
 
-**File**: `client/frontend/src/features/reports/components/RegisterSelector.tsx`
+**File**: `MeterItPro/frontend/src/features/reports/components/RegisterSelector.tsx`
 
 ```typescript
 interface RegisterSelectorProps {
@@ -333,7 +333,7 @@ export const RegisterSelector: React.FC<RegisterSelectorProps> = ({
 
 ### 5. Updated ReportForm Component
 
-**File**: `client/frontend/src/features/reports/ReportForm.tsx`
+**File**: `MeterItPro/frontend/src/features/reports/ReportForm.tsx`
 
 ```typescript
 export const ReportForm: React.FC<ReportFormProps> = ({

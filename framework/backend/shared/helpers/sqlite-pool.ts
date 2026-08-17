@@ -319,7 +319,7 @@ export function ensureSyncSchema(pool: SqlitePool): void {
 
 /**
  * Resolve the sync SQLite file path from the environment.
- * Both sync/api and sync/mcp MUST point at the same file — set SQLITE_SYNC_PATH
+ * Both MeterItProSync/api and MeterItProSync/mcp MUST point at the same file — set SQLITE_SYNC_PATH
  * in the root .env. Falls back to <cwd>/data/sync.db with a loud warning.
  */
 export function resolveSyncDbPath(): string {
@@ -328,7 +328,7 @@ export function resolveSyncDbPath(): string {
   const fallback = `${process.cwd()}/data/sync.db`;
   console.warn(
     `⚠️  [SQLite] SQLITE_SYNC_PATH not set — falling back to ${fallback}. ` +
-    `Set SQLITE_SYNC_PATH in the root .env so sync/api and sync/mcp share one database file.`
+    `Set SQLITE_SYNC_PATH in the root .env so MeterItProSync/api and MeterItProSync/mcp share one database file.`
   );
   return fallback;
 }

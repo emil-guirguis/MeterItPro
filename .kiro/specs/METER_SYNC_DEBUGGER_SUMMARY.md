@@ -5,8 +5,8 @@
 I've added **3 debugger statements** to help you trace the meter sync flow from the frontend trigger all the way through to the remote database query.
 
 ### Location 1: API Endpoint Entry Point
-**File:** `sync/mcp/src/api/server.ts` (Line ~440)  
-**Compiled:** `sync/mcp/dist/api/server.js` (Line ~391)
+**File:** `MeterItProSync/mcp/src/api/server.ts` (Line ~440)  
+**Compiled:** `MeterItProSync/mcp/dist/api/server.js` (Line ~391)
 
 ```typescript
 this.app.post('/api/local/meter-sync-trigger', async (_req, res, next) => {
@@ -27,8 +27,8 @@ this.app.post('/api/local/meter-sync-trigger', async (_req, res, next) => {
 ---
 
 ### Location 2: Main Sync Operation
-**File:** `sync/mcp/src/sync-service/meter-sync-agent.ts` (Line ~100)  
-**Compiled:** `sync/mcp/dist/sync-service/meter-sync-agent.js` (Line ~82)
+**File:** `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` (Line ~100)  
+**Compiled:** `MeterItProSync/mcp/dist/sync-service/meter-sync-agent.js` (Line ~82)
 
 ```typescript
 async performSync(): Promise<MeterSyncResult> {
@@ -51,8 +51,8 @@ async performSync(): Promise<MeterSyncResult> {
 ---
 
 ### Location 3: Remote Database Query
-**File:** `sync/mcp/src/sync-service/meter-sync-agent.ts` (Line ~240)  
-**Compiled:** `sync/mcp/dist/sync-service/meter-sync-agent.js` (Line ~244)
+**File:** `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` (Line ~240)  
+**Compiled:** `MeterItProSync/mcp/dist/sync-service/meter-sync-agent.js` (Line ~244)
 
 ```typescript
 private async getRemoteMeters(tenantId: number): Promise<MeterEntity[]> {
@@ -150,11 +150,11 @@ LOCAL Database (Sync System)
 
 | File | Purpose |
 |------|---------|
-| `sync/frontend/src/components/MeterSyncCard.tsx` | UI component - "Trigger Meter Sync" button |
-| `sync/frontend/src/api/services.ts` | API client - calls `/api/local/meter-sync-trigger` |
-| `sync/mcp/src/api/server.ts` | Express endpoint - receives trigger request |
-| `sync/mcp/src/sync-service/meter-sync-agent.ts` | Core sync logic - reads remote, writes local |
-| `sync/mcp/src/database/connection-pools.ts` | Database connections (remote & local) |
+| `MeterItProSync/frontend/src/components/MeterSyncCard.tsx` | UI component - "Trigger Meter Sync" button |
+| `MeterItProSync/frontend/src/api/services.ts` | API client - calls `/api/local/meter-sync-trigger` |
+| `MeterItProSync/mcp/src/api/server.ts` | Express endpoint - receives trigger request |
+| `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` | Core sync logic - reads remote, writes local |
+| `MeterItProSync/mcp/src/database/connection-pools.ts` | Database connections (remote & local) |
 
 ---
 
@@ -192,7 +192,7 @@ The meter sync reads from the **REMOTE** database and writes to the **LOCAL** da
 
 ## Next Steps
 
-1. Rebuild if you made any changes: `npm run build` in `sync/mcp`
+1. Rebuild if you made any changes: `npm run build` in `MeterItProSync/mcp`
 2. Start the debugger: VS Code → Run → "Debug Sync Backend"
 3. Click "Trigger Meter Sync" in the Sync Frontend
 4. Debugger will break at the three locations above

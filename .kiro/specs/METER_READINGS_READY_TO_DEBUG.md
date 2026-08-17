@@ -31,7 +31,7 @@ cd client/backend
 npm start
 
 # Terminal 2: Frontend
-cd client/frontend
+cd MeterItPro/frontend
 npm run dev
 ```
 
@@ -98,11 +98,11 @@ You'll see logs from all 5 components showing the complete flow
 
 ## Files Modified
 
-1. ✅ `client/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
-2. ✅ `client/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx`
-3. ✅ `client/frontend/src/components/layout/AppLayoutWrapper.tsx`
-4. ✅ `client/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx`
-5. ✅ `client/frontend/src/features/meterReadings/meterReadingsStore.ts`
+1. ✅ `MeterItPro/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
+2. ✅ `MeterItPro/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx`
+3. ✅ `MeterItPro/frontend/src/components/layout/AppLayoutWrapper.tsx`
+4. ✅ `MeterItPro/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx`
+5. ✅ `MeterItPro/frontend/src/features/meterReadings/meterReadingsStore.ts`
 
 ## Documentation Created
 

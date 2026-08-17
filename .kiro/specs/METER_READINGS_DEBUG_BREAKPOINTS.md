@@ -6,7 +6,7 @@ Added comprehensive console logging throughout the meter readings flow to help d
 ## Debug Flow (Click → Display)
 
 ### 1. FavoritesSection Click Handler
-**File**: `client/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
+**File**: `MeterItPro/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
 
 ```
 [FavoritesSection] ===== FAVORITE CLICKED =====
@@ -23,7 +23,7 @@ Added comprehensive console logging throughout the meter readings flow to help d
 ---
 
 ### 2. SidebarMetersSection Handler
-**File**: `client/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx`
+**File**: `MeterItPro/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx`
 
 ```
 [SidebarMetersSection] ===== FAVORITE ITEM CLICK HANDLER =====
@@ -40,7 +40,7 @@ Added comprehensive console logging throughout the meter readings flow to help d
 ---
 
 ### 3. AppLayoutWrapper Navigation
-**File**: `client/frontend/src/components/layout/AppLayoutWrapper.tsx`
+**File**: `MeterItPro/frontend/src/components/layout/AppLayoutWrapper.tsx`
 
 ```
 [AppLayoutWrapper] ===== METER ELEMENT SELECT =====
@@ -59,7 +59,7 @@ Added comprehensive console logging throughout the meter readings flow to help d
 ---
 
 ### 4. MeterReadingManagementPage URL Parsing
-**File**: `client/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx`
+**File**: `MeterItPro/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx`
 
 ```
 [MeterReadingManagementPage] RENDERING
@@ -81,7 +81,7 @@ Added comprehensive console logging throughout the meter readings flow to help d
 ---
 
 ### 5. MeterReadingsStore Fetch
-**File**: `client/frontend/src/features/meterReadings/meterReadingsStore.ts`
+**File**: `MeterItPro/frontend/src/features/meterReadings/meterReadingsStore.ts`
 
 ```
 [MeterReadingsStore] ===== FETCH ITEMS CALLED =====

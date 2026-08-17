@@ -10,9 +10,9 @@ The **Meter Sync** process reads meters from the **REMOTE** database (Client Sys
 
 | # | Location | File | What Happens |
 |---|----------|------|--------------|
-| 1️⃣ | API Endpoint | `sync/mcp/src/api/server.ts` | Frontend request received |
-| 2️⃣ | Sync Operation | `sync/mcp/src/sync-service/meter-sync-agent.ts` | Main sync logic starts |
-| 3️⃣ | Remote Query | `sync/mcp/src/sync-service/meter-sync-agent.ts` | REMOTE database queried |
+| 1️⃣ | API Endpoint | `MeterItProSync/mcp/src/api/server.ts` | Frontend request received |
+| 2️⃣ | Sync Operation | `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` | Main sync logic starts |
+| 3️⃣ | Remote Query | `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` | REMOTE database queried |
 
 ---
 
@@ -116,15 +116,15 @@ result.rows          // Meters from REMOTE database
 ## 📂 Key Files
 
 ```
-sync/frontend/src/components/MeterSyncCard.tsx
+MeterItProSync/frontend/src/components/MeterSyncCard.tsx
     ↓ (calls)
-sync/frontend/src/api/services.ts
+MeterItProSync/frontend/src/api/services.ts
     ↓ (POST to)
-sync/mcp/src/api/server.ts
+MeterItProSync/mcp/src/api/server.ts
     ↓ (calls)
-sync/mcp/src/sync-service/meter-sync-agent.ts
+MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts
     ↓ (uses)
-sync/mcp/src/database/connection-pools.ts
+MeterItProSync/mcp/src/database/connection-pools.ts
 ```
 
 ---

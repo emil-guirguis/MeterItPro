@@ -28,7 +28,7 @@ node scripts/schema-generator.js users
 
 # Copy to project
 cp generated/User.js client/backend/src/models/
-cp generated/userConfig.ts client/frontend/src/features/users/
+cp generated/userConfig.ts MeterItPro/frontend/src/features/users/
 
 # Customize and integrate
 ```
@@ -53,7 +53,7 @@ code --diff client/backend/src/models/Meter.js generated/Meter.js
 node scripts/schema-generator.js meter
 
 # Update frontend
-cp generated/meterConfig.ts client/frontend/src/features/meters/
+cp generated/meterConfig.ts MeterItPro/frontend/src/features/meters/
 ```
 
 ## 🔧 What to Customize
@@ -133,7 +133,7 @@ export const meterFilters: FilterDefinition[] = [
 
 - [ ] Review generated files in `generated/` directory
 - [ ] Copy backend model to `client/backend/src/models/`
-- [ ] Copy frontend schema to `client/frontend/src/features/*/`
+- [ ] Copy frontend schema to `MeterItPro/frontend/src/features/*/`
 - [ ] Add relationships in backend model
 - [ ] Customize field validation in frontend schema
 - [ ] Update list columns and filters
@@ -202,7 +202,7 @@ node scripts/schema-generator.js meter
 diff client/backend/src/models/Meter.js generated/Meter.js
 
 # Diff frontend  
-diff client/frontend/src/features/meters/meterConfig.ts generated/meterConfig.ts
+diff MeterItPro/frontend/src/features/meters/meterConfig.ts generated/meterConfig.ts
 ```
 
 ### Backup before overwrite

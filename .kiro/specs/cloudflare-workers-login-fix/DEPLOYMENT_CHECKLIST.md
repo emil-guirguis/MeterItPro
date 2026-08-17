@@ -75,12 +75,12 @@ FRONTEND_URL = "https://meteritpro.com"
 
 ```bash
 # Build and deploy Workers API
-cd client/api
+cd MeterItPro/api
 npm run build
 npx wrangler deploy
 
 # Rebuild and deploy frontend
-cd client/frontend
+cd MeterItPro/frontend
 npm run build
 # Deploy to Cloudflare Pages (via dashboard or CLI)
 ```

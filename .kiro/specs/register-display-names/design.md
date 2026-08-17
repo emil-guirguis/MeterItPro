@@ -51,7 +51,7 @@ This design document outlines the implementation of a register name mapping syst
 
 ### RegisterMappingService
 
-**Location**: `client/frontend/src/services/registerMappingService.ts`
+**Location**: `MeterItPro/frontend/src/services/registerMappingService.ts`
 
 **Responsibilities**:
 - Fetch all registers from backend API
@@ -113,7 +113,7 @@ class RegisterMappingService {
 
 ### Updated Meter Reading Configuration
 
-**Location**: `client/frontend/src/features/meterReadings/meterReadingConfig.ts`
+**Location**: `MeterItPro/frontend/src/features/meterReadings/meterReadingConfig.ts`
 
 **Changes**:
 - Column labels use register names instead of hardcoded strings
@@ -133,8 +133,8 @@ label: `${registerMappingService.getRegisterName('active_energy')} (${registerMa
 ### Updated Dashboard Components
 
 **Locations**:
-- `client/frontend/src/components/dashboard/DashboardCard.tsx`
-- `client/frontend/src/pages/dashboard/DashboardPage.tsx`
+- `MeterItPro/frontend/src/components/dashboard/DashboardCard.tsx`
+- `MeterItPro/frontend/src/pages/dashboard/DashboardPage.tsx`
 
 **Changes**:
 - Card labels use register names

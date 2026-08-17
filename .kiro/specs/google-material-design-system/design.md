@@ -33,9 +33,9 @@ The approach leverages MUI v5's theming capabilities to define Material Design 3
 │                                                               │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │    Client Modules (Inherit Framework Styling)        │   │
-│  │  - client/frontend/src/components/*                  │   │
-│  │  - client/frontend/src/dashboards/*                  │   │
-│  │  - sync/frontend/src/*                               │   │
+│  │  - MeterItPro/frontend/src/components/*                  │   │
+│  │  - MeterItPro/frontend/src/dashboards/*                  │   │
+│  │  - MeterItProSync/frontend/src/*                               │   │
 │  │  - framework/frontend/dashboards/*                   │   │
 │  └──────────────────────────────────────────────────────┘   │
 │                                                               │

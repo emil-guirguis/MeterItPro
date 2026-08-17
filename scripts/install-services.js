@@ -21,7 +21,7 @@ if (!existsSync(logsDir)) mkdirSync(logsDir, { recursive: true });
 
 // ── Build all three components first ─────────────────────────────────────────
 console.log('\nBuilding sync components...');
-const builds = ['sync/api', 'sync/mcp', 'sync/frontend'];
+const builds = ['MeterItProSync/api', 'MeterItProSync/mcp', 'MeterItProSync/frontend'];
 builds.forEach((pkg, i) => {
   console.log(`  [${i + 1}/${builds.length}] ${pkg}...`);
   execSync('npm run build', { cwd: path.join(repoRoot, pkg), stdio: 'inherit' });
@@ -67,22 +67,22 @@ const services = [
   {
     name:             'MeterItSyncAPI',
     description:      'MeterIt Pro — Sync REST API (port 3002)',
-    script:           path.join(repoRoot, 'sync/api/dist/server.js'),
-    workingDirectory: path.join(repoRoot, 'sync/api'),
+    script:           path.join(repoRoot, 'MeterItProSync/api/dist/server.js'),
+    workingDirectory: path.join(repoRoot, 'MeterItProSync/api'),
     logpath:          logsDir,
   },
   {
     name:             'MeterItSyncMCP',
     description:      'MeterIt Pro — Sync MCP/BACnet service',
-    script:           path.join(repoRoot, 'sync/mcp/dist/index.js'),
-    workingDirectory: path.join(repoRoot, 'sync/mcp'),
+    script:           path.join(repoRoot, 'MeterItProSync/mcp/dist/index.js'),
+    workingDirectory: path.join(repoRoot, 'MeterItProSync/mcp'),
     logpath:          logsDir,
   },
   {
     name:             'MeterItSyncFrontend',
     description:      'MeterIt Pro — Sync Frontend static server (port 3003)',
-    script:           path.join(repoRoot, 'sync/frontend/preview-server.mjs'),
-    workingDirectory: path.join(repoRoot, 'sync/frontend'),
+    script:           path.join(repoRoot, 'MeterItProSync/frontend/preview-server.mjs'),
+    workingDirectory: path.join(repoRoot, 'MeterItProSync/frontend'),
     logpath:          logsDir,
   },
 ];

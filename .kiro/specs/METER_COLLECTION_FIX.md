@@ -6,7 +6,7 @@ When clicking the "Trigger Collection" button on the sync frontend, nothing happ
 ## Root Cause
 The `readMeterDataPoints()` method in `CollectionCycleManager` was incomplete - it was just returning an empty array without actually reading any data from the meters.
 
-**File:** `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+**File:** `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 
 **Problem:**
 ```typescript

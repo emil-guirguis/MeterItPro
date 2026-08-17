@@ -8,7 +8,7 @@ The sync-service directory has been reorganized to improve code organization, re
 ### 1. **New Directory Structure**
 
 ```
-sync/mcp/src/
+MeterItProSync/mcp/src/
 ├── api/                                    (NEW - API-related modules)
 │   ├── client-system-api.ts               (MOVED from sync-service/api-client.ts)
 │   ├── connectivity-monitor.ts            (MOVED from sync-service/connectivity-monitor.ts)
@@ -154,9 +154,9 @@ const result = await orchestrateSync({
 
 ## Files Deleted
 
-- `sync/mcp/src/sync-service/api-client.ts` (moved to `api/client-system-api.ts`)
-- `sync/mcp/src/sync-service/connectivity-monitor.ts` (moved to `api/connectivity-monitor.ts`)
-- `sync/mcp/src/sync-service/meter-sync-agent.ts` (renamed to `meter-sync-orchestrator.ts`)
+- `MeterItProSync/mcp/src/sync-service/api-client.ts` (moved to `api/client-system-api.ts`)
+- `MeterItProSync/mcp/src/sync-service/connectivity-monitor.ts` (moved to `api/connectivity-monitor.ts`)
+- `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` (renamed to `meter-sync-orchestrator.ts`)
 
 ## Next Steps
 

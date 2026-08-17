@@ -10,12 +10,12 @@ The TypeScript source code has been successfully compiled to JavaScript. The new
    ```bash
    npm run build
    ```
-   - Ran in: `sync/mcp` directory
+   - Ran in: `MeterItProSync/mcp` directory
    - Command: `npm run build` (which runs `tsc`)
    - Result: ✅ Success (Exit Code: 0)
 
 2. **Verified Compiled Output**
-   - Checked `sync/mcp/dist/bacnet-collection/collection-cycle-manager.js`
+   - Checked `MeterItProSync/mcp/dist/bacnet-collection/collection-cycle-manager.js`
    - Confirmed value extraction logic is present:
      - Checks for `.value` property
      - Checks for `._value` property
@@ -87,8 +87,8 @@ Meter 1: inserted 0 readings (40 skipped, 0 failed)
 
 ## Files Modified
 
-- ✅ `sync/mcp/dist/bacnet-collection/collection-cycle-manager.js` (compiled output)
-- Source: `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts` (TypeScript source)
+- ✅ `MeterItProSync/mcp/dist/bacnet-collection/collection-cycle-manager.js` (compiled output)
+- Source: `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts` (TypeScript source)
 
 ## Troubleshooting
 

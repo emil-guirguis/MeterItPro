@@ -57,7 +57,7 @@ Updated the `handleEmailClick` function to:
 To test the email functionality:
 
 1. Start the backend server: `npm run dev` (from client/backend)
-2. Start the frontend: `npm run dev` (from client/frontend)
+2. Start the frontend: `npm run dev` (from MeterItPro/frontend)
 3. Navigate to the Dashboard page
 4. Click the email button (envelope icon) on any dashboard card
 5. Check your email for the CSV attachment

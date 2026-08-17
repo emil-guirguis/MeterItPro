@@ -2,7 +2,7 @@
 
 ## Files Modified
 
-### 1. `sync/mcp/src/data-sync/data-sync.ts`
+### 1. `MeterItProSync/mcp/src/data-sync/data-sync.ts`
 
 **Location**: After the constructor (around line 140)
 
@@ -20,7 +20,7 @@ getPool(): Pool {
 
 ---
 
-### 2. `sync/mcp/src/bacnet-collection/reading-batcher.ts`
+### 2. `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts`
 
 **Location**: In the `flushBatch` method (around line 180)
 
@@ -94,7 +94,7 @@ for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
 
 ### 1. Start the sync MCP server
 ```bash
-cd sync/mcp
+cd MeterItProSync/mcp
 npm run dev
 ```
 
@@ -152,9 +152,9 @@ INSERT INTO meter_reading
 ## Files Not Modified
 
 These files remain unchanged:
-- `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
-- `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
-- `sync/mcp/src/bacnet-collection/types.ts`
+- `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+- `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
+- `MeterItProSync/mcp/src/bacnet-collection/types.ts`
 - All other files
 
 The fix is minimal and focused on the root cause.

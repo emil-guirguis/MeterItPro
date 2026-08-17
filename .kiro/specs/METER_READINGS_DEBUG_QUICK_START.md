@@ -117,11 +117,11 @@ In the backend terminal, you should see:
 
 ## Files Modified
 
-1. `client/frontend/src/components/sidebar-meters/FavoritesSection.tsx` - Fixed type error, added logging
-2. `client/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx` - Added logging
-3. `client/frontend/src/components/layout/AppLayoutWrapper.tsx` - Added logging
-4. `client/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx` - Added logging
-5. `client/frontend/src/features/meterReadings/meterReadingsStore.ts` - Added detailed logging
+1. `MeterItPro/frontend/src/components/sidebar-meters/FavoritesSection.tsx` - Fixed type error, added logging
+2. `MeterItPro/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx` - Added logging
+3. `MeterItPro/frontend/src/components/layout/AppLayoutWrapper.tsx` - Added logging
+4. `MeterItPro/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx` - Added logging
+5. `MeterItPro/frontend/src/features/meterReadings/meterReadingsStore.ts` - Added detailed logging
 
 ## Next Steps
 

@@ -38,7 +38,7 @@ Collection Cycle Manager
 
 ### 1. Collection Cycle Manager Changes
 
-**File**: `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+**File**: `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 
 **Changes**:
 - Add `batchReadTimeoutMs` parameter to `executeCycle()` method
@@ -75,7 +75,7 @@ private async performBatchReadWithAdaptiveSizing(
 
 ### 2. BACnet Reading Agent Changes
 
-**File**: `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
+**File**: `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`
 
 **Changes**:
 - Pass `batchReadTimeoutMs` when calling `cycleManager.executeCycle()`
@@ -93,7 +93,7 @@ const result = await this.cycleManager.executeCycle(
 
 ### 3. Batch Read Operation
 
-**File**: `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+**File**: `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 
 **Changes in `performBatchReadWithAdaptiveSizing()`**:
 - Use `batchReadTimeoutMs` for batch read operations

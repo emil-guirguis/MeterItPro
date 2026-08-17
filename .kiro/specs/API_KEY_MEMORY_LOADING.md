@@ -6,7 +6,7 @@ Updated the Sync system to load the API key from the tenant table and store it i
 ## Changes Made
 
 ### 1. Updated TenantEntity Interface
-**File**: `sync/mcp/src/types/entities.ts`
+**File**: `MeterItProSync/mcp/src/types/entities.ts`
 
 Added `api_key` field to the TenantEntity interface:
 ```typescript
@@ -25,7 +25,7 @@ export interface TenantEntity {
 ```
 
 ### 2. Updated SyncManager
-**File**: `sync/mcp/src/sync-service/sync-manager.ts`
+**File**: `MeterItProSync/mcp/src/sync-service/sync-manager.ts`
 
 Added API key storage in memory:
 ```typescript
@@ -62,7 +62,7 @@ async start(): Promise<void> {
 ```
 
 ### 3. Updated ClientSystemApiClient
-**File**: `sync/mcp/src/api/client-system-api.ts`
+**File**: `MeterItProSync/mcp/src/api/client-system-api.ts`
 
 Added `setApiKey()` method to update the API key at runtime:
 ```typescript
@@ -186,6 +186,6 @@ curl -X POST http://localhost:3001/api/sync/heartbeat \
 - Solution: Restart the Sync MCP Server
 
 ## Files Modified
-1. `sync/mcp/src/types/entities.ts` - Added `api_key` field to TenantEntity
-2. `sync/mcp/src/sync-service/sync-manager.ts` - Added API key loading logic
-3. `sync/mcp/src/api/client-system-api.ts` - Added `setApiKey()` method
+1. `MeterItProSync/mcp/src/types/entities.ts` - Added `api_key` field to TenantEntity
+2. `MeterItProSync/mcp/src/sync-service/sync-manager.ts` - Added API key loading logic
+3. `MeterItProSync/mcp/src/api/client-system-api.ts` - Added `setApiKey()` method

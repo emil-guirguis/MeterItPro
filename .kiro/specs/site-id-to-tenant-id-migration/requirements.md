@@ -61,22 +61,22 @@ As a developer, I need to verify that all tables that require tenant filtering h
 - `client/backend/.env` - Remove or deprecate DEFAULT_METER_SLAVE_ID
 
 ### Client MCP Service Files
-- `client/mcp/src/tools/query-readings.ts` - Remove site_id, external_id
-- `client/mcp/src/tools/query-meters.ts` - Remove site_id, external_id
-- `client/mcp/src/tools/generate-report.ts` - Replace site_id with tenant_id, remove external_id
-- `client/mcp/src/tools/get-site-status.ts` - Replace site_id with tenant_id
-- `client/mcp/src/services/report-executor.ts` - Replace site_id with tenant_id
-- `client/mcp/src/index.ts` - Update MCP tool definitions
+- `MeterItPro/mcp/src/tools/query-readings.ts` - Remove site_id, external_id
+- `MeterItPro/mcp/src/tools/query-meters.ts` - Remove site_id, external_id
+- `MeterItPro/mcp/src/tools/generate-report.ts` - Replace site_id with tenant_id, remove external_id
+- `MeterItPro/mcp/src/tools/get-site-status.ts` - Replace site_id with tenant_id
+- `MeterItPro/mcp/src/services/report-executor.ts` - Replace site_id with tenant_id
+- `MeterItPro/mcp/src/index.ts` - Update MCP tool definitions
 
 ### Sync System Files
-- `sync/mcp/src/types/common.types.ts` - Update ENTITY_METADATA
+- `MeterItProSync/mcp/src/types/common.types.ts` - Update ENTITY_METADATA
 
 ### Test Files
-- `client/mcp/src/services/report-executor.test.ts` - Update mock data
-- `client/mcp/src/tools/query-meters.ts` - Update test data
+- `MeterItPro/mcp/src/services/report-executor.test.ts` - Update mock data
+- `MeterItPro/mcp/src/tools/query-meters.ts` - Update test data
 
 ### Documentation
-- `client/mcp/SCHEDULER_IMPLEMENTATION.md` - Update field references
+- `MeterItPro/mcp/SCHEDULER_IMPLEMENTATION.md` - Update field references
 
 ## Technical Notes
 - The database uses `tenant_id` as the primary identifier for multi-tenancy

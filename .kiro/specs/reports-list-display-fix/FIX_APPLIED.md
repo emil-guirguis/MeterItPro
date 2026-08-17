@@ -23,7 +23,7 @@ data={reports.items}
 
 ## Files Modified
 
-1. **client/frontend/src/features/reports/ReportList.tsx**
+1. **MeterItPro/frontend/src/features/reports/ReportList.tsx**
    - Line 189: Changed `data={reports.data}` to `data={reports.items}`
 
 ## Verification

@@ -16,11 +16,11 @@ Added detailed console logging throughout the entire flow from favorite click to
 - **All components**: Added comprehensive console logging
 
 ### 2. Files Modified
-1. `client/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
-2. `client/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx`
-3. `client/frontend/src/components/layout/AppLayoutWrapper.tsx`
-4. `client/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx`
-5. `client/frontend/src/features/meterReadings/meterReadingsStore.ts`
+1. `MeterItPro/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
+2. `MeterItPro/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx`
+3. `MeterItPro/frontend/src/components/layout/AppLayoutWrapper.tsx`
+4. `MeterItPro/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx`
+5. `MeterItPro/frontend/src/features/meterReadings/meterReadingsStore.ts`
 
 ### 3. Documentation Created
 1. `METER_READINGS_DEBUG_BREAKPOINTS.md` - Detailed breakpoint documentation

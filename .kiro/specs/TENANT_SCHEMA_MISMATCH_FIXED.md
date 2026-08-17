@@ -21,7 +21,7 @@ The sync database `tenant` table doesn't have `created_at` and `updated_at` colu
 
 ### 1. Updated API Endpoint
 
-**File:** `sync/mcp/src/api/server.ts`
+**File:** `MeterItProSync/mcp/src/api/server.ts`
 
 Changed the query to only select columns that exist:
 
@@ -42,7 +42,7 @@ if (tenant) {
 
 ### 2. Updated SyncDatabaseService
 
-**File:** `sync/mcp/src/database/sync-database.ts`
+**File:** `MeterItProSync/mcp/src/database/sync-database.ts`
 
 The `getTenant()` method already only queries existing columns, so no changes needed there.
 
@@ -71,7 +71,7 @@ CREATE TABLE tenant (
 
 1. **Rebuild the project:**
    ```bash
-   cd sync/mcp
+   cd MeterItProSync/mcp
    npm run build
    ```
 
@@ -115,8 +115,8 @@ CREATE TABLE tenant (
 
 ## Files Modified
 
-- `sync/mcp/src/api/server.ts` - Fixed tenant query
-- `sync/mcp/src/database/sync-database.ts` - Already correct
+- `MeterItProSync/mcp/src/api/server.ts` - Fixed tenant query
+- `MeterItProSync/mcp/src/database/sync-database.ts` - Already correct
 
 ## Next Steps
 

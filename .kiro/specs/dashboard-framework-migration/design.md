@@ -35,7 +35,7 @@ Framework Layer (framework/frontend/dashboards/)
     ├── layout (responsive grid calculations)
     └── validators (data validation)
 
-Client Layer (client/frontend/)
+Client Layer (MeterItPro/frontend/)
 ├── Services
 │   └── dashboardService (API communication)
 ├── Pages

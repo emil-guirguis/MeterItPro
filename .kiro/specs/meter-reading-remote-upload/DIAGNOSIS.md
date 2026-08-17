@@ -41,11 +41,11 @@ But this endpoint is not implemented in `client/backend/src/routes/`.
 
 ## Evidence
 
-1. **MeterReadingUploadManager** (sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts):
+1. **MeterReadingUploadManager** (MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts):
    - Line 145: Calls `this.apiClient.uploadBatch(readings)`
    - Expects successful response
 
-2. **ClientSystemApiClient** (sync/mcp/src/api/client-system-api.ts):
+2. **ClientSystemApiClient** (MeterItProSync/mcp/src/api/client-system-api.ts):
    - Line 108: Makes POST to `/sync/readings/batch`
    - Expects `BatchUploadResponse` with `success` flag
 

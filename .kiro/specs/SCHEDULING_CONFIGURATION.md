@@ -1,6 +1,6 @@
 # Scheduling Configuration
 
-All scheduling intervals and cron expressions are now centralized in `sync/mcp/src/config/scheduling-constants.ts`.
+All scheduling intervals and cron expressions are now centralized in `MeterItProSync/mcp/src/config/scheduling-constants.ts`.
 
 ## Overview
 
@@ -67,7 +67,7 @@ export DATA_SYNC_INTERVAL_SECONDS=60
 
 ### Using Code
 
-Import the constants from `sync/mcp/src/config/scheduling-constants.ts`:
+Import the constants from `MeterItProSync/mcp/src/config/scheduling-constants.ts`:
 
 ```typescript
 import {
@@ -88,27 +88,27 @@ console.log(SCHEDULING_CONFIG);
 
 The following files now use the centralized scheduling constants:
 
-1. **sync/mcp/src/config/scheduling-constants.ts** (NEW)
+1. **MeterItProSync/mcp/src/config/scheduling-constants.ts** (NEW)
    - Central location for all scheduling configuration
    - Provides both constants and getter functions
    - Supports environment variable overrides
 
-2. **sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts**
+2. **MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts**
    - Uses `getBACnetCollectionIntervalSeconds()`
    - Uses `getBACnetUploadIntervalMinutes()`
    - Uses `getBACnetUploadCronExpression()`
 
-3. **sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts**
+3. **MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts**
    - Uses `getBACnetUploadCronExpression()`
 
-4. **sync/mcp/src/remote_to_local-sync/sync-agent.ts**
+4. **MeterItProSync/mcp/src/remote_to_local-sync/sync-agent.ts**
    - Uses `getRemoteToLocalSyncIntervalMinutes()`
    - Uses `getRemoteToLocalSyncCronExpression()`
 
-5. **sync/mcp/src/data-sync/sync-scheduler.ts**
+5. **MeterItProSync/mcp/src/data-sync/sync-scheduler.ts**
    - Uses `getDataSyncIntervalSeconds()`
 
-6. **sync/mcp/src/index.ts**
+6. **MeterItProSync/mcp/src/index.ts**
    - Uses `getBACnetCollectionIntervalSeconds()`
    - Uses `getBACnetUploadIntervalMinutes()`
 

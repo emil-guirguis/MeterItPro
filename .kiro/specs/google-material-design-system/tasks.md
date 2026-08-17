@@ -357,7 +357,7 @@ This implementation plan breaks down the Material Design 3 system into discrete 
     - _Requirements: 15.1, 15.2, 15.4, 15.6_
 
 - [ ] 12. Update Client Frontend Components
-  - [ ] 12.1 Update client/frontend/src/components to use framework styling
+  - [ ] 12.1 Update MeterItPro/frontend/src/components to use framework styling
     - Verify all components inherit Material Design 3 styling from framework
     - Update any hardcoded colors to use theme tokens
     - Update any hardcoded spacing to use theme spacing
@@ -368,7 +368,7 @@ This implementation plan breaks down the Material Design 3 system into discrete 
     - **Validates: Requirements 13.2, 13.3, 13.4**
 
   - [ ] 12.3 Update client frontend dashboards
-    - Update client/frontend/src/dashboards to use Material Design 3 styling
+    - Update MeterItPro/frontend/src/dashboards to use Material Design 3 styling
     - Verify dashboard components inherit framework styling
     - _Requirements: 13.4_
 
@@ -378,7 +378,7 @@ This implementation plan breaks down the Material Design 3 system into discrete 
     - _Requirements: 13.2, 13.4_
 
 - [ ] 13. Update Sync Frontend Components
-  - [ ] 13.1 Update sync/frontend/src to use framework styling
+  - [ ] 13.1 Update MeterItProSync/frontend/src to use framework styling
     - Verify all components inherit Material Design 3 styling from framework
     - Update any hardcoded colors to use theme tokens
     - Update any hardcoded spacing to use theme spacing

@@ -8,7 +8,7 @@ Fixed form schema implementation across all modules to ensure proper tab initial
 ### 1. MeterForm Component
 - **Issue**: Unused variables in `renderCustomField` function causing TypeScript warnings
 - **Fix**: Removed unused `renderCustomField` function and its reference in BaseForm props
-- **File**: `client/frontend/src/features/meters/MeterForm.tsx`
+- **File**: `MeterItPro/frontend/src/features/meters/MeterForm.tsx`
 
 ### 2. Contact Schema Missing formGrouping
 - **Issue**: Contact fields lacked `formGrouping` metadata, preventing proper tab organization

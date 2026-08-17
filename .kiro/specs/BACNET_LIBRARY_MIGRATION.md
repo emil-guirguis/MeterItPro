@@ -6,12 +6,12 @@ Successfully migrated from `bacstack` to `bacnet-node` library to enable batch r
 ## Changes Made
 
 ### 1. Package Dependencies
-**File:** `sync/mcp/package.json`
+**File:** `MeterItProSync/mcp/package.json`
 - Removed: `bacstack: ^0.0.1-beta.14`
 - Added: `bacnet-node: ^0.2.23`
 
 ### 2. BACnet Client Rewrite
-**File:** `sync/mcp/src/bacnet-collection/bacnet-client.ts`
+**File:** `MeterItProSync/mcp/src/bacnet-collection/bacnet-client.ts`
 
 #### New Features:
 - **Batch Reading Support**: `readPropertyMultiple()` method reads multiple registers in a single request
@@ -35,7 +35,7 @@ close()
 ```
 
 ### 3. Collection Cycle Manager Update
-**File:** `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+**File:** `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 
 #### Changes:
 - Updated `readMeterDataPoints()` to use batch reading instead of sequential reads
@@ -58,10 +58,10 @@ close()
 
 ## Installation
 
-Run the following command in the sync/mcp directory:
+Run the following command in the MeterItProSync/mcp directory:
 
 ```bash
-cd sync/mcp
+cd MeterItProSync/mcp
 npm install
 ```
 
@@ -121,7 +121,7 @@ results.forEach(result => {
 
 ## Next Steps
 
-1. Run `npm install` in sync/mcp directory
+1. Run `npm install` in MeterItProSync/mcp directory
 2. Test with your BACnet meters
 3. Monitor logs for batch read operations
 4. Verify performance improvements

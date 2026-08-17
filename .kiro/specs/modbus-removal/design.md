@@ -11,7 +11,7 @@ The Modbus implementation is largely isolated from BACnet, allowing for clean re
 ### Current Architecture (Before Removal)
 
 The system currently supports two protocols:
-- **BACnet**: Primary protocol for building automation, implemented via MCP servers in `sync/mcp/src/bacnet-collection/`
+- **BACnet**: Primary protocol for building automation, implemented via MCP servers in `MeterItProSync/mcp/src/bacnet-collection/`
 - **Modbus**: Industrial automation protocol, implemented via services and routes throughout the codebase
 
 ### Target Architecture (After Removal)
@@ -35,14 +35,14 @@ The system will support only BACnet:
 ### Frontend Components to Remove
 
 **Services**:
-- `client/frontend/src/services/modbusService.ts` - Main Modbus service with connection and read operations
-- `client/frontend/src/services/directModbusService.ts` - Direct meter reading service for Modbus
+- `MeterItPro/frontend/src/services/modbusService.ts` - Main Modbus service with connection and read operations
+- `MeterItPro/frontend/src/services/directModbusService.ts` - Direct meter reading service for Modbus
 
 **Components**:
-- `client/frontend/src/components/modbus/*` - All Modbus-specific UI components
+- `MeterItPro/frontend/src/components/modbus/*` - All Modbus-specific UI components
 
 **Exports**:
-- Remove `modbusService` export from `client/frontend/src/services/index.ts`
+- Remove `modbusService` export from `MeterItPro/frontend/src/services/index.ts`
 
 ### Backend Components to Remove
 
@@ -83,7 +83,7 @@ The system will support only BACnet:
 
 ### Meter Reading Entity (Unchanged)
 
-The `sync/mcp/src/entities/meter-reading.entity.ts` remains unchanged. It is protocol-agnostic and stores readings from any protocol source.
+The `MeterItProSync/mcp/src/entities/meter-reading.entity.ts` remains unchanged. It is protocol-agnostic and stores readings from any protocol source.
 
 **Key Fields**:
 - `id` - Unique identifier
@@ -200,7 +200,7 @@ A property is a characteristic or behavior that should hold true across all vali
 - Verify that all Modbus type definition files have been deleted
 
 **Import Verification**:
-- Verify that `modbusService` is not exported from `client/frontend/src/services/index.ts`
+- Verify that `modbusService` is not exported from `MeterItPro/frontend/src/services/index.ts`
 - Verify that no remaining files import Modbus services
 - Verify that no remaining files import Modbus types
 
@@ -287,9 +287,9 @@ A property is a characteristic or behavior that should hold true across all vali
 ### Files to Delete
 
 **Frontend**:
-- `client/frontend/src/services/modbusService.ts`
-- `client/frontend/src/services/directModbusService.ts`
-- `client/frontend/src/components/modbus/` (entire directory)
+- `MeterItPro/frontend/src/services/modbusService.ts`
+- `MeterItPro/frontend/src/services/directModbusService.ts`
+- `MeterItPro/frontend/src/components/modbus/` (entire directory)
 
 **Backend**:
 - `client/backend/src/routes/modbus.js`
@@ -303,7 +303,7 @@ A property is a characteristic or behavior that should hold true across all vali
 ### Files to Modify
 
 **Frontend**:
-- `client/frontend/src/services/index.ts` - Remove modbusService export
+- `MeterItPro/frontend/src/services/index.ts` - Remove modbusService export
 
 **Backend**:
 - `client/backend/src/server.js` - Remove Modbus route registration

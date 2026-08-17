@@ -24,7 +24,7 @@ This stub was never meant to be used in production - it was a placeholder.
 
 Created a **real SyncDatabaseService** that actually queries the database:
 
-**File:** `sync/mcp/src/database/sync-database.ts`
+**File:** `MeterItProSync/mcp/src/database/sync-database.ts`
 
 ### What It Does
 
@@ -52,7 +52,7 @@ Created a **real SyncDatabaseService** that actually queries the database:
 
 ### 1. Created SyncDatabaseService
 
-**File:** `sync/mcp/src/database/sync-database.ts`
+**File:** `MeterItProSync/mcp/src/database/sync-database.ts`
 
 ```typescript
 export class SyncDatabaseService implements SyncDatabase {
@@ -76,7 +76,7 @@ export class SyncDatabaseService implements SyncDatabase {
 
 ### 2. Updated index.ts
 
-**File:** `sync/mcp/src/index.ts`
+**File:** `MeterItProSync/mcp/src/index.ts`
 
 Changed from:
 ```typescript
@@ -122,7 +122,7 @@ Meter sync scheduled: every 60 hour(s)
 
 1. **Rebuild the project:**
    ```bash
-   cd sync/mcp
+   cd MeterItProSync/mcp
    npm run build
    ```
 
@@ -175,8 +175,8 @@ const stats = await this.syncDatabase.getSyncStats(24);
 
 ## Files Modified
 
-- `sync/mcp/src/index.ts` - Updated to use SyncDatabaseService
-- `sync/mcp/src/database/sync-database.ts` - New file with real implementation
+- `MeterItProSync/mcp/src/index.ts` - Updated to use SyncDatabaseService
+- `MeterItProSync/mcp/src/database/sync-database.ts` - New file with real implementation
 
 ## Next Steps
 

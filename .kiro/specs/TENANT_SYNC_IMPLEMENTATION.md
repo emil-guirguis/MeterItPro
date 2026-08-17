@@ -4,14 +4,14 @@
 Implemented tenant synchronization following the same pattern as existing sync functions (sync-register.ts, sync-device.ts). The tenant sync is now integrated into the comprehensive remote-to-local sync flow and loads API keys from the tenant table for use in connectivity checks.
 
 ## Files Created
-- **sync/mcp/src/sync-service/sync-tenant.ts** - New tenant sync module
+- **MeterItProSync/mcp/src/sync-service/sync-tenant.ts** - New tenant sync module
 
 ## Files Modified
-- **sync/mcp/src/sync-service/index.ts** - Added export for sync-tenant
-- **sync/mcp/src/sync-service/meter-sync-agent.ts** - Renamed to RemoteToLocalSyncAgent, integrated tenant sync as Phase 0 of comprehensive sync
-- **sync/mcp/src/types/entities.ts** - Updated ComprehensiveSyncResult interface to include tenant results
-- **sync/mcp/src/api/server.ts** - Removed redundant GET/POST `/api/local/tenant` endpoints, updated to use RemoteToLocalSyncAgent
-- **sync/mcp/src/index.ts** - Updated to use RemoteToLocalSyncAgent, runs tenant sync on server startup
+- **MeterItProSync/mcp/src/sync-service/index.ts** - Added export for sync-tenant
+- **MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts** - Renamed to RemoteToLocalSyncAgent, integrated tenant sync as Phase 0 of comprehensive sync
+- **MeterItProSync/mcp/src/types/entities.ts** - Updated ComprehensiveSyncResult interface to include tenant results
+- **MeterItProSync/mcp/src/api/server.ts** - Removed redundant GET/POST `/api/local/tenant` endpoints, updated to use RemoteToLocalSyncAgent
+- **MeterItProSync/mcp/src/index.ts** - Updated to use RemoteToLocalSyncAgent, runs tenant sync on server startup
 
 ## Class Rename
 - **MeterSyncAgent** → **RemoteToLocalSyncAgent**

@@ -63,7 +63,7 @@ ConnectivityMonitor
 
 ### 1. MeterReadingUploadManager (Enhanced)
 
-**Location:** `sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
+**Location:** `MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
 
 **Current Status:** Already implemented with most functionality
 
@@ -134,7 +134,7 @@ class SyncDatabase {
 
 ### 3. ClientSystemApiClient
 
-**Location:** `sync/mcp/src/api/client-system-api.ts`
+**Location:** `MeterItProSync/mcp/src/api/client-system-api.ts`
 
 **Key Methods:**
 ```typescript
@@ -149,7 +149,7 @@ class ClientSystemApiClient {
 
 ### 4. ConnectivityMonitor
 
-**Location:** `sync/mcp/src/api/connectivity-monitor.ts`
+**Location:** `MeterItProSync/mcp/src/api/connectivity-monitor.ts`
 
 **Key Methods:**
 ```typescript
@@ -213,7 +213,7 @@ interface UploadResponse {
 
 ### 6. Frontend Components
 
-**Location:** `sync/frontend/src/components/MeterReadingUploadCard.tsx`
+**Location:** `MeterItProSync/frontend/src/components/MeterReadingUploadCard.tsx`
 
 **Responsibilities:**
 - Display meter reading upload status

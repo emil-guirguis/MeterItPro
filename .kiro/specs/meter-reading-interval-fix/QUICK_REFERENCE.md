@@ -20,9 +20,9 @@ Result: 6-minute observed interval
 
 | File | Issue |
 |------|-------|
-| `sync/mcp/src/config/scheduling-constants.ts` | Defines `CRON_METER_READ = minutesToCronEvery(2)` |
-| `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` | Uses hardcoded `CRON_METER_READ`, ignores `collectionIntervalSeconds` config |
-| `sync/mcp/src/index.ts` | Passes `collectionIntervalSeconds: 600` (10 min) but agent doesn't use it |
+| `MeterItProSync/mcp/src/config/scheduling-constants.ts` | Defines `CRON_METER_READ = minutesToCronEvery(2)` |
+| `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` | Uses hardcoded `CRON_METER_READ`, ignores `collectionIntervalSeconds` config |
+| `MeterItProSync/mcp/src/index.ts` | Passes `collectionIntervalSeconds: 600` (10 min) but agent doesn't use it |
 
 ## Configuration Mismatch
 

@@ -19,7 +19,7 @@ The Client API is built with Cloudflare Workers and Hono framework.
 ### Starting Local Development
 
 ```bash
-cd client/api
+cd MeterItPro/api
 npm run worker:dev
 ```
 
@@ -47,7 +47,7 @@ The Sync API is a Node.js Express server that provides local data management and
 ### Starting Local Development
 
 ```bash
-cd sync/api
+cd MeterItProSync/api
 npm install
 npm run dev
 ```
@@ -72,7 +72,7 @@ The API will be available at `http://localhost:3002`
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Sync Frontend (React)                     │
-│                   (sync/frontend)                            │
+│                   (MeterItProSync/frontend)                            │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          │ HTTP Requests
@@ -159,12 +159,12 @@ FRONTEND_URL=https://meteritpro.com,http://localhost:5173
 ## Troubleshooting
 
 ### Sync API not responding
-- Ensure the server is running: `npm run dev` in `sync/api`
+- Ensure the server is running: `npm run dev` in `MeterItProSync/api`
 - Check that port 3002 is not in use
 - Verify database connections in `.env`
 
 ### Client API not responding
-- Ensure the worker is running: `npm run worker:dev` in `client/api`
+- Ensure the worker is running: `npm run worker:dev` in `MeterItPro/api`
 - Check that port 8787 is not in use
 - Verify Cloudflare credentials for production deployment
 

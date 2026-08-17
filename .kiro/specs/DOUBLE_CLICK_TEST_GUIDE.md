@@ -4,7 +4,7 @@
 
 ### Setup
 1. Start backend: `npm start` (in `client/backend`)
-2. Start frontend: `npm run dev` (in `client/frontend`)
+2. Start frontend: `npm run dev` (in `MeterItPro/frontend`)
 3. Open DevTools: F12
 4. Go to Console tab
 
@@ -103,11 +103,11 @@ Same as above, but with `gridType: baselist` instead of `gridType: simple`
 
 ## Files Modified
 
-1. `client/frontend/src/components/sidebar-meters/types.ts` - Updated type definitions
-2. `client/frontend/src/components/sidebar-meters/FavoritesSection.tsx` - Added double-click handler
-3. `client/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx` - Updated to pass gridType
-4. `client/frontend/src/components/layout/AppLayoutWrapper.tsx` - Updated to pass gridType in URL
-5. `client/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx` - Updated to read gridType from URL
+1. `MeterItPro/frontend/src/components/sidebar-meters/types.ts` - Updated type definitions
+2. `MeterItPro/frontend/src/components/sidebar-meters/FavoritesSection.tsx` - Added double-click handler
+3. `MeterItPro/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx` - Updated to pass gridType
+4. `MeterItPro/frontend/src/components/layout/AppLayoutWrapper.tsx` - Updated to pass gridType in URL
+5. `MeterItPro/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx` - Updated to read gridType from URL
 
 ## Status
 

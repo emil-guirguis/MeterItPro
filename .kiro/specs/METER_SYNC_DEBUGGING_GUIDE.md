@@ -16,7 +16,7 @@ This guide shows you the complete flow of the meter sync process and where debug
                              ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ FRONTEND API CLIENT                                                         │
-│ sync/frontend/src/api/services.ts                                           │
+│ MeterItProSync/frontend/src/api/services.ts                                           │
 │ - meterSyncApi.triggerSync()                                                │
 │ - Makes POST request to: /api/local/meter-sync-trigger                      │
 └────────────────────────────┬────────────────────────────────────────────────┘
@@ -24,7 +24,7 @@ This guide shows you the complete flow of the meter sync process and where debug
                              ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ SYNC MCP SERVER (Node.js)                                                   │
-│ sync/mcp/src/api/server.ts                                                  │
+│ MeterItProSync/mcp/src/api/server.ts                                                  │
 │                                                                              │
 │ POST /api/local/meter-sync-trigger                                          │
 │ ├─ 🔴 DEBUGGER #1 HERE                                                      │
@@ -34,7 +34,7 @@ This guide shows you the complete flow of the meter sync process and where debug
                              ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ METER SYNC AGENT                                                            │
-│ sync/mcp/src/sync-service/meter-sync-agent.ts                               │
+│ MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts                               │
 │                                                                              │
 │ triggerSync()                                                               │
 │ └─ Calls: this.performSync()                                                │
@@ -83,7 +83,7 @@ This guide shows you the complete flow of the meter sync process and where debug
 ## Debugger Locations
 
 ### 🔴 Debugger #1: API Endpoint Entry Point
-**File:** `sync/mcp/src/api/server.ts`  
+**File:** `MeterItProSync/mcp/src/api/server.ts`  
 **Line:** POST `/api/local/meter-sync-trigger` endpoint  
 **Purpose:** Break when the trigger button is clicked from the frontend
 
@@ -98,7 +98,7 @@ this.app.post('/api/local/meter-sync-trigger', async (_req, res, next) => {
 ```
 
 ### 🔴 Debugger #2: Main Sync Operation
-**File:** `sync/mcp/src/sync-service/meter-sync-agent.ts`  
+**File:** `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts`  
 **Method:** `performSync()`  
 **Purpose:** Break at the start of the actual sync operation
 
@@ -112,7 +112,7 @@ async performSync(): Promise<MeterSyncResult> {
 ```
 
 ### 🔴 Debugger #3: Remote Database Query
-**File:** `sync/mcp/src/sync-service/meter-sync-agent.ts`  
+**File:** `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts`  
 **Method:** `getRemoteMeters(tenantId)`  
 **Purpose:** Break when querying the REMOTE database for meters
 
@@ -202,11 +202,11 @@ private async getRemoteMeters(tenantId: number): Promise<MeterEntity[]> {
 
 | File | Purpose |
 |------|---------|
-| `sync/frontend/src/components/MeterSyncCard.tsx` | UI component for triggering sync |
-| `sync/frontend/src/api/services.ts` | API client that calls `/api/local/meter-sync-trigger` |
-| `sync/mcp/src/api/server.ts` | Express endpoint that receives the trigger request |
-| `sync/mcp/src/sync-service/meter-sync-agent.ts` | Core sync logic that reads from remote and writes to local |
-| `sync/mcp/src/database/connection-pools.ts` | Database connection configuration |
+| `MeterItProSync/frontend/src/components/MeterSyncCard.tsx` | UI component for triggering sync |
+| `MeterItProSync/frontend/src/api/services.ts` | API client that calls `/api/local/meter-sync-trigger` |
+| `MeterItProSync/mcp/src/api/server.ts` | Express endpoint that receives the trigger request |
+| `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` | Core sync logic that reads from remote and writes to local |
+| `MeterItProSync/mcp/src/database/connection-pools.ts` | Database connection configuration |
 
 ## Notes
 

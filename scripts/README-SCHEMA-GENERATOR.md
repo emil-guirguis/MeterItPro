@@ -128,7 +128,7 @@ The tool automatically maps PostgreSQL types to JavaScript/TypeScript types:
    cp generated/Meter.js client/backend/src/models/Meter.js
    
    # Frontend
-   cp generated/meterConfig.ts client/frontend/src/features/meters/meterConfig.ts
+   cp generated/meterConfig.ts MeterItPro/frontend/src/features/meters/meterConfig.ts
    ```
 
 3. **Customize Backend Model**
@@ -286,7 +286,7 @@ code generated/meterConfig.ts
 
 # 5. Copy to project
 cp generated/Meter.js client/backend/src/models/
-cp generated/meterConfig.ts client/frontend/src/features/meters/
+cp generated/meterConfig.ts MeterItPro/frontend/src/features/meters/
 
 # 6. Update components
 # Edit MeterForm.tsx and MeterList.tsx to use new schema

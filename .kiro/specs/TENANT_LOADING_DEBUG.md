@@ -161,7 +161,7 @@ SELECT COUNT(*) FROM tenant;
 Check your environment variables in the MCP server:
 
 ```bash
-# In sync/mcp/.env or root .env
+# In MeterItProSync/mcp/.env or root .env
 POSTGRES_SYNC_HOST=localhost
 POSTGRES_SYNC_PORT=5432
 POSTGRES_SYNC_DB=sync_db
@@ -199,6 +199,6 @@ Make sure these match your actual PostgreSQL configuration.
 
 ## Related Files
 
-- Frontend: `sync/frontend/src/components/CompanyInfoCard.tsx`
-- Backend: `sync/mcp/src/api/server.ts` (GET /api/local/tenant endpoint)
-- Database: `sync/mcp/src/data-sync/connection-manager.ts`
+- Frontend: `MeterItProSync/frontend/src/components/CompanyInfoCard.tsx`
+- Backend: `MeterItProSync/mcp/src/api/server.ts` (GET /api/local/tenant endpoint)
+- Database: `MeterItProSync/mcp/src/data-sync/connection-manager.ts`

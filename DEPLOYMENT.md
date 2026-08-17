@@ -25,7 +25,7 @@ In the Cloudflare Pages setup, use these settings:
 - **Project name**: `meteritpro` (or your preferred name)
 - **Production branch**: `main` (or `master` depending on your default branch)
 - **Build command**: `npm run build:client`
-- **Build output directory**: `client/frontend/dist`
+- **Build output directory**: `MeterItPro/frontend/dist`
 - **Root directory**: `/` (leave as root)
 - **Environment variables**: Add any required environment variables (see below)
 
@@ -112,7 +112,7 @@ If you want to keep your backend on your own server:
 
 ### SPA Routing Not Working
 
-The `_redirects` file in `client/frontend/public/` should handle this. If routes aren't working:
+The `_redirects` file in `MeterItPro/frontend/public/` should handle this. If routes aren't working:
 
 1. Verify `_redirects` file exists in the build output
 2. Check Cloudflare Pages Functions (may need to add a function for routing)

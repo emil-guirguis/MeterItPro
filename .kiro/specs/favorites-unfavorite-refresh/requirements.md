@@ -41,4 +41,4 @@ Update `handleFavoritesStarClick` to also update the `meterElements` state:
 3. Update the state to trigger re-render
 
 ## Files to Modify
-- `client/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx`
+- `MeterItPro/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx`

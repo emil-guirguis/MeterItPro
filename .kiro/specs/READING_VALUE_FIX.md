@@ -36,7 +36,7 @@ The BACnet reads are returning `null` or `undefined` values for some registers. 
 
 ## The Fix
 
-### File: `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+### File: `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 
 **Changes:**
 
@@ -123,7 +123,7 @@ Instead of failing the entire batch, we now:
 
 ## Files Changed
 
-✅ `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+✅ `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 - Added null/undefined check for values
 - Added NaN validation before adding readings
 - Convert meter_element_id to number
@@ -132,7 +132,7 @@ Instead of failing the entire batch, we now:
 ## Verification
 
 File compiles without errors:
-- ✅ `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
+- ✅ `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`
 
 ## Next Steps
 

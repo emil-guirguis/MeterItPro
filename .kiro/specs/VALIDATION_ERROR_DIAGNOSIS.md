@@ -98,9 +98,9 @@ created_at: new Date()  // Not a string
 
 ## Files to Check
 
-- `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Where readings are created
-- `sync/mcp/src/bacnet-collection/reading-batcher.ts` - Where readings are validated
-- `sync/mcp/src/bacnet-collection/types.ts` - PendingReading interface definition
+- `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Where readings are created
+- `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts` - Where readings are validated
+- `MeterItProSync/mcp/src/bacnet-collection/types.ts` - PendingReading interface definition
 
 ## Expected Output After Fix
 

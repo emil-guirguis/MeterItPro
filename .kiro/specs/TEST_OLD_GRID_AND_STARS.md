@@ -4,7 +4,7 @@
 
 ### Setup
 1. Start backend: `npm start` (in `client/backend`)
-2. Start frontend: `npm run dev` (in `client/frontend`)
+2. Start frontend: `npm run dev` (in `MeterItPro/frontend`)
 3. Open DevTools: F12
 4. Go to Console tab
 
@@ -95,8 +95,8 @@
 
 ## Files Modified
 
-1. `client/frontend/src/features/meterReadings/MeterReadingList.tsx` - Added BaseList grid
-2. `client/frontend/src/components/sidebar-meters/FavoritesSection.tsx` - Fixed star functionality
+1. `MeterItPro/frontend/src/features/meterReadings/MeterReadingList.tsx` - Added BaseList grid
+2. `MeterItPro/frontend/src/components/sidebar-meters/FavoritesSection.tsx` - Fixed star functionality
 
 ## Status
 

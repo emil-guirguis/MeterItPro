@@ -13,7 +13,7 @@ The `ClientSystemApiClient.testConnection()` method had a blank API key when cal
 5. When `ConnectivityMonitor` called `testConnection()`, the API key was still blank
 
 ## Solution
-Modified `sync/mcp/src/index.ts` to **wait for the initial tenant sync to complete** before loading the API key:
+Modified `MeterItProSync/mcp/src/index.ts` to **wait for the initial tenant sync to complete** before loading the API key:
 
 ### Changes Made
 
@@ -49,7 +49,7 @@ Modified `sync/mcp/src/index.ts` to **wait for the initial tenant sync to comple
 - No more blank API key errors in logs
 
 ## Files Modified
-- `sync/mcp/src/index.ts` - Added wait logic and helper method
+- `MeterItProSync/mcp/src/index.ts` - Added wait logic and helper method
 
 ## Build Status
 ✅ Build successful with `npm run build`

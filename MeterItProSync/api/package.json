@@ -1,0 +1,48 @@
+{
+  "name": "meteritpro-sync-api",
+  "version": "1.0.0",
+  "description": "Backend API for MeterIt Pro Sync Service",
+  "main": "dist/MeterItProSync/api/src/server.js",
+  "type": "module",
+  "scripts": {
+    "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc",
+    "start": "node --env-file=../../.env dist/MeterItProSync/api/src/server.js",
+    "dev": "tsx watch --env-file=../../.env src/server.ts",
+    "dev:node": "npm run build && node --env-file=../../.env dist/MeterItProSync/api/src/server.js",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --run --coverage",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@meterit/framework-backend": "file:../../framework/backend",
+    "better-sqlite3": "^12.11.1",
+    "dotenv": "^16.0.0",
+    "express": "^5.1.0",
+    "pg": "^8.16.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.5",
+    "@types/node": "^20.19.25",
+    "@types/pg": "^8.15.5",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.6",
+    "@types/winston": "^2.4.4",
+    "tsx": "^4.19.4",
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.2"
+  },
+  "keywords": [
+    "sync",
+    "api",
+    "postgresql",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT"
+}

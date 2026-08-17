@@ -5,7 +5,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                          SYNC FRONTEND (React)                              │
-│                    sync/frontend/src/components/                            │
+│                    MeterItProSync/frontend/src/components/                            │
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │ MeterSyncCard.tsx                                                    │   │
@@ -20,7 +20,7 @@
 │                                    │ HTTP POST                               │
 │                                    ▼                                         │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │ sync/frontend/src/api/services.ts                                    │   │
+│  │ MeterItProSync/frontend/src/api/services.ts                                    │   │
 │  │                                                                      │   │
 │  │ meterSyncApi.triggerSync() {                                        │   │
 │  │   POST /api/local/meter-sync-trigger                                │   │
@@ -33,7 +33,7 @@
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                      SYNC MCP SERVER (Node.js)                              │
-│                    sync/mcp/src/api/server.ts                               │
+│                    MeterItProSync/mcp/src/api/server.ts                               │
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │ POST /api/local/meter-sync-trigger                                   │   │
@@ -185,7 +185,7 @@ User clicks "Trigger Meter Sync"
         │
         ▼
 🔴 DEBUGGER #1 (API Endpoint)
-   sync/mcp/src/api/server.ts
+   MeterItProSync/mcp/src/api/server.ts
    POST /api/local/meter-sync-trigger
    
    Inspect:
@@ -196,7 +196,7 @@ User clicks "Trigger Meter Sync"
         │
         ▼
 🔴 DEBUGGER #2 (Main Sync Operation)
-   sync/mcp/src/sync-service/meter-sync-agent.ts
+   MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts
    performSync()
    
    Inspect:
@@ -208,7 +208,7 @@ User clicks "Trigger Meter Sync"
         │
         ▼
 🔴 DEBUGGER #3 (Remote Database Query)
-   sync/mcp/src/sync-service/meter-sync-agent.ts
+   MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts
    getRemoteMeters(tenantId)
    
    Inspect:

@@ -3,11 +3,11 @@ METER READINGS DEBUG IMPLEMENTATION - COMPLETE
 ================================================================================
 
 FILES MODIFIED:
-  ✅ client/frontend/src/components/sidebar-meters/FavoritesSection.tsx
-  ✅ client/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx
-  ✅ client/frontend/src/components/layout/AppLayoutWrapper.tsx
-  ✅ client/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx
-  ✅ client/frontend/src/features/meterReadings/meterReadingsStore.ts
+  ✅ MeterItPro/frontend/src/components/sidebar-meters/FavoritesSection.tsx
+  ✅ MeterItPro/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx
+  ✅ MeterItPro/frontend/src/components/layout/AppLayoutWrapper.tsx
+  ✅ MeterItPro/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx
+  ✅ MeterItPro/frontend/src/features/meterReadings/meterReadingsStore.ts
 
 DOCUMENTATION CREATED:
   📄 .kiro/specs/METER_READINGS_DEBUG_BREAKPOINTS.md
@@ -32,7 +32,7 @@ DEBUG FLOW:
   6. Backend (query execution)
 
 NEXT STEPS:
-  1. Start frontend: npm run dev (in client/frontend)
+  1. Start frontend: npm run dev (in MeterItPro/frontend)
   2. Start backend: npm start (in client/backend)
   3. Open DevTools: F12
   4. Go to Console tab

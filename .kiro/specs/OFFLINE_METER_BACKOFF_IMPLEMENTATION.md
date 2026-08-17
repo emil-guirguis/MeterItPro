@@ -6,7 +6,7 @@ Implemented a 5-minute backoff mechanism for offline meters in the BACnet meter 
 
 ## Changes Made
 
-### 1. BACnetMeterReadingAgent (`sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`)
+### 1. BACnetMeterReadingAgent (`MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`)
 
 **Added backoff tracking:**
 - `meterBackoffMap: Map<string, Date>` - Tracks backoff expiration time for each offline meter
@@ -21,7 +21,7 @@ Implemented a 5-minute backoff mechanism for offline meters in the BACnet meter 
 - Modified `executeCycleInternal()` to pass `meterBackoffMap` to the collection cycle manager
 - Updated `getStatus()` to include meters currently in backoff
 
-### 2. CollectionCycleManager (`sync/mcp/src/bacnet-collection/collection-cycle-manager.ts`)
+### 2. CollectionCycleManager (`MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts`)
 
 **Updated cycle execution:**
 - Modified `executeCycle()` signature to accept optional `meterBackoffMap` parameter

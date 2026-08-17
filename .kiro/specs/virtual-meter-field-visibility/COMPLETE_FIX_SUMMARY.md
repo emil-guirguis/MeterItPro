@@ -106,7 +106,7 @@ This ensures the field is removed before saving to the database.
 
 ## Related Files
 - `framework/frontend/components/form/BaseForm.tsx` - Main fix
-- `client/frontend/src/features/meters/MeterForm.tsx` - Uses BaseForm
+- `MeterItPro/frontend/src/features/meters/MeterForm.tsx` - Uses BaseForm
 - `client/backend/src/models/MeterWithSchema.js` - Schema definition
 - `client/backend/src/routes/meters.js` - API endpoint
 - `framework/backend/api/base/SchemaDefinition.js` - Schema utilities

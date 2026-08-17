@@ -50,7 +50,7 @@ LIMIT $2 OFFSET $3
 
 ### 2. Frontend Data Model
 
-**File**: `client/frontend/src/types/meter.ts`
+**File**: `MeterItPro/frontend/src/types/meter.ts`
 
 **Changes**:
 - Add `manufacturer` field to Meter interface
@@ -59,7 +59,7 @@ LIMIT $2 OFFSET $3
 
 ### 3. Frontend Store
 
-**File**: `client/frontend/src/features/meters/metersStore.ts`
+**File**: `MeterItPro/frontend/src/features/meters/metersStore.ts`
 
 **Changes**:
 - No changes needed - the store already handles any fields in the API response
@@ -67,7 +67,7 @@ LIMIT $2 OFFSET $3
 
 ### 4. Frontend Display
 
-**File**: `client/frontend/src/features/meters/MeterList.tsx`
+**File**: `MeterItPro/frontend/src/features/meters/MeterList.tsx`
 
 **Changes**:
 - No changes needed - the component already generates columns from schema

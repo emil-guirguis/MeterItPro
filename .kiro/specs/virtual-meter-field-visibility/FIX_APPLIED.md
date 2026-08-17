@@ -68,7 +68,7 @@ formTabs: Array<{
 
 ### Step 1: Restart Frontend
 ```bash
-cd client/frontend
+cd MeterItPro/frontend
 npm run dev
 ```
 

@@ -7,7 +7,7 @@ The meter reading collection is configured to run every 2 minutes (`CRON_METER_R
 
 ### Issue Identified: Configuration Mismatch
 
-**Location**: `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` (line 93-97)
+**Location**: `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` (line 93-97)
 
 The agent uses `CRON_METER_READ` constant to schedule collection cycles:
 ```typescript

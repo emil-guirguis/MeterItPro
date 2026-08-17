@@ -4,9 +4,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'sync/installer/**'
-      - 'sync/docker-compose.yml'
-      - 'sync/docker/init/**'
+      - 'MeterItProSync/installer/**'
+      - 'MeterItProSync/docker-compose.yml'
+      - 'MeterItProSync/docker/init/**'
 
 jobs:
   build:
@@ -20,45 +20,45 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-          cache-dependency-path: sync/installer/go.mod
+          cache-dependency-path: MeterItProSync/installer/go.mod
 
       - name: Copy embedded files into installer
         run: |
-          cp sync/docker-compose.yml  sync/installer/docker-compose.yml
-          cp sync/docker/init/00-schema.sql sync/installer/00-schema.sql
+          cp MeterItProSync/docker-compose.yml  MeterItProSync/installer/docker-compose.yml
+          cp MeterItProSync/docker/init/00-schema.sql MeterItProSync/installer/00-schema.sql
 
       - name: Build Windows amd64 installer
         run: |
-          cd sync/installer
+          cd MeterItProSync/installer
           GOOS=windows GOARCH=amd64 go build -o MeterItPro-SyncSetup.exe .
 
       - name: Build Linux amd64 installer
         run: |
-          cd sync/installer
+          cd MeterItProSync/installer
           GOOS=linux GOARCH=amd64 go build -o MeterItPro-SyncSetup-linux .
 
       - name: Package autoinstall USB files
         run: |
-          cd sync/installer
+          cd MeterItProSync/installer
           zip -r MeterItPro-autoinstall.zip autoinstall/
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: MeterItPro-SyncSetup-Windows
-          path: sync/installer/MeterItPro-SyncSetup.exe
+          path: MeterItProSync/installer/MeterItPro-SyncSetup.exe
           retention-days: 90
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: MeterItPro-SyncSetup-Linux
-          path: sync/installer/MeterItPro-SyncSetup-linux
+          path: MeterItProSync/installer/MeterItPro-SyncSetup-linux
           retention-days: 90
 
       - name: Upload autoinstall USB files artifact
         uses: actions/upload-artifact@v4
         with:
           name: MeterItPro-autoinstall
-          path: sync/installer/MeterItPro-autoinstall.zip
+          path: MeterItProSync/installer/MeterItPro-autoinstall.zip
           retention-days: 90

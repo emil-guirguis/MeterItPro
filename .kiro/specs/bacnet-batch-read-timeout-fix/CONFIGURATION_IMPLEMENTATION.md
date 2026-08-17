@@ -6,7 +6,7 @@ This document summarizes the implementation of configuration support for the BAC
 
 ## Changes Made
 
-### 1. Updated Type Definitions (`sync/mcp/src/bacnet-collection/types.ts`)
+### 1. Updated Type Definitions (`MeterItProSync/mcp/src/bacnet-collection/types.ts`)
 
 Added three new feature flag fields to `BACnetMeterReadingAgentConfig`:
 
@@ -25,7 +25,7 @@ The existing timeout configuration fields were already present:
 - `connectivityCheckTimeoutMs?: number` - Default: 2000ms
 - `connectionTimeoutMs?: number` - Default: 5000ms
 
-### 2. Updated Agent Constructor (`sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`)
+### 2. Updated Agent Constructor (`MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts`)
 
 Enhanced the constructor to:
 - Apply default values for all new feature flags
@@ -50,7 +50,7 @@ this.config = {
 };
 ```
 
-### 3. Updated Environment Variable Support (`sync/mcp/src/index.ts`)
+### 3. Updated Environment Variable Support (`MeterItProSync/mcp/src/index.ts`)
 
 Added environment variable parsing for all new configuration options:
 
@@ -66,7 +66,7 @@ Added environment variable parsing for all new configuration options:
 
 All environment variables are parsed with sensible defaults and passed to the agent constructor.
 
-### 4. Created Configuration Documentation (`sync/mcp/BACNET_CONFIGURATION.md`)
+### 4. Created Configuration Documentation (`MeterItProSync/mcp/BACNET_CONFIGURATION.md`)
 
 Comprehensive documentation including:
 
@@ -84,7 +84,7 @@ Comprehensive documentation including:
 - **Troubleshooting** - Common issues and solutions
 - **Environment Variable Parsing** - How values are parsed
 
-### 5. Added Unit Tests (`sync/mcp/src/bacnet-collection/bacnet-reading-agent.test.ts`)
+### 5. Added Unit Tests (`MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.test.ts`)
 
 Added 11 new unit tests covering:
 
@@ -148,14 +148,14 @@ All new configuration options have sensible defaults, ensuring backward compatib
 
 ## Files Modified
 
-1. `sync/mcp/src/bacnet-collection/types.ts` - Added feature flag fields
-2. `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` - Updated constructor
-3. `sync/mcp/src/index.ts` - Added environment variable parsing
-4. `sync/mcp/src/bacnet-collection/bacnet-reading-agent.test.ts` - Added 11 new tests
+1. `MeterItProSync/mcp/src/bacnet-collection/types.ts` - Added feature flag fields
+2. `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` - Updated constructor
+3. `MeterItProSync/mcp/src/index.ts` - Added environment variable parsing
+4. `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.test.ts` - Added 11 new tests
 
 ## Files Created
 
-1. `sync/mcp/BACNET_CONFIGURATION.md` - Comprehensive configuration documentation
+1. `MeterItProSync/mcp/BACNET_CONFIGURATION.md` - Comprehensive configuration documentation
 
 ## Next Steps
 

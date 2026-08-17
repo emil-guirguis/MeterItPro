@@ -17,15 +17,15 @@ const repoRoot = path.join(__dirname, '..');
 const services = [
   {
     name:   'MeterItSyncAPI',
-    script: path.join(repoRoot, 'sync/api/dist/server.js'),
+    script: path.join(repoRoot, 'MeterItProSync/api/dist/server.js'),
   },
   {
     name:   'MeterItSyncMCP',
-    script: path.join(repoRoot, 'sync/mcp/dist/index.js'),
+    script: path.join(repoRoot, 'MeterItProSync/mcp/dist/index.js'),
   },
   {
     name:   'MeterItSyncFrontend',
-    script: path.join(repoRoot, 'sync/frontend/preview-server.mjs'),
+    script: path.join(repoRoot, 'MeterItProSync/frontend/preview-server.mjs'),
   },
 ];
 

@@ -37,7 +37,7 @@ The initialization sequence was:
 ## Solution - Three Changes
 
 ### Change 1: Add Missing Tables to Schema Initialization
-**File**: `sync/mcp/src/data-sync/data-sync.ts`
+**File**: `MeterItProSync/mcp/src/data-sync/data-sync.ts`
 **Method**: `initialize()`
 
 Added table creation for:
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS device_register (
 Also added indexes for performance.
 
 ### Change 2: Create Register Sync Function
-**File**: `sync/mcp/src/remote_to_local-sync/sync-register.ts` (NEW FILE)
+**File**: `MeterItProSync/mcp/src/remote_to_local-sync/sync-register.ts` (NEW FILE)
 
 Created the `syncRegisters()` function that:
 1. Queries remote database for all registers (filtered by tenant_id)
@@ -74,7 +74,7 @@ Created the `syncRegisters()` function that:
 4. Returns sync results with counts
 
 ### Change 3: Enable Register Sync Phase
-**File**: `sync/mcp/src/remote_to_local-sync/sync-agent.ts`
+**File**: `MeterItProSync/mcp/src/remote_to_local-sync/sync-agent.ts`
 
 1. Uncommented the import: `import { syncRegisters, RegisterSyncResult } from './sync-register.js';`
 2. Uncommented Phase 2 (Register Sync) in the sync execution
@@ -104,7 +104,7 @@ Created the `syncRegisters()` function that:
 - ✅ Meter readings can be collected and inserted into the database
 
 ## Files Changed
-1. `sync/mcp/src/data-sync/data-sync.ts` - Added register and device_register table creation
-2. `sync/mcp/src/remote_to_local-sync/sync-register.ts` - NEW: Created register sync function
-3. `sync/mcp/src/remote_to_local-sync/sync-agent.ts` - Uncommented register sync phase
-4. `sync/mcp/src/index.ts` - Fixed initialization order (from previous fix)
+1. `MeterItProSync/mcp/src/data-sync/data-sync.ts` - Added register and device_register table creation
+2. `MeterItProSync/mcp/src/remote_to_local-sync/sync-register.ts` - NEW: Created register sync function
+3. `MeterItProSync/mcp/src/remote_to_local-sync/sync-agent.ts` - Uncommented register sync phase
+4. `MeterItProSync/mcp/src/index.ts` - Fixed initialization order (from previous fix)

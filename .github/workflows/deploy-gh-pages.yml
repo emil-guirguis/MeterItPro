@@ -26,27 +26,27 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
-          cache-dependency-path: client/frontend/package-lock.json
+          cache-dependency-path: MeterItPro/frontend/package-lock.json
 
       - name: Install Chrome for puppeteer (prerender)
         run: npx puppeteer browsers install chrome
-        working-directory: ./client/frontend
+        working-directory: ./MeterItPro/frontend
         continue-on-error: true
 
       - name: Install dependencies (frontend)
         run: npm ci
-        working-directory: ./client/frontend
+        working-directory: ./MeterItPro/frontend
 
       - name: Build frontend
         run: npm run build
-        working-directory: ./client/frontend
+        working-directory: ./MeterItPro/frontend
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: client/frontend/dist
+          path: MeterItPro/frontend/dist
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4

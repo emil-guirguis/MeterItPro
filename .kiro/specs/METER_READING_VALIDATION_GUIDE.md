@@ -17,19 +17,19 @@ The sync system collects meter readings from BACnet devices and uploads them to 
 
 ### Components
 
-1. **MeterReadingValidator** (`sync/mcp/src/helpers/meter-reading-validator.ts`)
+1. **MeterReadingValidator** (`MeterItProSync/mcp/src/helpers/meter-reading-validator.ts`)
    - Core validation logic
    - Checks for realistic value ranges
    - Detects mock data patterns
    - Validates temporal consistency
 
-2. **ReadingValidationMiddleware** (`sync/mcp/src/bacnet-collection/reading-validation-middleware.ts`)
+2. **ReadingValidationMiddleware** (`MeterItProSync/mcp/src/bacnet-collection/reading-validation-middleware.ts`)
    - Integrates validation into upload pipeline
    - Generates validation reports
    - Tracks validation statistics
    - Logs validation results
 
-3. **ValidationConfig** (`sync/mcp/src/config/validation-config.ts`)
+3. **ValidationConfig** (`MeterItProSync/mcp/src/config/validation-config.ts`)
    - Configuration management
    - Environment variable support
    - Preset configurations (production, development, testing)
@@ -407,7 +407,7 @@ const stats = middleware.getStatistics();
 
 ## References
 
-- `sync/mcp/src/helpers/meter-reading-validator.ts` - Core validation logic
-- `sync/mcp/src/bacnet-collection/reading-validation-middleware.ts` - Middleware integration
-- `sync/mcp/src/config/validation-config.ts` - Configuration management
-- `sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts` - Upload integration
+- `MeterItProSync/mcp/src/helpers/meter-reading-validator.ts` - Core validation logic
+- `MeterItProSync/mcp/src/bacnet-collection/reading-validation-middleware.ts` - Middleware integration
+- `MeterItProSync/mcp/src/config/validation-config.ts` - Configuration management
+- `MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts` - Upload integration

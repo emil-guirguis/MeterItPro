@@ -45,7 +45,7 @@ VALUES ('device-1', 'your-tenant-id', 'Test Meter', 'meter', 'Building A', 'acti
 **Cause**: Frontend cached old version
 **Fix**:
 1. Hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac)
-2. Or restart frontend: `npm run dev` in `client/frontend`
+2. Or restart frontend: `npm run dev` in `MeterItPro/frontend`
 
 ## How to Verify It's Actually Working
 

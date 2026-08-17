@@ -94,13 +94,13 @@ BACNET_ENABLE_CONNECTIVITY_CHECK=false
 ## Files Changed
 
 ### Fixed (Database Pool)
-- ✅ `sync/mcp/src/data-sync/data-sync.ts` - Added `getPool()` method
-- ✅ `sync/mcp/src/bacnet-collection/reading-batcher.ts` - Uses `getPool()`
+- ✅ `MeterItProSync/mcp/src/data-sync/data-sync.ts` - Added `getPool()` method
+- ✅ `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts` - Uses `getPool()`
 
 ### Not Changed (BACnet is Working as Designed)
-- `sync/mcp/src/bacnet-collection/bacnet-client.ts` - Correctly times out
-- `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Correctly handles timeouts
-- `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` - Correctly tracks offline meters
+- `MeterItProSync/mcp/src/bacnet-collection/bacnet-client.ts` - Correctly times out
+- `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Correctly handles timeouts
+- `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` - Correctly tracks offline meters
 
 ## Conclusion
 

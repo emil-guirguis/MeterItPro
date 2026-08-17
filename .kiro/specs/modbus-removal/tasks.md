@@ -7,14 +7,14 @@ This implementation plan breaks down the Modbus removal into discrete, actionabl
 ## Tasks
 
 - [x] 1. Remove Frontend Modbus Services
-  - Delete `client/frontend/src/services/modbusService.ts`
-  - Delete `client/frontend/src/services/directModbusService.ts`
-  - Remove `modbusService` export from `client/frontend/src/services/index.ts`
+  - Delete `MeterItPro/frontend/src/services/modbusService.ts`
+  - Delete `MeterItPro/frontend/src/services/directModbusService.ts`
+  - Remove `modbusService` export from `MeterItPro/frontend/src/services/index.ts`
   - Verify frontend builds without errors
   - _Requirements: 2.1, 2.2, 2.3_
 
 - [x] 2. Remove Frontend Modbus Components
-  - Delete entire directory `client/frontend/src/components/modbus/`
+  - Delete entire directory `MeterItPro/frontend/src/components/modbus/`
   - Search for any remaining imports of Modbus components
   - Remove any found imports from other components
   - Verify no broken component references
@@ -77,7 +77,7 @@ This implementation plan breaks down the Modbus removal into discrete, actionabl
   - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
 - [x] 11. Checkpoint - Verify Build Success
-  - Run frontend build: `npm run build` in `client/frontend/`
+  - Run frontend build: `npm run build` in `MeterItPro/frontend/`
   - Run backend build: `npm run build` in `client/backend/` (if applicable)
   - Verify no TypeScript errors
   - Verify no build warnings related to Modbus

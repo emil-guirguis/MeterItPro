@@ -35,7 +35,7 @@ Fixed the schema structure in `UserWithSchema.js`:
 
 ## Files Modified
 - `client/backend/src/models/UserWithSchema.js` - Fixed schema structure and added password_reset_actions field
-- `client/frontend/src/features/users/UserForm.tsx` - Updated custom field renderer
+- `MeterItPro/frontend/src/features/users/UserForm.tsx` - Updated custom field renderer
 
 ## Testing
 - Verify buttons appear in Security tab > Password Reset section when editing a user

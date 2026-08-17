@@ -180,7 +180,7 @@ See `MIGRATION_GUIDE.md` for detailed instructions.
 
 ## Next Steps
 
-1. **Test in Client Project**: Import and test components in client/frontend
+1. **Test in Client Project**: Import and test components in MeterItPro/frontend
 2. **Migrate Dashboard.tsx**: Update main dashboard to use framework
 3. **Migrate Other Dashboards**: Update SystemHealth, LocalDashboard, etc.
 4. **Add More Components**: Consider adding chart widgets, table widgets, etc.

@@ -34,7 +34,7 @@ This runs the `prebuild` script which executes `scripts/generate-version.mjs`:
 
 ### 2. Build-Time Injection
 
-The Vite plugin (`client/frontend/vite-plugins/version-plugin.ts`) reads the `version.json` file and injects the version into the application at build time via environment variables:
+The Vite plugin (`MeterItPro/frontend/vite-plugins/version-plugin.ts`) reads the `version.json` file and injects the version into the application at build time via environment variables:
 
 - `import.meta.env.VITE_APP_VERSION`: The version string (e.g., "2025.47.3")
 - `import.meta.env.VITE_APP_VERSION_INFO`: Full version metadata (JSON string)
@@ -51,7 +51,7 @@ const version = getAppVersion(); // "2025.47.3" or "dev"
 const formatted = formatVersion(version); // "v2025.47.3" or "Development"
 ```
 
-**Client utility** (`client/frontend/src/utils/version.ts`):
+**Client utility** (`MeterItPro/frontend/src/utils/version.ts`):
 ```typescript
 import { getVersion, getVersionInfo, getVersionDisplay } from './utils/version';
 
@@ -66,16 +66,16 @@ const display = getVersionDisplay(); // "v2025.47.3 (November 20, 2025, 10:30 AM
 
 - **`scripts/generate-version.mjs`**: Version generation script
 - **`version.json`**: Generated version file (git-ignored)
-- **`client/frontend/vite-plugins/version-plugin.ts`**: Vite plugin for build-time injection
+- **`MeterItPro/frontend/vite-plugins/version-plugin.ts`**: Vite plugin for build-time injection
 
 ### Utility Files
 
 - **`framework/frontend/shared/utils/version.ts`**: Framework version utility
-- **`client/frontend/src/utils/version.ts`**: Client version utility with extended features
+- **`MeterItPro/frontend/src/utils/version.ts`**: Client version utility with extended features
 
 ### Configuration
 
-- **`client/frontend/src/vite-env.d.ts`**: TypeScript declarations for environment variables
+- **`MeterItPro/frontend/src/vite-env.d.ts`**: TypeScript declarations for environment variables
 
 ## Development vs Production
 

@@ -9,6 +9,10 @@ dist/
 build/
 *.log
 
+# Generated test/vitest reports
+html/
+test-report/
+
 # node-windows service wrappers (generated per machine)
 daemon/
 
@@ -28,4 +32,4 @@ Thumbs.db
 .wrangler/
 .wrangler/tmp/
 .env
-client/api/.dev.vars
+MeterItPro/api/.dev.vars

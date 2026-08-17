@@ -36,7 +36,7 @@ This feature involves systematically removing all Modbus protocol support from t
 
 #### Acceptance Criteria
 
-1. THE Frontend SHALL remove the file `client/frontend/src/services/modbusService.ts`
+1. THE Frontend SHALL remove the file `MeterItPro/frontend/src/services/modbusService.ts`
 2. THE Frontend SHALL remove all imports of `modbusService` from components and hooks
 3. WHEN the frontend is built, THE Frontend SHALL NOT contain any references to the Modbus service
 4. THE Frontend SHALL remove the `useModbus()` React hook from the codebase
@@ -49,7 +49,7 @@ This feature involves systematically removing all Modbus protocol support from t
 
 1. THE Backend SHALL remove the file `client/backend/src/types/modbus.ts`
 2. THE Frontend SHALL remove all Modbus-specific type imports and definitions
-3. THE Shared Entity Types SHALL remove Modbus-specific fields from `client/frontend/src/types/entities.ts` while preserving protocol-agnostic fields
+3. THE Shared Entity Types SHALL remove Modbus-specific fields from `MeterItPro/frontend/src/types/entities.ts` while preserving protocol-agnostic fields
 4. WHEN the codebase is type-checked, THE TypeScript compiler SHALL report no errors related to missing Modbus types
 
 ### Requirement 4: Remove Modbus Worker Thread Integration
@@ -91,7 +91,7 @@ This feature involves systematically removing all Modbus protocol support from t
 
 #### Acceptance Criteria
 
-1. THE Meter Reading Entity in `sync/mcp/src/entities/meter-reading.entity.ts` SHALL remain unchanged in its core structure
+1. THE Meter Reading Entity in `MeterItProSync/mcp/src/entities/meter-reading.entity.ts` SHALL remain unchanged in its core structure
 2. WHEN a meter reading is stored, THE Storage System SHALL successfully persist the reading to the database
 3. WHEN a meter reading is retrieved, THE Retrieval System SHALL return the complete and accurate reading
 4. THE Meter Reading Validation Logic SHALL continue to function for all protocol-agnostic fields

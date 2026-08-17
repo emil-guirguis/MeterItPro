@@ -4,7 +4,7 @@
 November 15, 2025
 
 ## Overview
-Successfully migrated reusable UI components from `client/frontend` to a shared `framework/frontend` location, creating a comprehensive component library organized by feature domain.
+Successfully migrated reusable UI components from `MeterItPro/frontend` to a shared `framework/frontend` location, creating a comprehensive component library organized by feature domain.
 
 ## ✅ Completed Phases
 
@@ -27,7 +27,7 @@ Successfully migrated reusable UI components from `client/frontend` to a shared 
 - DeviceList
 - EmailTemplateList
 
-**Files Removed:** 13 duplicate files cleaned up from client/frontend
+**Files Removed:** 13 duplicate files cleaned up from MeterItPro/frontend
 
 ### Phase 2: Forms Framework ✅ COMPLETE
 **Location:** `framework/frontend/forms/`

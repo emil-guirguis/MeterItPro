@@ -6,7 +6,7 @@ Added support for double-clicking favorite meter elements to display the old Bas
 ## Changes Made
 
 ### 1. Updated Type Definitions
-**File**: `client/frontend/src/components/sidebar-meters/types.ts`
+**File**: `MeterItPro/frontend/src/components/sidebar-meters/types.ts`
 
 - Updated `SidebarMetersProps.onMeterElementSelect` to accept optional `gridType` parameter
 - Updated `FavoritesSectionProps.onItemClick` to accept optional `gridType` parameter
@@ -17,7 +17,7 @@ onItemClick: (meterId: string, elementId: string, gridType?: 'simple' | 'baselis
 ```
 
 ### 2. Updated FavoritesSection
-**File**: `client/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
+**File**: `MeterItPro/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
 
 - Split click handler into two functions:
   - `handleFavoriteItemClick()` - Single click, passes `gridType: 'simple'`
@@ -38,7 +38,7 @@ const handleFavoriteItemDoubleClick = (meterId: number, elementId: number) => {
 ```
 
 ### 3. Updated SidebarMetersSection
-**File**: `client/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx`
+**File**: `MeterItPro/frontend/src/components/sidebar-meters/SidebarMetersSection.tsx`
 
 - Updated `handleFavoritesItemClick` to accept and pass `gridType` parameter
 - Added logging for gridType
@@ -54,7 +54,7 @@ const handleFavoritesItemClick = useCallback(
 ```
 
 ### 4. Updated AppLayoutWrapper
-**File**: `client/frontend/src/components/layout/AppLayoutWrapper.tsx`
+**File**: `MeterItPro/frontend/src/components/layout/AppLayoutWrapper.tsx`
 
 - Updated `onMeterElementSelect` to accept `gridType` parameter
 - Passes `gridType` as URL query parameter
@@ -70,7 +70,7 @@ onMeterElementSelect={(meterId, elementId, gridType) => {
 ```
 
 ### 5. Updated MeterReadingManagementPage
-**File**: `client/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx`
+**File**: `MeterItPro/frontend/src/features/meterReadings/MeterReadingManagementPage.tsx`
 
 - Reads `gridType` from URL query parameter
 - Sets `gridType` state based on URL parameter

@@ -4,7 +4,7 @@
 
 The **"Trigger Meter Sync Now"** button already exists in the Sync Frontend UI.
 
-**Location:** `sync/frontend/src/pages/SyncStatus.tsx`
+**Location:** `MeterItProSync/frontend/src/pages/SyncStatus.tsx`
 
 **Visual Location:** In the "Manual Meter Sync" card on the SyncStatus page
 
@@ -38,9 +38,9 @@ The **"Trigger Meter Sync Now"** button already exists in the Sync Frontend UI.
 4. Response shows success/error message and updates meter sync status
 
 ### Backend Flow (MCP Server)
-1. **Endpoint:** `POST /api/local/meter-sync-trigger` (in `sync/mcp/src/api/server.ts`)
+1. **Endpoint:** `POST /api/local/meter-sync-trigger` (in `MeterItProSync/mcp/src/api/server.ts`)
 2. **Handler:** Calls `meterSyncAgent.triggerSync()`
-3. **Agent:** `MeterSyncAgent` (in `sync/mcp/src/sync-service/meter-sync-agent.ts`)
+3. **Agent:** `MeterSyncAgent` (in `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts`)
    - Queries remote database for meters (from Client System)
    - Queries local database for meters (Sync database)
    - Compares and syncs:
@@ -73,7 +73,7 @@ The code already has extensive logging. Check the console output in the MCP serv
 
 ### 2. Debug Points in Code
 
-**File:** `sync/mcp/src/sync-service/meter-sync-agent.ts`
+**File:** `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts`
 
 Key debug points:
 - Line ~80: `performSync()` - Main sync logic
@@ -167,7 +167,7 @@ Response:
 
 **Issue: "Meter sync agent not available"**
 - Check if MCP server started successfully
-- Verify `meterSyncAgent` is initialized in `sync/mcp/src/index.ts`
+- Verify `meterSyncAgent` is initialized in `MeterItProSync/mcp/src/index.ts`
 
 **Issue: "Sync already in progress"**
 - Wait for previous sync to complete
@@ -196,12 +196,12 @@ All status is fetched from `/api/local/meter-sync-status` endpoint.
 
 1. **Start MCP Server:**
    ```bash
-   npm run dev  # in sync/mcp directory
+   npm run dev  # in MeterItProSync/mcp directory
    ```
 
 2. **Start Frontend:**
    ```bash
-   npm run dev  # in sync/frontend directory
+   npm run dev  # in MeterItProSync/frontend directory
    ```
 
 3. **Navigate to SyncStatus page** (usually http://localhost:3003)

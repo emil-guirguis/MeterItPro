@@ -14,8 +14,8 @@ Copy each file below into your `MeterItPro/` codebase at the matching path.
 
 | File in this folder | Copy to codebase |
 |---|---|
-| `client/frontend/src/assets/meteritpro-logo.svg` | `MeterItPro/client/frontend/src/assets/meteritpro-logo.svg` |
-| `client/frontend/public/favicon.svg` | `MeterItPro/client/frontend/public/favicon.svg` |
+| `MeterItPro/frontend/src/assets/meteritpro-logo.svg` | `MeterItPro/MeterItPro/frontend/src/assets/meteritpro-logo.svg` |
+| `MeterItPro/frontend/public/favicon.svg` | `MeterItPro/MeterItPro/frontend/public/favicon.svg` |
 
 > The sync console doesn't ship its own logo — it references the client app's. No sync changes needed.
 
@@ -26,7 +26,7 @@ Copy each file below into your `MeterItPro/` codebase at the matching path.
 
 | File in this folder | Copy to codebase |
 |---|---|
-| `client/frontend/src/theme/muiTheme.ts` | `MeterItPro/client/frontend/src/theme/muiTheme.ts` |
+| `MeterItPro/frontend/src/theme/muiTheme.ts` | `MeterItPro/MeterItPro/frontend/src/theme/muiTheme.ts` |
 
 **Diff (if you prefer to apply manually):**
 ```diff
@@ -51,14 +51,14 @@ All other design system decisions (colors, input focus, sidebar states, spacing,
 **Option B — terminal:**
 ```bash
 # From MeterItPro/ root:
-cp <path-to-design-system>/apply/client/frontend/src/assets/meteritpro-logo.svg \
-   client/frontend/src/assets/meteritpro-logo.svg
+cp <path-to-design-system>/apply/MeterItPro/frontend/src/assets/meteritpro-logo.svg \
+   MeterItPro/frontend/src/assets/meteritpro-logo.svg
 
-cp <path-to-design-system>/apply/client/frontend/public/favicon.svg \
-   client/frontend/public/favicon.svg
+cp <path-to-design-system>/apply/MeterItPro/frontend/public/favicon.svg \
+   MeterItPro/frontend/public/favicon.svg
 
-cp <path-to-design-system>/apply/client/frontend/src/theme/muiTheme.ts \
-   client/frontend/src/theme/muiTheme.ts
+cp <path-to-design-system>/apply/MeterItPro/frontend/src/theme/muiTheme.ts \
+   MeterItPro/frontend/src/theme/muiTheme.ts
 ```
 
-After copying, rebuild the frontend: `npm run build` in `client/frontend/`.
+After copying, rebuild the frontend: `npm run build` in `MeterItPro/frontend/`.

@@ -34,7 +34,7 @@ default: 'viewer',
 ```
 
 ### 2. Frontend TypeScript Types (userConfig.ts)
-**File:** `client/frontend/src/features/users/userConfig.ts`
+**File:** `MeterItPro/frontend/src/features/users/userConfig.ts`
 
 Updated User type and UserRole type to use lowercase:
 ```typescript

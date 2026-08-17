@@ -6,7 +6,7 @@ Restored the original MeterReadingList component from git that uses the BaseList
 ## Changes Made
 
 ### 1. Restored MeterReadingList.tsx
-**File**: `client/frontend/src/features/meterReadings/MeterReadingList.tsx`
+**File**: `MeterItPro/frontend/src/features/meterReadings/MeterReadingList.tsx`
 
 **What was restored**:
 - Original BaseList implementation using `useBaseList` hook
@@ -32,7 +32,7 @@ Restored the original MeterReadingList component from git that uses the BaseList
 - Added "Switch to Simple Grid" and "Switch to Old Grid" buttons
 
 ### 3. Updated CSS
-**File**: `client/frontend/src/features/meterReadings/MeterReadingList.css`
+**File**: `MeterItPro/frontend/src/features/meterReadings/MeterReadingList.css`
 
 **Added**:
 - `.meter-reading-list__simple-placeholder` - Placeholder for simple grid

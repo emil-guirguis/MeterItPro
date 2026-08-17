@@ -37,7 +37,7 @@ Exit Code  0
 
 ### Reading-Batcher Unit Tests: ✅ 13 TESTS PASSING
 
-**File:** `sync/mcp/src/bacnet-collection/reading-batcher.test.ts`
+**File:** `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.test.ts`
 
 1. ✅ validateReadings - should validate a single valid reading
 2. ✅ validateReadings - should reject reading with null meter_id
@@ -55,7 +55,7 @@ Exit Code  0
 
 ### Reading-Batcher Integration Tests: ✅ 9 TESTS PASSING
 
-**File:** `sync/mcp/src/bacnet-collection/reading-batcher.integration.test.ts`
+**File:** `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.integration.test.ts`
 
 #### 10.1 End-to-End Collection → Caching → Insertion Flow (2 tests)
 - ✅ should verify batch insertion succeeds with valid readings

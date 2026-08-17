@@ -7,7 +7,7 @@ This implementation plan breaks down the meter reading export feature into discr
 ## Tasks
 
 - [x] 1. Create CSV generator utility
-  - Create `client/frontend/src/utils/csvGenerator.ts`
+  - Create `MeterItPro/frontend/src/utils/csvGenerator.ts`
   - Implement `generateCSV(readings: MeterReading[]): string` function
   - Include all meter reading columns in output
   - Add header row with column names
@@ -26,7 +26,7 @@ This implementation plan breaks down the meter reading export feature into discr
   - _Requirements: 1.2, 4.1, 4.2, 4.3, 4.4_
 
 - [x] 2. Create filename formatter utility
-  - Create `client/frontend/src/utils/filenameFormatter.ts`
+  - Create `MeterItPro/frontend/src/utils/filenameFormatter.ts`
   - Implement `formatExportFilename(elementName: string, currentDate?: Date): string` function
   - Format as `[YYYY-MM-DD]_Meter_Readings_[elementName].csv`
   - Handle special characters in element names
@@ -38,7 +38,7 @@ This implementation plan breaks down the meter reading export feature into discr
   - _Requirements: 1.3_
 
 - [x] 3. Create export handler utility
-  - Create `client/frontend/src/utils/exportHandler.ts`
+  - Create `MeterItPro/frontend/src/utils/exportHandler.ts`
   - Implement `handleExport(options: ExportOptions): Promise<void>` function
   - Validate data exists before export
   - Generate CSV using csvGenerator utility
@@ -59,7 +59,7 @@ This implementation plan breaks down the meter reading export feature into discr
   - _Requirements: 1.1, 1.4, 1.5, 1.6, 5.1, 5.2, 5.3, 5.4_
 
 - [x] 4. Create email handler utility
-  - Create `client/frontend/src/utils/emailHandler.ts`
+  - Create `MeterItPro/frontend/src/utils/emailHandler.ts`
   - Implement `handleEmail(options: EmailOptions): Promise<void>` function
   - Validate data exists before email
   - Generate CSV using csvGenerator utility
@@ -84,7 +84,7 @@ This implementation plan breaks down the meter reading export feature into discr
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 5.1, 5.2, 5.3, 5.5, 7.1, 7.2, 7.4_
 
 - [x] 5. Create export buttons component
-  - Create `client/frontend/src/components/MeterReadingExportButtons.tsx`
+  - Create `MeterItPro/frontend/src/components/MeterReadingExportButtons.tsx`
   - Render Export Excel button with icon
   - Render Email button with icon
   - Display tooltips on hover
@@ -103,7 +103,7 @@ This implementation plan breaks down the meter reading export feature into discr
   - _Requirements: 6.1, 6.4, 6.5_
 
 - [x] 6. Integrate export buttons into MeterReadingList
-  - Update `client/frontend/src/features/meterReadings/MeterReadingList.tsx`
+  - Update `MeterItPro/frontend/src/features/meterReadings/MeterReadingList.tsx`
   - Import MeterReadingExportButtons component
   - Pass filteredData to export buttons
   - Pass selectedElementName for filename generation
@@ -153,7 +153,7 @@ This implementation plan breaks down the meter reading export feature into discr
   - Ask the user if questions arise
 
 - [x] 10. Add CSS styling for export buttons
-  - Create `client/frontend/src/components/MeterReadingExportButtons.css`
+  - Create `MeterItPro/frontend/src/components/MeterReadingExportButtons.css`
   - Style buttons to match dashboard design
   - Add hover states and transitions
   - Add disabled state styling

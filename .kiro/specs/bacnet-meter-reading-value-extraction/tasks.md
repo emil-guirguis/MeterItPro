@@ -7,7 +7,7 @@ Fix the BACnet meter reading value extraction logic to properly handle various r
 ## Tasks
 
 - [ ] 1. Create value extraction utility function
-  - Create a new utility file `sync/mcp/src/bacnet-collection/value-extractor.ts`
+  - Create a new utility file `MeterItProSync/mcp/src/bacnet-collection/value-extractor.ts`
   - Implement `extractNumericValue()` function to handle all BACnet response structures
   - Handle primitive numbers, objects with value property, arrays with objects
   - Return null for invalid/non-numeric values

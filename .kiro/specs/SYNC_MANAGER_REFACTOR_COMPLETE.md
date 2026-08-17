@@ -3,8 +3,8 @@
 ## Changes Made
 
 ### 1. Moved SyncManager to BACnet Collection Folder
-- **Old location**: `sync/mcp/src/remote_to_local-sync/sync-manager.ts`
-- **New location**: `sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
+- **Old location**: `MeterItProSync/mcp/src/remote_to_local-sync/sync-manager.ts`
+- **New location**: `MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
 - **New name**: `MeterReadingUploadManager`
 
 ### 2. Renamed Class and Exports
@@ -76,22 +76,22 @@ MeterReadingUploadManager
 
 ## Files Modified
 
-1. **Created**: `sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
-   - Moved from `sync/mcp/src/remote_to_local-sync/sync-manager.ts`
+1. **Created**: `MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
+   - Moved from `MeterItProSync/mcp/src/remote_to_local-sync/sync-manager.ts`
    - Renamed class and methods
    - Updated terminology
 
-2. **Updated**: `sync/mcp/src/index.ts`
+2. **Updated**: `MeterItProSync/mcp/src/index.ts`
    - Updated imports
    - Renamed properties and variables
    - Updated tool names
 
-3. **Updated**: `sync/mcp/src/api/server.ts`
+3. **Updated**: `MeterItProSync/mcp/src/api/server.ts`
    - Updated imports
    - Updated interface and function signatures
    - Renamed parameters
 
-4. **Deleted**: `sync/mcp/src/remote_to_local-sync/sync-manager.ts`
+4. **Deleted**: `MeterItProSync/mcp/src/remote_to_local-sync/sync-manager.ts`
    - Moved to bacnet-collection folder
 
 ## Benefits
@@ -105,6 +105,6 @@ MeterReadingUploadManager
 ## Compilation Status
 
 All files compile with **zero errors**:
-- ✅ `sync/mcp/src/index.ts`
-- ✅ `sync/mcp/src/api/server.ts`
-- ✅ `sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`
+- ✅ `MeterItProSync/mcp/src/index.ts`
+- ✅ `MeterItProSync/mcp/src/api/server.ts`
+- ✅ `MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts`

@@ -24,13 +24,13 @@ Fixed two critical issues:
 
 ### Frontend Changes
 
-#### 1. **client/frontend/src/features/contacts/contactsStore.ts**
+#### 1. **MeterItPro/frontend/src/features/contacts/contactsStore.ts**
 - ✓ Enhanced error handling in `request()` method
 - ✓ Extracts error.detail, error.code, error.errorType from response
 - ✓ Attaches full error data to Error object
 - ✓ Logs complete error information for debugging
 
-#### 2. **client/frontend/src/store/slices/createEntitySlice.ts**
+#### 2. **MeterItPro/frontend/src/store/slices/createEntitySlice.ts**
 - ✓ Updated `createItem` error handling
   - Extracts error.detail and error.code
   - Combines message + detail for full error text
@@ -109,8 +109,8 @@ Example error response:
 - `client/backend/src/middleware/errorHandler.js` - Centralized error handling (already done)
 
 ### Frontend
-- `client/frontend/src/features/contacts/contactsStore.ts` - Enhanced error extraction
-- `client/frontend/src/store/slices/createEntitySlice.ts` - Enhanced error formatting
+- `MeterItPro/frontend/src/features/contacts/contactsStore.ts` - Enhanced error extraction
+- `MeterItPro/frontend/src/store/slices/createEntitySlice.ts` - Enhanced error formatting
 
 ## Next Steps
 

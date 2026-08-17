@@ -125,9 +125,9 @@ If `meter_id` is still a string, check:
 
 ## Files to Check
 
-- `sync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Where readings are created
-- `sync/mcp/src/bacnet-collection/reading-batcher.ts` - Where readings are validated
-- `sync/mcp/src/cache/meter-cache.ts` - Where meter data comes from
+- `MeterItProSync/mcp/src/bacnet-collection/collection-cycle-manager.ts` - Where readings are created
+- `MeterItProSync/mcp/src/bacnet-collection/reading-batcher.ts` - Where readings are validated
+- `MeterItProSync/mcp/src/cache/meter-cache.ts` - Where meter data comes from
 
 ## Next Steps
 

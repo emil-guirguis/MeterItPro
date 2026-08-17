@@ -77,7 +77,7 @@ onChange={(e: any) => {
 
 ---
 
-### File 2: `client/frontend/src/hooks/useValidationDataProvider.ts`
+### File 2: `MeterItPro/frontend/src/hooks/useValidationDataProvider.ts`
 
 #### Change 1: Added Location Object Logging
 ```typescript
@@ -139,7 +139,7 @@ if (!locations || locations.length === 0) {
 
 ---
 
-### File 3: `client/frontend/src/contexts/AuthContext.tsx`
+### File 3: `MeterItPro/frontend/src/contexts/AuthContext.tsx`
 
 #### Change 1: Enhanced Login Logging
 ```typescript
@@ -192,8 +192,8 @@ dispatch({
 
 If issues occur, revert these files to their previous versions:
 1. `framework/frontend/components/validationfieldselect/ValidationFieldSelect.tsx`
-2. `client/frontend/src/hooks/useValidationDataProvider.ts`
-3. `client/frontend/src/contexts/AuthContext.tsx`
+2. `MeterItPro/frontend/src/hooks/useValidationDataProvider.ts`
+3. `MeterItPro/frontend/src/contexts/AuthContext.tsx`
 
 ## Performance Impact
 

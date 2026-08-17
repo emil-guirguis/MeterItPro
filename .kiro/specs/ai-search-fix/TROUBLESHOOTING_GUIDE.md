@@ -174,7 +174,7 @@ All 15 tests should pass.
 
 ### Manual Testing
 1. Start backend: `npm run dev` in `client/backend`
-2. Start frontend: `npm run dev` in `client/frontend`
+2. Start frontend: `npm run dev` in `MeterItPro/frontend`
 3. Login to application
 4. Type in search bar
 5. Verify results appear

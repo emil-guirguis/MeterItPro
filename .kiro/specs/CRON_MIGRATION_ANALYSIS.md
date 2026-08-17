@@ -68,8 +68,8 @@ Need to decide:
 
 ## Files That Need Changes
 
-- `sync/mcp/src/index.ts` - Add missing functions
-- `sync/mcp/src/config/scheduling-constants.ts` - Add helper functions
-- `sync/mcp/src/bacnet-collection/types.ts` - Clarify field types
-- `sync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` - Fix type assignments
-- `sync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts` - Remove unused uploadIntervalMinutes
+- `MeterItProSync/mcp/src/index.ts` - Add missing functions
+- `MeterItProSync/mcp/src/config/scheduling-constants.ts` - Add helper functions
+- `MeterItProSync/mcp/src/bacnet-collection/types.ts` - Clarify field types
+- `MeterItProSync/mcp/src/bacnet-collection/bacnet-reading-agent.ts` - Fix type assignments
+- `MeterItProSync/mcp/src/bacnet-collection/meter-reading-upload-manager.ts` - Remove unused uploadIntervalMinutes

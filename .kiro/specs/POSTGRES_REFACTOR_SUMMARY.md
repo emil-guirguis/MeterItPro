@@ -5,7 +5,7 @@ Refactored database connection management to provide a single, clean interface w
 
 ## What's Included
 
-The `sync/mcp/src/data-sync/connection-manager.ts` now provides:
+The `MeterItProSync/mcp/src/data-sync/connection-manager.ts` now provides:
 
 ### Public Exports:
 ```typescript
@@ -63,11 +63,11 @@ await closePools();
 
 ## Files Updated
 
-- ✅ `sync/mcp/src/data-sync/connection-manager.ts` - Cleaned to minimal implementation
-- ✅ `sync/mcp/src/index.ts` - Updated imports
-- ✅ `sync/mcp/src/sync-service/sync-manager.ts` - Updated imports
-- ✅ `sync/mcp/src/sync-service/meter-sync-agent.ts` - Updated imports
-- ✅ `sync/mcp/src/api/server.ts` - Updated imports
+- ✅ `MeterItProSync/mcp/src/data-sync/connection-manager.ts` - Cleaned to minimal implementation
+- ✅ `MeterItProSync/mcp/src/index.ts` - Updated imports
+- ✅ `MeterItProSync/mcp/src/sync-service/sync-manager.ts` - Updated imports
+- ✅ `MeterItProSync/mcp/src/sync-service/meter-sync-agent.ts` - Updated imports
+- ✅ `MeterItProSync/mcp/src/api/server.ts` - Updated imports
 
 ## Benefits
 

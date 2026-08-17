@@ -6,7 +6,7 @@ Fixed the old BaseList grid to display meter readings data and enabled the star 
 ## Changes Made
 
 ### 1. MeterReadingList.tsx - Added BaseList Grid
-**File**: `client/frontend/src/features/meterReadings/MeterReadingList.tsx`
+**File**: `MeterItPro/frontend/src/features/meterReadings/MeterReadingList.tsx`
 
 **Changes**:
 - Imported `BaseList` component from framework
@@ -42,7 +42,7 @@ const baseListColumns: ColumnDefinition<any>[] = [
 ```
 
 ### 2. FavoritesSection.tsx - Fixed Star Functionality
-**File**: `client/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
+**File**: `MeterItPro/frontend/src/components/sidebar-meters/FavoritesSection.tsx`
 
 **Changes**:
 - Fixed star icon `on_click` handler to use `createStarClickHandler` instead of disabled placeholder

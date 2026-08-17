@@ -28,13 +28,13 @@ This implementation plan breaks down the unused libraries cleanup into discrete,
   - _Requirements: 2.1, 2.2_
 
 - [ ] 3. Audit MCP npm Packages
-  - Verify all packages in client/mcp/package.json are used
-  - Verify all packages in sync/mcp/package.json are used
+  - Verify all packages in MeterItPro/mcp/package.json are used
+  - Verify all packages in MeterItProSync/mcp/package.json are used
   - Document findings
   - _Requirements: 3.1, 3.2_
 
 - [ ] 4. Audit Framework npm Packages
-  - Check recharts version alignment between framework/frontend and client/frontend
+  - Check recharts version alignment between framework/frontend and MeterItPro/frontend
   - Verify all packages in framework/frontend/package.json are used
   - Document findings
   - _Requirements: 4.1, 4.2_
@@ -48,10 +48,10 @@ This implementation plan breaks down the unused libraries cleanup into discrete,
   - _Requirements: 5.1, 5.2_
 
 - [ ] 6. Identify Dead Code Files in Frontend
-  - Scan client/frontend/src/services/ for unused files
-  - Scan client/frontend/src/components/ for unused files
-  - Scan client/frontend/src/hooks/ for unused files
-  - Scan client/frontend/src/utils/ for unused files
+  - Scan MeterItPro/frontend/src/services/ for unused files
+  - Scan MeterItPro/frontend/src/components/ for unused files
+  - Scan MeterItPro/frontend/src/hooks/ for unused files
+  - Scan MeterItPro/frontend/src/utils/ for unused files
   - Document findings
   - _Requirements: 5.1, 5.2_
 
@@ -69,14 +69,14 @@ This implementation plan breaks down the unused libraries cleanup into discrete,
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
 - [ ] 9. Remove Unused Frontend npm Packages
-  - Based on audit results, remove unused packages from client/frontend/package.json
+  - Based on audit results, remove unused packages from MeterItPro/frontend/package.json
   - Run `npm install` to update package-lock.json
   - Verify no build errors
   - _Requirements: 2.1, 2.2, 2.3_
 
 - [ ] 10. Remove Unused MCP npm Packages
-  - Based on audit results, remove unused packages from client/mcp/package.json
-  - Based on audit results, remove unused packages from sync/mcp/package.json
+  - Based on audit results, remove unused packages from MeterItPro/mcp/package.json
+  - Based on audit results, remove unused packages from MeterItProSync/mcp/package.json
   - Run `npm install` in both directories
   - Verify no build errors
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
@@ -95,7 +95,7 @@ This implementation plan breaks down the unused libraries cleanup into discrete,
   - _Requirements: 5.1, 5.2_
 
 - [ ] 13. Remove Dead Code Files from Frontend
-  - Delete identified unused files from client/frontend
+  - Delete identified unused files from MeterItPro/frontend
   - Remove any orphaned imports
   - Verify no build errors
   - _Requirements: 5.1, 5.2_
@@ -113,7 +113,7 @@ This implementation plan breaks down the unused libraries cleanup into discrete,
   - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
 - [ ] 16. Verify Frontend Build Success
-  - Run `npm run build` in client/frontend
+  - Run `npm run build` in MeterItPro/frontend
   - Verify no errors or warnings
   - Verify bundle size is reduced
   - _Requirements: 7.1_
@@ -124,8 +124,8 @@ This implementation plan breaks down the unused libraries cleanup into discrete,
   - _Requirements: 7.2_
 
 - [ ] 18. Verify MCP Builds Success
-  - Run `npm run build` in client/mcp
-  - Run `npm run build` in sync/mcp
+  - Run `npm run build` in MeterItPro/mcp
+  - Run `npm run build` in MeterItProSync/mcp
   - Verify no errors or warnings
   - _Requirements: 7.3_
 

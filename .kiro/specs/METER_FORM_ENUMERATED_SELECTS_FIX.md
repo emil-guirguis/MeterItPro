@@ -21,7 +21,7 @@ The meter form's device_id and location_id select fields were not properly displ
 
 **Fix**: Added fallback mechanism to fetch locations from API if not available in auth context.
 
-**File**: `client/frontend/src/hooks/useValidationDataProvider.ts`
+**File**: `MeterItPro/frontend/src/hooks/useValidationDataProvider.ts`
 
 ### 3. Improved Debugging
 Added comprehensive logging to track:
@@ -124,11 +124,11 @@ When testing, look for these logs in browser console:
    - Fixed value type handling
    - Added comprehensive logging
 
-2. `client/frontend/src/hooks/useValidationDataProvider.ts`
+2. `MeterItPro/frontend/src/hooks/useValidationDataProvider.ts`
    - Added API fallback for locations
    - Enhanced logging
 
-3. `client/frontend/src/contexts/AuthContext.tsx`
+3. `MeterItPro/frontend/src/contexts/AuthContext.tsx`
    - Enhanced login logging for locations
 
 ## Next Steps
