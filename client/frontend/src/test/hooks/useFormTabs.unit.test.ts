@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Tab } from '@framework/components/form/hooks/useFormTabs';
+import type { Tab } from '@meterit/framework-frontend/components/form/hooks/useFormTabs';
 
 /**
  * Unit Tests for useFormTabs Tab Filtering Logic

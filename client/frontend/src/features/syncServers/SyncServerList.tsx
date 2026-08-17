@@ -3,13 +3,13 @@ import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { BaseList } from '@framework/components/list/BaseList';
-import { useBaseList } from '@framework/components/list/hooks';
-import { useSchema } from '@framework/components/form/utils/schemaLoader';
-import { generateColumnsFromSchema, generateFiltersFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
+import { BaseList } from '@meterit/framework-frontend/components/list/BaseList';
+import { useBaseList } from '@meterit/framework-frontend/components/list/hooks';
+import { useSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema, generateFiltersFromSchema } from '@meterit/framework-frontend/components/list/utils/schemaColumnGenerator';
 import { useAuth } from '../../hooks/useAuth';
 import { useSyncServersEnhanced } from './syncServersStore';
-import type { ColumnDefinition } from '@framework/components/list/types/ui';
+import type { ColumnDefinition } from '@meterit/framework-frontend/components/list/types/ui';
 
 const STATUS_COLORS: Record<string, 'default' | 'warning' | 'success' | 'error' | 'info'> = {
   pending: 'default',

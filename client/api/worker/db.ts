@@ -6,7 +6,7 @@
  */
 
 import { Client } from 'pg';
-import { formatSqlForDebug } from '../../../framework/backend/shared/helpers/worker-logger';
+import { formatSqlForDebug } from '@meterit/framework-backend/shared/helpers/worker-logger';
 export { formatSqlForDebug };
 
 export interface Env {

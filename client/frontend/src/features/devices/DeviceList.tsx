@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
-import { BaseList } from '@framework/components/list/BaseList';
+import { BaseList } from '@meterit/framework-frontend/components/list/BaseList';
 import { useDevicesEnhanced } from './devicesStore';
 import { useAuth } from '../../hooks/useAuth';
-import { useBaseList } from '@framework/components/list/hooks';
-import { useSchema } from '@framework/components/form/utils/schemaLoader';
-import { generateColumnsFromSchema, generateFiltersFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
+import { useBaseList } from '@meterit/framework-frontend/components/list/hooks';
+import { useSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema, generateFiltersFromSchema } from '@meterit/framework-frontend/components/list/utils/schemaColumnGenerator';
 import type { Device } from './deviceConfig';
 import { deviceStats, deviceExportConfig } from './deviceConfig';
 import './DeviceList.css';

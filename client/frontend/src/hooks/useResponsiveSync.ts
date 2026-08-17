@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { useResponsive } from '@framework/hooks/useResponsive';
+import { useResponsive } from '@meterit/framework-frontend/hooks/useResponsive';
 import { useUI } from '../store/slices/uiSlice';
 
 /**

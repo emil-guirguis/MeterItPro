@@ -7,12 +7,12 @@
 
 import { Pool, PoolClient, QueryResult } from 'pg';
 import { TenantEntity, MeterEntity, MeterReadingEntity, SyncLog } from '../entities/index.js';
-import { execQuery } from '../../../../framework/backend/shared/helpers/sql-functions.js';
+import { execQuery } from '@meterit/framework-backend/shared/helpers/sql-functions';
 import {
   SqlitePool,
   ensureSyncSchema,
   resolveSyncDbPath,
-} from '../../../../framework/backend/shared/helpers/sqlite-pool.js';
+} from '@meterit/framework-backend/shared/helpers/sqlite-pool';
 import { cacheManager } from '../cache/cache-manager.js';
 
 

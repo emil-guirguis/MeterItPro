@@ -1,5 +1,5 @@
 // ===== METER (from MeterWithSchema.js) =====
-import { defineSchema, field, tab, section, FieldTypes, relationship, RelationshipTypes } from '../../../../framework/backend/api/base/SchemaDefinition';
+import { defineSchema, field, tab, section, FieldTypes, relationship, RelationshipTypes } from '@meterit/framework-backend/api/base/SchemaDefinition';
 
 export const meterSchema = defineSchema({
   entityName: 'Meter',
@@ -13,7 +13,6 @@ export const meterSchema = defineSchema({
     tab({
       name: 'Meter',
       order: 1,
-      minWidth: '400px',
       sections: [
         section({
           name: 'Information',
@@ -34,7 +33,6 @@ export const meterSchema = defineSchema({
               maxLength: 100,
               placeholder: 'Enter meter name',
               showOn: ['list', 'form'],
-              filertable: ['main'],
             }),
             field({
               name: 'serial_number',
@@ -46,7 +44,6 @@ export const meterSchema = defineSchema({
               dbField: 'serial_number',
               maxLength: 200,
               placeholder: 'Enter serial number',
-              filertable: ['main'],
               showOn: ['list', 'form'],
               visibleFor: ['physical'],
             }),
@@ -164,7 +161,6 @@ export const meterSchema = defineSchema({
               label: 'Active',
               dbField: 'active',
               showOn: ['list', 'form'],
-              filertable: ['true'],
             }),
             field({
               name: 'installation_date',

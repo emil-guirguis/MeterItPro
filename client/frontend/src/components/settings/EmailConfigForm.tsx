@@ -13,7 +13,7 @@ import {
   FormControlLabel,
   Alert
 } from '@mui/material';
-import { LoadingSpinner, Toast } from '@framework/components/common';
+import { LoadingSpinner, Toast } from '@meterit/framework-frontend/components/common';
 
 interface EmailConfig {
   smtpHost: string;

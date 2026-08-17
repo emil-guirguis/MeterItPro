@@ -1,5 +1,5 @@
 import React from 'react';
-import { BaseForm } from '@framework/components/form/BaseForm';
+import { BaseForm } from '@meterit/framework-frontend/components/form/BaseForm';
 import { useAdminDevicesEnhanced, type AdminDevice } from './adminDevicesStore';
 import { RegistersGrid } from '../features/devices/RegistersGrid';
 

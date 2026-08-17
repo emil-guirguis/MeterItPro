@@ -1,5 +1,5 @@
 // ===== USER (from UserWithSchema.js) =====
-import { defineSchema, field, tab, section, FieldTypes, relationship, RelationshipTypes } from '../../../../framework/backend/api/base/SchemaDefinition';
+import { defineSchema, field, tab, section, FieldTypes, relationship, RelationshipTypes } from '@meterit/framework-backend/api/base/SchemaDefinition';
 
 export const userSchema = defineSchema({
   entityName: 'User',
@@ -18,11 +18,11 @@ export const userSchema = defineSchema({
           name: 'Information',
           order: 1,
           fields: [
-            field({ name: 'name', order: 1, type: FieldTypes.STRING, default: '', required: true, label: 'Name', dbField: 'name', maxLength: 100, placeholder: 'John Doe', filertable: ['main'], showOn: ['list', 'form'] }),
+            field({ name: 'name', order: 1, type: FieldTypes.STRING, default: '', required: true, label: 'Name', dbField: 'name', maxLength: 100, placeholder: 'John Doe', showOn: ['list', 'form'] }),
             field({ name: 'email', order: 2, type: FieldTypes.EMAIL, default: '', required: true, label: 'Email', dbField: 'email', maxLength: 254, placeholder: 'email@yahoo.com', showOn: ['list', 'form'] }),
             field({ name: 'phone', order: 3, type: FieldTypes.PHONE, default: '', required: true, label: 'Phone', dbField: 'phone', maxLength: 20, placeholder: '(xxx) xxx-xxxx', showOn: ['list', 'form'] }),
             field({ name: 'password', order: 3, type: 'password', default: '', required: true, label: 'Password', dbField: 'password', maxLength: 200, placeholder: '********', showOn: ['form'] }),
-            field({ name: 'role', order: 4, type: FieldTypes.STRING, default: 'viewer', required: false, label: 'Role', dbField: 'role', maxLength: 20, enumValues: ['superadmin', 'supersupport', 'adminsupport', 'admin', 'manager', 'technician', 'viewer', 'user'], placeholder: 'viewer', filertable: ['true'], showOn: ['list', 'form'] }),
+            field({ name: 'role', order: 4, type: FieldTypes.STRING, default: 'viewer', required: false, label: 'Role', dbField: 'role', maxLength: 20, enumValues: ['superadmin', 'supersupport', 'adminsupport', 'admin', 'manager', 'technician', 'viewer', 'user'], placeholder: 'viewer', showOn: ['list', 'form'] }),
           ],
         }),
         section({

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Visualization } from '@framework/dashboards/components/Visualization';
+import { Visualization } from '@meterit/framework-frontend/dashboards/components/Visualization';
 import apiClient from '../../../services/apiClient';
 import type { AggregatedData } from '../../../services/dashboardService';
 import type { GraphControlsValue } from '../../../components/shared/GraphControls';

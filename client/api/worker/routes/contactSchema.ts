@@ -1,6 +1,6 @@
 // ===== CONTACT (from ContactWithSchema.js) =====
 // @ts-ignore - CommonJS module
-const { defineSchema, field, tab, section, FieldTypes } = require('../../../../framework/backend/api/base/SchemaDefinition');
+const { defineSchema, field, tab, section, FieldTypes } = require('@meterit/framework-backend/api/base/SchemaDefinition');
 export const contactSchema = defineSchema({
   entityName: 'Contact',
   tableName: 'contact',
@@ -20,9 +20,9 @@ export const contactSchema = defineSchema({
           flex: 1,
           minWidth: '300px',
           fields: [
-            field({ name: 'name', order: 1, type: FieldTypes.STRING, default: '', required: true, label: 'Name', dbField: 'name', minLength: 2, maxLength: 100, placeholder: 'John Doe', filertable: ['main'], showOn: ['list', 'form'] }),
-            field({ name: 'company', order: 2, type: FieldTypes.STRING, default: '', required: false, label: 'Company', dbField: 'company', maxLength: 200, placeholder: 'Acme Corporation', filertable: ['true'], showOn: ['list', 'form'] }),
-            field({ name: 'role', order: 3, type: FieldTypes.STRING, default: '', required: false, label: 'Role', dbField: 'role', maxLength: 100, enumValues: ['Vendor', 'Customer', 'Contractor', 'Technician', 'Client', 'Sales Manager'], placeholder: 'Vendor', filertable: ['true'], showOn: ['list', 'form'] }),
+            field({ name: 'name', order: 1, type: FieldTypes.STRING, default: '', required: true, label: 'Name', dbField: 'name', minLength: 2, maxLength: 100, placeholder: 'John Doe', showOn: ['list', 'form'] }),
+            field({ name: 'company', order: 2, type: FieldTypes.STRING, default: '', required: false, label: 'Company', dbField: 'company', maxLength: 200, placeholder: 'Acme Corporation', showOn: ['list', 'form'] }),
+            field({ name: 'role', order: 3, type: FieldTypes.STRING, default: '', required: false, label: 'Role', dbField: 'role', maxLength: 100, enumValues: ['Vendor', 'Customer', 'Contractor', 'Technician', 'Client', 'Sales Manager'], placeholder: 'Vendor', showOn: ['list', 'form'] }),
             field({ name: 'email', order: 4, type: FieldTypes.EMAIL, default: '', required: true, label: 'Email', dbField: 'email', maxLength: 254, pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$', placeholder: 'john@example.com', showOn: ['form'] }),
             field({ name: 'phone', order: 5, type: FieldTypes.PHONE, default: '', required: false, label: 'Phone', dbField: 'phone', maxLength: 50, placeholder: '() -', showOn: ['list', 'form'] }),
           ],

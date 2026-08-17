@@ -8,7 +8,7 @@ export {
   useIsDesktop,
   useIsLarge,
   useIsTouchDevice
-} from '@framework/hooks/useResponsive';
+} from '@meterit/framework-frontend/hooks/useResponsive';
 export { 
   useResponsiveSync,
   useResponsiveTransition,

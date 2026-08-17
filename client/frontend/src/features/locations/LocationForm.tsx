@@ -7,8 +7,8 @@
  */
 
 import React from 'react';
-import { BaseForm } from '@framework/components/form/BaseForm';
-import { useSchema } from '@framework/components/form/utils/schemaLoader';
+import { BaseForm } from '@meterit/framework-frontend/components/form/BaseForm';
+import { useSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
 import { useLocationsEnhanced } from './locationsStore';
 import type { Location } from '../../types/entities';
 

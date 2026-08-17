@@ -1,5 +1,5 @@
 // ===== EMAIL TEMPLATES (from EmailTemplatesWithSchema.js - commented out in source) =====
-import { defineSchema, field, tab, section, FieldTypes } from '../../../../framework/backend/api/base/SchemaDefinition';
+import { defineSchema, field, tab, section, FieldTypes } from '@meterit/framework-backend/api/base/SchemaDefinition';
 
 export const emailTemplatesSchema = defineSchema({
   entityName: 'EmailTemplates',

@@ -5,9 +5,9 @@ export { LoginForm } from './auth/LoginForm';
 export { RoleGuard } from './auth/RoleGuard';
 
 // Common UI Components
-export { DataTable } from '@framework/components/datatable/DataTable';
-export { FormModal } from '@framework/components/modal';
-export { FormField } from '@framework/components/formfield/FormField';
+export { DataTable } from '@meterit/framework-frontend/components/datatable/DataTable';
+export { FormModal } from '@meterit/framework-frontend/components/modal';
+export { FormField } from '@meterit/framework-frontend/components/formfield/FormField';
 
 // Components
 export { CompanyInfoForm, SystemConfigForm, EmailConfigForm } from './settings';

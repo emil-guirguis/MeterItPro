@@ -6,7 +6,7 @@
  * - window.debugLocations() - Show all locations in auth context
  */
 
-import { logSchemasInMemory } from '@framework/components/form/utils/schemaLoader';
+import { logSchemasInMemory } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
 
 export function setupDebugConsole() {
   // Make debug functions available globally

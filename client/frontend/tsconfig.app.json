@@ -17,12 +17,6 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Path mappings */
-    "baseUrl": ".",
-    "paths": {
-      "@framework/*": ["../../framework/frontend/*"]
-    },
-
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
@@ -32,5 +26,5 @@
     "noUncheckedSideEffectImports": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src", "../../framework/frontend"]
+  "include": ["src"]
 }

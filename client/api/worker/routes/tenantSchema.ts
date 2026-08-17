@@ -1,12 +1,12 @@
 // ===== TENANT =====
-import { defineSchema, field, tab, section, FieldTypes, relationship, RelationshipTypes } from '../../../../framework/backend/api/base/SchemaDefinition';
+import { defineSchema, field, tab, section, FieldTypes, relationship, RelationshipTypes } from '@meterit/framework-backend/api/base/SchemaDefinition';
 
 export const tenantSchema = defineSchema({
   entityName: 'Tenant',
   tableName: 'tenant',
   description: 'Tenant entity for multi-tenant isolation',
   idFieldName: 'tenant_id',
-  maxWidth: '800px',
+  formMaxWidth: '800px',
   customListColumns: {},
 
   formTabs: [

@@ -22,7 +22,7 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import type { Logger } from '../../../framework/backend/shared/helpers/logger.js';
+import type { Logger } from '@meterit/framework-backend/shared/helpers/logger';
 import winston from 'winston';
 import { existsSync, mkdirSync } from 'fs';
 import { Pool } from 'pg';

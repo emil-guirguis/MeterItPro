@@ -9,8 +9,8 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fc from 'fast-check';
-import { useLayout } from '@framework/dashboards/hooks/useLayout';
-import type { DashboardLayout, GridPosition, LayoutItem } from '@framework/dashboards/types';
+import { useLayout } from '@meterit/framework-frontend/dashboards/hooks/useLayout';
+import type { DashboardLayout, GridPosition, LayoutItem } from '@meterit/framework-frontend/dashboards/types';
 
 describe('useLayout Hook', () => {
   beforeEach(() => {

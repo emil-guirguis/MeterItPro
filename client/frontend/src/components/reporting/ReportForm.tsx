@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { createReport, updateReport } from '../../services/reportingService';
 import type { Report } from '../../services/reportingService';
-import { validateCronExpression } from '@framework/utils/validationHelpers';
+import { validateCronExpression } from '@meterit/framework-frontend/utils/validationHelpers';
 import { MeterElementRegisterSelectorGrid } from '../shared/MeterElementRegisterSelectorGrid';
 import type { MeterRowValue } from '../shared/MeterElementRegisterSelectorGrid';
 import RecipientManager from './RecipientManager';

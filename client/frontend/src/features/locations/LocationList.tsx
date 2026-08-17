@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
-import { BaseList } from '@framework/components/list/BaseList';
+import { BaseList } from '@meterit/framework-frontend/components/list/BaseList';
 import { useLocationsEnhanced } from './locationsStore';
-import { useBaseList } from '@framework/components/list/hooks';
+import { useBaseList } from '@meterit/framework-frontend/components/list/hooks';
 import { useAuth } from '../../hooks/useAuth';
-import { useSchema } from '@framework/components/form/utils/schemaLoader';
-import { generateColumnsFromSchema, generateFiltersFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
+import { useSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema, generateFiltersFromSchema } from '@meterit/framework-frontend/components/list/utils/schemaColumnGenerator';
 import { Permission } from '../../types/auth';
 import type { Location } from '../../types/entities';
 import {
@@ -12,7 +12,7 @@ import {
   createLocationBulkActions,
   locationExportConfig,
 } from './locationConfig';
-import { showConfirmation } from '@framework/utils/confirmationHelper';
+import { showConfirmation } from '@meterit/framework-frontend/utils/confirmationHelper';
 import './LocationList.css';
 
 interface LocationListProps {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MeterList, MeterForm } from '../features/meters';
 import { MeterTypeSelector } from '../features/meters/MeterTypeSelector';
 import { useMetersEnhanced, type Meter } from '../features/meters/metersStore';
-import { FormModal } from '@framework/components/modal';
+import { FormModal } from '@meterit/framework-frontend/components/modal';
 import './MetersPage.css';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view';

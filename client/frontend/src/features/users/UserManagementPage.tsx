@@ -1,5 +1,5 @@
 import React from 'react';
-import { EntityManagementPage } from '@framework/components/entity';
+import { EntityManagementPage } from '@meterit/framework-frontend/components/entity';
 import { UserList } from './UserList';
 import { UserForm } from './UserForm';
 import type { User } from '../../types/auth';

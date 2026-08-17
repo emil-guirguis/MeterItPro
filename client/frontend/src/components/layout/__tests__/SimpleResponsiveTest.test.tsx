@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useResponsive } from '@framework/hooks/useResponsive';
+import { useResponsive } from '@meterit/framework-frontend/hooks/useResponsive';
 
 // Mock window dimensions
 const mockWindowDimensions = (width: number, height: number = 768) => {

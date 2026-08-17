@@ -1,5 +1,5 @@
 import React from 'react';
-import { EntityManagementPage } from '@framework/components/entity';
+import { EntityManagementPage } from '@meterit/framework-frontend/components/entity';
 import { DeviceList } from './DeviceList';
 import { DeviceForm } from './DeviceForm';
 import type { Device } from './deviceConfig';

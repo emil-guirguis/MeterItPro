@@ -1,6 +1,6 @@
 // ===== DASHBOARD (from DashboardWithSchema.js) =====
 // @ts-ignore - CommonJS module
-const { defineSchema, field, tab, section, FieldTypes } = require('../../../../framework/backend/api/base/SchemaDefinition');
+const { defineSchema, field, tab, section, FieldTypes } = require('@meterit/framework-backend/api/base/SchemaDefinition');
 export const dashboardSchema = defineSchema({
   entityName: 'Dashboard',
   tableName: 'dashboard',

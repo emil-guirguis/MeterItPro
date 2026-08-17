@@ -1,5 +1,5 @@
 // @ts-ignore - CommonJS module
-const { defineSchema, field, tab, section, FieldTypes } = require('../../../../framework/backend/api/base/SchemaDefinition');
+const { defineSchema, field, tab, section, FieldTypes } = require('@meterit/framework-backend/api/base/SchemaDefinition');
 
 export const supportTicketSchema = defineSchema({
   entityName: 'Support Ticket',
@@ -19,10 +19,10 @@ export const supportTicketSchema = defineSchema({
           order: 1,
           flex: 1,
           fields: [
-            field({ name: 'title',       order: 1, type: FieldTypes.STRING, default: '', required: true,  readOnly: false, label: 'Title',       dbField: 'title',    maxLength: 200, showOn: ['list', 'form'], filertable: ['main'] }),
-            field({ name: 'type',        order: 2, type: FieldTypes.STRING, default: 'general', required: false, readOnly: false, label: 'Type',   dbField: 'type',     enumValues: ['bug', 'feature_request', 'billing', 'account', 'technical', 'general'], showOn: ['list', 'form'], filertable: ['true'] }),
-            field({ name: 'status',      order: 3, type: FieldTypes.STRING, default: 'open',    required: false, readOnly: false, label: 'Status', dbField: 'status',   enumValues: ['open', 'in_progress', 'resolved', 'closed'], showOn: ['list', 'form'], filertable: ['true'] }),
-            field({ name: 'priority',    order: 4, type: FieldTypes.STRING, default: 'medium',  required: false, readOnly: false, label: 'Priority', dbField: 'priority', enumValues: ['low', 'medium', 'high', 'urgent'], showOn: ['list', 'form'], filertable: ['true'] }),
+            field({ name: 'title',       order: 1, type: FieldTypes.STRING, default: '', required: true,  readOnly: false, label: 'Title',       dbField: 'title',    maxLength: 200, showOn: ['list', 'form'] }),
+            field({ name: 'type',        order: 2, type: FieldTypes.STRING, default: 'general', required: false, readOnly: false, label: 'Type',   dbField: 'type',     enumValues: ['bug', 'feature_request', 'billing', 'account', 'technical', 'general'], showOn: ['list', 'form'] }),
+            field({ name: 'status',      order: 3, type: FieldTypes.STRING, default: 'open',    required: false, readOnly: false, label: 'Status', dbField: 'status',   enumValues: ['open', 'in_progress', 'resolved', 'closed'], showOn: ['list', 'form'] }),
+            field({ name: 'priority',    order: 4, type: FieldTypes.STRING, default: 'medium',  required: false, readOnly: false, label: 'Priority', dbField: 'priority', enumValues: ['low', 'medium', 'high', 'urgent'], showOn: ['list', 'form'] }),
             field({ name: 'description', order: 5, type: FieldTypes.STRING, default: '',  required: false, readOnly: false, label: 'Description', dbField: 'description', showOn: ['form'] }),
           ],
         }),

@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { Box, Typography } from '@mui/material';
-import { BaseForm } from '@framework/components/form/BaseForm';
+import { BaseForm } from '@meterit/framework-frontend/components/form/BaseForm';
 import { useTenantsEnhanced } from './tenantsStore';
 import { TenantEquipmentGrid } from './TenantEquipmentGrid';
 import { TenantCostsGrid } from './TenantCostsGrid';

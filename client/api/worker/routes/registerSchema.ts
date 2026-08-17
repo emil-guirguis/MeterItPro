@@ -1,5 +1,5 @@
 // ===== REGISTER SCHEMA =====
-import { defineSchema, field, FieldTypes } from '../../../../framework/backend/api/base/SchemaDefinition';
+import { defineSchema, field, FieldTypes } from '@meterit/framework-backend/api/base/SchemaDefinition';
 
 export const registerSchema = defineSchema({
   entityName: 'Registers',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { EditableDataGrid, type GridColumn, useGridToast, useUnsavedRow } from '@framework/components/datagrid/';
+import { EditableDataGrid, type GridColumn, useGridToast, useUnsavedRow } from '@meterit/framework-frontend/components/datagrid/';
 import apiClient from '../../services/apiClient';
 import './ElementsGrid.css';
 

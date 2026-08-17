@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FormModal } from '@framework/components/modal';
+import { FormModal } from '@meterit/framework-frontend/components/modal';
 import NotificationRulesList from './NotificationRulesList';
 import NotificationRuleForm from './NotificationRuleForm';
 import { useNotificationRulesEnhanced } from './notificationRulesStore';

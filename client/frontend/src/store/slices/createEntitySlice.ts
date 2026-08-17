@@ -8,7 +8,7 @@ import {
   isCacheFresh,
   createCacheConfig,
 } from '../utils';
-import { loadSchema } from '@framework/components/form/utils/schemaLoader';
+import { loadSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
 
 // Generic service interface
 export interface EntityService<T> {

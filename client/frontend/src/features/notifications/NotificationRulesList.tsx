@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { Chip, Box } from '@mui/material';
-import { BaseList } from '@framework/components/list/BaseList';
-import { useBaseList } from '@framework/components/list/hooks';
-import { useSchema } from '@framework/components/form/utils/schemaLoader';
-import { generateColumnsFromSchema, generateFiltersFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
-import type { ColumnDefinition } from '@framework/components/list/types';
+import { BaseList } from '@meterit/framework-frontend/components/list/BaseList';
+import { useBaseList } from '@meterit/framework-frontend/components/list/hooks';
+import { useSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema, generateFiltersFromSchema } from '@meterit/framework-frontend/components/list/utils/schemaColumnGenerator';
+import type { ColumnDefinition } from '@meterit/framework-frontend/components/list/types';
 import type { NotificationRule } from '../../services/notificationRuleService';
 import { useNotificationRulesEnhanced } from './notificationRulesStore';
 import { useAuth } from '../../hooks/useAuth';

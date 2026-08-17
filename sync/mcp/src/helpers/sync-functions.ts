@@ -13,7 +13,7 @@
 
 import { Pool } from 'pg';
 import { EntityMetadata, ENTITY_METADATA } from '../types/index.js';
-import { execQuery } from '../../../../framework/backend/shared/helpers/sql-functions.js';
+import { execQuery } from '@meterit/framework-backend/shared/helpers/sql-functions';
 
 /**
  * Get entities from the remote database based on entity type

@@ -8,7 +8,7 @@
  * List columns and filters are auto-generated from the schema.
  */
 
-import type { StatDefinition, ExportConfig } from '@framework/components/list/types/list';
+import type { StatDefinition, ExportConfig } from '@meterit/framework-frontend/components/list/types/list';
 import type { Report } from './types';
 
 // ============================================================================

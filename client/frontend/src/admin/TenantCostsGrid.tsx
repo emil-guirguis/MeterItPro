@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
-import { EditableDataGrid, type GridColumn, useGridToast, useUnsavedRow } from '@framework/components/datagrid/';
+import { EditableDataGrid, type GridColumn, useGridToast, useUnsavedRow } from '@meterit/framework-frontend/components/datagrid/';
 import { listTenantCosts, createTenantCost, updateTenantCost, removeTenantCost, type TenantCost } from './adminService';
 
 interface Props { tenantId: number; }

@@ -4,7 +4,7 @@ import {
   validateCronExpression,
   validateReportName,
   validateEmailList
-} from '@framework/utils/validationHelpers';
+} from '@meterit/framework-frontend/utils/validationHelpers';
 
 describe('validationHelpers', () => {
   describe('validateEmail', () => {

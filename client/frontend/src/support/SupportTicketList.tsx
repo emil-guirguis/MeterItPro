@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BaseList } from '@framework/components/list/BaseList';
-import { useBaseList } from '@framework/components/list/hooks';
-import { useSchema } from '@framework/components/form/utils/schemaLoader';
-import { generateColumnsFromSchema, generateFiltersFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
+import { BaseList } from '@meterit/framework-frontend/components/list/BaseList';
+import { useBaseList } from '@meterit/framework-frontend/components/list/hooks';
+import { useSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema, generateFiltersFromSchema } from '@meterit/framework-frontend/components/list/utils/schemaColumnGenerator';
 import { useSupportTicketsEnhanced, type SupportTicket } from './supportTicketsStore';
 import { useAuth } from '../hooks/useAuth';
 

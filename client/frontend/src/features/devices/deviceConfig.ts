@@ -9,7 +9,7 @@
  * This configuration is shared between DeviceForm and DeviceList components.
  */
 
-import type { StatDefinition, ExportConfig } from '@framework/components/list/types/list';
+import type { StatDefinition, ExportConfig } from '@meterit/framework-frontend/components/list/types/list';
 
 // ============================================================================
 // TYPE DEFINITION - Uses backend schema as single source of truth

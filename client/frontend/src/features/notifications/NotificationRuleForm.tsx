@@ -18,8 +18,8 @@ import {
   Paper,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import { BaseForm, FormContainer } from '@framework/components/form';
-import { CronField } from '@framework/components/formfield/CronField';
+import { BaseForm, FormContainer } from '@meterit/framework-frontend/components/form';
+import { CronField } from '@meterit/framework-frontend/components/formfield/CronField';
 import { MeterElementRegisterSelectorGrid } from '../../components/shared/MeterElementRegisterSelectorGrid';
 import { useNotificationRulesEnhanced } from './notificationRulesStore';
 import apiClient from '../../services/apiClient';

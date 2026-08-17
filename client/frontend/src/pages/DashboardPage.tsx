@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useContext, createContext, useRef, useMemo } from 'react';
 import type { Layout } from 'react-grid-layout';
-import { DashboardPage as FrameworkDashboardPage } from '@framework/dashboards/components/DashboardPage';
-import { DashboardCard as FrameworkDashboardCard } from '@framework/dashboards/components/DashboardCard';
-import { DashboardCardForm as FrameworkDashboardCardForm } from '@framework/dashboards/components/DashboardCardForm';
-import { ExpandedCardModal as FrameworkExpandedCardModal } from '@framework/dashboards/components/ExpandedCardModal';
-import { Visualization } from '@framework/dashboards/components/Visualization';
-import type { DashboardCard as FrameworkDashboardCardType } from '@framework/dashboards/types';
+import { DashboardPage as FrameworkDashboardPage } from '@meterit/framework-frontend/dashboards/components/DashboardPage';
+import { DashboardCard as FrameworkDashboardCard } from '@meterit/framework-frontend/dashboards/components/DashboardCard';
+import { DashboardCardForm as FrameworkDashboardCardForm } from '@meterit/framework-frontend/dashboards/components/DashboardCardForm';
+import { ExpandedCardModal as FrameworkExpandedCardModal } from '@meterit/framework-frontend/dashboards/components/ExpandedCardModal';
+import { Visualization } from '@meterit/framework-frontend/dashboards/components/Visualization';
+import type { DashboardCard as FrameworkDashboardCardType } from '@meterit/framework-frontend/dashboards/types';
 import { dashboardService, type DashboardCard as DashboardCardType, type AggregatedData } from '../services/dashboardService';
 // import { DashboardBanner } from '../features/dashboard/DashboardBanner';
 import './DashboardPage.css';

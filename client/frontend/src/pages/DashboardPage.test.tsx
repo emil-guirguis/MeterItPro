@@ -25,7 +25,7 @@ vi.mock('react-grid-layout', () => ({
 }));
 
 // Mock framework dashboard components that depend on react-grid-layout
-vi.mock('@framework/dashboards/components/DashboardPage', () => ({
+vi.mock('@meterit/framework-frontend/dashboards/components/DashboardPage', () => ({
   DashboardPage: ({ cards, loading, error, onRefresh, onCreateCard, refreshing, onErrorClose, children }: any) => (
     <div>
       <h1>Dashboard</h1>
@@ -52,13 +52,13 @@ vi.mock('@framework/dashboards/components/DashboardPage', () => ({
     </div>
   ),
 }));
-vi.mock('@framework/dashboards/components/DashboardCard', () => ({
+vi.mock('@meterit/framework-frontend/dashboards/components/DashboardCard', () => ({
   DashboardCard: ({ children }: any) => <div>{children}</div>,
 }));
-vi.mock('@framework/dashboards/components/ExpandedCardModal', () => ({
+vi.mock('@meterit/framework-frontend/dashboards/components/ExpandedCardModal', () => ({
   ExpandedCardModal: () => null,
 }));
-vi.mock('@framework/dashboards/components/Visualization', () => ({
+vi.mock('@meterit/framework-frontend/dashboards/components/Visualization', () => ({
   Visualization: () => null,
 }));
 
@@ -68,7 +68,7 @@ vi.mock('../components/dashboard/DashboardCardForm', () => ({
 }));
 
 // Mock the framework DashboardCardForm to prevent MUI module resolution failure
-vi.mock('@framework/dashboards/components/DashboardCardForm', () => ({
+vi.mock('@meterit/framework-frontend/dashboards/components/DashboardCardForm', () => ({
   DashboardCardForm: () => null
 }));
 

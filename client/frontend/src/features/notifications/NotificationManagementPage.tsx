@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
-import { FormModal } from '@framework/components/modal';
+import { FormModal } from '@meterit/framework-frontend/components/modal';
 import NotificationListPanel from './NotificationListPanel';
 import NotificationForm from './NotificationForm';
 import { useNotificationsEnhanced } from './notificationsStore';

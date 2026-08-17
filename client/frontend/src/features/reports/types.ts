@@ -1,4 +1,4 @@
-import type { EmailFieldValue } from '@framework/components/formfield/EmailRecipientsField';
+import type { EmailFieldValue } from '@meterit/framework-frontend/components/formfield/EmailRecipientsField';
 
 export type { EmailFieldValue };
 

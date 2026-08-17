@@ -21,8 +21,7 @@
     "types": ["node"]
   },
   "include": [
-    "worker/**/*",
-    "../../framework/backend/shared/**/*"
+    "worker/**/*"
   ],
   "exclude": [
     "node_modules",

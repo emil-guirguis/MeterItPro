@@ -1,6 +1,6 @@
 
 // ===== LOCATION (from LocationWithSchema.js) =====
-import { defineSchema, field, tab, section, FieldTypes } from '../../../../framework/backend/api/base/SchemaDefinition';
+import { defineSchema, field, tab, section, FieldTypes } from '@meterit/framework-backend/api/base/SchemaDefinition';
 
 export const locationSchema = defineSchema({
   entityName: 'Location',
@@ -19,7 +19,7 @@ export const locationSchema = defineSchema({
           name: 'Details',
           order: 1,
           fields: [
-            field({ name: 'name', order: 1, type: FieldTypes.STRING, default: '', required: true, label: 'Name', dbField: 'name', maxLength: 200, placeholder: 'Location', filertable: ['main'], showOn: ['list', 'form'] }),
+            field({ name: 'name', order: 1, type: FieldTypes.STRING, default: '', required: true, label: 'Name', dbField: 'name', maxLength: 200, placeholder: 'Location', showOn: ['list', 'form'] }),
             field({ name: 'type', order: 2, type: FieldTypes.STRING, default: '', required: true, label: 'Type', dbField: 'type', maxLength: 20, enumValues: ['Warehouse', 'Apartment', 'Ofice', 'Retail', 'Hotel', 'Building', 'Other'], placeholder: 'Warehouse', showOn: ['list', 'form'] }),
           ],
         }),

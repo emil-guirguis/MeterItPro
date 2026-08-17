@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { AppLayoutWrapper as AppLayout } from '../../components/layout';
-import { FormModal } from '@framework/components/modal';
+import { FormModal } from '@meterit/framework-frontend/components/modal';
 import { useReportsEnhanced } from './reportsStore';
 import { useAuth } from '../../hooks/useAuth';
 import { Permission } from '../../types/auth';

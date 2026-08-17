@@ -1,5 +1,11 @@
 // ===== NOTIFICATION RULE =====
-import { defineSchema, field, tab, section, FieldTypes } from '../../../../framework/backend/api/base/SchemaDefinition';
+import {
+  defineSchema,
+  field,
+  tab,
+  section,
+  FieldTypes,
+} from '@meterit/framework-backend/api/base/SchemaDefinition';
 
 export const notificationRuleSchema = defineSchema({
   entityName: 'NotificationRule',
@@ -28,7 +34,6 @@ export const notificationRuleSchema = defineSchema({
               minLength: 1,
               maxLength: 255,
               placeholder: 'No readings for 24 hours',
-              filterable: ['main'],
               showOn: ['list', 'form'],
             }),
             field({
@@ -40,7 +45,8 @@ export const notificationRuleSchema = defineSchema({
               label: 'Description',
               dbField: 'description',
               maxLength: 500,
-              placeholder: 'Alert when meter has no readings in the specified period',
+              placeholder:
+                'Alert when meter has no readings in the specified period',
               showOn: ['form'],
             }),
             field({
@@ -51,14 +57,18 @@ export const notificationRuleSchema = defineSchema({
               required: true,
               label: 'Rule Type',
               dbField: 'rule_type',
-              enumValues: ['custom', 'meter_no_reading', 'meter_zero_reading', 'demand_threshold'],
+              enumValues: [
+                'custom',
+                'meter_no_reading',
+                'meter_zero_reading',
+                'demand_threshold',
+              ],
               enumLabels: {
-                'custom': 'Custom',
-                'meter_no_reading': 'No Reading in Period',
-                'meter_zero_reading': 'Zero Readings',
-                'demand_threshold': 'Demand Threshold',
+                custom: 'Custom',
+                meter_no_reading: 'No Reading in Period',
+                meter_zero_reading: 'Zero Readings',
+                demand_threshold: 'Demand Threshold',
               },
-              filterable: ['true'],
               showOn: ['list', 'form'],
             }),
             field({
@@ -69,7 +79,6 @@ export const notificationRuleSchema = defineSchema({
               required: false,
               label: 'Demand Threshold (kW)',
               dbField: 'demand_threshold',
-              helpText: 'Alert when demand exceeds this threshold in kW',
               showOn: ['form'],
               showIf: {
                 fieldName: 'rule_type',
@@ -84,9 +93,7 @@ export const notificationRuleSchema = defineSchema({
               required: false,
               label: 'Meter',
               dbField: 'meter_selections',
-              helpText: 'Select the meter, element and registers to monitor. Leave empty to check all meters.',
               showOn: ['form'],
-              customField: true,
               showIf: {
                 fieldName: 'rule_type',
                 value: 'custom',
@@ -108,12 +115,10 @@ export const notificationRuleSchema = defineSchema({
               required: false,
               label: 'Active',
               dbField: 'active',
-              filterable: ['true'],
               showOn: ['list', 'form'],
             }),
           ],
         }),
-
       ],
     }),
     tab({
@@ -133,9 +138,7 @@ export const notificationRuleSchema = defineSchema({
               required: true,
               label: 'Schedule',
               dbField: 'schedule_cron',
-              helpText: 'When this rule should run',
               showOn: ['form'],
-              customField: true,
             }),
             field({
               name: 'threshold_hours',
@@ -145,7 +148,6 @@ export const notificationRuleSchema = defineSchema({
               required: false,
               label: 'Threshold Hours',
               dbField: 'threshold_hours',
-              helpText: 'For "no reading" rules: hours without readings before alert',
               showOn: ['form'],
             }),
           ],
@@ -169,9 +171,7 @@ export const notificationRuleSchema = defineSchema({
               required: false,
               label: 'Notification Recipients',
               dbField: 'recipients',
-              helpText: 'Select users and their email preferences',
               showOn: ['form'],
-              customField: true,
             }),
           ],
         }),
@@ -188,74 +188,6 @@ export const notificationRuleSchema = defineSchema({
           fields: [],
         }),
       ],
-    }),
-  ],
-
-  listColumns: [
-    field({
-      name: 'name',
-      order: 1,
-      type: FieldTypes.STRING,
-      label: 'Rule Name',
-      dbField: 'name',
-      showOn: ['list'],
-      width: '25%',
-    }),
-    field({
-      name: 'rule_type',
-      order: 2,
-      type: FieldTypes.SELECT,
-      label: 'Type',
-      dbField: 'rule_type',
-      enumValues: ['custom', 'meter_no_reading', 'meter_zero_reading', 'demand_threshold'],
-      enumLabels: {
-        'custom': 'Custom',
-        'meter_no_reading': 'No Reading',
-        'meter_zero_reading': 'Zero Reading',
-        'demand_threshold': 'Demand Threshold',
-      },
-      showOn: ['list'],
-      width: '15%',
-    }),
-    field({
-      name: 'schedule_cron',
-      order: 3,
-      type: FieldTypes.STRING,
-      label: 'Schedule',
-      dbField: 'schedule_cron',
-      showOn: ['list'],
-      width: '20%',
-    }),
-    field({
-      name: 'active',
-      order: 4,
-      type: FieldTypes.BOOLEAN,
-      label: 'Active',
-      dbField: 'active',
-      showOn: ['list'],
-      width: '10%',
-    }),
-  ],
-
-  filters: [
-    field({
-      name: 'rule_type',
-      type: FieldTypes.SELECT,
-      label: 'Type',
-      dbField: 'rule_type',
-      enumValues: ['custom', 'meter_no_reading', 'meter_zero_reading', 'demand_threshold'],
-      enumLabels: {
-        'custom': 'Custom',
-        'meter_no_reading': 'No Reading Alert',
-        'meter_zero_reading': 'Zero Reading Alert',
-        'demand_threshold': 'Demand Threshold Alert',
-      },
-    }),
-    field({
-      name: 'active',
-      type: FieldTypes.BOOLEAN,
-      label: 'Status',
-      dbField: 'active',
     }),
   ],
 });

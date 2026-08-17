@@ -7,8 +7,8 @@
  */
 
 import React, { useState } from 'react';
-import { BaseForm } from '@framework/components/form';
-import { JSONBPermissionsRenderer } from '@framework/components/jsonbfield';
+import { BaseForm } from '@meterit/framework-frontend/components/form';
+import { JSONBPermissionsRenderer } from '@meterit/framework-frontend/components/jsonbfield';
 import { useUsersEnhanced } from './usersStore';
 import type { User } from '../../types/auth';
 import { ChangePasswordModal } from '../../components/auth/ChangePasswordModal';

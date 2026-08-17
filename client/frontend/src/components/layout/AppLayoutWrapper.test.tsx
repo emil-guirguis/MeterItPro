@@ -39,7 +39,7 @@ vi.mock('../../utils/navigationUtils', () => ({
 }));
 
 // Mock the framework AppLayout component
-vi.mock('@framework/layout', () => ({
+vi.mock('@meterit/framework-frontend/layout', () => ({
   AppLayout: ({ config, children }: any) => {
     const meterReadingsItem = config.menuItems?.find((item: any) => item.id === 'meter-readings');
     return (

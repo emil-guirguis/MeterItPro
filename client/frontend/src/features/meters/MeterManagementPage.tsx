@@ -1,5 +1,5 @@
 import React from 'react';
-import { EntityManagementPage } from '@framework/components/entity';
+import { EntityManagementPage } from '@meterit/framework-frontend/components/entity';
 import { AppLayoutWrapper } from '../../components/layout/AppLayoutWrapper';
 import { MeterList } from './MeterList';
 import { MeterForm } from './MeterForm';

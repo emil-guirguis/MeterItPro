@@ -10,7 +10,7 @@ import {
   SqlitePool,
   ensureSyncSchema,
   resolveSyncDbPath,
-} from '../../../../framework/backend/shared/helpers/sqlite-pool.js';
+} from '@meterit/framework-backend/shared/helpers/sqlite-pool';
 // Note: dotenv is loaded by server.ts before this module is imported
 export interface DatabaseConfig {
   host: string;

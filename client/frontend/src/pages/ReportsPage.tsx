@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ReportList, ReportForm } from '../features/reports';
 import { useReportsEnhanced } from '../features/reports';
 import type { Report } from '../features/reports/types';
-import { FormModal } from '@framework/components/modal';
+import { FormModal } from '@meterit/framework-frontend/components/modal';
 import './ReportsPage.css';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view';

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { Tab } from '@framework/components/form/hooks/useFormTabs';
+import { Tab } from '@meterit/framework-frontend/components/form/hooks/useFormTabs';
 
 // Import the processing function directly
 // We need to test the logic without React hooks

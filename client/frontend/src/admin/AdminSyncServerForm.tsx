@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Button, Chip, CircularProgress, IconButton, MenuItem, TextField, Tooltip } from '@mui/material';
 import CloudIcon from '@mui/icons-material/Cloud';
 import UsbIcon from '@mui/icons-material/Usb';
-import { BaseForm } from '@framework/components/form/BaseForm';
+import { BaseForm } from '@meterit/framework-frontend/components/form/BaseForm';
 import { useAdminSyncServersEnhanced, type AdminSyncServerEntity } from './adminSyncServersStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';

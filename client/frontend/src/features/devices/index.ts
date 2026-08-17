@@ -14,4 +14,4 @@ export {
   deviceExportConfig,
   type Device,
 } from './deviceConfig';
-export { createDeviceBulkActions } from '@framework/components/list/config/listBulkActions';
+export { createDeviceBulkActions } from '@meterit/framework-frontend/components/list/config/listBulkActions';

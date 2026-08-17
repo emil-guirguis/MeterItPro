@@ -5,7 +5,7 @@
 
 import React from 'react';
 import type { ColumnDefinition } from '../types/ui';
-import type { FilterDefinition, BulkActionConfig } from '@framework/components/list/types/list';
+import type { FilterDefinition, BulkActionConfig } from '@meterit/framework-frontend/components/list/types/list';
 
 // Column helpers
 export function createTwoLineColumn<T>(

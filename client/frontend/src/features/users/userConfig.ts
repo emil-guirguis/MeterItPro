@@ -11,7 +11,7 @@
 
 import React from 'react';
 import type { ColumnDefinition } from '../../types/ui';
-import type { FilterDefinition, StatDefinition, BulkActionConfig, ExportConfig } from '@framework/components/list/types/list';
+import type { FilterDefinition, StatDefinition, BulkActionConfig, ExportConfig } from '@meterit/framework-frontend/components/list/types/list';
 import type { User } from '../../types/auth';
 import {
   createTwoLineColumn,

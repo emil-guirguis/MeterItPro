@@ -8,11 +8,11 @@
 
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AppLayout } from '@framework/layout';
-import type { LayoutProps, MenuItem, AppLayoutConfig } from '@framework/layout';
-import { registerIconMappings } from '@framework/utils/iconHelper';
+import { AppLayout } from '@meterit/framework-frontend/layout';
+import type { LayoutProps, MenuItem, AppLayoutConfig } from '@meterit/framework-frontend/layout';
+import { registerIconMappings } from '@meterit/framework-frontend/utils/iconHelper';
 import { useAuth } from '../../hooks/useAuth';
-import { useResponsive } from '@framework/hooks/useResponsive';
+import { useResponsive } from '@meterit/framework-frontend/hooks/useResponsive';
 import { useUI } from '../../store/slices/uiSlice';
 import { Permission } from '../../types/auth';
 import { SidebarMetersSection } from '../sidebar-meters';

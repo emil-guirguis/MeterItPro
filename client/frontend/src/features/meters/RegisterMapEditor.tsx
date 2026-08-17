@@ -1,6 +1,6 @@
 import React from 'react';
 // import type { RegisterMap, RegisterMapField } from './meterConfig';
-// import { BaseList } from '@framework/components/list/BaseList';
+// import { BaseList } from '@meterit/framework-frontend/components/list/BaseList';
 // import type { ColumnDefinition } from '../../types/ui';
 // import { meterService, type MeterMapTemplate } from './meterService';
 // import './RegisterMapEditor.css';

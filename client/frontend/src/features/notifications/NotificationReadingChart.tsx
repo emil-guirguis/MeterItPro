@@ -10,7 +10,7 @@ import {
   Cell,
 } from 'recharts';
 import { Box, Typography, Chip, Alert } from '@mui/material';
-import { Modal } from '@framework/components/modal';
+import { Modal } from '@meterit/framework-frontend/components/modal';
 import type { Notification } from '../../types/notifications';
 
 interface HourlyData {

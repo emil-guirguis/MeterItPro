@@ -9,7 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import CloudIcon from '@mui/icons-material/Cloud';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { BaseForm } from '@framework/components/form/BaseForm';
+import { BaseForm } from '@meterit/framework-frontend/components/form/BaseForm';
 import { useValidationDataProvider } from '../../hooks/useValidationDataProvider';
 import { useSyncServersEnhanced } from './syncServersStore';
 

@@ -18,8 +18,8 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import { BaseForm, FormContainer } from '@framework/components/form';
-import { CronField } from '@framework/components/formfield/CronField';
+import { BaseForm, FormContainer } from '@meterit/framework-frontend/components/form';
+import { CronField } from '@meterit/framework-frontend/components/formfield/CronField';
 import { useReportsEnhanced } from './reportsStore';
 import { RecipientsField } from './components';
 import { MeterElementRegisterSelectorGrid } from '../../components/shared/MeterElementRegisterSelectorGrid';

@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
-import { BaseList } from '@framework/components/list';
+import { BaseList } from '@meterit/framework-frontend/components/list';
 import { useUsersEnhanced } from './usersStore';
-import { useBaseList } from '@framework/components/list/hooks';
+import { useBaseList } from '@meterit/framework-frontend/components/list/hooks';
 import { useAuth } from '../../hooks/useAuth';
-import { useSchema } from '@framework/components/form/utils/schemaLoader';
-import { generateColumnsFromSchema, generateFiltersFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
+import { useSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema, generateFiltersFromSchema } from '@meterit/framework-frontend/components/list/utils/schemaColumnGenerator';
 import type { User } from '../../types/auth';
 import { Permission } from '../../types/auth';
 import {
@@ -12,7 +12,7 @@ import {
   createUserBulkActions,
   userExportConfig,
 } from './userConfig';
-import { showConfirmation } from '@framework/utils/confirmationHelper';
+import { showConfirmation } from '@meterit/framework-frontend/utils/confirmationHelper';
 import './UserList.css';
 
 interface UserListProps {

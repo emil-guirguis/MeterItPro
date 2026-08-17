@@ -1,5 +1,5 @@
 import React from 'react';
-import { EntityManagementPage } from '@framework/components/entity';
+import { EntityManagementPage } from '@meterit/framework-frontend/components/entity';
 import { AdminSyncServerList } from '../AdminSyncServerList';
 import { AdminSyncServerForm } from '../AdminSyncServerForm';
 import type { AdminSyncServerEntity } from '../adminSyncServersStore';

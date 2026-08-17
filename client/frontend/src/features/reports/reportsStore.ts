@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import * as reportingService from '../../services/reportingService';
 import type { Report } from './types';
-import type { EnhancedStore } from '@framework/components/list/types/list';
+import type { EnhancedStore } from '@meterit/framework-frontend/components/list/types/list';
 
 export type { Report };
 

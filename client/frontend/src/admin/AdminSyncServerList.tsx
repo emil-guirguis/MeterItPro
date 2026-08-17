@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Button, Chip, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { BaseList } from '@framework/components/list/BaseList';
-import { useBaseList } from '@framework/components/list/hooks';
-import { useSchema } from '@framework/components/form/utils/schemaLoader';
-import { generateColumnsFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
-import type { ColumnDefinition } from '@framework/components/list/types/ui';
+import { BaseList } from '@meterit/framework-frontend/components/list/BaseList';
+import { useBaseList } from '@meterit/framework-frontend/components/list/hooks';
+import { useSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema } from '@meterit/framework-frontend/components/list/utils/schemaColumnGenerator';
+import type { ColumnDefinition } from '@meterit/framework-frontend/components/list/types/ui';
 import { useAdminSyncServersEnhanced, type AdminSyncServerEntity } from './adminSyncServersStore';
 
 type ProvisionStatus = AdminSyncServerEntity['provision_status'];

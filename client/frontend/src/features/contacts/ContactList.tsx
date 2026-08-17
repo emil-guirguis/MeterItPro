@@ -1,17 +1,17 @@
 import React, { useMemo } from 'react';
-import { BaseList } from '@framework/components/list/BaseList';
+import { BaseList } from '@meterit/framework-frontend/components/list/BaseList';
 import { useContactsEnhanced } from './contactsStore';
-import { useBaseList } from '@framework/components/list/hooks/useBaseList';
+import { useBaseList } from '@meterit/framework-frontend/components/list/hooks/useBaseList';
 import { useAuth } from '../../hooks/useAuth';
-import { useSchema } from '@framework/components/form/utils/schemaLoader';
-import { generateColumnsFromSchema, generateFiltersFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
+import { useSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema, generateFiltersFromSchema } from '@meterit/framework-frontend/components/list/utils/schemaColumnGenerator';
 import type { Contact } from './types';
 import { Permission } from '../../types/auth';
 import {
   contactStats,
   contactExportConfig,
 } from './config';
-import { showConfirmation } from '@framework/utils/confirmationHelper';
+import { showConfirmation } from '@meterit/framework-frontend/utils/confirmationHelper';
 import './ContactList.css';
 
 interface ContactListProps {

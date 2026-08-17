@@ -1,5 +1,5 @@
 import React from 'react';
-import { EntityManagementPage } from '@framework/components/entity';
+import { EntityManagementPage } from '@meterit/framework-frontend/components/entity';
 import { CostList } from '../CostList';
 import { CostForm } from '../CostForm';
 import type { CostEntity } from '../costsStore';

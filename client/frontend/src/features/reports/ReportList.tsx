@@ -1,12 +1,12 @@
 import React, { useMemo, useCallback } from 'react';
-import { BaseList } from '@framework/components/list/BaseList';
+import { BaseList } from '@meterit/framework-frontend/components/list/BaseList';
 import { useAuth } from '../../hooks/useAuth';
-import { useBaseList } from '@framework/components/list/hooks';
-import { useSchema } from '@framework/components/form/utils/schemaLoader';
-import { generateColumnsFromSchema, generateFiltersFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
+import { useBaseList } from '@meterit/framework-frontend/components/list/hooks';
+import { useSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema, generateFiltersFromSchema } from '@meterit/framework-frontend/components/list/utils/schemaColumnGenerator';
 import type { Report } from './types';
 import { Permission } from '../../types/auth';
-import type { ColumnDefinition } from '@framework/components/list/types';
+import type { ColumnDefinition } from '@meterit/framework-frontend/components/list/types';
 import { useReportsEnhanced } from './reportsStore';
 import apiClient from '../../services/apiClient';
 import './ReportList.css';

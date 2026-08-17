@@ -1,4 +1,4 @@
-import type { StatDefinition } from '@framework/components/list/types/list';
+import type { StatDefinition } from '@meterit/framework-frontend/components/list/types/list';
 import type { Meter } from './metersStore';
 
 export const meterStats: StatDefinition<Meter>[] = [

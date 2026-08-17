@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BaseList } from '@framework/components/list/BaseList';
+import { BaseList } from '@meterit/framework-frontend/components/list/BaseList';
 import { meterReadingService } from '../../services';
 import type { DetailedMeterReading } from '../../types/entities';
 import './MeterReadingsList.css';

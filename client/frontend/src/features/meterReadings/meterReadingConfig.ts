@@ -10,7 +10,7 @@
 
 import React from 'react';
 import type { ColumnDefinition } from '../../types/ui';
-import type { FilterDefinition, StatDefinition, ExportConfig } from '@framework/components/list/types/list';
+import type { FilterDefinition, StatDefinition, ExportConfig } from '@meterit/framework-frontend/components/list/types/list';
 import { registerMappingService } from '../../services/registerMappingService';
 
 // ============================================================================

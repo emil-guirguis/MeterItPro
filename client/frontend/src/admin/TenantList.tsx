@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { Button, CircularProgress } from '@mui/material';
-import { BaseList } from '@framework/components/list/BaseList';
-import { useBaseList } from '@framework/components/list/hooks';
-import { useSchema } from '@framework/components/form/utils/schemaLoader';
-import { generateColumnsFromSchema, generateFiltersFromSchema } from '@framework/components/list/utils/schemaColumnGenerator';
-import type { ColumnDefinition } from '@framework/components/list/types/ui';
+import { BaseList } from '@meterit/framework-frontend/components/list/BaseList';
+import { useBaseList } from '@meterit/framework-frontend/components/list/hooks';
+import { useSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
+import { generateColumnsFromSchema, generateFiltersFromSchema } from '@meterit/framework-frontend/components/list/utils/schemaColumnGenerator';
+import type { ColumnDefinition } from '@meterit/framework-frontend/components/list/types/ui';
 import { useTenantsEnhanced, type TenantEntity } from './tenantsStore';
 import { impersonateTenant } from './adminService';
 import { tokenStorage } from '../utils/tokenStorage';

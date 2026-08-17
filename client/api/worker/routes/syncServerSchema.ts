@@ -1,4 +1,4 @@
-import { defineSchema, field, tab, section, FieldTypes } from '../../../../framework/backend/api/base/SchemaDefinition';
+import { defineSchema, field, tab, section, FieldTypes } from '@meterit/framework-backend/api/base/SchemaDefinition';
 
 export const syncServerSchema = defineSchema({
   entityName: 'SyncServer',

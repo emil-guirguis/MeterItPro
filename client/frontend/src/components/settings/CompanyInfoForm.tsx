@@ -1,7 +1,7 @@
 import React from 'react';
-import { Toast } from '@framework/components/common';
-import { FormField } from '@framework/components/formfield/FormField';
-import { FormActions } from '@framework/components/formactions/FormActions';
+import { Toast } from '@meterit/framework-frontend/components/common';
+import { FormField } from '@meterit/framework-frontend/components/formfield/FormField';
+import { FormActions } from '@meterit/framework-frontend/components/formactions/FormActions';
 import './SettingsForm.css';
 
 export interface CompanyInfoFormProps {

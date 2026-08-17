@@ -6,12 +6,12 @@ import AdminApp from './admin/AdminApp';
 import SupportApp from './support/SupportApp';
 import AdminBanner from './components/AdminBanner';
 import { prefetchAppSchemas, prefetchAppRoutes } from './utils/schemaPrefetch';
-import { invalidateExpiredCache } from '@framework/components/form/utils/schemaLoader';
+import { invalidateExpiredCache } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
 import { useAuth } from './hooks/useAuth';
 import { setupDebugConsole } from './utils/debugConsole';
 import { MeterSelectionProvider } from './contexts/MeterSelectionContext';
 import { NotificationProvider } from './components/NotificationProvider';
-import '@framework/components/common/TableCellStyles.css';
+import '@meterit/framework-frontend/components/common/TableCellStyles.css';
 import './App.css';
 
 setupDebugConsole();

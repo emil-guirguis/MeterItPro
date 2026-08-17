@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import { DeviceList, DeviceForm } from '../../features/devices';
 import { LocationList, LocationForm } from '../../features/locations';
-import { Modal } from '@framework/components/modal';
+import { Modal } from '@meterit/framework-frontend/components/modal';
 import type { Device } from '../../features/devices/deviceConfig';
 import type { Location } from '../../types/entities';
 import {

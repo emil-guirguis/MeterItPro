@@ -1,7 +1,7 @@
 import React from 'react';
-import { FormField } from '@framework/components/formfield/FormField';
-import { FormActions } from '@framework/components/formactions/FormActions';
-import { TIMEZONE_OPTIONS, CURRENCY_OPTIONS, LANGUAGE_OPTIONS } from '@framework/components/formfield/fieldOptions';
+import { FormField } from '@meterit/framework-frontend/components/formfield/FormField';
+import { FormActions } from '@meterit/framework-frontend/components/formactions/FormActions';
+import { TIMEZONE_OPTIONS, CURRENCY_OPTIONS, LANGUAGE_OPTIONS } from '@meterit/framework-frontend/components/formfield/fieldOptions';
 import './SettingsForm.css';
 
 export interface SystemConfigFormProps {

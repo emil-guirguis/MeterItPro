@@ -12,7 +12,7 @@ export {
   MobileNav, 
   Breadcrumb,
   HamburgerIcon 
-} from '@framework/layout';
+} from '@meterit/framework-frontend/layout';
 
 // Export types
 export type { 
@@ -23,7 +23,7 @@ export type {
   BreadcrumbItem,
   HeaderProps,
   SidebarProps
-} from '@framework/layout';
+} from '@meterit/framework-frontend/layout';
 
 // Export client-specific wrapper
 export { AppLayoutWrapper } from './AppLayoutWrapper';

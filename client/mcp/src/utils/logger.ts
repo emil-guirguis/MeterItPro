@@ -3,8 +3,8 @@ import { existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { config } from '../config.js';
 
-export { formatSqlForDebug } from '../../../../framework/backend/shared/helpers/worker-logger.js';
-export type { Logger } from '../../../../framework/backend/shared/helpers/logger.js';
+export { formatSqlForDebug } from '@meterit/framework-backend/shared/helpers/worker-logger';
+export type { Logger } from '@meterit/framework-backend/shared/helpers/logger';
 
 const { level, file } = config.logging;
 const logDir = dirname(file);

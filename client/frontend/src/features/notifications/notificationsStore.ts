@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { notificationService } from '../../services/notificationService';
 import type { Notification } from '../../types/notifications';
-import type { EnhancedStore } from '@framework/components/list/types/list';
+import type { EnhancedStore } from '@meterit/framework-frontend/components/list/types/list';
 
 interface NotificationsState {
   items: Notification[];

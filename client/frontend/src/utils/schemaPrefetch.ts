@@ -4,7 +4,7 @@
  * Prefetches commonly used schemas on app startup to improve performance
  */
 
-import { prefetchSchemas } from '@framework/components/form/utils/schemaLoader';
+import { prefetchSchemas } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
 
 /**
  * List of entities to prefetch on app startup

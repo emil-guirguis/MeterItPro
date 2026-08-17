@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { notificationRuleService, type NotificationRule } from '../../services/notificationRuleService';
-import type { EnhancedStore } from '@framework/components/list/types/list';
+import type { EnhancedStore } from '@meterit/framework-frontend/components/list/types/list';
 
 interface NotificationRulesState {
   items: NotificationRule[];

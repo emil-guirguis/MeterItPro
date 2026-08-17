@@ -7,7 +7,7 @@
  */
 
 import React, { useCallback, useState } from 'react';
-import { BaseForm, FormContainer } from '@framework/components/form';
+import { BaseForm, FormContainer } from '@meterit/framework-frontend/components/form';
 import { useMetersEnhanced, type Meter } from './metersStore';
 import { useValidationDataProvider } from '../../hooks/useValidationDataProvider';
 import { ElementsGrid } from './ElementsGrid';
