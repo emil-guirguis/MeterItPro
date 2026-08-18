@@ -5,9 +5,12 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    "./*": "./dist/*.js"
+  },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && node build.mjs && tsc -p tsconfig.build.json",
     "test": "jest"
   },
   "dependencies": {
@@ -19,6 +22,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
     "rimraf": "^6.0.1",
     "typescript": "~5.8.3"
   }
