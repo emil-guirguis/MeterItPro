@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!--
+  QuickBooks Web Connector config file. The customer imports this into the Web
+  Connector (File > Add an Application) on the Windows PC running QB Desktop.
+
+  Replace before shipping:
+    <AppURL>       the deployed Worker endpoint, e.g. https://tbwc-api.<subdomain>.workers.dev/qbwc
+    <FileID>/<OwnerID>  keep these two GUIDs STABLE per app (regenerate once, never change)
+    <UserName>     must match QBWC_USERNAME in routes/qbwc.ts (later: a wrangler secret)
+    <RunEveryNSeconds>  auto-run interval; omit <Scheduler> for manual "Update Selected" only
+
+  AppURL MUST be https with a valid public cert (Cloudflare provides this). QBWC
+  refuses plain http except to localhost.
+-->
+<QBWCXML>
+  <AppName>TBWC QuickBooks Sync</AppName>
+  <AppID></AppID>
+  <AppURL>https://tbwc-api.example.workers.dev/qbwc</AppURL>
+  <AppDescription>Bidirectional sync between the TBWC portal and QuickBooks Desktop.</AppDescription>
+  <AppSupport>https://tbwc.example.com/support</AppSupport>
+  <UserName>tbwc</UserName>
+  <OwnerID>{6B4A1E00-0000-0000-0000-000000000001}</OwnerID>
+  <FileID>{6B4A1E00-0000-0000-0000-000000000002}</FileID>
+  <QBType>QBFS</QBType>
+  <Scheduler>
+    <RunEveryNSeconds>300</RunEveryNSeconds>
+  </Scheduler>
+</QBWCXML>

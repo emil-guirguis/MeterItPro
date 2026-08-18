@@ -1,0 +1,134 @@
+/**
+ * QuickBooks Web Connector SOAP endpoint.
+ *
+ *   GET  /qbwc?wsdl   -> WSDL document (QBWC downloads this on Add/verify)
+ *   POST /qbwc        -> SOAP dispatch for the 8 QBWC operations
+ *
+ * Flow: authenticate -> (sendRequestXML -> receiveResponseXML)* -> closeConnection.
+ * The work queue and cursor live in public.qbwc_session so state survives across
+ * Cloudflare isolates. Each queued item is a qbXML request built by an object
+ * module (see qbwc/objects); responses are routed back to the owning parser.
+ */
+import { Hono } from 'hono';
+import { Env } from '../db';
+import { AuthVariables } from '../middleware';
+import { buildWsdl } from '../qbwc/wsdl';
+import {
+  parseMethod, getParam, envelope, authEnvelope, xmlEscape,
+} from '../qbwc/soap';
+import {
+  createSession, getSession, dropSession, advanceCursor,
+} from '../qbwc/session';
+import { buildWorkQueue, dispatchResponse } from '../qbwc/objects';
+
+const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
+
+// QBWC credentials. TODO: move to `wrangler secret` (QBWC_USERNAME / QBWC_PASSWORD)
+// and read from c.env; hard-coded here only for the skeleton handshake.
+const QBWC_USERNAME = 'tbwc';
+const QBWC_PASSWORD = 'changeme';
+
+/** GET /qbwc?wsdl (or ?WSDL) -> WSDL; plain GET -> liveness text. */
+app.get('/', (c) => {
+  const url = new URL(c.req.url);
+  const wantsWsdl = [...url.searchParams.keys()].some((k) => k.toLowerCase() === 'wsdl');
+  const serviceUrl = `${url.origin}${url.pathname}`;
+  if (wantsWsdl) {
+    return c.body(buildWsdl(serviceUrl), 200, { 'Content-Type': 'text/xml; charset=utf-8' });
+  }
+  return c.text('QBWC SOAP endpoint. Append ?wsdl for the service description.');
+});
+
+app.post('/', async (c) => {
+  const body = await c.req.text();
+  const method = parseMethod(body);
+  const reply = (xml: string) =>
+    c.body(xml, 200, { 'Content-Type': 'text/xml; charset=utf-8' });
+
+  switch (method) {
+    // --- version handshake -------------------------------------------------
+    case 'serverVersion':
+      return reply(envelope('serverVersion', xmlEscape('1.0.0')));
+    case 'clientVersion':
+      // Empty string = accept the connector's version with no warning.
+      return reply(envelope('clientVersion', ''));
+
+    // --- authenticate ------------------------------------------------------
+    case 'authenticate': {
+      const user = getParam(body, 'strUserName');
+      const pass = getParam(body, 'strPassword');
+      const ticket = crypto.randomUUID();
+
+      if (user !== QBWC_USERNAME || pass !== QBWC_PASSWORD) {
+        // [ticket, "nvu"] = invalid user; QBWC aborts the session.
+        return reply(authEnvelope([ticket, 'nvu']));
+      }
+
+      const queue = await buildWorkQueue(c.env);
+      await createSession(c.env, ticket, queue);
+      // Second element: "" = use the currently-open company file; "none" = no work.
+      const status = queue.length === 0 ? 'none' : '';
+      return reply(authEnvelope([ticket, status]));
+    }
+
+    // --- work loop ---------------------------------------------------------
+    case 'sendRequestXML': {
+      const ticket = getParam(body, 'ticket');
+      const s = await getSession(c.env, ticket);
+      if (!s || s.cursor >= s.queue.length) {
+        return reply(envelope('sendRequestXML', '')); // empty => nothing more to send
+      }
+      const qbxml = s.queue[s.cursor];
+      return reply(envelope('sendRequestXML', xmlEscape(qbxml)));
+    }
+
+    case 'receiveResponseXML': {
+      const ticket = getParam(body, 'ticket');
+      const response = getParam(body, 'response');
+      const hresult = getParam(body, 'hresult');
+      const s = await getSession(c.env, ticket);
+      if (!s) return reply(envelope('receiveResponseXML', '100'));
+
+      let errMsg: string | undefined;
+      if (hresult) {
+        errMsg = getParam(body, 'message') || hresult;
+        console.error('[QBWC] request error', hresult, errMsg);
+      } else {
+        await dispatchResponse(c.env, response);
+      }
+      const newCursor = await advanceCursor(c.env, ticket, errMsg);
+
+      // Return percent complete: <100 keeps the loop going, 100 ends it.
+      const pct = s.queue.length === 0
+        ? 100
+        : Math.floor((newCursor / s.queue.length) * 100);
+      return reply(envelope('receiveResponseXML', String(pct)));
+    }
+
+    // --- errors + teardown -------------------------------------------------
+    case 'getLastError': {
+      const ticket = getParam(body, 'ticket');
+      const s = await getSession(c.env, ticket);
+      return reply(envelope('getLastError', xmlEscape(s?.lastError || 'No error')));
+    }
+
+    case 'connectionError': {
+      const msg = getParam(body, 'message');
+      console.error('[QBWC] connectionError:', msg);
+      // "done" tells QBWC to stop; "" would ask it to retry.
+      return reply(envelope('connectionError', 'done'));
+    }
+
+    case 'closeConnection': {
+      const ticket = getParam(body, 'ticket');
+      await dropSession(c.env, ticket);
+      return reply(envelope('closeConnection', 'OK'));
+    }
+
+    default:
+      console.error('[QBWC] Unrecognized SOAP method. Body head:', body.slice(0, 300));
+      return c.text('Unrecognized QBWC method', 400);
+  }
+});
+
+export default app;

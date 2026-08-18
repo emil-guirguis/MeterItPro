@@ -1,0 +1,25 @@
+name = "tbwc-api"
+main = "worker/index.ts"
+compatibility_date = "2025-05-05"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+FRONTEND_URL = "http://localhost:5174,http://localhost:5173"
+# Local dev: direct non-SSL connection to the Supabase pooler (workerd can't do
+# Postgres TLS locally, and the pooler accepts plaintext). A deployed Worker
+# should drop this and use the Hyperdrive binding below (edge-managed TLS).
+DATABASE_URL = "postgresql://postgres.detwkqhqekaiyuajixhs:%23cxQEPx3%2B%40dL%3F2u@aws-0-ca-central-1.pooler.supabase.com:6543/postgres"
+SUPABASE_URL = "https://detwkqhqekaiyuajixhs.supabase.co"
+# Public anon key (same one the browser uses). Not a secret.
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRldHdrcWhxZWthaXl1YWppeGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTI4ODIsImV4cCI6MjEwMDM4ODg4Mn0.OUE2KsTclMTqbPZ97_MXXVG4Nqq1ZOIIujdVJWCEx88"
+
+# Hyperdrive → tbwc-site Supabase Postgres. For `wrangler dev`, localConnectionString
+# is used directly; `id` matters only for a deployed Worker (replace before deploy).
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "00000000000000000000000000000000"
+localConnectionString = "postgresql://postgres.detwkqhqekaiyuajixhs:%23cxQEPx3%2B%40dL%3F2u@aws-0-ca-central-1.pooler.supabase.com:5432/postgres"
+
+[observability]
+[observability.logs]
+enabled = true

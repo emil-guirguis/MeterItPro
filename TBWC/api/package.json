@@ -1,0 +1,23 @@
+{
+  "name": "tbwc-api",
+  "version": "1.0.0",
+  "description": "Backend API for the TBWC portal (Cloudflare Worker)",
+  "scripts": {
+    "start": "wrangler dev",
+    "worker:dev": "wrangler dev",
+    "worker:deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@meterit/framework-backend": "file:../../framework/backend",
+    "@types/pg": "^8.15.5",
+    "hono": "^4.11.9",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^4.123.0"
+  },
+  "license": "MIT"
+}
