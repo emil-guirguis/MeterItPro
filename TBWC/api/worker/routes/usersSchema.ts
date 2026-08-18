@@ -85,8 +85,17 @@ export const usersSchema = defineSchema({
           ],
         }),
         section({
-          name: 'Notes',
+          name: 'QuickBooks',
           order: 2,
+          fields: [
+            // enumValues/enumLabels are injected at serve time from public.qb_sales_rep
+            // (see schema route). Stores the qb_sales_rep_id FK; blank = not linked.
+            field({ name: 'qb_sales_rep_id', order: 1, type: FieldTypes.SELECT, default: null, required: false, label: 'QB Sales Rep', dbField: 'qb_sales_rep_id', enumValues: [], placeholder: '— Not linked —', showOn: ['form'] }),
+          ],
+        }),
+        section({
+          name: 'Notes',
+          order: 3,
           fields: [
             field({ name: 'about', order: 1, type: FieldTypes.STRING, default: '', required: false, label: 'About', dbField: 'about', maxLength: 5000, showOn: ['form'] }),
           ],

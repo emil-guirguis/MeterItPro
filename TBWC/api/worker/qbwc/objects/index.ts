@@ -10,6 +10,7 @@ import { Env } from '../../db';
 import { QbObject } from './types';
 import customer from './customer';
 import vendor from './vendor';
+import salesRep from './salesRep';
 import item from './item';
 import invoice from './invoice';
 import payment from './payment';
@@ -20,6 +21,7 @@ import estimate from './estimate';
 export const registry: QbObject[] = [
   customer,
   vendor,
+  salesRep,
   item,
   invoice,
   payment,

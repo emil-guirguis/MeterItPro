@@ -17,6 +17,12 @@ const TABLE = 'users';
 const PK = 'id';
 const SEARCH = ['first_name', 'last_name', 'email', 'agency_name'];
 
+/** The QB sales-rep dropdown posts '' when unset; a bigint FK needs null, not ''. */
+function normalize(body: Record<string, any>): Record<string, any> {
+  if (body.qb_sales_rep_id === '') body.qb_sales_rep_id = null;
+  return body;
+}
+
 app.get('/', async (c) => {
   const q = c.req.query();
   const result = await findAll(c.env, {
@@ -39,13 +45,13 @@ app.get('/:id', async (c) => {
 });
 
 app.post('/', async (c) => {
-  const body = await c.req.json();
+  const body = normalize(await c.req.json());
   const row = await create(c.env, TABLE, body);
   return c.json({ success: true, data: row }, 201);
 });
 
 app.put('/:id', async (c) => {
-  const body = await c.req.json();
+  const body = normalize(await c.req.json());
   const row = await update(c.env, TABLE, PK, c.req.param('id'), body);
   if (!row) return c.json({ success: false, message: 'User not found or nothing to update' }, 404);
   return c.json({ success: true, data: row });
