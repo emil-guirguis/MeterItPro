@@ -3,6 +3,9 @@ main = "worker/index.ts"
 compatibility_date = "2025-05-05"
 compatibility_flags = ["nodejs_compat"]
 
+[dev]
+port = 8788
+
 [vars]
 FRONTEND_URL = "http://localhost:5174,http://localhost:5173"
 # Local dev: direct non-SSL connection to the Supabase pooler (workerd can't do
@@ -13,6 +16,11 @@ SUPABASE_URL = "https://detwkqhqekaiyuajixhs.supabase.co"
 # Public anon key (same one the browser uses). Not a secret.
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRldHdrcWhxZWthaXl1YWppeGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTI4ODIsImV4cCI6MjEwMDM4ODg4Mn0.OUE2KsTclMTqbPZ97_MXXVG4Nqq1ZOIIujdVJWCEx88"
 
+# QBWC SOAP credentials — set as secrets before deploy, do NOT put here:
+#   wrangler secret put QBWC_USERNAME
+#   wrangler secret put QBWC_PASSWORD
+# Unset locally => dev fallback (tbwc/changeme) in worker/routes/qbwc.ts.
+
 # Hyperdrive → tbwc-site Supabase Postgres. For `wrangler dev`, localConnectionString
 # is used directly; `id` matters only for a deployed Worker (replace before deploy).
 [[hyperdrive]]
@@ -22,4 +30,24 @@ localConnectionString = "postgresql://postgres.detwkqhqekaiyuajixhs:%23cxQEPx3%2
 
 [observability]
 [observability.logs]
+enabled = true
+
+# --- production -------------------------------------------------------------
+# Deploy with:  wrangler deploy --env production
+# Named envs do NOT inherit top-level [vars]/bindings, so prod is fully defined
+# here. Note: NO DATABASE_URL — query() falls back to the Hyperdrive binding,
+# which manages its own TLS (the plaintext pooler URL above is dev-only).
+# Secrets are per-env:  wrangler secret put QBWC_USERNAME --env production
+[env.production.vars]
+# CORS origin = the GitHub Pages SITE origin (path doesn't matter for CORS).
+# TBWC portal is served under this origin at /<repo>/TBWCPortal/.
+FRONTEND_URL = "https://emil-guirguis.github.io"
+SUPABASE_URL = "https://detwkqhqekaiyuajixhs.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRldHdrcWhxZWthaXl1YWppeGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTI4ODIsImV4cCI6MjEwMDM4ODg4Mn0.OUE2KsTclMTqbPZ97_MXXVG4Nqq1ZOIIujdVJWCEx88"
+
+[[env.production.hyperdrive]]
+binding = "HYPERDRIVE"
+id = "74980b729f904abe855ed1b48b7f304d"
+
+[env.production.observability.logs]
 enabled = true
