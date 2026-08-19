@@ -43,6 +43,23 @@ jobs:
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
 
+      # --- TBWC portal: built into the SAME Pages artifact under /TBWCPortal/ ---
+      - name: Install dependencies (TBWC portal)
+        run: npm ci
+        working-directory: ./TBWC/frontend
+
+      - name: Build TBWC portal
+        run: npm run build
+        working-directory: ./TBWC/frontend
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/TBWCPortal/
+
+      - name: Merge TBWC portal into site artifact
+        run: |
+          rm -rf MeterItPro/frontend/dist/TBWCPortal
+          mkdir -p MeterItPro/frontend/dist/TBWCPortal
+          cp -r TBWC/frontend/dist/. MeterItPro/frontend/dist/TBWCPortal/
+
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
@@ -57,6 +74,7 @@ jobs:
           owner=${GITHUB_REPOSITORY%%/*}
           repo=${GITHUB_REPOSITORY##*/}
           url="https://${owner}.github.io/${repo}/"
+          tbwc_url="https://${owner}.github.io/${repo}/TBWCPortal/"
 
           echo "Checking Pages URL: $url"
 
@@ -73,5 +91,13 @@ jobs:
 
           if [ "$success" -ne 1 ]; then
             echo "ERROR: GitHub Pages site did not become available at $url within the timeout"
+            exit 1
+          fi
+
+          echo "Checking TBWC portal URL: $tbwc_url"
+          if curl -fsSL --max-time 10 "$tbwc_url" -o /dev/null; then
+            echo "TBWC portal responded successfully"
+          else
+            echo "ERROR: TBWC portal did not respond at $tbwc_url"
             exit 1
           fi
