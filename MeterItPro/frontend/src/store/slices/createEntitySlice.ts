@@ -132,6 +132,9 @@ export const createEntityStore = <T extends { id: string }>(
             let queryParams = hasRealParams ? params : {
               page: state.list.page,
               pageSize: state.list.pageSize,
+              // Also send `limit` — some services read `limit` rather than `pageSize`.
+              // Sending both keeps every service's page-size honored server-side.
+              limit: state.list.pageSize,
               search: state.list.search,
               filters: state.list.filters,
               sortBy: state.list.sortBy,

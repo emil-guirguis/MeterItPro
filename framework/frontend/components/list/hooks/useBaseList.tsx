@@ -895,15 +895,24 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
       onPageChange: (page: number) => {
         if (store.setPage) {
           store.setPage(page);
+          // setPage only mutates list.page — nothing refetches on its own.
+          // Rows are server-paginated, so trigger a fetch for the new page.
+          // Bypass cache: same entity, different offset — cached page is stale here.
+          if (store.fetchItems) {
+            (store.fetchItems as any)({ _bypassCache: true });
+          }
         }
       },
       onPageSizeChange: (pageSize: number) => {
         if (store.setPageSize) {
           store.setPageSize(pageSize);
+          if (store.fetchItems) {
+            (store.fetchItems as any)({ _bypassCache: true });
+          }
         }
       },
     };
-  }, [allowPagination, store.list, store.setPage, store.setPageSize]);
+  }, [allowPagination, store.list, store.setPage, store.setPageSize, store.fetchItems]);
 
   // Memoize data to prevent unnecessary re-renders
   const memoizedData = useMemo(() => store.items || [], [store.items]);
