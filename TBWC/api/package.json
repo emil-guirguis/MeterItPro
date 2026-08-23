@@ -6,6 +6,8 @@
     "start": "wrangler dev",
     "worker:dev": "wrangler dev",
     "worker:deploy": "wrangler deploy",
+    "test": "vitest --run",
+    "test:watch": "vitest",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -17,6 +19,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0",
+    "vitest": "^4.1.11",
     "wrangler": "^4.123.0"
   },
   "license": "MIT"

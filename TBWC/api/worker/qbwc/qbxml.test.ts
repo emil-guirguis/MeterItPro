@@ -1,0 +1,122 @@
+import { describe, it, expect } from 'vitest';
+import {
+  QBXML_VERSION, qbxmlDoc, tag, blocks, statusCode, escapeXml, unescapeXml,
+  qbTimeToTs, qbDate, num, refField, lineItems,
+} from './qbxml';
+
+describe('qbxml.qbxmlDoc', () => {
+  it('wraps inner fragment with the qbxml PI and default continueOnError', () => {
+    const doc = qbxmlDoc('<CustomerQueryRq/>');
+    expect(doc).toContain(`<?qbxml version="${QBXML_VERSION}"?>`);
+    expect(doc).toContain('<QBXMLMsgsRq onError="continueOnError">');
+    expect(doc).toContain('<CustomerQueryRq/>');
+  });
+
+  it('honors an explicit onError mode', () => {
+    expect(qbxmlDoc('<X/>', 'stopOnError')).toContain('onError="stopOnError"');
+  });
+});
+
+describe('qbxml.tag', () => {
+  it('returns first tag text, unescaped', () => {
+    expect(tag('<FullName>A &amp; B</FullName>', 'FullName')).toBe('A & B');
+  });
+  it('returns undefined when missing', () => {
+    expect(tag('<Other>x</Other>', 'FullName')).toBeUndefined();
+  });
+});
+
+describe('qbxml.blocks', () => {
+  it('returns every top-level block of a repeated element', () => {
+    const xml = '<CustomerRet><ListID>1</ListID></CustomerRet><CustomerRet><ListID>2</ListID></CustomerRet>';
+    const b = blocks(xml, 'CustomerRet');
+    expect(b).toHaveLength(2);
+    expect(tag(b[0], 'ListID')).toBe('1');
+    expect(tag(b[1], 'ListID')).toBe('2');
+  });
+  it('returns empty array when none present', () => {
+    expect(blocks('<Empty/>', 'CustomerRet')).toEqual([]);
+  });
+});
+
+describe('qbxml.statusCode', () => {
+  it('reads the statusCode attribute off a *Rs element', () => {
+    expect(statusCode('<CustomerQueryRs requestID="customer" statusCode="0">', 'CustomerQueryRs')).toBe('0');
+  });
+  it('reads a non-zero status', () => {
+    expect(statusCode('<CustomerQueryRs statusCode="1" statusMessage="none">', 'CustomerQueryRs')).toBe('1');
+  });
+  it('returns undefined when attribute absent', () => {
+    expect(statusCode('<CustomerQueryRs>', 'CustomerQueryRs')).toBeUndefined();
+  });
+});
+
+describe('qbxml escape/unescape', () => {
+  it('escapes all five metacharacters', () => {
+    expect(escapeXml(`<&>"'`)).toBe('&lt;&amp;&gt;&quot;&apos;');
+  });
+  it('round-trips', () => {
+    const raw = `Tom & Jerry's <"Co">`;
+    expect(unescapeXml(escapeXml(raw))).toBe(raw);
+  });
+});
+
+describe('qbxml.qbTimeToTs', () => {
+  it('converts a QB ISO timestamp with offset to ISO', () => {
+    expect(qbTimeToTs('2024-03-01T10:30:00-05:00')).toBe('2024-03-01T15:30:00.000Z');
+  });
+  it('returns null for undefined', () => {
+    expect(qbTimeToTs(undefined)).toBeNull();
+  });
+  it('returns null for an unparseable value', () => {
+    expect(qbTimeToTs('not-a-date')).toBeNull();
+  });
+});
+
+describe('qbxml.qbDate', () => {
+  it('passes through a valid YYYY-MM-DD', () => {
+    expect(qbDate('2024-03-01')).toBe('2024-03-01');
+  });
+  it('rejects non ISO dates', () => {
+    expect(qbDate('03/01/2024')).toBeNull();
+    expect(qbDate(undefined)).toBeNull();
+  });
+});
+
+describe('qbxml.num', () => {
+  it('parses numeric strings', () => {
+    expect(num('12.5')).toBe(12.5);
+    expect(num('0')).toBe(0);
+  });
+  it('returns null for empty/undefined', () => {
+    expect(num('')).toBeNull();
+    expect(num(undefined)).toBeNull();
+  });
+});
+
+describe('qbxml.refField', () => {
+  it('reads ListID and FullName from a *Ref block', () => {
+    const scope = '<CustomerRef><ListID>80000001</ListID><FullName>Acme</FullName></CustomerRef>';
+    expect(refField(scope, 'CustomerRef')).toEqual({ listId: '80000001', fullName: 'Acme' });
+  });
+  it('returns empty object when the ref block is absent', () => {
+    expect(refField('<X/>', 'CustomerRef')).toEqual({});
+  });
+});
+
+describe('qbxml.lineItems', () => {
+  it('maps line rows, preferring FullName then ListID for item', () => {
+    const scope =
+      '<InvoiceLineRet><ItemRef><ListID>5</ListID><FullName>Widget</FullName></ItemRef>' +
+      '<Desc>A widget</Desc><Quantity>2</Quantity><Rate>9.99</Rate><Amount>19.98</Amount></InvoiceLineRet>' +
+      '<InvoiceLineRet><ItemRef><ListID>6</ListID></ItemRef><Amount>5</Amount></InvoiceLineRet>';
+    const lines = lineItems(scope, 'InvoiceLineRet');
+    expect(lines).toEqual([
+      { item: 'Widget', desc: 'A widget', quantity: 2, rate: 9.99, amount: 19.98 },
+      { item: '6', desc: null, quantity: null, rate: null, amount: 5 },
+    ]);
+  });
+  it('returns empty array with no line elements', () => {
+    expect(lineItems('<InvoiceRet/>', 'InvoiceLineRet')).toEqual([]);
+  });
+});

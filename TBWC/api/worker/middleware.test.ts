@@ -1,0 +1,114 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Hono } from 'hono';
+
+const mockVerify = vi.fn();
+const mockExec = vi.fn();
+
+vi.mock('./supabaseVerify', () => ({
+  verifySupabaseToken: (...a: any[]) => mockVerify(...a),
+}));
+vi.mock('./db', () => ({
+  execQuery: (...a: any[]) => mockExec(...a),
+}));
+
+import { authenticateToken, requireAdmin, loadProfile } from './middleware';
+
+const ENV = {} as any;
+
+/** Small app: auth on everything, admin-guard on /admin, echo the loaded user. */
+function makeApp() {
+  const app = new Hono<any>();
+  app.use('*', authenticateToken);
+  app.get('/me', (c) => c.json({ user: c.get('user'), userId: c.get('userId') }));
+  app.get('/admin', requireAdmin, (c) => c.json({ ok: true }));
+  return app;
+}
+
+const profile = (over: Record<string, any> = {}) => ({
+  id: 'u1', email: 'a@b.com', approved: true, is_admin: false, ...over,
+});
+
+beforeEach(() => {
+  mockVerify.mockReset();
+  mockExec.mockReset();
+});
+
+describe('authenticateToken', () => {
+  it('401 when no Authorization header', async () => {
+    const res = await makeApp().request('/me', {}, ENV);
+    expect(res.status).toBe(401);
+    expect((await res.json()).message).toBe('Access token required');
+    expect(mockVerify).not.toHaveBeenCalled();
+  });
+
+  it('401 when the header is not a Bearer token', async () => {
+    const res = await makeApp().request('/me', { headers: { authorization: 'Basic abc' } }, ENV);
+    expect(res.status).toBe(401);
+  });
+
+  it('401 when the token fails Supabase verification', async () => {
+    mockVerify.mockResolvedValue(null);
+    const res = await makeApp().request('/me', { headers: { authorization: 'Bearer bad' } }, ENV);
+    expect(res.status).toBe(401);
+    expect((await res.json()).message).toBe('Invalid or expired token');
+  });
+
+  it('403 when no matching profile row exists', async () => {
+    mockVerify.mockResolvedValue({ userId: 'no-profile-user', email: null });
+    mockExec.mockResolvedValue({ rows: [] });
+    const res = await makeApp().request('/me', { headers: { authorization: 'Bearer t' } }, ENV);
+    expect(res.status).toBe(403);
+    expect((await res.json()).message).toBe('No user profile found');
+  });
+
+  it('403 when the profile is not approved', async () => {
+    mockVerify.mockResolvedValue({ userId: 'pending-user', email: null });
+    mockExec.mockResolvedValue({ rows: [profile({ id: 'pending-user', approved: false })] });
+    const res = await makeApp().request('/me', { headers: { authorization: 'Bearer t' } }, ENV);
+    expect(res.status).toBe(403);
+    expect((await res.json()).message).toBe('Account pending approval');
+  });
+
+  it('passes and exposes userId + profile on the context', async () => {
+    mockVerify.mockResolvedValue({ userId: 'ok-user', email: 'a@b.com' });
+    mockExec.mockResolvedValue({ rows: [profile({ id: 'ok-user' })] });
+    const res = await makeApp().request('/me', { headers: { authorization: 'Bearer t' } }, ENV);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.userId).toBe('ok-user');
+    expect(body.user.id).toBe('ok-user');
+  });
+});
+
+describe('requireAdmin', () => {
+  it('403 for a non-admin profile', async () => {
+    mockVerify.mockResolvedValue({ userId: 'nonadmin-user', email: null });
+    mockExec.mockResolvedValue({ rows: [profile({ id: 'nonadmin-user', is_admin: false })] });
+    const res = await makeApp().request('/admin', { headers: { authorization: 'Bearer t' } }, ENV);
+    expect(res.status).toBe(403);
+    expect((await res.json()).message).toBe('Admin access required');
+  });
+
+  it('allows an admin profile through', async () => {
+    mockVerify.mockResolvedValue({ userId: 'admin-user', email: null });
+    mockExec.mockResolvedValue({ rows: [profile({ id: 'admin-user', is_admin: true })] });
+    const res = await makeApp().request('/admin', { headers: { authorization: 'Bearer t' } }, ENV);
+    expect(res.status).toBe(200);
+    expect((await res.json()).ok).toBe(true);
+  });
+});
+
+describe('loadProfile caching', () => {
+  it('queries the DB once then serves the cached profile within TTL', async () => {
+    mockExec.mockResolvedValue({ rows: [profile({ id: 'cache-user' })] });
+    const a = await loadProfile(ENV, 'cache-user');
+    const b = await loadProfile(ENV, 'cache-user');
+    expect(a).toBe(b);
+    expect(mockExec).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns null when the user has no profile', async () => {
+    mockExec.mockResolvedValue({ rows: [] });
+    expect(await loadProfile(ENV, 'missing-user')).toBeNull();
+  });
+});
