@@ -8,12 +8,23 @@
  */
 
 import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import { dirname, resolve, parse } from 'path';
 import dotenv from 'dotenv';
 
-// Load .env from project root regardless of process CWD (works for both src/ and dist/)
+// Load .env by walking up from this file until found. Works for both src/ and
+// dist/ regardless of process CWD or how deep the compiled output nests.
 const __dirname_local = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(__dirname_local, '../../../.env') });
+function findEnvPath(startDir: string): string {
+  let dir = startDir;
+  const { root } = parse(dir);
+  while (true) {
+    const candidate = resolve(dir, '.env');
+    if (existsSync(candidate)) return candidate;
+    if (dir === root) return resolve(startDir, '../.env');
+    dir = dirname(dir);
+  }
+}
+dotenv.config({ path: findEnvPath(__dirname_local) });
 import express from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';

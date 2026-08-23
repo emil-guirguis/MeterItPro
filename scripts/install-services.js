@@ -74,7 +74,7 @@ const services = [
   {
     name:             'MeterItSyncMCP',
     description:      'MeterIt Pro — Sync MCP/BACnet service',
-    script:           path.join(repoRoot, 'MeterItProSync/mcp/dist/index.js'),
+    script:           path.join(repoRoot, 'MeterItProSync/mcp/dist/MeterItProSync/mcp/src/index.js'),
     workingDirectory: path.join(repoRoot, 'MeterItProSync/mcp'),
     logpath:          logsDir,
   },

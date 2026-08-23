@@ -1,12 +1,24 @@
 #!/usr/bin/env node
 
 import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import { dirname, resolve, parse } from 'path';
+import { existsSync } from 'fs';
 import dotenv from 'dotenv';
 
-// Resolve .env relative to this file so it works regardless of process.cwd()
+// Resolve .env by walking up from this file until found, so it works
+// regardless of process.cwd() or how deep the compiled dist output nests.
 const __dirname_local = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(__dirname_local, '../.env') });
+function findEnvPath(startDir: string): string {
+  let dir = startDir;
+  const { root } = parse(dir);
+  while (true) {
+    const candidate = resolve(dir, '.env');
+    if (existsSync(candidate)) return candidate;
+    if (dir === root) return resolve(startDir, '../.env');
+    dir = dirname(dir);
+  }
+}
+dotenv.config({ path: findEnvPath(__dirname_local) });
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';

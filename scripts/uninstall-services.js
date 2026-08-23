@@ -21,7 +21,7 @@ const services = [
   },
   {
     name:   'MeterItSyncMCP',
-    script: path.join(repoRoot, 'MeterItProSync/mcp/dist/index.js'),
+    script: path.join(repoRoot, 'MeterItProSync/mcp/dist/MeterItProSync/mcp/src/index.js'),
   },
   {
     name:   'MeterItSyncFrontend',
