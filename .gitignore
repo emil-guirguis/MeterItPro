@@ -33,3 +33,8 @@ Thumbs.db
 .wrangler/tmp/
 .env
 MeterItPro/api/.dev.vars
+
+# MCP sqlite runtime files (WAL/SHM/db) — not source
+MeterItProSync/mcp/data/*.db
+MeterItProSync/mcp/data/*.db-shm
+MeterItProSync/mcp/data/*.db-wal

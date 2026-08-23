@@ -12,6 +12,7 @@ export default defineConfig({
   server: {
     port: 3003,
     host: true,
+    strictPort: true, // Fail loudly if 3003 is taken instead of silently coexisting
   },
   preview: {
     port: 3003,

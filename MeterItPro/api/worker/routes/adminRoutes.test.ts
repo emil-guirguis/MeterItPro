@@ -41,6 +41,8 @@ const SUPERADMIN_USER = {
   active: true,
   tenant_id: 1,
   permissions: {},
+  is_super_admin: true,
+  is_support_admin: false,
 };
 
 const REGULAR_USER = {
@@ -51,6 +53,8 @@ const REGULAR_USER = {
   active: true,
   tenant_id: 1,
   permissions: {},
+  is_super_admin: false,
+  is_support_admin: false,
 };
 
 function setupSuperAdminAuth() {
