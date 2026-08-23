@@ -23,10 +23,10 @@ import { buildWorkQueue, dispatchResponse } from '../qbwc/objects';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
-// QBWC credentials. TODO: move to `wrangler secret` (QBWC_USERNAME / QBWC_PASSWORD)
-// and read from c.env; hard-coded here only for the skeleton handshake.
-const QBWC_USERNAME = 'tbwc';
-const QBWC_PASSWORD = 'changeme';
+// QBWC credentials. Prod reads from `wrangler secret` (QBWC_USERNAME / QBWC_PASSWORD)
+// via c.env; these are the local-dev fallbacks used only when the secrets are unset.
+const DEV_QBWC_USERNAME = 'tbwc';
+const DEV_QBWC_PASSWORD = 'changeme';
 
 /** GET /qbwc?wsdl (or ?WSDL) -> WSDL; plain GET -> liveness text. */
 app.get('/', (c) => {
@@ -59,7 +59,9 @@ app.post('/', async (c) => {
       const pass = getParam(body, 'strPassword');
       const ticket = crypto.randomUUID();
 
-      if (user !== QBWC_USERNAME || pass !== QBWC_PASSWORD) {
+      const expectUser = c.env.QBWC_USERNAME || DEV_QBWC_USERNAME;
+      const expectPass = c.env.QBWC_PASSWORD || DEV_QBWC_PASSWORD;
+      if (user !== expectUser || pass !== expectPass) {
         // [ticket, "nvu"] = invalid user; QBWC aborts the session.
         return reply(authEnvelope([ticket, 'nvu']));
       }
