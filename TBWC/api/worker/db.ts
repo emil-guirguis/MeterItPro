@@ -13,6 +13,10 @@ export interface Env {
   FRONTEND_URL?: string;
   SUPABASE_URL: string;
   SUPABASE_ANON_KEY: string;
+  // QBWC SOAP auth. Set in prod via `wrangler secret put QBWC_USERNAME|QBWC_PASSWORD`.
+  // Unset in local dev falls back to the dev defaults in routes/qbwc.ts.
+  QBWC_USERNAME?: string;
+  QBWC_PASSWORD?: string;
 }
 
 export async function query(env: Env, text: string, params: any[] = []) {
@@ -33,6 +37,39 @@ export async function query(env: Env, text: string, params: any[] = []) {
   } catch (error: any) {
     error.sql = text;
     error.sqlParams = params;
+    throw error;
+  } finally {
+    await client.end();
+  }
+}
+
+/**
+ * Run `fn` inside a single BEGIN/COMMIT transaction on one connection.
+ * `fn` receives a `q(sql, params)` bound to that connection so every statement
+ * shares the transaction (execQuery opens a fresh Client per call and cannot).
+ * Rolls back and rethrows on any error.
+ */
+export async function withTransaction<T>(
+  env: Env,
+  fn: (q: (text: string, params?: any[]) => Promise<{ rows: any[]; rowCount: number | null }>) => Promise<T>
+): Promise<T> {
+  const directUrl = env.DATABASE_URL;
+  const connectionString = directUrl || env.HYPERDRIVE?.connectionString;
+  const client = new Client(
+    directUrl ? { connectionString, ssl: false } : { connectionString }
+  );
+  await client.connect();
+  const q = async (text: string, params: any[] = []) => {
+    console.log(`[withTransaction] Executing:\n${formatSqlForDebug(text, params)}`);
+    return client.query(text, params);
+  };
+  try {
+    await client.query('BEGIN');
+    const result = await fn(q);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch { /* ignore */ }
     throw error;
   } finally {
     await client.end();

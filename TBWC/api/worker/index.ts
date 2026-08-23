@@ -12,6 +12,9 @@ import authRoutes from './routes/auth';
 import schemaRoutes from './routes/schema';
 import userRoutes from './routes/users';
 import orderRoutes from './routes/orders';
+import inventoryRoutes from './routes/inventory';
+import quoteRoutes from './routes/quotes';
+import customerRoutes from './routes/customers';
 import qbwcRoutes from './routes/qbwc';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -50,6 +53,9 @@ app.route('/api/auth', authRoutes);
 app.route('/api/schema', schemaRoutes);
 app.route('/api/users', userRoutes);
 app.route('/api/orders', orderRoutes);
+app.route('/api/inventory', inventoryRoutes);
+app.route('/api/quotes', quoteRoutes);
+app.route('/api/customers', customerRoutes);
 // QuickBooks Web Connector SOAP endpoint (no Supabase auth — QBWC is not a browser
 // and authenticates with its own username/password inside the SOAP body).
 app.route('/qbwc', qbwcRoutes);
