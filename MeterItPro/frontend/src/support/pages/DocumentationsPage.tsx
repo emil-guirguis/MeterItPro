@@ -24,7 +24,8 @@ interface DocItem {
   formats: DocFormat[];
 }
 
-const APP_SHEET = '/docs/MeterItPro-Application-Sheet';
+// BASE_URL is '/' in dev and '/Synergy/' on GitHub Pages — keep links correct in both.
+const APP_SHEET = `${import.meta.env.BASE_URL}docs/MeterItPro-Application-Sheet`;
 
 const docs: DocItem[] = [
   {
