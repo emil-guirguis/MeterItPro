@@ -5,6 +5,7 @@ import { registerIconMappings } from '@meterit/framework-frontend/utils/iconHelp
 import { useAuth } from '../hooks/useAuth';
 import { useResponsive } from '@meterit/framework-frontend/hooks/useResponsive';
 import { useUI } from '../store/slices/uiSlice';
+import { redirectTo } from '../utils/navigationUtils';
 
 const adminIconMappings = {
   admin_dashboard:  'dashboard',
@@ -68,7 +69,7 @@ const AdminLayoutWrapper: React.FC<LayoutProps> = (props) => {
 
   const logout = () => {
     authLogout();
-    window.location.href = '/admin/login';
+    redirectTo('/admin/login');
   };
 
   const config: AppLayoutConfig = {

@@ -2,6 +2,7 @@
 
 import { authService } from '../../services/authService';
 import { useUIStore } from '../slices/uiSlice';
+import { redirectTo } from '../../utils/navigationUtils';
 
 // API call wrapper with error handling and loading states
 export interface ApiCallOptions {
@@ -65,7 +66,7 @@ export const withApiCall = async <T>(
         // Auth is handled by AuthContext, redirect to login
         authService.setLogoutFlag();
         authService.clearStoredToken();
-        window.location.href = '/login';
+        redirectTo('/login');
         throw error;
       }
 
@@ -146,7 +147,7 @@ export const withTokenRefresh = <T>(
       if (isAuthError(error)) {
         authService.setLogoutFlag();
         authService.clearStoredToken();
-        window.location.href = '/login';
+        redirectTo('/login');
       }
       reject(error);
     }

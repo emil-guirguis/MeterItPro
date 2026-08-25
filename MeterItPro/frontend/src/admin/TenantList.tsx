@@ -8,6 +8,7 @@ import type { ColumnDefinition } from '@meterit/framework-frontend/components/li
 import { useTenantsEnhanced, type TenantEntity } from './tenantsStore';
 import { impersonateTenant } from './adminService';
 import { tokenStorage } from '../utils/tokenStorage';
+import { redirectTo } from '../utils/navigationUtils';
 import { authService } from '../services/authService';
 
 interface TenantListProps {
@@ -34,7 +35,7 @@ export const TenantList: React.FC<TenantListProps> = ({ onEdit, onCreate }) => {
       const result = await impersonateTenant(tenant.tenant_id);
       authService.storeTokens(result.token, '', result.expiresIn);
       authService.clearLogoutFlag();
-      window.location.href = '/dashboard';
+      redirectTo('/dashboard');
     } catch (err) {
       sessionStorage.removeItem('admin_portal_backup');
       setConnectError(err instanceof Error ? err.message : 'Failed to connect');

@@ -5,6 +5,7 @@ import { registerIconMappings } from '@meterit/framework-frontend/utils/iconHelp
 import { useAuth } from '../hooks/useAuth';
 import { useResponsive } from '@meterit/framework-frontend/hooks/useResponsive';
 import { useUI } from '../store/slices/uiSlice';
+import { redirectTo } from '../utils/navigationUtils';
 
 const supportIconMappings = {
   support_tickets: 'confirmation_number',
@@ -34,7 +35,7 @@ const SupportLayoutWrapper: React.FC<LayoutProps> = (props) => {
 
   const logout = () => {
     authLogout();
-    window.location.href = '/support/login';
+    redirectTo('/support/login');
   };
 
   const config: AppLayoutConfig = {

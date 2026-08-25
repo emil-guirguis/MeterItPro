@@ -2,6 +2,26 @@
 
 import type { BreadcrumbItem } from '../types/ui';
 
+/**
+ * Prefix an app-absolute path with the deploy base (Vite BASE_URL).
+ * '' in dev (BASE_URL='/'), '/Synergy' on GitHub Pages (BASE_URL='/Synergy/').
+ * Use for full-page navigations (window.location) which — unlike React
+ * Router <Link>/navigate — do NOT honor the router basename.
+ */
+export const withBase = (path: string): string => {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return base + (path.startsWith('/') ? path : `/${path}`);
+};
+
+/**
+ * Hard redirect (full page load) to an app path, base-aware.
+ * Prefer React Router navigate() inside components; use this only where a
+ * full reload is intended (auth/session resets) or router context is absent.
+ */
+export const redirectTo = (path: string): void => {
+  window.location.href = withBase(path);
+};
+
 // Route to title mapping
 const routeTitles: Record<string, string> = {
   '/': 'Dashboard',

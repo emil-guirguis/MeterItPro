@@ -15,6 +15,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useResponsive } from '@meterit/framework-frontend/hooks/useResponsive';
 import { useUI } from '../../store/slices/uiSlice';
 import { Permission } from '../../types/auth';
+import { redirectTo } from '../../utils/navigationUtils';
 import { SidebarMetersSection } from '../sidebar-meters';
 import { useMeterSelection } from '../../contexts/MeterSelectionContext';
 import { SidebarDataProvider } from '../../contexts/SidebarDataContext';
@@ -199,7 +200,7 @@ export const AppLayoutWrapper: React.FC<LayoutProps> = (props) => {
 
     // Redirect to login page
     console.log('🔄 Redirecting to login page');
-    window.location.href = '/login';
+    redirectTo('/login');
   };
 
   // Get responsive state

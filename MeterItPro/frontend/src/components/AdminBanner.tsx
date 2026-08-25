@@ -3,6 +3,7 @@ import { Box, Typography, Button } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import { tokenStorage } from '../utils/tokenStorage';
 import { authService } from '../services/authService';
+import { redirectTo } from '../utils/navigationUtils';
 
 const AdminBanner: React.FC = () => {
   const { user } = useAuth();
@@ -17,7 +18,7 @@ const AdminBanner: React.FC = () => {
         const remainingSecs = Math.max(60, Math.floor((backup.expiresAt - Date.now()) / 1000));
         authService.storeTokens(backup.token, backup.refreshToken || '', remainingSecs, backup.rememberMe);
         sessionStorage.removeItem('admin_portal_backup');
-        window.location.href = '/admin/clients';
+        redirectTo('/admin/clients');
         return;
       } catch {
         sessionStorage.removeItem('admin_portal_backup');
@@ -25,7 +26,7 @@ const AdminBanner: React.FC = () => {
     }
     // Fallback: clear and go to admin login
     tokenStorage.clearTokens();
-    window.location.href = '/admin/login';
+    redirectTo('/admin/login');
   };
 
   return (
