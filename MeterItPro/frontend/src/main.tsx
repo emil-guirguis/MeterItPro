@@ -12,11 +12,16 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 
 console.log('[MUI Theme] Theme loaded:', muiTheme.palette.primary.main);
 
+// Vite injects BASE_URL: '/' in dev, '/Synergy/' on GitHub Pages.
+// React Router needs it (without trailing slash) as basename so deep
+// routes resolve and <Link>/navigate emit base-prefixed URLs in prod.
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <HelmetProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={routerBasename}>
           <ThemeProvider theme={muiTheme}>
             <CssBaseline />
             <AuthProvider>
