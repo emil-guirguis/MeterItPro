@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { versionPlugin } from './vite-plugins/version-plugin';
 import { docsPlugin } from './vite-plugins/docs-plugin';
+import { spaFallbackPlugin } from './vite-plugins/spa-fallback-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -51,6 +52,7 @@ export default defineConfig({
       },
     }),
     errorLoggerPlugin(),
+    spaFallbackPlugin(),
   ],
   resolve: {
     alias: {
