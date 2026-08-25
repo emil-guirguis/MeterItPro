@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { versionPlugin } from './vite-plugins/version-plugin';
+import { docsPlugin } from './vite-plugins/docs-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,6 +41,7 @@ const errorLoggerPlugin = () => {
 export default defineConfig({
   plugins: [
     versionPlugin(),
+    docsPlugin(),
     react({
       // Log React errors to terminal
       babel: {

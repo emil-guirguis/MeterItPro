@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Button, Card, CardContent, Container, Divider,
+  Box, Button, Card, CardActionArea, CardContent, Container, Divider,
   Grid, Stack, Typography,
 } from '@mui/material';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
@@ -66,14 +66,19 @@ const SupportLandingPage: React.FC = () => {
             </Card>
           </Grid>
           <Grid item xs={12} md={4}>
-            <Card sx={{ height: '100%', textAlign: 'center', p: 2 }}>
-              <CardContent>
-                <MenuBookIcon color="primary" sx={{ fontSize: 48, mb: 2 }} />
-                <Typography variant="h6" fontWeight="bold" gutterBottom>Documentation</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Browse our guides and tutorials to get the most out of MeterIt Pro.
-                </Typography>
-              </CardContent>
+            <Card sx={{ height: '100%', textAlign: 'center' }}>
+              <CardActionArea
+                onClick={() => navigate('/support/documentations')}
+                sx={{ height: '100%', p: 2 }}
+              >
+                <CardContent>
+                  <MenuBookIcon color="primary" sx={{ fontSize: 48, mb: 2 }} />
+                  <Typography variant="h6" fontWeight="bold" gutterBottom>Documentation</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Browse our guides and tutorials to get the most out of MeterIt Pro.
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
             </Card>
           </Grid>
           <Grid item xs={12} md={4}>
