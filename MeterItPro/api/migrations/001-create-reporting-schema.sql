@@ -23,6 +23,9 @@ GRANT ALL ON TABLE public.report TO anon;
 GRANT ALL ON TABLE public.report TO authenticated;
 GRANT ALL ON TABLE public.report TO postgres;
 GRANT ALL ON TABLE public.report TO service_role;
+-- RLS on (no policy): denies anon/authenticated via PostgREST despite the GRANTs
+-- above; the Worker uses the postgres superuser and bypasses RLS.
+ALTER TABLE public.report ENABLE ROW LEVEL SECURITY;
 
 -- Table: public.report_history
 DROP TABLE IF EXISTS public.report_history CASCADE;
@@ -41,6 +44,7 @@ GRANT ALL ON TABLE public.report_history TO anon;
 GRANT ALL ON TABLE public.report_history TO authenticated;
 GRANT ALL ON TABLE public.report_history TO postgres;
 GRANT ALL ON TABLE public.report_history TO service_role;
+ALTER TABLE public.report_history ENABLE ROW LEVEL SECURITY;
 
 -- Table: public.report_email_logs
 DROP TABLE IF EXISTS public.report_email_logs CASCADE;
@@ -61,6 +65,7 @@ GRANT ALL ON TABLE public.report_email_logs TO anon;
 GRANT ALL ON TABLE public.report_email_logs TO authenticated;
 GRANT ALL ON TABLE public.report_email_logs TO postgres;
 GRANT ALL ON TABLE public.report_email_logs TO service_role;
+ALTER TABLE public.report_email_logs ENABLE ROW LEVEL SECURITY;
 
 -- Create indexes for query performance on report_history
 CREATE INDEX IF NOT EXISTS idx_report_history_report_id ON public.report_history(report_id);
