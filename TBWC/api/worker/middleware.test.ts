@@ -53,6 +53,20 @@ describe('authenticateToken', () => {
     expect((await res.json()).message).toBe('Invalid or expired token');
   });
 
+  it('429s after repeated failed verifications from the same IP', async () => {
+    // Distinct IP so this doesn't share a rate-limit bucket with the other
+    // failed-verification test above (module-level counter in the shared
+    // framework rate limiter persists across `it`s in this file).
+    mockVerify.mockResolvedValue(null);
+    const headers = { authorization: 'Bearer bad', 'x-forwarded-for': '203.0.113.9' };
+    let last;
+    for (let i = 0; i < 31; i++) {
+      last = await makeApp().request('/me', { headers }, ENV);
+    }
+    expect(last!.status).toBe(429);
+    expect((await last!.json()).message).toBe('Too many failed attempts, please try again later');
+  });
+
   it('403 when no matching profile row exists', async () => {
     mockVerify.mockResolvedValue({ userId: 'no-profile-user', email: null });
     mockExec.mockResolvedValue({ rows: [] });

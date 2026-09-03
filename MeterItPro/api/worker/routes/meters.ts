@@ -6,9 +6,14 @@ import { Hono } from 'hono';
 import { transaction, Env, execQuery } from '../db';
 
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
-import { findAll, findById, create, update, remove, checkDeleteRestrictions } from '../crud';
+import { findAll, findById, create, update, remove, checkDeleteRestrictions, whereFromQuery, likeFieldsFromSchema, fieldMapFromSchema } from '../crud';
 import { logError } from '../errorHandler';
 import { meterSchema } from './meterSchema';
+
+// Free-text individual filters, derived from the schema (list-shown string/number
+// fields with no enumValues — 'type'/'is_virtual' are enum selects, so exact-match).
+const LIKE_FIELDS = likeFieldsFromSchema(meterSchema);
+const FIELD_MAP = fieldMapFromSchema(meterSchema);
 
 // Derive search fields from schema (fields with filertable: ['main'])
 const meterSearchFields = Object.entries(meterSchema.formFields)
@@ -263,6 +268,16 @@ app.get('/', requirePermission('meter:read'), async (c) => {
     const qs = c.req.query();
     const tenantId = c.get('tenantId');
 
+    // is_virtual is stored boolean but filtered via a 'physical'/'virtual' enum
+    // (schema toApi/fromApi transform) — a generic exact-match would compare the
+    // boolean column to that raw string and error. Leave it unhandled as before
+    // until the filter pipeline supports per-field value transforms.
+    const { where, whereLike } = whereFromQuery(qs, {
+      likeFields: LIKE_FIELDS,
+      fieldMap: FIELD_MAP,
+      extraReserved: ['is_virtual'],
+    });
+
     const result = await findAll(c.env, {
       table: 'meter',
       primaryKey: 'meter_id',
@@ -273,6 +288,8 @@ app.get('/', requirePermission('meter:read'), async (c) => {
       searchFields: meterSearchFields,
       sortBy: qs.sortBy,
       sortOrder: qs.sortOrder,
+      where,
+      whereLike,
       joins: 'LEFT JOIN device d ON meter.device_id = d.device_id LEFT JOIN sync_server ss ON meter.sync_server_id = ss.sync_server_id',
       selectFields: 'meter.*, d.manufacturer as device_manufacturer, d.model_number as device_model_number, ss.name as sync_server_name',
     });

@@ -423,6 +423,12 @@
   white-space: nowrap;
 }
 
+.brand-logo {
+  height: 2rem;
+  width: auto;
+  flex-shrink: 0;
+}
+
 .app-header__title {
   margin: 0;
   font-size: 1.25rem;

@@ -236,8 +236,14 @@ export function useBaseList<T extends Record<string, any>, StoreType extends Enh
       // Only bypass cache when the filters actually changed from the last fetch.
       // Using the same key (e.g. React Strict Mode re-running the same effect) hits
       // the TTL cache instead of firing another DB query.
+      // Note: `null` (this ref's un-set state) must count as "changed" too — for
+      // entities with no default 'active' filter, the initial load fetches via
+      // store.fetchItems() directly (see the effect above) without ever touching
+      // this ref, so it's still null when the user's first filter/search lands here.
+      // Treating null as "unchanged" made that first filter action a no-op: it hit
+      // the now-warm post-initial-load cache and silently returned stale data.
       const filtersKey = JSON.stringify(cleanedFilters);
-      const filtersChanged = lastFetchedFiltersKeyRef.current !== null && lastFetchedFiltersKeyRef.current !== filtersKey;
+      const filtersChanged = lastFetchedFiltersKeyRef.current !== filtersKey;
       lastFetchedFiltersKeyRef.current = filtersKey;
 
       if (filtersChanged) {

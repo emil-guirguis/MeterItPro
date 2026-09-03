@@ -8,7 +8,8 @@
 import { Hono } from 'hono';
 import { Env } from '../db';
 import { AuthVariables, authenticateToken, requireAdmin } from '../middleware';
-import { findAll, findById } from '../crud';
+import { findAll, findById, whereFromQuery, likeFieldsFromSchema } from '../crud';
+import { customersSchema } from './customersSchema';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 app.use('*', authenticateToken);
@@ -17,11 +18,13 @@ app.use('*', requireAdmin);
 const TABLE = 'qb_customer';
 const PK = 'qb_customer_id';
 const SEARCH = ['full_name', 'company_name', 'email', 'phone'];
+// Free-text individual filters, derived from the schema (list-shown string/number
+// fields with no enumValues — 'is_active' is boolean, so it's exact-match).
+const LIKE_FIELDS = likeFieldsFromSchema(customersSchema);
 
 app.get('/', async (c) => {
   const q = c.req.query();
-  const where: Record<string, any> = {};
-  if (q.is_active != null && q.is_active !== '') where.is_active = q.is_active === 'true';
+  const { where, whereLike } = whereFromQuery(q, { likeFields: LIKE_FIELDS });
   const result = await findAll(c.env, {
     table: TABLE,
     primaryKey: PK,
@@ -33,6 +36,7 @@ app.get('/', async (c) => {
     sortOrder: q.sortOrder,
     orderBy: q.sortBy ? undefined : `"${TABLE}".full_name ASC`,
     where,
+    whereLike,
   });
   return c.json({ success: true, data: { items: result.rows, total: result.pagination.total } });
 });

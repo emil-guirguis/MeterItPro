@@ -10,9 +10,14 @@ import { Env, execQuery } from '../db';
 import { authenticateToken, AuthVariables } from '../middleware';
 import { logError } from '../errorHandler';
 import { runReport, previewReport, generateDemandReport } from '../reportRunner';
-import { create, update, findAll, findById } from '../crud';
+import { create, update, findAll, findById, whereFromQuery, likeFieldsFromSchema, fieldMapFromSchema } from '../crud';
 import { parsePagination, parseNumericId, extractBodyData, isValidCronExpression, validateEmailList } from '../routeHelpers';
 import { reportSchema } from './reportSchema';
+
+// Free-text individual filters, derived from the schema (list-shown string/number
+// fields with no enumValues — 'type' is an enum select, so it's exact-match).
+const LIKE_FIELDS = likeFieldsFromSchema(reportSchema);
+const FIELD_MAP = fieldMapFromSchema(reportSchema);
 import { queryConsumption, queryDemand, queryVirtualConsumption, queryVirtualDemand, getDateRange, TimePeriod } from '../meterQueryHelpers';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -55,6 +60,7 @@ app.get('/', async (c) => {
   try {
     const qs = c.req.query();
     const { page, limit } = parsePagination(qs, { limit: 10 });
+    const { where, whereLike } = whereFromQuery(qs, { likeFields: LIKE_FIELDS, fieldMap: FIELD_MAP });
     const result = await findAll(c.env, {
       table: 'report',
       primaryKey: 'report_id',
@@ -63,6 +69,8 @@ app.get('/', async (c) => {
       limit,
       sortBy: 'created_at',
       sortOrder: 'desc',
+      where,
+      whereLike,
     });
     return c.json({
       success: true,

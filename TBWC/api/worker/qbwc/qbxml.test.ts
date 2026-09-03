@@ -1,8 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import {
   QBXML_VERSION, qbxmlDoc, tag, blocks, statusCode, escapeXml, unescapeXml,
-  qbTimeToTs, qbDate, num, refField, lineItems,
+  qbTimeToTs, qbDate, num, refField, lineItems, toQbLocal,
 } from './qbxml';
+
+describe('qbxml.toQbLocal', () => {
+  it('renders a UTC instant as Pacific wall-clock with offset (DST)', () => {
+    // 2026-09-01T19:52:00Z = 12:52 PDT (UTC-7).
+    expect(toQbLocal('2026-09-01T19:52:00.000Z')).toBe('2026-09-01T12:52:00-07:00');
+  });
+
+  it('uses the standard-time offset in winter', () => {
+    // 2026-01-15T20:00:00Z = 12:00 PST (UTC-8).
+    expect(toQbLocal('2026-01-15T20:00:00.000Z')).toBe('2026-01-15T12:00:00-08:00');
+  });
+
+  it('accepts a Date and an explicit zone', () => {
+    expect(toQbLocal(new Date('2026-09-01T19:52:00Z'), 'America/New_York'))
+      .toBe('2026-09-01T15:52:00-04:00');
+  });
+});
 
 describe('qbxml.qbxmlDoc', () => {
   it('wraps inner fragment with the qbxml PI and default continueOnError', () => {

@@ -6,7 +6,7 @@ import { Env, execQuery } from '../../db';
 import { QbObject } from './types';
 import {
   qbxmlDoc, tag, blocks, statusCode, escapeXml, refField, lineItems,
-  qbTimeToTs, qbDate, num,
+  qbTimeToTs, qbDate, num, toQbLocal, bumpSecond,
 } from '../qbxml';
 
 const REQUEST_ID = 'salesorder';
@@ -20,7 +20,7 @@ async function since(env: Env): Promise<string | null> {
 async function buildRequest(env: Env): Promise<string> {
   const from = await since(env);
   const filter = from
-    ? `\n      <ModifiedDateRangeFilter><FromModifiedDate>${escapeXml(from)}</FromModifiedDate></ModifiedDateRangeFilter>`
+    ? `\n      <ModifiedDateRangeFilter><FromModifiedDate>${escapeXml(toQbLocal(bumpSecond(from)))}</FromModifiedDate></ModifiedDateRangeFilter>`
     : '';
   return qbxmlDoc(
     `    <SalesOrderQueryRq requestID="${REQUEST_ID}">${filter}\n` +

@@ -7,8 +7,13 @@ import bcrypt from 'bcryptjs';
 import { Env, execQuery } from '../db';
 
 import { authenticateToken, requirePermission, clearUserCache, AuthVariables } from '../middleware';
-import { findAll, findById, create, update, remove, checkDeleteRestrictions } from '../crud';
+import { findAll, findById, create, update, remove, checkDeleteRestrictions, whereFromQuery, likeFieldsFromSchema, fieldMapFromSchema } from '../crud';
 import { userSchema } from './usersSchema';
+
+// Free-text individual filters, derived from the schema (list-shown string/number
+// fields with no enumValues — 'role' is an enum select, so it's exact-match).
+const LIKE_FIELDS = likeFieldsFromSchema(userSchema);
+const FIELD_MAP = fieldMapFromSchema(userSchema);
 import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -97,6 +102,8 @@ app.get('/', requirePermission('user:read'), async (c) => {
     const qs = c.req.query();
     const tenantId = c.get('tenantId');
 
+    const { where, whereLike } = whereFromQuery(qs, { likeFields: LIKE_FIELDS, fieldMap: FIELD_MAP });
+
     const result = await findAll(c.env, {
       table: 'users',
       primaryKey: 'users_id',
@@ -107,6 +114,8 @@ app.get('/', requirePermission('user:read'), async (c) => {
       searchFields: ['name', 'email'],
       sortBy: qs.sortBy,
       sortOrder: qs.sortOrder,
+      where,
+      whereLike,
     });
 
     return c.json({

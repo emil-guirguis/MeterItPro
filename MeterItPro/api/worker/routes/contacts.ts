@@ -6,8 +6,13 @@ import { Hono } from 'hono';
 import { Env, execQuery } from '../db';
 
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
-import { findAll, findById, create, update, remove, checkDeleteRestrictions } from '../crud';
+import { findAll, findById, create, update, remove, checkDeleteRestrictions, whereFromQuery, likeFieldsFromSchema, fieldMapFromSchema } from '../crud';
 import { contactSchema } from './contactSchema';
+
+// Free-text individual filters, derived from the schema (list-shown string/number
+// fields with no enumValues — 'role' is an enum select, so it's exact-match).
+const LIKE_FIELDS = likeFieldsFromSchema(contactSchema);
+const FIELD_MAP = fieldMapFromSchema(contactSchema);
 import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -82,14 +87,7 @@ app.get('/', requirePermission('contact:read'), async (c) => {
     const qs = c.req.query();
     const tenantId = c.get('tenantId');
 
-    // Build where conditions from filter params
-    const where: Record<string, any> = {};
-    if (qs.active !== undefined && qs.active !== '') {
-      where.active = qs.active === 'true';
-    }
-    if (qs.role) {
-      where.role = qs.role;
-    }
+    const { where, whereLike } = whereFromQuery(qs, { likeFields: LIKE_FIELDS, fieldMap: FIELD_MAP });
 
     const result = await findAll(c.env, {
       table: 'contact',
@@ -102,6 +100,7 @@ app.get('/', requirePermission('contact:read'), async (c) => {
       sortBy: qs.sortBy,
       sortOrder: qs.sortOrder,
       where,
+      whereLike,
     });
 
     return c.json({

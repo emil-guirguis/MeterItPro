@@ -307,7 +307,11 @@ export const Header: React.FC<HeaderProps> = ({
 
           {sidebarBrand && (
             <div className="app-header__brand" role="img" aria-label={`${sidebarBrand.text} application`}>
-              <span className="brand-text">{sidebarBrand.text}</span>
+              {sidebarBrand.logoUrl ? (
+                <img className="brand-logo" src={sidebarBrand.logoUrl} alt={sidebarBrand.text} />
+              ) : (
+                <span className="brand-text">{sidebarBrand.text}</span>
+              )}
             </div>
           )}
         </div>

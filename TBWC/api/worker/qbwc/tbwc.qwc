@@ -3,25 +3,36 @@
   TBWC QuickBooks Web Connector config. Import on the Windows PC running QB Desktop:
     Web Connector > File > Add an Application > pick this .qwc
 
-  BEFORE SHIPPING, replace the two <<...>> placeholders:
-    <AppURL>   = deployed Worker /qbwc endpoint (https, valid public cert; Cloudflare provides)
-    <UserName> = must match the QBWC_USERNAME secret set via `wrangler secret put`
+  BEFORE SHIPPING, check:
+    <AppURL>     = deployed Worker /qbwc endpoint (https, valid public cert; Cloudflare provides)
+    <AppSupport> = MUST be on the same domain as <AppURL>, or the connector refuses
+                   the app with "QBWC1000: ... domain names ... do not match"
+    <UserName>   = must match the QBWC_USERNAME secret set via `wrangler secret put`
 
   The QBWC password is NOT in this file — the connector prompts for it on first
   add and stores it; it must match the QBWC_PASSWORD secret.
 
   OwnerID/FileID are STABLE — generated once for this app. Never change them, or
-  the connector treats it as a different app and re-prompts/duplicates.
+  the connector treats it as a different app and re-prompts/duplicates. The pair
+  below was rotated 2026-09-01: the first pair got half-written into the company
+  file by a failed add (AppLock DataExtDef created, registry write failed), after
+  which QB rejected every re-add with "QBWC1039: Unique OwnerID/FileID pair value
+  required". A burned pair cannot be reused for that company file.
+
+  <AppID> must be PRESENT but may be empty — dropping the element gets the add
+  rejected with "Web Service Description is missing AppID field / QBWC1051". The
+  empty value makes QBWC log "createRegKey(): Error creating registry key for
+  appName = <>"; that line is noise, the add proceeds past it.
 -->
 <QBWCXML>
   <AppName>TBWC QuickBooks Sync</AppName>
   <AppID></AppID>
   <AppURL>https://tbwc-api-production.emilguirguis.workers.dev/qbwc</AppURL>
   <AppDescription>Bidirectional sync between the TBWC portal and QuickBooks Desktop.</AppDescription>
-  <AppSupport>https://tbwc.example.com/support</AppSupport>
+  <AppSupport>https://tbwc-api-production.emilguirguis.workers.dev/qbwc/support</AppSupport>
   <UserName>tbwc</UserName>
-  <OwnerID>{ECD85012-F531-450D-AC0A-75A34403D91F}</OwnerID>
-  <FileID>{03BB9176-5CFE-45B3-8FD6-EA2D24BE79A8}</FileID>
+  <OwnerID>{BE0BBCB0-85E3-431A-8248-B818B948814A}</OwnerID>
+  <FileID>{DD5D1321-DD24-4FB1-8FE5-3805C1FFEECB}</FileID>
   <QBType>QBFS</QBType>
   <Scheduler>
     <RunEveryNSeconds>300</RunEveryNSeconds>

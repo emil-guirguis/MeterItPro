@@ -5,8 +5,9 @@
  */
 import { Hono } from 'hono';
 import { Env } from '../db';
-import { AuthVariables, authenticateToken } from '../middleware';
-import { findAll, findById, create, update, remove } from '../crud';
+import { AuthVariables, authenticateToken, requireAdmin } from '../middleware';
+import { findAll, findById, create, update, remove, whereFromQuery, likeFieldsFromSchema } from '../crud';
+import { inventorySchema } from './inventorySchema';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 app.use('*', authenticateToken);
@@ -14,11 +15,13 @@ app.use('*', authenticateToken);
 const TABLE = 'inventory';
 const PK = 'inventory_id';
 const SEARCH = ['part_number', 'description', 'category', 'upc_code'];
+// Free-text individual filters, derived from the schema (list-shown string/number
+// fields with no enumValues).
+const LIKE_FIELDS = likeFieldsFromSchema(inventorySchema);
 
 app.get('/', async (c) => {
   const q = c.req.query();
-  const where: Record<string, any> = {};
-  if (q.category) where.category = q.category;
+  const { where, whereLike } = whereFromQuery(q, { likeFields: LIKE_FIELDS });
   const result = await findAll(c.env, {
     table: TABLE,
     primaryKey: PK,
@@ -30,6 +33,7 @@ app.get('/', async (c) => {
     sortOrder: q.sortOrder,
     orderBy: q.sortBy ? undefined : `"${TABLE}".part_number ASC`,
     where,
+    whereLike,
   });
   return c.json({ success: true, data: { items: result.rows, total: result.pagination.total } });
 });
@@ -40,21 +44,19 @@ app.get('/:id', async (c) => {
   return c.json({ success: true, data: row });
 });
 
-app.post('/', async (c) => {
-  if (!c.get('user')?.is_admin) return c.json({ success: false, message: 'Admin access required' }, 403);
+app.post('/', requireAdmin, async (c) => {
   const row = await create(c.env, TABLE, await c.req.json());
   return c.json({ success: true, data: row }, 201);
 });
 
-app.put('/:id', async (c) => {
-  if (!c.get('user')?.is_admin) return c.json({ success: false, message: 'Admin access required' }, 403);
-  const row = await update(c.env, TABLE, PK, c.req.param('id'), await c.req.json());
+app.put('/:id', requireAdmin, async (c) => {
+  // public.inventory has no updated_at column.
+  const row = await update(c.env, TABLE, PK, c.req.param('id'), await c.req.json(), { touchUpdatedAt: false });
   if (!row) return c.json({ success: false, message: 'Inventory item not found or nothing to update' }, 404);
   return c.json({ success: true, data: row });
 });
 
-app.delete('/:id', async (c) => {
-  if (!c.get('user')?.is_admin) return c.json({ success: false, message: 'Admin access required' }, 403);
+app.delete('/:id', requireAdmin, async (c) => {
   const row = await remove(c.env, TABLE, PK, c.req.param('id'));
   if (!row) return c.json({ success: false, message: 'Inventory item not found' }, 404);
   return c.json({ success: true, data: row });

@@ -2,13 +2,51 @@
 
 import { create } from 'zustand';
 import type { EntityStoreSlice, CacheConfig } from '../types';
-import { 
-  createEntityState, 
-  createListState, 
+import {
+  createEntityState,
+  createListState,
   isCacheFresh,
   createCacheConfig,
 } from '../utils';
 import { loadSchema } from '@meterit/framework-frontend/components/form/utils/schemaLoader';
+import { authService } from '../../services/authService';
+
+// Access tokens expire mid-session and nothing else refreshes them proactively —
+// any store action can be the first one to hit a 401. Detect that case, refresh
+// once, and retry before giving up and forcing the user back to login.
+const AUTH_ERROR_PATTERNS = ['invalid or expired token', 'access token required', 'unauthorized', 'authentication required'];
+
+function isAuthError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+  return AUTH_ERROR_PATTERNS.some((p) => message.includes(p));
+}
+
+function forceLogout(): void {
+  authService.setLogoutFlag();
+  authService.clearStoredToken();
+  if (typeof window !== 'undefined') window.location.href = '/login';
+}
+
+async function withAuthRetry<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    if (!isAuthError(error)) throw error;
+
+    const newToken = await authService.refresh();
+    if (!newToken) {
+      forceLogout();
+      throw error;
+    }
+
+    try {
+      return await call();
+    } catch (retryError) {
+      forceLogout();
+      throw retryError;
+    }
+  }
+}
 
 // Generic service interface
 export interface EntityService<T> {
@@ -160,7 +198,7 @@ export const createEntityStore = <T extends { id: string }>(
             }
 
             console.log('[fetchItems] Calling service.getAll with queryParams:', queryParams);
-            const response = await service.getAll(queryParams);
+            const response = await withAuthRetry(() => service.getAll(queryParams));
             console.log('[fetchItems] Got response:', response);
 
             // Normalise entity IDs using the schema's idFieldName
@@ -203,7 +241,7 @@ export const createEntityStore = <T extends { id: string }>(
         set({ loading: true, error: null });
 
         try {
-          const item = await service.getById(id);
+          const item = await withAuthRetry(() => service.getById(id));
 
           set((state) => ({
             selectedItem: item as any,
@@ -239,7 +277,7 @@ export const createEntityStore = <T extends { id: string }>(
         set({ loading: true, error: null });
 
         try {
-          const newItem = await service.create(data);
+          const newItem = await withAuthRetry(() => service.create(data));
 
           set((state) => ({
             items: [newItem as any, ...state.items],
@@ -284,7 +322,7 @@ export const createEntityStore = <T extends { id: string }>(
         }
 
         try {
-          const updatedItem = await service.update(id, data);
+          const updatedItem = await withAuthRetry(() => service.update(id, data));
 
           set((s) => ({
             items: s.items.map(item => item.id === id ? updatedItem as any : item),
@@ -335,7 +373,7 @@ export const createEntityStore = <T extends { id: string }>(
         }));
 
         try {
-          await service.delete(id);
+          await withAuthRetry(() => service.delete(id));
           set({ error: null });
         } catch (error) {
           set({ items: originalItems, total: originalTotal, selectedItem: originalSelected as any });

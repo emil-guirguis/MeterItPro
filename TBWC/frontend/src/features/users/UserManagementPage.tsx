@@ -8,6 +8,7 @@ export const UserManagementPage: React.FC = () => (
   <EntityManagementPage<User>
     title="User"
     moduleIcon="users"
+    editLabel={(u) => [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email || 'User'}
     renderList={({ onEdit, onCreate }) => (
       <UserList onUserEdit={onEdit} onUserCreate={onCreate} />
     )}

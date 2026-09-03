@@ -6,8 +6,13 @@ import { Hono } from 'hono';
 import { Env, execQuery } from '../db';
 
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
-import { findAll, findById, create, update, remove, checkDeleteRestrictions } from '../crud';
+import { findAll, findById, create, update, remove, checkDeleteRestrictions, whereFromQuery, likeFieldsFromSchema, fieldMapFromSchema } from '../crud';
 import { locationSchema } from './locationSchema';
+
+// Free-text individual filters, derived from the schema (list-shown string/number
+// fields with no enumValues — 'type' is an enum select, so it's exact-match).
+const LIKE_FIELDS = likeFieldsFromSchema(locationSchema);
+const FIELD_MAP = fieldMapFromSchema(locationSchema);
 import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -30,6 +35,8 @@ app.get('/', requirePermission('location:read'), async (c) => {
       return c.json({ success: false, message: 'Tenant context required' }, 401);
     }
 
+    const { where, whereLike } = whereFromQuery(qs, { likeFields: LIKE_FIELDS, fieldMap: FIELD_MAP });
+
     const result = await findAll(c.env, {
       table: 'location',
       primaryKey: 'location_id',
@@ -40,6 +47,8 @@ app.get('/', requirePermission('location:read'), async (c) => {
       searchFields: ['name'],
       sortBy: qs.sortBy,
       sortOrder: qs.sortOrder,
+      where,
+      whereLike,
     });
 
     console.log('[LOCATION] Found', result.rows.length, 'locations');

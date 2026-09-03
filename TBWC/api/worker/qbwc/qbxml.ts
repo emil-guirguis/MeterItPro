@@ -11,6 +11,37 @@
 /** qbXML version negotiated with QB. 13.0 covers QB 2015+; safe broad default. */
 export const QBXML_VERSION = '13.0';
 
+/** Timezone of the QuickBooks Desktop machine (SVR2012). QB stores/returns
+ *  TimeModified in this local zone; incremental FromModifiedDate must match it. */
+export const QB_TIMEZONE = 'America/Los_Angeles';
+
+/**
+ * Render a UTC instant as a qbXML dateTime in QB's local zone WITH an explicit
+ * offset (YYYY-MM-DDThh:mm:ss±hh:mm). We store QB's TimeModified as UTC in
+ * Postgres; when we send it back as FromModifiedDate, a bare (offset-less) value
+ * is read by QB as ITS local time, shifting the incremental window by the whole
+ * UTC offset. Emitting the local wall-clock plus the offset removes the ambiguity.
+ */
+export function toQbLocal(utc: string | Date, tz: string = QB_TIMEZONE): string {
+  const d = typeof utc === 'string' ? new Date(utc) : utc;
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+  const p: Record<string, string> = {};
+  for (const { type, value } of fmt.formatToParts(d)) p[type] = value;
+  const hh = p.hour === '24' ? '00' : p.hour; // some ICU builds emit 24 at midnight
+  // Offset = (same wall-clock read as UTC) - (actual instant).
+  const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +hh, +p.minute, +p.second);
+  const offMin = Math.round((asUtc - d.getTime()) / 60000);
+  const sign = offMin >= 0 ? '+' : '-';
+  const abs = Math.abs(offMin);
+  const oh = String(Math.floor(abs / 60)).padStart(2, '0');
+  const om = String(abs % 60).padStart(2, '0');
+  return `${p.year}-${p.month}-${p.day}T${hh}:${p.minute}:${p.second}${sign}${oh}:${om}`;
+}
+
 /** Wrap one or more *Rq fragments in a full qbXML document. */
 export function qbxmlDoc(inner: string, onError: 'stopOnError' | 'continueOnError' = 'continueOnError'): string {
   return `<?xml version="1.0" encoding="utf-8"?>
@@ -62,6 +93,13 @@ export function qbTimeToTs(v: string | undefined): string | null {
   if (!v) return null;
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/** QB's FromModifiedDate filter is inclusive (>=), and TimeModified granularity
+ *  is whole seconds — so the last record we stored (time_modified == our "since"
+ *  boundary) matches again on every subsequent poll. Bump by 1s to exclude it. */
+export function bumpSecond(iso: string): string {
+  return new Date(new Date(iso).getTime() + 1000).toISOString();
 }
 
 /** QB dates are YYYY-MM-DD already; pass through or null. */

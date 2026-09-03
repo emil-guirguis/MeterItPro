@@ -5,8 +5,12 @@ export interface EntityManagementPageProps<T = any> {
   title: string;
   moduleIcon?: string;
   modalSize?: 'sm' | 'md' | 'lg' | 'xl';
-  /** Overrides auto-generated "Edit {title}" crumb */
-  editLabel?: string;
+  /**
+   * Overrides the auto-generated "Edit {title}" crumb. Pass a string for a
+   * static label, or a function to derive it from the entity being edited
+   * (e.g. show the record's name in the header).
+   */
+  editLabel?: string | ((entity: T) => string);
   /** Overrides auto-generated "New {title}" crumb */
   newLabel?: string;
   saveLabel?: string;
@@ -79,7 +83,9 @@ export function EntityManagementPage<T = any>({
   }, []);
 
   const crumb = selected !== null
-    ? (editLabel ?? `Edit ${title}`)
+    ? (typeof editLabel === 'function'
+        ? editLabel(selected)
+        : (editLabel ?? `Edit ${title}`))
     : (newLabel ?? `New ${title}`);
 
   return (

@@ -19,7 +19,8 @@ import {
 import {
   createSession, getSession, dropSession, advanceCursor,
 } from '../qbwc/session';
-import { buildWorkQueue, dispatchResponse } from '../qbwc/objects';
+import { buildWorkQueue, dispatchResponse, registry } from '../qbwc/objects';
+import { logResponse, logError } from '../qbwc/syncLog';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -38,6 +39,12 @@ app.get('/', (c) => {
   }
   return c.text('QBWC SOAP endpoint. Append ?wsdl for the service description.');
 });
+
+// Target of <AppSupport> in tbwc.qwc. The Web Connector rejects an app whose
+// support URL is on a different domain than <AppURL> (QBWC1000), so this has to
+// live under the Worker origin rather than the marketing site.
+app.get('/support', (c) =>
+  c.text('TBWC QuickBooks Sync support — contact the TBWC portal administrator.'));
 
 app.post('/', async (c) => {
   const body = await c.req.text();
@@ -68,8 +75,14 @@ app.post('/', async (c) => {
 
       const queue = await buildWorkQueue(c.env);
       await createSession(c.env, ticket, queue);
-      // Second element: "" = use the currently-open company file; "none" = no work.
-      const status = queue.length === 0 ? 'none' : '';
+      // Second element tells QBWC which company file to work against:
+      //   "none"      = no work this session
+      //   ""          = whatever file is already open in QuickBooks (attended)
+      //   "<path>"    = full path to a .qbw; QBWC starts QuickBooks and opens it
+      //                 itself, so no one has to have QB running (unattended).
+      // Unattended also requires the app to be authorized in QB with "allow access
+      // even if QuickBooks is not running" — the path alone is not enough.
+      const status = queue.length === 0 ? 'none' : (c.env.QBWC_COMPANY_FILE || '');
       return reply(authEnvelope([ticket, status]));
     }
 
@@ -95,8 +108,16 @@ app.post('/', async (c) => {
       if (hresult) {
         errMsg = getParam(body, 'message') || hresult;
         console.error('[QBWC] request error', hresult, errMsg);
+        // Attribute the failure to the object whose request was in flight
+        // (requestID attr of the queue item the cursor points at).
+        const rid = s.queue[s.cursor]?.match(/requestID="([A-Za-z]+)/)?.[1];
+        // Resolve via the registry so e.g. rid "salesrep" logs as "SalesRep".
+        const objectType = registry.find((o) => o.requestID === rid)?.name
+          ?? (rid ? rid.charAt(0).toUpperCase() + rid.slice(1) : 'Connection');
+        await logError(c.env, ticket, objectType, `${hresult}: ${errMsg}`);
       } else {
         await dispatchResponse(c.env, response);
+        await logResponse(c.env, ticket, response);
       }
       const newCursor = await advanceCursor(c.env, ticket, errMsg);
 
@@ -115,8 +136,10 @@ app.post('/', async (c) => {
     }
 
     case 'connectionError': {
+      const ticket = getParam(body, 'ticket');
       const msg = getParam(body, 'message');
       console.error('[QBWC] connectionError:', msg);
+      await logError(c.env, ticket, 'Connection', msg || 'connectionError');
       // "done" tells QBWC to stop; "" would ask it to retry.
       return reply(envelope('connectionError', 'done'));
     }

@@ -60,12 +60,12 @@ function RunStatus({ run }: { run: SyncRun }) {
       </Tooltip>
     );
   }
-  const empty = run.status_code === '1';
+  const empty = run.status_code === '1' || run.rows_processed === 0;
   return (
     <Chip
       size="small"
       icon={<CheckCircleOutlineIcon />}
-      label={empty ? 'ok (no changes)' : 'ok'}
+      label={empty ? 'ok (no changes)' : `ok (${run.rows_processed} applied)`}
       color="success"
       variant="outlined"
     />

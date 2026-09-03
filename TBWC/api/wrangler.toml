@@ -20,6 +20,11 @@ SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 #   wrangler secret put QBWC_USERNAME
 #   wrangler secret put QBWC_PASSWORD
 # Unset locally => dev fallback (tbwc/changeme) in worker/routes/qbwc.ts.
+#
+# QBWC_COMPANY_FILE (below, per-env var) = absolute .qbw path on the QB machine.
+# Set => unattended: QBWC launches QuickBooks and opens that file itself.
+# Unset => attended: the connector uses whatever file is already open, and a run
+# with QuickBooks closed fails with "Could not start QuickBooks".
 
 # Hyperdrive → tbwc-site Supabase Postgres. For `wrangler dev`, localConnectionString
 # is used directly; `id` matters only for a deployed Worker (replace before deploy).
@@ -42,6 +47,11 @@ enabled = true
 # CORS origin = the GitHub Pages SITE origin (path doesn't matter for CORS).
 # TBWC portal is served under this origin at /<repo>/TBWCPortal/.
 FRONTEND_URL = "https://emil-guirguis.github.io"
+# Unattended sync: the .qbw path as the QB machine sees it (TOML literal string,
+# so backslashes need no escaping). Q: is a mapped drive — it only resolves while
+# the Web Connector's Windows user is logged in with that mapping present; swap in
+# the UNC path (\\server\share\...) if unattended runs start failing to open it.
+QBWC_COMPANY_FILE = 'Q:\Alll Quickbooks files\tbwc, inc..qbw'
 SUPABASE_URL = "https://detwkqhqekaiyuajixhs.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRldHdrcWhxZWthaXl1YWppeGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTI4ODIsImV4cCI6MjEwMDM4ODg4Mn0.OUE2KsTclMTqbPZ97_MXXVG4Nqq1ZOIIujdVJWCEx88"
 

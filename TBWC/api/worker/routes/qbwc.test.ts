@@ -18,6 +18,7 @@ vi.mock('../qbwc/session', () => ({
 vi.mock('../qbwc/objects', () => ({
   buildWorkQueue: (...a: any[]) => mockBuildWorkQueue(...a),
   dispatchResponse: (...a: any[]) => mockDispatchResponse(...a),
+  registry: [],
 }));
 
 import qbwcApp from './qbwc';
@@ -88,6 +89,22 @@ describe('POST /qbwc authenticate', () => {
     const body = soap('authenticate', '<strUserName>tbwc</strUserName><strPassword>changeme</strPassword>');
     const xml = await (await post(body)).text();
     expect(xml).toContain('<string>none</string>');
+  });
+
+  it('returns the company file path when QBWC_COMPANY_FILE is set (unattended)', async () => {
+    mockBuildWorkQueue.mockResolvedValue(['<QBXML>a</QBXML>']);
+    const env = { QBWC_COMPANY_FILE: 'C:\\QB\\TBWC.qbw' } as any;
+    const body = soap('authenticate', '<strUserName>tbwc</strUserName><strPassword>changeme</strPassword>');
+    const res = await qbwcApp.request('/', { method: 'POST', body }, env);
+    expect(await res.text()).toContain('<string>C:\\QB\\TBWC.qbw</string>');
+  });
+
+  it('still signals "none" with no work even when QBWC_COMPANY_FILE is set', async () => {
+    mockBuildWorkQueue.mockResolvedValue([]);
+    const env = { QBWC_COMPANY_FILE: 'C:\\QB\\TBWC.qbw' } as any;
+    const body = soap('authenticate', '<strUserName>tbwc</strUserName><strPassword>changeme</strPassword>');
+    const res = await qbwcApp.request('/', { method: 'POST', body }, env);
+    expect(await res.text()).toContain('<string>none</string>');
   });
 
   it('honors QBWC_USERNAME/QBWC_PASSWORD overrides from env', async () => {

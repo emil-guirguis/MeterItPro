@@ -14,7 +14,8 @@
 import { Hono } from 'hono';
 import { Env, execQuery, withTransaction } from '../db';
 import { AuthVariables, authenticateToken } from '../middleware';
-import { findAll } from '../crud';
+import { findAll, whereFromQuery, likeFieldsFromSchema } from '../crud';
+import { quoteSchema } from './quoteSchema';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 app.use('*', authenticateToken);
@@ -22,6 +23,9 @@ app.use('*', authenticateToken);
 const TABLE = 'quote';
 const PK = 'quote_id';
 const SEARCH = ['quote_number', 'project_name', 'customer', 'poc'];
+// Free-text individual filters, derived from the schema (list-shown string/number
+// fields with no enumValues — 'status' is a fixed-options select, so it's exact-match).
+const LIKE_FIELDS = likeFieldsFromSchema(quoteSchema);
 
 function canSeeAll(user: any): boolean {
   return !!(user?.is_admin || user?.can_see_orders);
@@ -68,7 +72,10 @@ function normalizeLines(raw: any): { lines: any[]; subtotal: number } {
 app.get('/', async (c) => {
   const user = c.get('user');
   const q = c.req.query();
-  const where = canSeeAll(user) ? {} : { rep_id: user.id };
+  const { where: fieldWhere, whereLike } = whereFromQuery(q, { likeFields: LIKE_FIELDS });
+  // Field filters first, then the security scope — rep_id always wins so a rep
+  // can't widen their own visibility via a crafted query param.
+  const where = { ...fieldWhere, ...(canSeeAll(user) ? {} : { rep_id: user.id }) };
   const result = await findAll(c.env, {
     table: TABLE,
     primaryKey: PK,
@@ -78,6 +85,7 @@ app.get('/', async (c) => {
     searchFields: SEARCH,
     sortBy: q.sortBy,
     sortOrder: q.sortOrder,
+    whereLike,
     where,
   });
   return c.json({ success: true, data: { items: result.rows, total: result.pagination.total } });

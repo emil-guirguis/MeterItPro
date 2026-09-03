@@ -39,6 +39,24 @@ npx wrangler secret put QBWC_USERNAME --env production
 npx wrangler secret put QBWC_PASSWORD --env production
 ```
 
+Do NOT pipe the value in from PowerShell (`"pw" | wrangler secret put ...`) — the
+trailing newline is stored as part of the secret and every QBWC login then fails
+with `QBWC1040: ... did not provide a valid password`. Type it at the prompt, or
+use `npx wrangler secret bulk secrets.json --env production` for exact bytes.
+
+### Unattended sync (QuickBooks not running)
+By default the Worker answers `authenticate` with `""` = "use the company file
+already open in QuickBooks", so a run with QB closed dies with `Could not start
+QuickBooks`. To let the connector start QB itself, both of these are required:
+
+1. `QBWC_COMPANY_FILE` set to the absolute `.qbw` path as the QB machine sees it
+   (`[env.production.vars]` in `wrangler.toml`).
+2. In QuickBooks: Edit → Preferences → Integrated Applications → Company
+   Preferences → select `TBWC QuickBooks Sync` → Properties → **allow access even
+   when QuickBooks is not running**, and pick the QB login it runs as.
+
+Step 2 is the part QB enforces; the path alone will not do it.
+
 ## 4. Deploy
 ```
 npx wrangler deploy --env production

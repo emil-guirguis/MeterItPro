@@ -1,25 +1,23 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { createCrud, whereFromQuery, likeFieldsFromSchema, fieldMapFromSchema } from './crud';
 
 // Capture every execQuery call so we can assert on the generated SQL + params.
 const calls: { sql: string; params: any[] }[] = [];
 let responses: any[] = [];
 
-vi.mock('./db', () => ({
-  execQuery: vi.fn((_env: any, sql: string, params: any[] = []) => {
-    calls.push({ sql, params });
-    return Promise.resolve(responses.shift() ?? { rows: [], rowCount: 0 });
-  }),
-}));
+const execQuery = vi.fn((_env: any, sql: string, params: any[] = []) => {
+  calls.push({ sql, params });
+  return Promise.resolve(responses.shift() ?? { rows: [], rowCount: 0 });
+});
 
-import {
-  findAll, findById, create, update, remove, checkDeleteRestrictions,
-} from './crud';
+const { findAll, findById, create, update, remove, checkDeleteRestrictions } = createCrud(execQuery as any);
 
 const ENV = {} as any;
 
 beforeEach(() => {
   calls.length = 0;
   responses = [];
+  execQuery.mockClear();
 });
 
 describe('crud.findAll', () => {
@@ -71,6 +69,32 @@ describe('crud.findAll', () => {
     expect(calls[0].params).toEqual([]);
   });
 
+  it('exact-matches a where value', async () => {
+    responses = [{ rows: [{ total: '0' }] }, { rows: [] }];
+    await findAll(ENV, { table: 'users', primaryKey: 'id', where: { active: true } });
+    expect(calls[0].sql).toContain('"users".active = $1');
+    expect(calls[0].params).toEqual([true]);
+  });
+
+  it('partial-matches a whereLike value, cast to text, AND\'ed with other conditions', async () => {
+    responses = [{ rows: [{ total: '0' }] }, { rows: [] }];
+    await findAll(ENV, {
+      table: 'qb_customer', primaryKey: 'qb_customer_id',
+      where: { is_active: true },
+      whereLike: { phone: '71' },
+    });
+    expect(calls[0].sql).toContain('"qb_customer".is_active = $1');
+    expect(calls[0].sql).toContain('LOWER("qb_customer".phone::text) LIKE LOWER($2)');
+    expect(calls[0].params).toEqual([true, '%71%']);
+  });
+
+  it('skips an empty whereLike value', async () => {
+    responses = [{ rows: [{ total: '0' }] }, { rows: [] }];
+    await findAll(ENV, { table: 'users', primaryKey: 'id', whereLike: { email: '' } });
+    expect(calls[0].sql).not.toContain('LIKE');
+    expect(calls[0].params).toEqual([]);
+  });
+
   it('rejects an injection attempt in the table name', async () => {
     await expect(
       findAll(ENV, { table: 'users; DROP TABLE users', primaryKey: 'id' })
@@ -81,6 +105,12 @@ describe('crud.findAll', () => {
     await expect(
       findAll(ENV, { table: 'users', primaryKey: 'id', search: 'x', searchFields: ['email OR 1=1'] })
     ).rejects.toThrow(/Invalid searchField/);
+  });
+
+  it('rejects an injection attempt in a whereLike key', async () => {
+    await expect(
+      findAll(ENV, { table: 'users', primaryKey: 'id', whereLike: { 'email OR 1=1': 'x' } })
+    ).rejects.toThrow(/Invalid whereLikeKey/);
   });
 });
 
@@ -120,18 +150,24 @@ describe('crud.create', () => {
 });
 
 describe('crud.update', () => {
-  it('sets defined columns, excluding PK, and binds id last', async () => {
+  it('sets defined columns, excluding PK, touches updated_at by default, and binds id last', async () => {
     responses = [{ rows: [{ id: 5, name: 'B' }] }];
     const row = await update(ENV, 'users', 'id', 5, { name: 'B', id: 999 });
-    expect(calls[0].sql).toBe('UPDATE "users" SET name = $1 WHERE id = $2 RETURNING *');
+    expect(calls[0].sql).toBe('UPDATE "users" SET name = $1, updated_at = NOW() WHERE id = $2 RETURNING *');
     expect(calls[0].params).toEqual(['B', 5]);
     expect(row).toEqual({ id: 5, name: 'B' });
+  });
+
+  it('skips updated_at when touchUpdatedAt is false (tables with no such column)', async () => {
+    responses = [{ rows: [{ id: 5, name: 'B' }] }];
+    await update(ENV, 'users', 'id', 5, { name: 'B' }, { touchUpdatedAt: false });
+    expect(calls[0].sql).toBe('UPDATE "users" SET name = $1 WHERE id = $2 RETURNING *');
   });
 
   it('never writes denylisted columns (tenant_id/created_at/updated_at)', async () => {
     responses = [{ rows: [{ id: 5 }] }];
     await update(ENV, 'users', 'id', 5, { name: 'B', tenant_id: 9, created_at: 'x', updated_at: 'y' });
-    expect(calls[0].sql).toBe('UPDATE "users" SET name = $1 WHERE id = $2 RETURNING *');
+    expect(calls[0].sql).toBe('UPDATE "users" SET name = $1, updated_at = NOW() WHERE id = $2 RETURNING *');
   });
 
   it('returns null without querying when there is nothing to update', async () => {
@@ -193,5 +229,75 @@ describe('crud.checkDeleteRestrictions', () => {
   it('returns null when the schema has no restrictions', async () => {
     expect(await checkDeleteRestrictions(ENV, {}, 1)).toBeNull();
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe('whereFromQuery', () => {
+  it('splits reserved keys, exact-match fields, and likeFields', () => {
+    const { where, whereLike } = whereFromQuery(
+      { page: '2', limit: '25', search: 'x', sortBy: 'a', sortOrder: 'asc', approved: 'true', type: 'rep', phone: '71' },
+      { likeFields: ['phone'] }
+    );
+    expect(where).toEqual({ approved: true, type: 'rep' });
+    expect(whereLike).toEqual({ phone: '71' });
+  });
+
+  it('coerces "true"/"false" strings to real booleans for exact-match fields', () => {
+    const { where } = whereFromQuery({ active: 'false' });
+    expect(where).toEqual({ active: false });
+  });
+
+  it('drops empty-string values', () => {
+    const { where, whereLike } = whereFromQuery({ type: '', phone: '' }, { likeFields: ['phone'] });
+    expect(where).toEqual({});
+    expect(whereLike).toEqual({});
+  });
+
+  it('drops route-specific extraReserved keys (e.g. one already folded into a security-scoped where)', () => {
+    const { where } = whereFromQuery({ rep_id: 'abc', type: 'rep' }, { extraReserved: ['rep_id'] });
+    expect(where).toEqual({ type: 'rep' });
+  });
+
+  it('rewrites a query key to its DB column via fieldMap, for both exact and like fields', () => {
+    const { where, whereLike } = whereFromQuery(
+      { isActive: 'true', displayName: 'bob' },
+      { likeFields: ['displayName'], fieldMap: { isActive: 'isactive', displayName: 'display_name' } }
+    );
+    expect(where).toEqual({ isactive: true });
+    expect(whereLike).toEqual({ display_name: 'bob' });
+  });
+});
+
+describe('fieldMapFromSchema', () => {
+  it('maps field name to dbField, skipping fields with no dbField', () => {
+    const schema = {
+      formFields: {
+        isActive: { type: 'boolean', dbField: 'isactive' },
+        virtualOnly: { type: 'object', dbField: null },
+      },
+    };
+    expect(fieldMapFromSchema(schema)).toEqual({ isActive: 'isactive' });
+  });
+});
+
+describe('likeFieldsFromSchema', () => {
+  const schema = {
+    formFields: {
+      full_name: { type: 'string', showOn: ['list', 'form'] },
+      phone: { type: 'string', showOn: ['list', 'form'] },
+      upc_code: { type: 'string', showOn: ['form'] }, // not list-shown -> excluded
+      type: { type: 'string', enumValues: ['rep', 'customer'], showOn: ['list', 'form'] }, // enum -> exact match
+      is_active: { type: 'boolean', showOn: ['list', 'form'] }, // boolean -> exact match
+      moq: { type: 'number', showOn: ['list', 'form'] },
+      balance: { type: 'currency', showOn: ['list', 'form'] }, // not string/number -> excluded
+    },
+  };
+
+  it('picks list-shown string/number fields with no enumValues', () => {
+    expect(likeFieldsFromSchema(schema).sort()).toEqual(['full_name', 'moq', 'phone']);
+  });
+
+  it('unwraps a defineSchema() return value (schema.schema.formFields)', () => {
+    expect(likeFieldsFromSchema({ schema } as any).sort()).toEqual(['full_name', 'moq', 'phone']);
   });
 });

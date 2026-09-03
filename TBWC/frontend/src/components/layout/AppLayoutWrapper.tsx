@@ -5,6 +5,7 @@ import { useResponsive } from '@meterit/framework-frontend/hooks/useResponsive';
 import { registerIconMappings } from '@meterit/framework-frontend/utils/iconHelper';
 import { useUI } from '../../store/slices/uiSlice';
 import { useAuth } from '../../hooks/useAuth';
+import tbwcLogo from '../../assets/tbwc-logo.png';
 
 registerIconMappings({
   dashboard: 'dashboard',
@@ -13,14 +14,17 @@ registerIconMappings({
   quotes: 'request_quote',
   inventory: 'inventory_2',
   customers: 'contacts',
+  repPortal: 'folder_shared',
+  qbSync: 'sync',
 });
 
 const NAV: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
   { id: 'quotes', label: 'Quotes', icon: 'quotes', path: '/quotes' },
-  { id: 'orders', label: 'Orders', icon: 'orders', path: '/orders' },
   { id: 'inventory', label: 'Inventory', icon: 'inventory', path: '/inventory', requiredPermission: 'admin' },
   { id: 'customers', label: 'Customers', icon: 'customers', path: '/customers', requiredPermission: 'admin' },
+  { id: 'repPortal', label: 'Rep Portal', icon: 'repPortal', path: '/rep-portal', requiredPermission: 'admin' },
+  { id: 'qbSync', label: 'QB Sync', icon: 'qbSync', path: '/qb-sync', requiredPermission: 'admin' },
   { id: 'users', label: 'Users', icon: 'users', path: '/users', requiredPermission: 'admin' },
 ];
 
@@ -29,6 +33,8 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/orders')) return 'Orders';
   if (pathname.startsWith('/inventory')) return 'Inventory';
   if (pathname.startsWith('/customers')) return 'Customers';
+  if (pathname.startsWith('/rep-portal')) return 'Rep Portal';
+  if (pathname.startsWith('/qb-sync')) return 'QB Sync';
   if (pathname.startsWith('/users')) return 'Users';
   return 'Dashboard';
 }
@@ -45,7 +51,7 @@ export default function AppLayoutWrapper({ children }: { children: ReactNode }) 
 
   const config: AppLayoutConfig = {
     menuItems: NAV,
-    sidebarBrand: { icon: 'dashboard', text: 'TBWC' },
+    sidebarBrand: { icon: 'dashboard', text: 'TBWC', logoUrl: tbwcLogo },
     user: { name: user?.name || user?.email || 'User', email: user?.email ?? '' },
     onLogout: logout,
     checkPermission,

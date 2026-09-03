@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { lightTheme } from '@framework/theme/materialDesign3Theme';
 import { AuthProvider } from './contexts/AuthContext';
 import App from './App';
+import './index.css';
 
 // Subpath deploy: BASE_URL is set by vite `base` (e.g. "/Synergy/TBWCPortal/") so the
 // router must scope routes under it. Strip the trailing slash React Router doesn't want;

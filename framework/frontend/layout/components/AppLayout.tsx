@@ -9,7 +9,7 @@ import './AppLayout.css';
 
 export interface AppLayoutConfig {
   menuItems: MenuItem[];
-  sidebarBrand: { icon: string; text: string };
+  sidebarBrand: { icon: string; text: string; logoUrl?: string };
   user?: { name: string; email: string; avatar?: string };
   notifications?: any[];
   notificationComponent?: React.ReactNode;

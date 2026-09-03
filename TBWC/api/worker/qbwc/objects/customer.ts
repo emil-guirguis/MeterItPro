@@ -11,7 +11,7 @@
 import { Env, execQuery } from '../../db';
 import { QbObject } from './types';
 import {
-  qbxmlDoc, tag, blocks, statusCode, escapeXml, qbTimeToTs,
+  qbxmlDoc, tag, blocks, statusCode, escapeXml, qbTimeToTs, toQbLocal, bumpSecond,
 } from '../qbxml';
 
 const REQUEST_ID = 'customer';
@@ -29,13 +29,17 @@ async function lastModified(env: Env): Promise<string | null> {
 
 async function buildRequest(env: Env): Promise<string> {
   const since = await lastModified(env);
-  const filter = since
-    ? `\n      <ModifiedDateRangeFilter><FromModifiedDate>${escapeXml(since)}</FromModifiedDate></ModifiedDateRangeFilter>`
+  // qbXML LIST queries (Customer/SalesRep) take a bare <FromModifiedDate> that
+  // must come AFTER <ActiveStatus>. The <ModifiedDateRangeFilter> wrapper is
+  // transaction-only; using it on a list query makes QB reject the whole request
+  // with 0x80040400 (parse error). Emit QB-local time WITH offset (toQbLocal) so
+  // the incremental window matches QB's local TimeModified.
+  const fromMod = since
+    ? `\n      <FromModifiedDate>${escapeXml(toQbLocal(bumpSecond(since)))}</FromModifiedDate>`
     : '';
   const rq =
-    `    <CustomerQueryRq requestID="${REQUEST_ID}">` +
-    `${filter}\n` +
-    `      <ActiveStatus>ActiveOnly</ActiveStatus>\n` +
+    `    <CustomerQueryRq requestID="${REQUEST_ID}">\n` +
+    `      <ActiveStatus>ActiveOnly</ActiveStatus>${fromMod}\n` +
     `    </CustomerQueryRq>`;
   return qbxmlDoc(rq);
   // PUSH TODO: append CustomerAddRq/ModRq for pending TBWC records once mapping known.

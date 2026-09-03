@@ -4,7 +4,9 @@ import { OrderManagementPage } from '../features/orders/OrderManagementPage';
 import { InventoryManagementPage } from '../features/inventory/InventoryManagementPage';
 import { QuoteManagementPage } from '../features/quotes/QuoteManagementPage';
 import { CustomerManagementPage } from '../features/customers/CustomerManagementPage';
+import { QbSyncDashboardPage } from '../features/qbSync/QbSyncDashboardPage';
 import { UserManagementPage } from '../features/users/UserManagementPage';
+import RepPortalPage from '../features/repPortal/RepPortalPage';
 import { useAuth } from '../hooks/useAuth';
 
 export default function AppRoutes() {
@@ -23,8 +25,16 @@ export default function AppRoutes() {
         element={isAdmin ? <CustomerManagementPage /> : <Navigate to="/dashboard" replace />}
       />
       <Route
+        path="/qb-sync"
+        element={isAdmin ? <QbSyncDashboardPage /> : <Navigate to="/dashboard" replace />}
+      />
+      <Route
         path="/users"
         element={isAdmin ? <UserManagementPage /> : <Navigate to="/dashboard" replace />}
+      />
+      <Route
+        path="/rep-portal"
+        element={isAdmin ? <RepPortalPage /> : <Navigate to="/dashboard" replace />}
       />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

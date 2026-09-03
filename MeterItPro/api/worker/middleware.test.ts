@@ -140,6 +140,11 @@ describe('authenticateToken middleware', () => {
 });
 
 describe('requirePermission middleware', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    clearUserCache();
+  });
+
   function createAuthenticatedApp(user: any) {
     const app = createApp();
     app.use('*', async (c, next) => {
@@ -149,6 +154,56 @@ describe('requirePermission middleware', () => {
     });
     return app;
   }
+
+  // A partial (JWT-claims-only) user has no `role` field, so requirePermission
+  // must fall through to the cached DB lookup — this is the path that now
+  // goes through the shared framework/backend createEntityCache instead of a
+  // hand-rolled Map, so it needs its own coverage rather than relying on the
+  // full-user tests above, which all bypass the lookup by setting role upfront.
+  function createPartialUserApp(partial: { users_id: number; tenant_id: number }) {
+    const app = createApp();
+    app.use('*', async (c, next) => {
+      c.set('user', partial);
+      c.set('tenantId', partial.tenant_id);
+      await next();
+    });
+    return app;
+  }
+
+  it('loads and caches the full user from the DB when context has only JWT claims', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ users_id: 6, role: 'admin', tenant_id: 1, permissions: {}, active: true, is_super_admin: false }],
+    } as any);
+    const app = createPartialUserApp({ users_id: 6, tenant_id: 1 });
+    app.get('/test', requirePermission('meter:read'), (c) => c.json({ role: c.get('user').role }));
+
+    const res = await app.request('/test', {}, TEST_ENV);
+    expect(res.status).toBe(200);
+    expect((await res.json()).role).toBe('admin');
+    expect(mockQuery).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns 401 when the cached DB lookup finds no matching user', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] } as any);
+    const app = createPartialUserApp({ users_id: 7, tenant_id: 1 });
+    app.get('/test', requirePermission('meter:read'), (c) => c.json({ ok: true }));
+
+    const res = await app.request('/test', {}, TEST_ENV);
+    expect(res.status).toBe(401);
+    expect((await res.json()).message).toBe('User not found');
+  });
+
+  it('returns 401 when the looked-up user is inactive', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ users_id: 8, role: 'viewer', tenant_id: 1, permissions: [], active: false }],
+    } as any);
+    const app = createPartialUserApp({ users_id: 8, tenant_id: 1 });
+    app.get('/test', requirePermission('meter:read'), (c) => c.json({ ok: true }));
+
+    const res = await app.request('/test', {}, TEST_ENV);
+    expect(res.status).toBe(401);
+    expect((await res.json()).message).toBe('Account is inactive');
+  });
 
   it('should allow admin users regardless of permission', async () => {
     const app = createAuthenticatedApp({

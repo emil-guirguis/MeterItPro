@@ -38,6 +38,7 @@ export interface HeaderProps {
   sidebarBrand?: {
     icon: string;
     text: string;
+    logoUrl?: string;
   };
   sidebarCollapsed?: boolean;
 }

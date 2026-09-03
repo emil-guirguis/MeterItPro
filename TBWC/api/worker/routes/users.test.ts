@@ -20,13 +20,17 @@ const mockCreate = vi.fn();
 const mockUpdate = vi.fn();
 const mockRemove = vi.fn();
 
-vi.mock('../crud', () => ({
-  findAll: (...a: any[]) => mockFindAll(...a),
-  findById: (...a: any[]) => mockFindById(...a),
-  create: (...a: any[]) => mockCreate(...a),
-  update: (...a: any[]) => mockUpdate(...a),
-  remove: (...a: any[]) => mockRemove(...a),
-}));
+vi.mock('../crud', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../crud')>();
+  return {
+    ...actual,
+    findAll: (...a: any[]) => mockFindAll(...a),
+    findById: (...a: any[]) => mockFindById(...a),
+    create: (...a: any[]) => mockCreate(...a),
+    update: (...a: any[]) => mockUpdate(...a),
+    remove: (...a: any[]) => mockRemove(...a),
+  };
+});
 
 import usersApp from './users';
 
@@ -130,7 +134,8 @@ describe('PUT /users/:id', () => {
     mockUpdate.mockResolvedValue({ id: '9' });
     await req('/9', json('PUT', { qb_sales_rep_id: '' }));
     expect(mockUpdate).toHaveBeenCalledWith(ENV, 'users', 'id', '9',
-      expect.objectContaining({ qb_sales_rep_id: null }));
+      expect.objectContaining({ qb_sales_rep_id: null }),
+      { touchUpdatedAt: false });
   });
 });
 

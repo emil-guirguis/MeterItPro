@@ -6,6 +6,7 @@
 import { Context, Next } from 'hono';
 import { Env, execQuery } from './db';
 import { verifySupabaseToken } from './supabaseVerify';
+import { checkRateLimit, createEntityCache, extractBearerToken, requireCheck } from '@meterit/framework-backend/api/base/auth';
 
 export type AuthVariables = {
   userId: string;
@@ -13,40 +14,46 @@ export type AuthVariables = {
   requestId: string;
 };
 
-// Short-lived isolate cache of tbwc profiles keyed by user id.
-const profileCache = new Map<string, { user: any; expiresAt: number }>();
+// Short-lived isolate cache of tbwc profiles keyed by user id; de-dupes
+// concurrent lookups for the same user instead of each firing its own query.
 const PROFILE_TTL_MS = 60_000;
+const profileCache = createEntityCache<any>(PROFILE_TTL_MS);
 
 export async function loadProfile(env: Env, userId: string): Promise<any | null> {
-  const now = Date.now();
-  const cached = profileCache.get(userId);
-  if (cached && cached.expiresAt > now) return cached.user;
-
-  const result = await execQuery(
-    env,
-    `SELECT id, email, first_name, last_name, agency_name, url, title, work_phone, ext, mobile,
-            addr1, addr2, city, state, postal, about, approved, is_admin, type,
-            can_see_orders, can_approve_rep_leads, created_at
-     FROM public.users WHERE id = $1`,
-    [userId],
-    'loadProfile'
-  );
-  if (result.rows.length === 0) return null;
-  const user = result.rows[0];
-  profileCache.set(userId, { user, expiresAt: now + PROFILE_TTL_MS });
-  return user;
+  return profileCache.get(userId, async () => {
+    const result = await execQuery(
+      env,
+      `SELECT id, email, first_name, last_name, agency_name, url, title, work_phone, ext, mobile,
+              addr1, addr2, city, state, postal, about, approved, is_admin, type,
+              can_see_orders, can_approve_rep_leads, created_at
+       FROM public.users WHERE id = $1`,
+      [userId],
+      'loadProfile'
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  });
 }
 
 export async function authenticateToken(
   c: Context<{ Bindings: Env; Variables: AuthVariables }>,
   next: Next
 ): Promise<Response | void> {
-  const authHeader = c.req.header('authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const token = extractBearerToken(c);
   if (!token) return c.json({ success: false, message: 'Access token required' }, 401);
 
   const verified = await verifySupabaseToken(c.env, token);
-  if (!verified) return c.json({ success: false, message: 'Invalid or expired token' }, 401);
+  if (!verified) {
+    // Throttle repeated failed verifications per IP — slows token-guessing/
+    // credential-stuffing against every authenticated route (TBWC had no rate
+    // limiting anywhere before this; MeterItPro throttles at its login route,
+    // TBWC has no login route of its own since Supabase Auth is called
+    // directly from the frontend, so this is the equivalent choke point).
+    const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
+    if (!checkRateLimit(`rl:authfail:${ip}`, 30, 60_000)) {
+      return c.json({ success: false, message: 'Too many failed attempts, please try again later' }, 429);
+    }
+    return c.json({ success: false, message: 'Invalid or expired token' }, 401);
+  }
 
   const profile = await loadProfile(c.env, verified.userId);
   if (!profile) return c.json({ success: false, message: 'No user profile found' }, 403);
@@ -58,11 +65,4 @@ export async function authenticateToken(
 }
 
 /** Guard that requires the caller to be an admin (is_admin). */
-export async function requireAdmin(
-  c: Context<{ Bindings: Env; Variables: AuthVariables }>,
-  next: Next
-): Promise<Response | void> {
-  const user = c.get('user');
-  if (!user?.is_admin) return c.json({ success: false, message: 'Admin access required' }, 403);
-  await next();
-}
+export const requireAdmin = requireCheck((user) => !!user?.is_admin, 'Admin access required');

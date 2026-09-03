@@ -6,100 +6,33 @@
 import { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
 import { execQuery, Env } from './db';
+import { checkRateLimit, ipRateLimit, createEntityCache, extractBearerToken } from '@meterit/framework-backend/api/base/auth';
 
+export { ipRateLimit };
 
-// Module-level cache shared within a Worker isolate.
-// Avoids a DB round-trip on every authenticated request when the same user
-// fires multiple parallel API calls (e.g., on page load).
-const USER_CACHE_MAX = 1000;
-const userCache = new Map<string, { user: any; expiresAt: number }>();
-
-function setUserCache(userId: string, user: any, ttlMs: number): void {
-  if (userCache.size >= USER_CACHE_MAX) {
-    // Evict oldest insertion (Map preserves insertion order)
-    const firstKey = userCache.keys().next().value;
-    if (firstKey !== undefined) userCache.delete(firstKey);
-  }
-  userCache.set(userId, { user, expiresAt: Date.now() + ttlMs });
-}
-
-// ===== IN-MEMORY RATE LIMITER =====
-// Keyed by arbitrary string (e.g. "ip:path" or "apikey:xxx").
-// Each Worker isolate maintains its own store; good enough for brute-force protection.
-const RATE_LIMIT_MAX_KEYS = 10_000;
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
-
-function sweepExpiredRateLimits(): void {
-  const now = Date.now();
-  for (const [k, v] of rateLimitStore) {
-    if (v.resetAt < now) rateLimitStore.delete(k);
-  }
-}
-
-function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {
-  const now = Date.now();
-  const entry = rateLimitStore.get(key);
-  if (!entry || entry.resetAt < now) {
-    if (rateLimitStore.size >= RATE_LIMIT_MAX_KEYS) sweepExpiredRateLimits();
-    rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-  if (entry.count >= maxRequests) return false;
-  entry.count++;
-  return true;
-}
-
-export function ipRateLimit(maxRequests: number, windowMs: number) {
-  return async (c: Context, next: Next) => {
-    const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
-    const key = `rl:${ip}:${c.req.path}`;
-    if (!checkRateLimit(key, maxRequests, windowMs)) {
-      return c.json({ success: false, message: 'Too many requests, please try again later' }, 429);
-    }
-    return next();
-  };
-}
-// In-flight promise per userId: concurrent requests share one DB query instead
-// of each firing their own (race condition when cache is cold on page load).
-const userFetchPromises = new Map<string, Promise<any | null>>();
+// Module-level cache shared within a Worker isolate. Avoids a DB round-trip on
+// every authenticated request when the same user fires multiple parallel API
+// calls (e.g., on page load), and de-dupes concurrent fetches on a cold cache.
 const USER_CACHE_TTL_MS = 5 * 60_000; // 5 minutes
+const userCache = createEntityCache<any>(USER_CACHE_TTL_MS);
 
 export function clearUserCache(): void {
   userCache.clear();
-  userFetchPromises.clear();
 }
 
 export async function getCachedUser(env: Env, userId: string): Promise<any | null> {
-  const now = Date.now();
-  const cached = userCache.get(userId);
-  if (cached && cached.expiresAt > now) {
-    return cached.user;
-  }
-
-  // Deduplicate concurrent requests: return the in-flight promise if one exists.
-  const existing = userFetchPromises.get(userId);
-  if (existing) return existing;
-
-  const fetchPromise = execQuery(
-    env,
-    `SELECT users_id, name, email, phone, role, active, tenant_id, permissions, is_super_admin, is_support_admin
-     FROM users WHERE users_id = $1`,
-    [userId],
-    'getCachedUser'
-  ).then((result) => {
-    userFetchPromises.delete(userId);
+  return userCache.get(userId, async () => {
+    const result = await execQuery(
+      env,
+      `SELECT users_id, name, email, phone, role, active, tenant_id, permissions, is_super_admin, is_support_admin
+       FROM users WHERE users_id = $1`,
+      [userId],
+      'getCachedUser'
+    );
     if (result.rows.length === 0) return null;
-    const user = result.rows[0];
-    setUserCache(userId, user, USER_CACHE_TTL_MS);
     console.log('[AUTH] User loaded from DB:', userId);
-    return user;
-  }).catch((err) => {
-    userFetchPromises.delete(userId);
-    throw err;
+    return result.rows[0];
   });
-
-  userFetchPromises.set(userId, fetchPromise);
-  return fetchPromise;
 }
 
 // Hono context variables set by middleware
@@ -120,8 +53,7 @@ export type AuthVariables = {
  * place that actually needs role and permissions.
  */
 export async function authenticateToken(c: Context<{ Bindings: Env; Variables: AuthVariables }>, next: Next): Promise<Response | void> {
-  const authHeader = c.req.header('authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const token = extractBearerToken(c);
 
   if (!token) {
     return c.json({ success: false, message: 'Access token required' }, 401);

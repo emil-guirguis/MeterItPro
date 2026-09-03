@@ -5,7 +5,8 @@
 import { Hono } from 'hono';
 import { Env } from '../db';
 import { AuthVariables, authenticateToken, requireAdmin } from '../middleware';
-import { findAll, findById, create, update, remove } from '../crud';
+import { findAll, findById, create, update, remove, whereFromQuery, likeFieldsFromSchema } from '../crud';
+import { usersSchema } from './usersSchema';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -16,6 +17,9 @@ app.use('*', requireAdmin);
 const TABLE = 'users';
 const PK = 'id';
 const SEARCH = ['first_name', 'last_name', 'email', 'agency_name'];
+// Free-text individual filters, derived from the schema (list-shown string/number
+// fields with no enumValues — e.g. 'type' is excluded, it's an exact-match select).
+const LIKE_FIELDS = likeFieldsFromSchema(usersSchema);
 
 /** The QB sales-rep dropdown posts '' when unset; a bigint FK needs null, not ''. */
 function normalize(body: Record<string, any>): Record<string, any> {
@@ -25,6 +29,7 @@ function normalize(body: Record<string, any>): Record<string, any> {
 
 app.get('/', async (c) => {
   const q = c.req.query();
+  const { where, whereLike } = whereFromQuery(q, { likeFields: LIKE_FIELDS });
   const result = await findAll(c.env, {
     table: TABLE,
     primaryKey: PK,
@@ -34,6 +39,8 @@ app.get('/', async (c) => {
     searchFields: SEARCH,
     sortBy: q.sortBy,
     sortOrder: q.sortOrder,
+    where,
+    whereLike,
   });
   return c.json({ success: true, data: { items: result.rows, total: result.pagination.total } });
 });
@@ -52,7 +59,8 @@ app.post('/', async (c) => {
 
 app.put('/:id', async (c) => {
   const body = normalize(await c.req.json());
-  const row = await update(c.env, TABLE, PK, c.req.param('id'), body);
+  // public.users has no updated_at column.
+  const row = await update(c.env, TABLE, PK, c.req.param('id'), body, { touchUpdatedAt: false });
   if (!row) return c.json({ success: false, message: 'User not found or nothing to update' }, 404);
   return c.json({ success: true, data: row });
 });

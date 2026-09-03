@@ -9,7 +9,7 @@
 import { Env, execQuery } from '../../db';
 import { QbObject } from './types';
 import {
-  qbxmlDoc, tag, blocks, statusCode, escapeXml, qbTimeToTs, refField,
+  qbxmlDoc, tag, blocks, statusCode, escapeXml, qbTimeToTs, refField, toQbLocal, bumpSecond,
 } from '../qbxml';
 
 const REQUEST_ID = 'salesrep';
@@ -27,13 +27,15 @@ async function lastModified(env: Env): Promise<string | null> {
 
 async function buildRequest(env: Env): Promise<string> {
   const since = await lastModified(env);
-  const filter = since
-    ? `\n      <ModifiedDateRangeFilter><FromModifiedDate>${escapeXml(since)}</FromModifiedDate></ModifiedDateRangeFilter>`
+  // See customer.ts: LIST queries use a bare <FromModifiedDate> after
+  // <ActiveStatus>, NOT <ModifiedDateRangeFilter> (transaction-only), or QB
+  // rejects with 0x80040400. Emit QB-local time WITH offset via toQbLocal.
+  const fromMod = since
+    ? `\n      <FromModifiedDate>${escapeXml(toQbLocal(bumpSecond(since)))}</FromModifiedDate>`
     : '';
   const rq =
-    `    <SalesRepQueryRq requestID="${REQUEST_ID}">` +
-    `${filter}\n` +
-    `      <ActiveStatus>ActiveOnly</ActiveStatus>\n` +
+    `    <SalesRepQueryRq requestID="${REQUEST_ID}">\n` +
+    `      <ActiveStatus>ActiveOnly</ActiveStatus>${fromMod}\n` +
     `    </SalesRepQueryRq>`;
   return qbxmlDoc(rq);
 }

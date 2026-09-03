@@ -10,8 +10,13 @@ import { Hono } from 'hono';
 import { Env, execQuery } from '../db';
 
 import { authenticateToken, requirePermission, AuthVariables } from '../middleware';
-import { findAll, findById, create, update, remove } from '../crud';
+import { findAll, findById, create, update, remove, whereFromQuery, likeFieldsFromSchema, fieldMapFromSchema } from '../crud';
 import { deviceSchema } from './deviceSchema';
+
+// Free-text individual filters, derived from the schema (list-shown string/number
+// fields with no enumValues — 'manufacturer'/'type' are enum selects, so exact-match).
+const LIKE_FIELDS = likeFieldsFromSchema(deviceSchema);
+const FIELD_MAP = fieldMapFromSchema(deviceSchema);
 import { logError } from '../errorHandler';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -29,6 +34,8 @@ app.get('/', requirePermission('device:read'), async (c) => {
     // Use defaultSort from schema if sortBy is not provided
     const sortBy = qs.sortBy || deviceSchema.defaultSort;
 
+    const { where, whereLike } = whereFromQuery(qs, { likeFields: LIKE_FIELDS, fieldMap: FIELD_MAP });
+
     const result = await findAll(c.env, {
       table: 'device',
       primaryKey: 'device_id',
@@ -38,6 +45,8 @@ app.get('/', requirePermission('device:read'), async (c) => {
       searchFields: ['description'],
       sortBy,
       sortOrder: qs.sortOrder,
+      where,
+      whereLike,
     });
 
     return c.json({

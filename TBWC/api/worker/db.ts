@@ -3,9 +3,16 @@
  * Connects to the tbwc-site Supabase Postgres via Hyperdrive (connection pooling).
  * Uses pg Client (Hyperdrive already pools) — mirrors MeterItPro's worker db.
  */
-import { Client } from 'pg';
+import { Client, types } from 'pg';
 import { formatSqlForDebug } from '@meterit/framework-backend/shared/helpers/worker-logger';
 export { formatSqlForDebug };
+
+// DB stores `timestamp without time zone` columns as UTC wall-clock (DB timezone
+// is UTC). pg's default parser for that type (OID 1114) has no offset in the wire
+// text, so it falls back to building the Date with the LOCAL time of whatever host
+// runs the query instead of UTC — every timestamp column comes out shifted by the
+// host's UTC offset. Force UTC interpretation to match how the data is actually stored.
+types.setTypeParser(types.builtins.TIMESTAMP, (val: string) => new Date(val + 'Z'));
 
 export interface Env {
   DATABASE_URL?: string;
@@ -17,6 +24,10 @@ export interface Env {
   // Unset in local dev falls back to the dev defaults in routes/qbwc.ts.
   QBWC_USERNAME?: string;
   QBWC_PASSWORD?: string;
+  // Absolute path to the .qbw company file on the QB Desktop machine. Set it to
+  // run unattended (QBWC starts QuickBooks and opens the file itself); leave it
+  // unset and the connector uses whatever file is already open. See routes/qbwc.ts.
+  QBWC_COMPANY_FILE?: string;
 }
 
 export async function query(env: Env, text: string, params: any[] = []) {

@@ -20,14 +20,18 @@ vi.mock('hono/jwt', () => ({
 }));
 
 // Mock crud module
-vi.mock('../crud', () => ({
-  findAll: vi.fn(),
-  findById: vi.fn(),
-  create: vi.fn(),
-  update: vi.fn(),
-  remove: vi.fn(),
-  checkDeleteRestrictions: vi.fn(),
-}));
+vi.mock('../crud', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../crud')>();
+  return {
+    ...actual,
+    findAll: vi.fn(),
+    findById: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    checkDeleteRestrictions: vi.fn(),
+  };
+});
 
 import { verify } from 'hono/jwt';
 import { query } from '../db';

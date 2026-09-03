@@ -41,6 +41,21 @@ export const usersSchema = defineSchema({
             field({ name: 'url', order: 2, type: FieldTypes.URL, default: '', required: false, label: 'Website', dbField: 'url', maxLength: 300, placeholder: 'https://…', showOn: ['form'] }),
           ],
         }),
+        section({
+          order: 3,
+          fields: [
+            field({ name: 'type', order: 1, type: FieldTypes.STRING, default: 'rep', required: true, label: 'Type', dbField: 'type', enumValues: ['rep', 'customer', 'employee'], showOn: ['list', 'form'] }),
+         ],
+        }),
+        section({
+          name: 'QuickBooks',
+          order: 4,
+          fields: [
+            // enumValues/enumLabels are injected at serve time from public.qb_sales_rep
+            // (see schema route). Stores the qb_sales_rep_id FK; blank = not linked.
+            field({ name: 'qb_sales_rep_id', order: 1, type: FieldTypes.SELECT, default: null, required: false, label: 'QB Sales Rep', dbField: 'qb_sales_rep_id', enumValues: [], placeholder: '— Not linked —', showOn: ['form'] }),
+          ],
+        }),
       ],
     }),
     tab({
@@ -70,29 +85,20 @@ export const usersSchema = defineSchema({
       ],
     }),
     tab({
-      name: 'Access',
+      name: 'Security',
       order: 3,
       sections: [
         section({
           name: 'Role & Approval',
           order: 1,
           fields: [
-            field({ name: 'type', order: 1, type: FieldTypes.STRING, default: 'rep', required: true, label: 'Type', dbField: 'type', enumValues: ['rep', 'customer', 'employee'], showOn: ['list', 'form'] }),
             field({ name: 'approved', order: 2, type: FieldTypes.BOOLEAN, default: false, required: false, label: 'Approved', dbField: 'approved', showOn: ['list', 'form'] }),
             field({ name: 'is_admin', order: 3, type: FieldTypes.BOOLEAN, default: false, required: false, label: 'Admin', dbField: 'is_admin', showOn: ['list', 'form'], readOnly: true }),
             field({ name: 'can_see_orders', order: 4, type: FieldTypes.BOOLEAN, default: false, required: false, label: 'See All Orders', dbField: 'can_see_orders', showOn: ['form'] }),
             field({ name: 'can_approve_rep_leads', order: 5, type: FieldTypes.BOOLEAN, default: false, required: false, label: 'Approve Rep Leads', dbField: 'can_approve_rep_leads', showOn: ['form'] }),
           ],
         }),
-        section({
-          name: 'QuickBooks',
-          order: 2,
-          fields: [
-            // enumValues/enumLabels are injected at serve time from public.qb_sales_rep
-            // (see schema route). Stores the qb_sales_rep_id FK; blank = not linked.
-            field({ name: 'qb_sales_rep_id', order: 1, type: FieldTypes.SELECT, default: null, required: false, label: 'QB Sales Rep', dbField: 'qb_sales_rep_id', enumValues: [], placeholder: '— Not linked —', showOn: ['form'] }),
-          ],
-        }),
+
       ],
     }),
     tab({
