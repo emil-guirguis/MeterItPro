@@ -11,7 +11,7 @@
 import { Env, execQuery } from '../../db';
 import { QbObject } from './types';
 import {
-  qbxmlDoc, tag, blocks, statusCode, escapeXml, qbTimeToTs, toQbLocal, bumpSecond,
+  qbxmlDoc, tag, blocks, statusCode, escapeXml, qbTimeToTs, toQbLocal, bumpSecond, QB_MAX_RETURNED,
 } from '../qbxml';
 
 const REQUEST_ID = 'customer';
@@ -38,8 +38,11 @@ async function buildRequest(env: Env): Promise<string> {
     ? `\n      <FromModifiedDate>${escapeXml(toQbLocal(bumpSecond(since)))}</FromModifiedDate>`
     : '';
   const rq =
-    `    <CustomerQueryRq requestID="${REQUEST_ID}">\n` +
-    `      <ActiveStatus>ActiveOnly</ActiveStatus>${fromMod}\n` +
+    `    <CustomerQueryRq requestID="${REQUEST_ID}" iterator="Start">\n` +
+    // All (not ActiveOnly): TBWC's customer counts must include inactive
+    // customers to match QuickBooks' own totals.
+    `      <ActiveStatus>All</ActiveStatus>${fromMod}\n` +
+    `      <MaxReturned>${QB_MAX_RETURNED}</MaxReturned>\n` +
     `    </CustomerQueryRq>`;
   return qbxmlDoc(rq);
   // PUSH TODO: append CustomerAddRq/ModRq for pending TBWC records once mapping known.

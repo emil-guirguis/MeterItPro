@@ -56,6 +56,30 @@ export async function getSession(env: Env, ticket: string): Promise<QbwcSession 
   return r.rows.length ? rowToSession(r.rows[0]) : undefined;
 }
 
+/**
+ * Splice a follow-up request (an iterator `Continue` page) into the queue right
+ * after the item currently at `cursor`, so it's sent on the next poll. Queue
+ * lives in the DB (see module doc), so this re-persists the whole array.
+ */
+export async function insertAfterCursor(env: Env, ticket: string, cursor: number, qbxml: string): Promise<number> {
+  const r = await execQuery(
+    env,
+    `SELECT queue FROM public.qbwc_session WHERE qbwc_session_id = $1`,
+    [ticket],
+    'qbwc.insertAfterCursor.read'
+  );
+  if (!r.rows.length) return 0;
+  const queue: string[] = Array.isArray(r.rows[0].queue) ? r.rows[0].queue : JSON.parse(r.rows[0].queue ?? '[]');
+  queue.splice(cursor + 1, 0, qbxml);
+  await execQuery(
+    env,
+    `UPDATE public.qbwc_session SET queue = $2::jsonb WHERE qbwc_session_id = $1`,
+    [ticket, JSON.stringify(queue)],
+    'qbwc.insertAfterCursor.write'
+  );
+  return queue.length;
+}
+
 /** Advance the cursor by one and optionally record an error; returns new cursor. */
 export async function advanceCursor(env: Env, ticket: string, lastError?: string): Promise<number> {
   const r = await execQuery(

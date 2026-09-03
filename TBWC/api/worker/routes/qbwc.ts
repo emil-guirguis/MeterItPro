@@ -17,10 +17,11 @@ import {
   parseMethod, getParam, envelope, authEnvelope, xmlEscape,
 } from '../qbwc/soap';
 import {
-  createSession, getSession, dropSession, advanceCursor,
+  createSession, getSession, dropSession, advanceCursor, insertAfterCursor,
 } from '../qbwc/session';
 import { buildWorkQueue, dispatchResponse, registry } from '../qbwc/objects';
 import { logResponse, logError } from '../qbwc/syncLog';
+import { pendingIterator, iteratorContinueDoc } from '../qbwc/qbxml';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -105,6 +106,7 @@ app.post('/', async (c) => {
       if (!s) return reply(envelope('receiveResponseXML', '100'));
 
       let errMsg: string | undefined;
+      let queueLen = s.queue.length;
       if (hresult) {
         errMsg = getParam(body, 'message') || hresult;
         console.error('[QBWC] request error', hresult, errMsg);
@@ -118,13 +120,23 @@ app.post('/', async (c) => {
       } else {
         await dispatchResponse(c.env, response);
         await logResponse(c.env, ticket, response);
+        // QB caps a single un-iterated Query response; if it says more rows are
+        // waiting, queue a Continue request right after this one so the next
+        // poll fetches the next page instead of the session ending short.
+        const pending = pendingIterator(response);
+        if (pending) {
+          const continueDoc = iteratorContinueDoc(pending.rqName, pending.requestID, pending.iteratorId);
+          queueLen = await insertAfterCursor(c.env, ticket, s.cursor, continueDoc);
+        }
       }
       const newCursor = await advanceCursor(c.env, ticket, errMsg);
 
       // Return percent complete: <100 keeps the loop going, 100 ends it.
-      const pct = s.queue.length === 0
+      // queueLen reflects any iterator Continue page just spliced in, so an
+      // in-progress large pull never gets reported as 100% early.
+      const pct = queueLen === 0
         ? 100
-        : Math.floor((newCursor / s.queue.length) * 100);
+        : Math.floor((newCursor / queueLen) * 100);
       return reply(envelope('receiveResponseXML', String(pct)));
     }
 

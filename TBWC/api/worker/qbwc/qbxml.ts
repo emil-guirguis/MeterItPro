@@ -76,6 +76,37 @@ export function statusCode(scope: string, rsName: string): string | undefined {
   return m ? m[1] : undefined;
 }
 
+/** Max objects QB returns per iterator page for large Query pulls. */
+export const QB_MAX_RETURNED = 500;
+
+/**
+ * If a *Rs element carries iteratorRemainingCount > 0, there's more of this
+ * query's result set still on the QB side (a single un-iterated QueryRq can be
+ * silently capped by QB at its own response-size ceiling). Returns the pieces
+ * needed to build a `Continue` request, or undefined if fully returned.
+ */
+export function pendingIterator(responseXml: string): { rqName: string; requestID: string; iteratorId: string } | undefined {
+  // Attribute order on the *Rs tag isn't guaranteed, so grab the whole opening
+  // tag and pull each attribute out independently.
+  const tagMatch = responseXml.match(/<([A-Za-z]+)Rs\b([^>]*)>/);
+  if (!tagMatch) return undefined;
+  const [, base, attrs] = tagMatch;
+  const remaining = attrs.match(/\biteratorRemainingCount="(\d+)"/)?.[1];
+  if (!remaining || Number(remaining) <= 0) return undefined;
+  const requestID = attrs.match(/\brequestID="([^"]*)"/)?.[1];
+  const iteratorId = attrs.match(/\biteratorID="([^"]*)"/)?.[1];
+  if (!requestID || !iteratorId) return undefined;
+  return { rqName: `${base}Rq`, requestID, iteratorId };
+}
+
+/** Build the qbXML doc that asks QB for the next page of a prior iterated query. */
+export function iteratorContinueDoc(rqName: string, requestID: string, iteratorId: string): string {
+  return qbxmlDoc(
+    `    <${rqName} requestID="${requestID}" iterator="Continue" iteratorID="${iteratorId}">\n` +
+    `      <MaxReturned>${QB_MAX_RETURNED}</MaxReturned>\n    </${rqName}>`
+  );
+}
+
 export function escapeXml(s: string): string {
   return s
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

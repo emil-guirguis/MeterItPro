@@ -6,7 +6,7 @@ import { Env, execQuery } from '../../db';
 import { QbObject } from './types';
 import {
   qbxmlDoc, tag, blocks, statusCode, escapeXml, refField, lineItems,
-  qbTimeToTs, qbDate, num, toQbLocal, bumpSecond,
+  qbTimeToTs, qbDate, num, toQbLocal, bumpSecond, QB_MAX_RETURNED,
 } from '../qbxml';
 
 const REQUEST_ID = 'salesorder';
@@ -23,7 +23,8 @@ async function buildRequest(env: Env): Promise<string> {
     ? `\n      <ModifiedDateRangeFilter><FromModifiedDate>${escapeXml(toQbLocal(bumpSecond(from)))}</FromModifiedDate></ModifiedDateRangeFilter>`
     : '';
   return qbxmlDoc(
-    `    <SalesOrderQueryRq requestID="${REQUEST_ID}">${filter}\n` +
+    `    <SalesOrderQueryRq requestID="${REQUEST_ID}" iterator="Start">${filter}\n` +
+    `      <MaxReturned>${QB_MAX_RETURNED}</MaxReturned>\n` +
     `      <IncludeLineItems>true</IncludeLineItems>\n    </SalesOrderQueryRq>`
   );
 }
