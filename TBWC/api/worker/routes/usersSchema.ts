@@ -22,10 +22,12 @@ export const usersSchema = defineSchema({
     tab({
       name: 'Profile',
       order: 1,
+      columns: 2,
       sections: [
         section({
           name: 'Identity',
           order: 1,
+          gridColumn: '1 / -1',
           fields: [
             field({ name: 'first_name', order: 1, type: FieldTypes.STRING, default: '', required: true, label: 'First Name', dbField: 'first_name', maxLength: 100, placeholder: 'Jane', showOn: ['list', 'form'] }),
             field({ name: 'last_name', order: 2, type: FieldTypes.STRING, default: '', required: true, label: 'Last Name', dbField: 'last_name', maxLength: 100, placeholder: 'Doe', showOn: ['list', 'form'] }),
@@ -36,13 +38,16 @@ export const usersSchema = defineSchema({
         section({
           name: 'Agency',
           order: 2,
+          gridColumn: '1 / -1',
           fields: [
             field({ name: 'agency_name', order: 1, type: FieldTypes.STRING, default: '', required: false, label: 'Agency', dbField: 'agency_name', maxLength: 200, placeholder: 'Acme Reps', showOn: ['list', 'form'] }),
             field({ name: 'url', order: 2, type: FieldTypes.URL, default: '', required: false, label: 'Website', dbField: 'url', maxLength: 300, placeholder: 'https://…', showOn: ['form'] }),
           ],
         }),
         section({
+          name: 'Details',
           order: 3,
+          gridColumn: '1',
           fields: [
             field({ name: 'type', order: 1, type: FieldTypes.STRING, default: 'rep', required: true, label: 'Type', dbField: 'type', enumValues: ['rep', 'customer', 'employee'], showOn: ['list', 'form'] }),
          ],
@@ -50,6 +55,7 @@ export const usersSchema = defineSchema({
         section({
           name: 'QuickBooks',
           order: 4,
+          gridColumn: '2',
           fields: [
             // enumValues/enumLabels are injected at serve time from public.qb_sales_rep
             // (see schema route). Stores the qb_sales_rep_id FK; blank = not linked.

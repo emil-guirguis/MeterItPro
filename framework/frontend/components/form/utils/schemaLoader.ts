@@ -56,6 +56,7 @@ export interface BackendSchema {
     order?: number | null;
     visibleFor?: ('physical' | 'virtual')[];
     sectionOrientation?: 'horizontal' | 'vertical' | null;
+    columns?: number | null;
     sections: Array<{
       name: string;
       description?: string | null;
@@ -71,6 +72,8 @@ export interface BackendSchema {
       flex?: number | null;
       flexGrow?: number | null;
       flexShrink?: number | null;
+      gridColumn?: string | null;
+      gridRow?: string | null;
     }>;
   }>;
   formMaxWidth?: string | null;
@@ -111,7 +114,7 @@ const LS_PREFIX = 'schema_cache_';
  * with an older version are discarded so backend schema-format changes
  * propagate immediately instead of waiting out the cache TTL.
  */
-const MIN_SCHEMA_VERSION = '1.3.0';
+const MIN_SCHEMA_VERSION = '1.4.0';
 
 function isStaleVersion(schema: BackendSchema): boolean {
   return (schema.version || '0.0.0').localeCompare(MIN_SCHEMA_VERSION, undefined, { numeric: true }) < 0;
@@ -277,6 +280,7 @@ export interface ConvertedSchema {
     order?: number | null;
     visibleFor?: ('physical' | 'virtual')[];
     sectionOrientation?: 'horizontal' | 'vertical' | null;
+    columns?: number | null;
     sections: Array<{
       name: string;
       description?: string | null;
@@ -292,6 +296,8 @@ export interface ConvertedSchema {
       flex?: number | null;
       flexGrow?: number | null;
       flexShrink?: number | null;
+      gridColumn?: string | null;
+      gridRow?: string | null;
     }>;
   }> | null;
   entityName: string;

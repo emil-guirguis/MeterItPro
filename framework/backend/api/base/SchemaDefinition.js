@@ -175,6 +175,8 @@ function fieldRef(config) {
  * @param {number} [config.flexGrow] - CSS flex-grow property for section container (defaults to 1 for auto-grow)
  * @param {number} [config.flexShrink] - CSS flex-shrink property for section container (defaults to 1 for auto-shrink)
  * @param {Array<string>} [config.visibleFor] - Form variants for which this section is visible (e.g., ['physical'])
+ * @param {string} [config.gridColumn] - CSS grid-column placement (e.g. '1 / -1' to span all columns of the tab's grid) — only applies when the tab is laid out as a CSS grid (see tab({ columns })).
+ * @param {string} [config.gridRow] - CSS grid-row placement, paired with gridColumn for explicit multi-row layouts.
  * @returns {Object} Section definition
  */
 function section(config) {
@@ -190,6 +192,8 @@ function section(config) {
     horizontal: config.horizontal || false,
     description: config.description || null,
     visibleFor: config.visibleFor || null,
+    gridColumn: config.gridColumn || null,
+    gridRow: config.gridRow || null,
   };
 }
 
@@ -202,6 +206,7 @@ function section(config) {
  * @param {Array<Object>} config.sections - Array of section definitions created with section()
  * @param {string} [config.sectionOrientation] - Section layout orientation ('horizontal' or 'vertical')
  * @param {Array<string>} [config.visibleFor] - Meter types for which this tab is visible (e.g., ['physical', 'virtual'])
+ * @param {number} [config.columns] - Explicit CSS grid column count for this tab's section container (overrides the default section-count-based column heuristic). Use with each section's gridColumn/gridRow to place sections precisely (e.g. a full-width section via gridColumn: '1 / -1').
  * @returns {Object} Tab definition
  */
 function tab(config) {
@@ -211,6 +216,7 @@ function tab(config) {
     sections: config.sections || [],
     sectionOrientation: config.sectionOrientation || null,
     visibleFor: config.visibleFor || null,
+    columns: config.columns || null,
   };
 }
 
@@ -302,7 +308,7 @@ function defineSchema(definition) {
     // in the API layer; mirror with an ON DELETE RESTRICT FK in the database.
     deleteRestrictions: definition.deleteRestrictions || [],
     idFieldName: definition.idFieldName || null,
-    version: '1.3.0', // Updated to include visibleFor on sections/fields
+    version: '1.4.0', // Updated to include tab columns / section gridColumn+gridRow
     generatedAt: new Date().toISOString(),
   };
 

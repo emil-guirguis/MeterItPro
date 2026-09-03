@@ -763,3 +763,12 @@ body[data-theme='dark'] .base-form [class*="base-form__sections-container"] > * 
   color: #9aa0a6;
   border-bottom-color: #2a2d31 !important;
 }
+
+/* ── Explicit per-tab grid columns (schema: tab({ columns })) ──────── */
+/* Overrides the section-count-based column heuristic above. Placed last so it
+   wins the cascade against the !important rules earlier in this file at equal
+   selector specificity. Pair with each section's gridColumn/gridRow
+   (schema: section({ gridColumn, gridRow })) for precise placement. */
+.base-form__sections-container[data-columns] {
+  grid-template-columns: var(--section-columns) !important;
+}
