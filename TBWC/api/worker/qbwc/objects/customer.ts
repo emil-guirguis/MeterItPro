@@ -13,6 +13,7 @@ import { QbObject } from './types';
 import {
   qbxmlDoc, tag, blocks, statusCode, escapeXml, qbTimeToTs, toQbLocal, bumpSecond, QB_MAX_RETURNED,
 } from '../qbxml';
+import { multiRowValues, chunk, BATCH_SIZE } from '../batchSql';
 
 const REQUEST_ID = 'customer';
 
@@ -39,10 +40,13 @@ async function buildRequest(env: Env): Promise<string> {
     : '';
   const rq =
     `    <CustomerQueryRq requestID="${REQUEST_ID}" iterator="Start">\n` +
+    // qbXML schema order for CustomerQueryRq: MaxReturned, then ActiveStatus,
+    // then FromModifiedDate — QB rejects the whole request (0x80040400) if
+    // MaxReturned isn't first among these.
+    `      <MaxReturned>${QB_MAX_RETURNED}</MaxReturned>\n` +
     // All (not ActiveOnly): TBWC's customer counts must include inactive
     // customers to match QuickBooks' own totals.
     `      <ActiveStatus>All</ActiveStatus>${fromMod}\n` +
-    `      <MaxReturned>${QB_MAX_RETURNED}</MaxReturned>\n` +
     `    </CustomerQueryRq>`;
   return qbxmlDoc(rq);
   // PUSH TODO: append CustomerAddRq/ModRq for pending TBWC records once mapping known.
@@ -59,11 +63,13 @@ async function parseResponse(env: Env, xml: string): Promise<void> {
   const rets = blocks(xml, 'CustomerRet');
   console.log(`[QBWC] CustomerQueryRs: ${rets.length} customer(s)`);
 
+  // Collect rows, deduped by list_id (last wins) — a duplicate key inside one
+  // multi-row upsert makes Postgres error with "cannot affect row a second time".
+  const byId = new Map<string, any[]>();
   for (const ret of rets) {
     const listId = tag(ret, 'ListID');
     if (!listId) continue;
     const editSeq = tag(ret, 'EditSequence') ?? null;
-    const timeModified = qbTimeToTs(tag(ret, 'TimeModified'));
 
     const billAddrBlock = blocks(ret, 'BillAddress')[0];
     const billAddr = billAddrBlock ? JSON.stringify({
@@ -77,12 +83,34 @@ async function parseResponse(env: Env, xml: string): Promise<void> {
     const isActiveStr = tag(ret, 'IsActive');
     const balanceStr = tag(ret, 'Balance');
 
+    byId.set(listId, [
+      listId,
+      editSeq,
+      tag(ret, 'FullName') ?? null,
+      tag(ret, 'Name') ?? null,
+      tag(ret, 'CompanyName') ?? null,
+      tag(ret, 'FirstName') ?? null,
+      tag(ret, 'LastName') ?? null,
+      tag(ret, 'Email') ?? null,
+      tag(ret, 'Phone') ?? null,
+      billAddr,
+      isActiveStr == null ? null : isActiveStr === 'true',
+      balanceStr == null ? null : Number(balanceStr),
+      qbTimeToTs(tag(ret, 'TimeModified')),
+      JSON.stringify({ listId, ret: ret.slice(0, 8000) }),
+    ]);
+  }
+
+  // Batched multi-row upserts: execQuery opens a connection per call, so an
+  // iterator page must be a handful of statements, not one per record.
+  const CASTS = ['', '', '', '', '', '', '', '', '', '::jsonb', '', '', '', '::jsonb'];
+  for (const rows of chunk([...byId.values()], BATCH_SIZE)) {
     await execQuery(
       env,
       `INSERT INTO public.qb_customer
          (list_id, edit_sequence, full_name, name, company_name, first_name,
           last_name, email, phone, bill_addr, is_active, balance, time_modified, raw, synced_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14::jsonb, CURRENT_TIMESTAMP)
+       VALUES ${multiRowValues(rows.length, CASTS, ', CURRENT_TIMESTAMP')}
        ON CONFLICT (list_id) DO UPDATE SET
          edit_sequence = EXCLUDED.edit_sequence,
          full_name     = EXCLUDED.full_name,
@@ -98,34 +126,19 @@ async function parseResponse(env: Env, xml: string): Promise<void> {
          time_modified = EXCLUDED.time_modified,
          raw           = EXCLUDED.raw,
          synced_at     = CURRENT_TIMESTAMP`,
-      [
-        listId,
-        editSeq,
-        tag(ret, 'FullName') ?? null,
-        tag(ret, 'Name') ?? null,
-        tag(ret, 'CompanyName') ?? null,
-        tag(ret, 'FirstName') ?? null,
-        tag(ret, 'LastName') ?? null,
-        tag(ret, 'Email') ?? null,
-        tag(ret, 'Phone') ?? null,
-        billAddr,
-        isActiveStr == null ? null : isActiveStr === 'true',
-        balanceStr == null ? null : Number(balanceStr),
-        timeModified,
-        JSON.stringify({ listId, ret: ret.slice(0, 8000) }),
-      ],
+      rows.flat(),
       'qbwc.customer.upsert'
     );
 
     // Record the QB identity so future *ModRq can supply the current EditSequence.
     await execQuery(
       env,
-      `INSERT INTO public.qbwc_map (object_type, qb_list_id, qb_edit_sequence, last_synced_at)
-       VALUES ('Customer', $1, $2, CURRENT_TIMESTAMP)
+      `INSERT INTO public.qbwc_map (qb_list_id, qb_edit_sequence, object_type, last_synced_at)
+       VALUES ${multiRowValues(rows.length, ['', ''], `, 'Customer', CURRENT_TIMESTAMP`)}
        ON CONFLICT (object_type, qb_list_id) DO UPDATE SET
          qb_edit_sequence = EXCLUDED.qb_edit_sequence,
          last_synced_at   = CURRENT_TIMESTAMP`,
-      [listId, editSeq],
+      rows.flatMap((r) => [r[0], r[1]]),
       'qbwc.customer.map'
     );
   }

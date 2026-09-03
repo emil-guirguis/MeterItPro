@@ -86,24 +86,30 @@ export const QB_MAX_RETURNED = 500;
  * needed to build a `Continue` request, or undefined if fully returned.
  */
 export function pendingIterator(responseXml: string): { rqName: string; requestID: string; iteratorId: string } | undefined {
-  // Attribute order on the *Rs tag isn't guaranteed, so grab the whole opening
-  // tag and pull each attribute out independently.
-  const tagMatch = responseXml.match(/<([A-Za-z]+)Rs\b([^>]*)>/);
-  if (!tagMatch) return undefined;
-  const [, base, attrs] = tagMatch;
-  const remaining = attrs.match(/\biteratorRemainingCount="(\d+)"/)?.[1];
-  if (!remaining || Number(remaining) <= 0) return undefined;
-  const requestID = attrs.match(/\brequestID="([^"]*)"/)?.[1];
-  const iteratorId = attrs.match(/\biteratorID="([^"]*)"/)?.[1];
-  if (!requestID || !iteratorId) return undefined;
-  return { rqName: `${base}Rq`, requestID, iteratorId };
+  // Scan every *Rs opening tag (the payload is wrapped in <QBXMLMsgsRs>, which
+  // never carries iterator attrs, so matching only the first tag finds nothing).
+  // Attribute order isn't guaranteed, so pull each attr out independently.
+  const rsTags = responseXml.matchAll(/<([A-Za-z]+)Rs\b([^>]*)>/g);
+  for (const [, base, attrs] of rsTags) {
+    const remaining = attrs.match(/\biteratorRemainingCount="(\d+)"/)?.[1];
+    if (!remaining || Number(remaining) <= 0) continue;
+    const requestID = attrs.match(/\brequestID="([^"]*)"/)?.[1];
+    const iteratorId = attrs.match(/\biteratorID="([^"]*)"/)?.[1];
+    if (!requestID || !iteratorId) continue;
+    return { rqName: `${base}Rq`, requestID, iteratorId };
+  }
+  return undefined;
 }
 
-/** Build the qbXML doc that asks QB for the next page of a prior iterated query. */
-export function iteratorContinueDoc(rqName: string, requestID: string, iteratorId: string): string {
+/**
+ * Build the qbXML doc that asks QB for the next page of a prior iterated query.
+ * `extraInner` re-states non-filter options the object needs on every page
+ * (e.g. IncludeLineItems — omitted, continuation pages come back without lines).
+ */
+export function iteratorContinueDoc(rqName: string, requestID: string, iteratorId: string, extraInner = ''): string {
   return qbxmlDoc(
-    `    <${rqName} requestID="${requestID}" iterator="Continue" iteratorID="${iteratorId}">\n` +
-    `      <MaxReturned>${QB_MAX_RETURNED}</MaxReturned>\n    </${rqName}>`
+    `    <${rqName} requestID="${requestID}" iterator="Continue" iteratorID="${escapeXml(iteratorId)}">\n` +
+    `      <MaxReturned>${QB_MAX_RETURNED}</MaxReturned>\n${extraInner}    </${rqName}>`
   );
 }
 

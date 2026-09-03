@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   QBXML_VERSION, qbxmlDoc, tag, blocks, statusCode, escapeXml, unescapeXml,
   qbTimeToTs, qbDate, num, refField, lineItems, toQbLocal,
+  pendingIterator, iteratorContinueDoc, QB_MAX_RETURNED,
 } from './qbxml';
 
 describe('qbxml.toQbLocal', () => {
@@ -135,5 +136,55 @@ describe('qbxml.lineItems', () => {
   });
   it('returns empty array with no line elements', () => {
     expect(lineItems('<InvoiceRet/>', 'InvoiceLineRet')).toEqual([]);
+  });
+});
+
+describe('qbxml.pendingIterator', () => {
+  const wrap = (rs: string) =>
+    `<?xml version="1.0"?><QBXML><QBXMLMsgsRs>${rs}</QBXMLMsgsRs></QBXML>`;
+
+  it('finds the iterated Rs inside the QBXMLMsgsRs wrapper', () => {
+    const xml = wrap(
+      '<SalesOrderQueryRs requestID="salesorder" statusCode="0" statusSeverity="Info" ' +
+      'iteratorRemainingCount="4066" iteratorID="{abc-123}"><SalesOrderRet/></SalesOrderQueryRs>'
+    );
+    expect(pendingIterator(xml)).toEqual({
+      rqName: 'SalesOrderQueryRq', requestID: 'salesorder', iteratorId: '{abc-123}',
+    });
+  });
+
+  it('returns undefined when nothing remains', () => {
+    const xml = wrap(
+      '<CustomerQueryRs requestID="customer" statusCode="0" ' +
+      'iteratorRemainingCount="0" iteratorID="{abc}"><CustomerRet/></CustomerQueryRs>'
+    );
+    expect(pendingIterator(xml)).toBeUndefined();
+  });
+
+  it('returns undefined for a non-iterated response', () => {
+    const xml = wrap('<CustomerQueryRs requestID="customer" statusCode="1"/>');
+    expect(pendingIterator(xml)).toBeUndefined();
+  });
+
+  it('tolerates attribute order variations', () => {
+    const xml = wrap(
+      '<CustomerQueryRs iteratorID="{z}" iteratorRemainingCount="12" requestID="customer" statusCode="0"/>'
+    );
+    expect(pendingIterator(xml)).toEqual({
+      rqName: 'CustomerQueryRq', requestID: 'customer', iteratorId: '{z}',
+    });
+  });
+});
+
+describe('qbxml.iteratorContinueDoc', () => {
+  it('emits a Continue request with MaxReturned and extras', () => {
+    const doc = iteratorContinueDoc(
+      'SalesOrderQueryRq', 'salesorder', '{abc}', '      <IncludeLineItems>true</IncludeLineItems>\n'
+    );
+    expect(doc).toContain('iterator="Continue"');
+    expect(doc).toContain('iteratorID="{abc}"');
+    expect(doc).toContain(`<MaxReturned>${QB_MAX_RETURNED}</MaxReturned>`);
+    expect(doc).toContain('<IncludeLineItems>true</IncludeLineItems>');
+    expect(doc.indexOf('<MaxReturned>')).toBeLessThan(doc.indexOf('<IncludeLineItems>'));
   });
 });

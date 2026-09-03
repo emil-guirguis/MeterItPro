@@ -21,4 +21,9 @@ export interface QbObject {
   buildRequest(env: Env): Promise<string>;
   /** Parse a *Rs response fragment and persist it (upsert staging + qbwc_map). */
   parseResponse(env: Env, responseXml: string): Promise<void>;
+  /**
+   * qbXML lines re-stated on every iterator Continue page (non-filter options
+   * like IncludeLineItems that QB does not carry over from the Start request).
+   */
+  iteratorExtra?: string;
 }

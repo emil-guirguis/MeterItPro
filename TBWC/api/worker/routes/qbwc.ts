@@ -125,7 +125,12 @@ app.post('/', async (c) => {
         // poll fetches the next page instead of the session ending short.
         const pending = pendingIterator(response);
         if (pending) {
-          const continueDoc = iteratorContinueDoc(pending.rqName, pending.requestID, pending.iteratorId);
+          const owner = registry.find(
+            (o) => pending.requestID === o.requestID || pending.requestID.startsWith(o.requestID + ':')
+          );
+          const continueDoc = iteratorContinueDoc(
+            pending.rqName, pending.requestID, pending.iteratorId, owner?.iteratorExtra ?? ''
+          );
           queueLen = await insertAfterCursor(c.env, ticket, s.cursor, continueDoc);
         }
       }
