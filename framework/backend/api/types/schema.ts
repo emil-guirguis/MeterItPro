@@ -10,6 +10,7 @@
  */
 export const FieldTypes = {
   STRING: 'string',
+  TEXTAREA: 'textarea',
   NUMBER: 'number',
   BOOLEAN: 'boolean',
   DATE: 'date',

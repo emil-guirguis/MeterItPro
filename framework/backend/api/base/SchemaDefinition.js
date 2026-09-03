@@ -21,6 +21,7 @@ const ColumnTypes = {
  */
 const FieldTypes = {
   STRING: 'string',
+  TEXTAREA: 'textarea',
   NUMBER: 'number',
   BOOLEAN: 'boolean',
   DATE: 'date',
@@ -398,7 +399,7 @@ function defineSchema(definition) {
       }
 
       // String validations
-      if ((fieldDef.type === 'string' || fieldDef.type === 'email') && typeof value === 'string') {
+      if ((fieldDef.type === 'string' || fieldDef.type === 'textarea' || fieldDef.type === 'email') && typeof value === 'string') {
         if (fieldDef.minLength && value.length < fieldDef.minLength) {
           errors[fieldName] = `${fieldDef.label || fieldName} must be at least ${fieldDef.minLength} characters`;
         }

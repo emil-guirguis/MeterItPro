@@ -93,11 +93,17 @@ export const usersSchema = defineSchema({
             field({ name: 'qb_sales_rep_id', order: 1, type: FieldTypes.SELECT, default: null, required: false, label: 'QB Sales Rep', dbField: 'qb_sales_rep_id', enumValues: [], placeholder: '— Not linked —', showOn: ['form'] }),
           ],
         }),
+      ],
+    }),
+    tab({
+      name: 'Notes',
+      order: 4,
+      sections: [
         section({
           name: 'Notes',
-          order: 3,
+          order: 1,
           fields: [
-            field({ name: 'about', order: 1, type: FieldTypes.STRING, default: '', required: false, label: 'About', dbField: 'about', maxLength: 5000, showOn: ['form'] }),
+            field({ name: 'about', order: 1, type: FieldTypes.TEXTAREA, default: '', required: false, label: 'About', dbField: 'about', maxLength: 5000, showOn: ['form'] }),
           ],
         }),
       ],
