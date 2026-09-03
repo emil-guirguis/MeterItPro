@@ -88,12 +88,10 @@ function ObjectTile({ object, summary }: { object: string; summary: SyncSummary 
       <CardContent sx={{ pb: '12px !important' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="overline" color="text.secondary">{LABELS[object] ?? object}</Typography>
-          {failing ? (
+          {failing && (
             <Tooltip title={lastErr!.error ?? 'sync error'}>
               <ErrorOutlineIcon color="error" fontSize="small" />
             </Tooltip>
-          ) : (
-            <CheckCircleOutlineIcon color="success" fontSize="small" />
           )}
         </Stack>
         <Typography variant="h4" component="div">
@@ -102,13 +100,8 @@ function ObjectTile({ object, summary }: { object: string; summary: SyncSummary 
         <Typography variant="caption" color="text.secondary" component="div">
           rows staged
         </Typography>
-        <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 1 }}>
-          ↓ last pull: {lastPull
-            ? `${lastPull.rows_processed} of ${total?.toLocaleString() ?? '—'} @ ${fmtTime(lastPull.created_at)}`
-            : 'never'}
-        </Typography>
         {lastPush && (
-          <Typography variant="caption" color="text.secondary" component="div">
+          <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 1 }}>
             ↑ last push: {lastPush.rows_processed} @ {fmtTime(lastPush.created_at)}
           </Typography>
         )}
