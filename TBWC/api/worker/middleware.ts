@@ -25,7 +25,7 @@ export async function loadProfile(env: Env, userId: string): Promise<any | null>
       env,
       `SELECT id, email, first_name, last_name, agency_name, url, title, work_phone, ext, mobile,
               addr1, addr2, city, state, postal, about, approved, is_admin, type,
-              can_see_orders, can_approve_rep_leads, created_at
+              can_see_orders, can_approve_rep_leads, created_at, locked_at, last_verified_at
        FROM public.users WHERE id = $1`,
       [userId],
       'loadProfile'
@@ -58,6 +58,9 @@ export async function authenticateToken(
   const profile = await loadProfile(c.env, verified.userId);
   if (!profile) return c.json({ success: false, message: 'No user profile found' }, 403);
   if (!profile.approved) return c.json({ success: false, message: 'Account pending approval' }, 403);
+  if (profile.locked_at) {
+    return c.json({ success: false, message: 'Account locked — check your email to re-verify.' }, 403);
+  }
 
   c.set('userId', verified.userId);
   c.set('user', profile);

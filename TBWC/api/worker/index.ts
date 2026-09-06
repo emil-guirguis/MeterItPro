@@ -17,6 +17,8 @@ import quoteRoutes from './routes/quotes';
 import customerRoutes from './routes/customers';
 import qbwcRoutes from './routes/qbwc';
 import qbSyncRoutes from './routes/qbSync';
+import verifyRoutes from './routes/verify';
+import { lockStaleReps } from './reverification';
 
 const app = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
@@ -61,5 +63,19 @@ app.route('/api/qb-sync', qbSyncRoutes);
 // QuickBooks Web Connector SOAP endpoint (no Supabase auth — QBWC is not a browser
 // and authenticates with its own username/password inside the SOAP body).
 app.route('/qbwc', qbwcRoutes);
+// Re-verification link click (no Supabase auth — the token param is the credential).
+app.route('/api/verify', verifyRoutes);
 
-export default app;
+export default {
+  fetch: app.fetch,
+  // Runs on the schedule in wrangler.toml [triggers]/[env.production.triggers].
+  // Locks any rep-type user whose last_verified_at has passed the 90-day
+  // window and mails them a fresh verify link. See reverification.ts.
+  async scheduled(_event: { scheduledTime: number }, env: Env, ctx: { waitUntil(p: Promise<any>): void }) {
+    ctx.waitUntil(
+      lockStaleReps(env).catch((err) =>
+        console.error('[cron] lockStaleReps failed:', err instanceof Error ? err.message : err)
+      )
+    );
+  },
+};

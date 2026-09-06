@@ -15,6 +15,15 @@ DATABASE_URL = "postgresql://postgres.detwkqhqekaiyuajixhs:%23cxQEPx3%2B%40dL%3F
 SUPABASE_URL = "https://detwkqhqekaiyuajixhs.supabase.co"
 # Public anon key (same one the browser uses). Not a secret.
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRldHdrcWhxZWthaXl1YWppeGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTI4ODIsImV4cCI6MjEwMDM4ODg4Mn0.OUE2KsTclMTqbPZ97_MXXVG4Nqq1ZOIIujdVJWCEx88"
+# Base URL of the TBWC portal (dev = local vite server) — used to build the
+# 90-day re-verification link mailed to locked-out reps. See reverification.ts.
+PORTAL_URL = "http://localhost:5174/"
+# Service role key for the cron to call the send-mail edge fn (no browser
+# session to borrow a token from). Set as a secret, do NOT put here:
+#   wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+# Unset locally => sendMail throws and lockStaleReps just logs it (see
+# mail.ts/reverification.ts); harmless since `wrangler dev` doesn't fire
+# scheduled events unless run with --test-scheduler.
 
 # QBWC SOAP credentials — set as secrets before deploy, do NOT put here:
 #   wrangler secret put QBWC_USERNAME
@@ -37,6 +46,12 @@ localConnectionString = "postgresql://postgres.detwkqhqekaiyuajixhs:%23cxQEPx3%2
 [observability.logs]
 enabled = true
 
+# Daily re-verification sweep (worker/index.ts scheduled handler -> lockStaleReps).
+# `wrangler dev` doesn't fire this without --test-scheduler; must be duplicated
+# under [env.production.triggers] below since named envs don't inherit this.
+[triggers]
+crons = ["0 13 * * *"]
+
 # --- production -------------------------------------------------------------
 # Deploy with:  wrangler deploy --env production
 # Named envs do NOT inherit top-level [vars]/bindings, so prod is fully defined
@@ -48,12 +63,18 @@ enabled = true
 # TBWC portal is served under this origin at /<repo>/TBWCPortal/.
 FRONTEND_URL = "https://emil-guirguis.github.io"
 # Unattended sync: the .qbw path as the QB machine sees it (TOML literal string,
-# so backslashes need no escaping). Q: is a mapped drive — it only resolves while
-# the Web Connector's Windows user is logged in with that mapping present; swap in
-# the UNC path (\\server\share\...) if unattended runs start failing to open it.
-QBWC_COMPANY_FILE = 'Q:\Alll Quickbooks files\tbwc, inc..qbw'
+# so backslashes need no escaping). DISABLED 2026-09-04: sending the Q:\ mapped-
+# drive path made BeginSession fail with QBWC1013 0x80040408 "Could not start
+# QuickBooks" even with QB open (path didn't match what QB had open). Unset =
+# attended mode: the connector uses whatever company file is already open. To
+# re-enable unattended, put back the path QB itself reports (F2 / Product
+# Information window), preferably the UNC form (\\server\share\...), and re-grant
+# "allow this application to log in automatically" in QB Integrated Applications.
+#QBWC_COMPANY_FILE = 'Q:\Alll Quickbooks files\tbwc, inc..qbw'
 SUPABASE_URL = "https://detwkqhqekaiyuajixhs.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRldHdrcWhxZWthaXl1YWppeGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTI4ODIsImV4cCI6MjEwMDM4ODg4Mn0.OUE2KsTclMTqbPZ97_MXXVG4Nqq1ZOIIujdVJWCEx88"
+# Full portal URL incl. subpath (see [vars] comment above for what this is for).
+PORTAL_URL = "https://emil-guirguis.github.io/Synergy/TBWCPortal/"
 
 [[env.production.hyperdrive]]
 binding = "HYPERDRIVE"
@@ -61,3 +82,7 @@ id = "74980b729f904abe855ed1b48b7f304d"
 
 [env.production.observability.logs]
 enabled = true
+
+# Named envs don't inherit [triggers] either — duplicate of the block above.
+[env.production.triggers]
+crons = ["0 13 * * *"]

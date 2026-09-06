@@ -28,6 +28,15 @@ export interface Env {
   // run unattended (QBWC starts QuickBooks and opens the file itself); leave it
   // unset and the connector uses whatever file is already open. See routes/qbwc.ts.
   QBWC_COMPANY_FILE?: string;
+  // Service role key — lets the cron (no browser/admin session to borrow a
+  // token from) call Supabase edge functions. Set via `wrangler secret put
+  // SUPABASE_SERVICE_ROLE_KEY`. See worker/mail.ts.
+  SUPABASE_SERVICE_ROLE_KEY?: string;
+  // Base URL (incl. subpath) of the deployed TBWC portal, e.g.
+  // "https://emil-guirguis.github.io/Synergy/TBWCPortal/". Used to build the
+  // re-verification link mailed to locked-out reps. Distinct from
+  // FRONTEND_URL, which is CORS-origin-only (no path).
+  PORTAL_URL?: string;
 }
 
 export async function query(env: Env, text: string, params: any[] = []) {

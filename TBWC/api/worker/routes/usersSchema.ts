@@ -22,12 +22,18 @@ export const usersSchema = defineSchema({
     tab({
       name: 'Profile',
       order: 1,
-      columns: 2,
+      // Two visual columns: Identity fills the left half (spanning every row);
+      // the right half stacks Agency (full width) over Details | QuickBooks.
+      // The trailing 1fr row absorbs Identity's extra height so Details/QB sit
+      // directly under Agency instead of being pushed down.
+      columns: '2fr 1fr 1fr',
+      rows: 'auto auto 1fr',
       sections: [
         section({
           name: 'Identity',
           order: 1,
-          gridColumn: '1 / -1',
+          gridColumn: '1',
+          gridRow: '1 / 4',
           fields: [
             field({ name: 'first_name', order: 1, type: FieldTypes.STRING, default: '', required: true, label: 'First Name', dbField: 'first_name', maxLength: 100, placeholder: 'Jane', showOn: ['list', 'form'] }),
             field({ name: 'last_name', order: 2, type: FieldTypes.STRING, default: '', required: true, label: 'Last Name', dbField: 'last_name', maxLength: 100, placeholder: 'Doe', showOn: ['list', 'form'] }),
@@ -38,7 +44,8 @@ export const usersSchema = defineSchema({
         section({
           name: 'Agency',
           order: 2,
-          gridColumn: '1 / -1',
+          gridColumn: '2 / 4',
+          gridRow: '1',
           fields: [
             field({ name: 'agency_name', order: 1, type: FieldTypes.STRING, default: '', required: false, label: 'Agency', dbField: 'agency_name', maxLength: 200, placeholder: 'Acme Reps', showOn: ['list', 'form'] }),
             field({ name: 'url', order: 2, type: FieldTypes.URL, default: '', required: false, label: 'Website', dbField: 'url', maxLength: 300, placeholder: 'https://…', showOn: ['form'] }),
@@ -47,7 +54,9 @@ export const usersSchema = defineSchema({
         section({
           name: 'Details',
           order: 3,
-          gridColumn: '1',
+          gridColumn: '2',
+          gridRow: '2',
+          readOnly: true,
           fields: [
             field({ name: 'type', order: 1, type: FieldTypes.STRING, default: 'rep', required: true, label: 'Type', dbField: 'type', enumValues: ['rep', 'customer', 'employee'], showOn: ['list', 'form'] }),
          ],
@@ -55,7 +64,8 @@ export const usersSchema = defineSchema({
         section({
           name: 'QuickBooks',
           order: 4,
-          gridColumn: '2',
+          gridColumn: '3',
+          gridRow: '2',
           fields: [
             // enumValues/enumLabels are injected at serve time from public.qb_sales_rep
             // (see schema route). Stores the qb_sales_rep_id FK; blank = not linked.
@@ -102,6 +112,17 @@ export const usersSchema = defineSchema({
             field({ name: 'is_admin', order: 3, type: FieldTypes.BOOLEAN, default: false, required: false, label: 'Admin', dbField: 'is_admin', showOn: ['list', 'form'], readOnly: true }),
             field({ name: 'can_see_orders', order: 4, type: FieldTypes.BOOLEAN, default: false, required: false, label: 'See All Orders', dbField: 'can_see_orders', showOn: ['form'] }),
             field({ name: 'can_approve_rep_leads', order: 5, type: FieldTypes.BOOLEAN, default: false, required: false, label: 'Approve Rep Leads', dbField: 'can_approve_rep_leads', showOn: ['form'] }),
+          ],
+        }),
+        section({
+          name: 'Re-verification',
+          order: 2,
+          readOnly: true,
+          fields: [
+            // Set by the 90-day cron (worker/reverification.ts) when a rep
+            // goes stale; cleared when they click the mailed verify link.
+            field({ name: 'locked_at', order: 1, type: FieldTypes.DATETIME, default: null, readOnly: true, label: 'Locked At', dbField: 'locked_at', showOn: ['list', 'form'] }),
+            field({ name: 'last_verified_at', order: 2, type: FieldTypes.DATETIME, default: null, readOnly: true, label: 'Last Verified', dbField: 'last_verified_at', showOn: ['form'] }),
           ],
         }),
 
